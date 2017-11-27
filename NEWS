@@ -1,0 +1,4 @@
+sdbus-c++: D-Bus IPC C++ binding library based on sd-bus
+
+v0.2.3:
+  * sdbus-c++ v0.2.3 released to the public!

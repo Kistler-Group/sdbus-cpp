@@ -1,0 +1,6 @@
+Building:
+  $ ./autogen.sh ${CONFIGURE_FLAGS}
+  $ make
+
+Installing:
+  $ sudo make install
