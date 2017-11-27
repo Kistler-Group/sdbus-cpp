@@ -24,7 +24,7 @@ Dependencies
 Licensing
 ---------
 
-The library is distributed under LGPLv2.1+ license.
+The library is distributed under LGPLv2.1 license.
 
 References/documentation
 ------------------------
