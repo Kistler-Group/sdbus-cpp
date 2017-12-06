@@ -59,7 +59,7 @@ Connection::Connection(Connection::BusType type)
     if (r < 0)
         SDBUS_THROW_ERROR("Failed to flush system bus on opening", -r);
 
-    r = eventfd(0, EFD_SEMAPHORE);
+    r = eventfd(0, EFD_SEMAPHORE | EFD_CLOEXEC);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create event object", -errno);
     runFd_ = r;
 }
