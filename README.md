@@ -36,7 +36,7 @@ References/documentation
 Contributing
 ------------
 
-Contributions that increase the library quality, functionality, or fix issues are very welcome. To introduce a change, please submit a merge request with a description.
+Contributions that increase the library quality, functionality, or fix issues are very welcome. To introduce a change, please submit a pull request with a description.
 
 Contact
 -------
