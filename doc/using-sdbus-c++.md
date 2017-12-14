@@ -75,17 +75,36 @@ Error signalling and propagation
 
 The exception object carries the error name and error message with it.
 
+sdbus-c++ design
+----------------
+
+The following diagram illustrates the major entities in sdbus-c++.
+
+![class](sdbus-c++-class-diagram.png)
+
+`IConnection` represents the concept of the connection to the system bus. Services can assign unique service names to those connections. A processing loop can be run on the connection.
+
+`IObject` represents the concept of an object that exposes its methods, signals and properties. Its responsibilities are:
+* registering (possibly multiple) interfaces and methods, signals, properties on those interfaces,
+* emitting signals.
+    
+`IObjectProxy` represents the concept of the proxy, which is a view of the `Object` from the client side. Its responsibilities are:
+* invoking remote methods of the corresponding object,
+* registering handlers for signals.
+
+`Message` class represents a message, which is the fundamental DBus concept. The message can be
+* a method call (with serialized parameters),
+* a method reply (with serialized return values),
+* or a signal (with serialized parameters).
+
 Multiple layers of sdbus-c++ API
 -------------------------------
 
 sdbus-c++ API comes in two layers:
-  * the basic layer, which is almost pure wrapper layer on top of sd-bus, using mechanisms that are native to C++,
-  * the convenience layer, building on top of the basic layer, which aims at providing shorter, safer, and more expressive way of writing the 
-    client code.
+  * [the basic layer](#implementing-the-concatenator-example-using-basic-sdbus-c-api-layer), which is a simple wrapper layer on top of sd-bus, using mechanisms that are native to C++ (e.g. serialization/deserialization of data from messages),
+  * [the convenience layer](#implementing-the-concatenator-example-using-convenience-sdbus-c-api-layer), building on top of the basic layer, which aims at alleviating users from unnecessary details and enables them to write shorter, safer, and more expressive code.
 
-sdbus-c++ also ships with a stub generator tool that converts D-Bus IDL in XML format into stub code for the adaptor as well as proxy part. 
-Hierarchically, these stubs provide yet another layer of convenience (the "stubs layer"), making it possible for D-Bus RPC calls to look like 
-native C++ calls on a local object.
+sdbus-c++ also ships with a stub generator tool that converts D-Bus IDL in XML format into stub code for the adaptor as well as proxy part. Hierarchically, these stubs provide yet another layer of convenience (the "stubs layer"), making it possible for D-Bus RPC calls to completely look like native C++ calls on a local object.
 
 An example: Number concatenator
 -------------------------------
