@@ -113,6 +113,8 @@ void Connection::enterProcessingLoop()
 
         auto fdsCount = sizeof(fds)/sizeof(fds[0]);
         r = poll(fds, fdsCount, usec == (uint64_t) -1 ? -1 : (usec+999)/1000);
+        if (r < 0 && errno == EINTR)
+            continue;
         SDBUS_THROW_ERROR_IF(r < 0, "Failed to wait on the bus", -errno);
 
         if (fds[1].revents & POLLIN)
