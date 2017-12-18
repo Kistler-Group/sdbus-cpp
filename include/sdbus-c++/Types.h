@@ -97,6 +97,9 @@ namespace sdbus {
     public:
         using std::tuple<_ValueTypes...>::tuple;
 
+        Struct(const std::tuple<_ValueTypes...>& t)
+            : std::tuple<_ValueTypes...>(t) {}
+
         template <std::size_t _I>
         auto& get()
         {
