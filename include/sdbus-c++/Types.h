@@ -97,8 +97,11 @@ namespace sdbus {
     public:
         using std::tuple<_ValueTypes...>::tuple;
 
+        // Workaround for clang (where the above constructor inheritance doesn't work)
         Struct(const std::tuple<_ValueTypes...>& t)
-            : std::tuple<_ValueTypes...>(t) {}
+            : std::tuple<_ValueTypes...>(t)
+        {
+        }
 
         template <std::size_t _I>
         auto& get()
