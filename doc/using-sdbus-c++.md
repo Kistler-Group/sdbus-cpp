@@ -82,7 +82,7 @@ The following diagram illustrates the major entities in sdbus-c++.
 
 ![class](sdbus-c++-class-diagram.png)
 
-`IConnection` represents the concept of the connection to the system bus. Services can assign unique service names to those connections. A processing loop can be run on the connection.
+`IConnection` represents the concept of the connection to either the system bus or session bus. Services can assign unique service names to those connections. A processing loop can be run on the connection.
 
 `IObject` represents the concept of an object that exposes its methods, signals and properties. Its responsibilities are:
 * registering (possibly multiple) interfaces and methods, signals, properties on those interfaces,
@@ -170,9 +170,9 @@ void concatenate(sdbus::Message& msg, sdbus::Message& reply)
 
 int main(int argc, char *argv[])
 {
-    // Create D-Bus connection and requests name on it.
+    // Create D-Bus connection to the system bus and requests name on it.
     const char* serviceName = "org.sdbuscpp.concatenator";
-    auto connection = sdbus::createConnection(serviceName);
+    auto connection = sdbus::createSystemBusConnection(serviceName);
 
     // Create concatenator D-Bus object.
     const char* objectPath = "/org/sdbuscpp/concatenator";
@@ -210,7 +210,9 @@ void onConcatenated(sdbus::Message& signalMsg)
 
 int main(int argc, char *argv[])
 {
-    // Create proxy object for the concatenator object on the server side
+    // Create proxy object for the concatenator object on the server side. Since we don't pass
+    // the D-Bus connection object to the proxy constructor, the proxy will internally create
+    // its own connection to the system bus.
     const char* destinationName = "org.sdbuscpp.concatenator";
     const char* objectPath = "/org/sdbuscpp/concatenator";
     auto concatenatorProxy = sdbus::createObjectProxy(destinationName, objectPath);
@@ -256,7 +258,7 @@ int main(int argc, char *argv[])
 ```
 
 The object proxy is created without explicitly providing a D-Bus connection as an argument in its factory function. In that case, the proxy
-will create its own connection and listen to signals on it in a separate thread. That means the `onConcatenated` method is invoked always
+will create its own connection to the *system* bus and listen to signals on it in a separate thread. That means the `onConcatenated` method is invoked always
 in the context of a thread different from the main thread.
 
 Implementing the Concatenator example using convenience sdbus-c++ API layer
@@ -310,9 +312,9 @@ std::string concatenate(const std::vector<int> numbers, const std::string& separ
 
 int main(int argc, char *argv[])
 {
-    // Create D-Bus connection and requests name on it.
+    // Create D-Bus connection to the system bus and requests name on it.
     const char* serviceName = "org.sdbuscpp.concatenator";
-    auto connection = sdbus::createConnection(serviceName);
+    auto connection = sdbus::createSystemBusConnection(serviceName);
 
     // Create concatenator D-Bus object.
     const char* objectPath = "/org/sdbuscpp/concatenator";
@@ -584,9 +586,9 @@ publishing the object.
 
 int main(int argc, char *argv[])
 {
-    // Create D-Bus connection and requests name on it.
+    // Create D-Bus connection to the system bus and requests name on it.
     const char* serviceName = "org.sdbuscpp.concatenator";
-    auto connection = sdbus::createConnection(serviceName);
+    auto connection = sdbus::createSystemBusConnection(serviceName);
 
     // Create concatenator D-Bus object.
     const char* objectPath = "/org/sdbuscpp/concatenator";
