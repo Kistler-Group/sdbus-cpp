@@ -203,3 +203,12 @@ TEST(CopiesOfVariant, SerializeToAndDeserializeFromMessageSuccessfully)
     ASSERT_THAT(receivedVariant2.get<decltype(value)>(), Eq(value));
     ASSERT_THAT(receivedVariant3.get<decltype(value)>(), Eq(value));
 }
+
+TEST(AStruct, CreatesStructFromTuple)
+{
+    std::tuple<int32_t, std::string> value{1234, "abcd"};
+    sdbus::Struct<int32_t, std::string> valueStruct{value};
+
+    ASSERT_THAT(std::get<0>(valueStruct), Eq(std::get<0>(value)));
+    ASSERT_THAT(std::get<1>(valueStruct), Eq(std::get<1>(value)));
+}
