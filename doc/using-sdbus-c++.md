@@ -82,7 +82,7 @@ The following diagram illustrates the major entities in sdbus-c++.
 
 ![class](sdbus-c++-class-diagram.png)
 
-`IConnection` represents the concept of the connection to either the system bus or session bus. Services can assign unique service names to those connections. A processing loop can be run on the connection.
+`IConnection` represents the concept of a D-Bus connection. You can connect to either the system bus or a session bus. Services can assign unique service names to those connections. A processing loop can be run on the connection.
 
 `IObject` represents the concept of an object that exposes its methods, signals and properties. Its responsibilities are:
 * registering (possibly multiple) interfaces and methods, signals, properties on those interfaces,
