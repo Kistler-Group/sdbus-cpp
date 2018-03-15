@@ -53,6 +53,8 @@ namespace sdbus {
     template <typename _T>
     struct signature_of
     {
+        static constexpr bool is_valid = false;
+
         static const std::string str()
         {
             // sizeof(_T) < 0 is here to make compiler not being able to figure out
@@ -65,6 +67,8 @@ namespace sdbus {
     template <>
     struct signature_of<void>
     {
+        static constexpr bool is_valid = true;
+
         static const std::string str()
         {
             return "";
@@ -74,6 +78,8 @@ namespace sdbus {
     template <>
     struct signature_of<bool>
     {
+        static constexpr bool is_valid = true;
+
         static const std::string str()
         {
             return "b";
@@ -83,6 +89,8 @@ namespace sdbus {
     template <>
     struct signature_of<uint8_t>
     {
+        static constexpr bool is_valid = true;
+
         static const std::string str()
         {
             return "y";
@@ -92,6 +100,8 @@ namespace sdbus {
     template <>
     struct signature_of<int16_t>
     {
+        static constexpr bool is_valid = true;
+
         static const std::string str()
         {
             return "n";
@@ -101,6 +111,8 @@ namespace sdbus {
     template <>
     struct signature_of<uint16_t>
     {
+        static constexpr bool is_valid = true;
+
         static const std::string str()
         {
             return "q";
@@ -110,6 +122,8 @@ namespace sdbus {
     template <>
     struct signature_of<int32_t>
     {
+        static constexpr bool is_valid = true;
+
         static const std::string str()
         {
             return "i";
@@ -119,6 +133,8 @@ namespace sdbus {
     template <>
     struct signature_of<uint32_t>
     {
+        static constexpr bool is_valid = true;
+
         static const std::string str()
         {
             return "u";
@@ -128,6 +144,8 @@ namespace sdbus {
     template <>
     struct signature_of<int64_t>
     {
+        static constexpr bool is_valid = true;
+
         static const std::string str()
         {
             return "x";
@@ -137,6 +155,8 @@ namespace sdbus {
     template <>
     struct signature_of<uint64_t>
     {
+        static constexpr bool is_valid = true;
+
         static const std::string str()
         {
             return "t";
@@ -146,6 +166,8 @@ namespace sdbus {
     template <>
     struct signature_of<double>
     {
+        static constexpr bool is_valid = true;
+
         static const std::string str()
         {
             return "d";
@@ -155,6 +177,8 @@ namespace sdbus {
     template <>
     struct signature_of<char*>
     {
+        static constexpr bool is_valid = true;
+
         static const std::string str()
         {
             return "s";
@@ -164,6 +188,8 @@ namespace sdbus {
     template <>
     struct signature_of<const char*>
     {
+        static constexpr bool is_valid = true;
+
         static const std::string str()
         {
             return "s";
@@ -173,6 +199,8 @@ namespace sdbus {
     template <std::size_t _N>
     struct signature_of<char[_N]>
     {
+        static constexpr bool is_valid = true;
+
         static const std::string str()
         {
             return "s";
@@ -182,6 +210,8 @@ namespace sdbus {
     template <std::size_t _N>
     struct signature_of<const char[_N]>
     {
+        static constexpr bool is_valid = true;
+
         static const std::string str()
         {
             return "s";
@@ -191,6 +221,8 @@ namespace sdbus {
     template <>
     struct signature_of<std::string>
     {
+        static constexpr bool is_valid = true;
+
         static const std::string str()
         {
             return "s";
@@ -200,6 +232,8 @@ namespace sdbus {
     template <typename... _ValueTypes>
     struct signature_of<Struct<_ValueTypes...>>
     {
+        static constexpr bool is_valid = true;
+
         static const std::string str()
         {
             std::initializer_list<std::string> signatures{signature_of<_ValueTypes>::str()...};
@@ -215,6 +249,8 @@ namespace sdbus {
     template <>
     struct signature_of<Variant>
     {
+        static constexpr bool is_valid = true;
+
         static const std::string str()
         {
             return "v";
@@ -224,6 +260,8 @@ namespace sdbus {
     template <>
     struct signature_of<ObjectPath>
     {
+        static constexpr bool is_valid = true;
+
         static const std::string str()
         {
             return "o";
@@ -233,6 +271,8 @@ namespace sdbus {
     template <>
     struct signature_of<Signature>
     {
+        static constexpr bool is_valid = true;
+
         static const std::string str()
         {
             return "g";
@@ -242,6 +282,8 @@ namespace sdbus {
     template <typename _Element>
     struct signature_of<std::vector<_Element>>
     {
+        static constexpr bool is_valid = true;
+
         static const std::string str()
         {
             return "a" + signature_of<_Element>::str();
@@ -251,6 +293,8 @@ namespace sdbus {
     template <typename _Key, typename _Value>
     struct signature_of<std::map<_Key, _Value>>
     {
+        static constexpr bool is_valid = true;
+
         static const std::string str()
         {
             return "a{" + signature_of<_Key>::str() + signature_of<_Value>::str() + "}";
