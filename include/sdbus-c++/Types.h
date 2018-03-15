@@ -99,10 +99,11 @@ namespace sdbus {
         using std::tuple<_ValueTypes...>::tuple;
 
         // Workaround for clang (where the above constructor inheritance doesn't work)
-        Struct(const std::tuple<_ValueTypes...>& t)
-            : std::tuple<_ValueTypes...>(t)
-        {
-        }
+        // However, with this ctor, it doesn't work on gcc :-( TODO Investigate proper solution.
+        //Struct(const std::tuple<_ValueTypes...>& t)
+        //    : std::tuple<_ValueTypes...>(t)
+        //{
+        //}
 
         template <std::size_t _I>
         auto& get()
