@@ -1,0 +1,10 @@
+v0.2.3
+- Initially published version
+
+v0.2.4
+- Fixed closing of file descriptor of event loop's semaphore on exec
+- Fixed interrupt handling when polling
+- Improved tutorial
+- Fixed issue with googlemock
+- Added object proxy factory overload that takes unique_ptr to a connection
+- Workaround: Clang compilation error when compiling sdbus::Struct (seems like an issue of Clang)
