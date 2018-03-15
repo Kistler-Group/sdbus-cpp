@@ -226,6 +226,27 @@ namespace sdbus {
                                                           , std::string objectPath );
 
     /*!
+    * @brief Creates object proxy instance
+    *
+    * @param[in] connection D-Bus connection to be used by the proxy object
+    * @param[in] destination Bus name that provides a D-Bus object
+    * @param[in] objectPath Path of the D-Bus object
+    * @return Pointer to the object proxy instance
+    *
+    * The provided connection will be used by the proxy to issue calls against the object,
+    * and signals, if any, will be subscribed to on this connection. Object proxy becomes
+    * an exclusive owner of this connection.
+    *
+    * Code example:
+    * @code
+    * auto proxy = sdbus::createObjectProxy(std::move(connection), "com.kistler.foo", "/com/kistler/foo");
+    * @endcode
+    */
+    std::unique_ptr<sdbus::IObjectProxy> createObjectProxy( std::unique_ptr<sdbus::IConnection>&& connection
+                                                          , std::string destination
+                                                          , std::string objectPath );
+
+    /*!
     * @brief Creates object proxy instance that uses its own D-Bus connection
     *
     * @param[in] destination Bus name that provides a D-Bus object

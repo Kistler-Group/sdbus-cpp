@@ -166,6 +166,20 @@ std::unique_ptr<sdbus::IObjectProxy> createObjectProxy( IConnection& connection
                                                          , std::move(objectPath) );
 }
 
+std::unique_ptr<sdbus::IObjectProxy> createObjectProxy( std::unique_ptr<IConnection>&& connection
+                                                      , std::string destination
+                                                      , std::string objectPath )
+{
+    auto* sdbusConnection = dynamic_cast<sdbus::internal::IConnection*>(connection.get());
+    SDBUS_THROW_ERROR_IF(!sdbusConnection, "Connection is not a real sdbus-c++ connection", EINVAL);
+
+    connection.release();
+
+    return std::make_unique<sdbus::internal::ObjectProxy>( std::unique_ptr<sdbus::internal::IConnection>(sdbusConnection)
+                                                         , std::move(destination)
+                                                         , std::move(objectPath) );
+}
+
 std::unique_ptr<sdbus::IObjectProxy> createObjectProxy( std::string destination
                                                       , std::string objectPath )
 {
