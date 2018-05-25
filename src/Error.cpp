@@ -25,6 +25,7 @@
 
 #include <sdbus-c++/Error.h>
 #include <systemd/sd-bus.h>
+#include "ScopeGuard.h"
 
 namespace sdbus
 {
@@ -32,9 +33,10 @@ namespace sdbus
     {
         sd_bus_error sdbusError = SD_BUS_ERROR_NULL;
         sd_bus_error_set_errno(&sdbusError, errNo);
+        SCOPE_EXIT{ sd_bus_error_free(&sdbusError); };
+
         std::string name(sdbusError.name);
         std::string message(customMsg + " (" + sdbusError.message + ")");
-        sd_bus_error_free(&sdbusError);
         return sdbus::Error(name, message);
     }
 }

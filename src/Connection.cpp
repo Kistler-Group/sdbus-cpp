@@ -32,93 +32,48 @@
 #include <poll.h>
 #include <sys/eventfd.h>
 
-namespace {
-    std::map<sdbus::internal::Connection::BusType, int(*)(sd_bus **)> busTypeToFactory
-    {
-        {sdbus::internal::Connection::BusType::eSystem, &sd_bus_open_system},
-        {sdbus::internal::Connection::BusType::eSession, &sd_bus_open_user}
-    };
-}
-
 namespace sdbus { namespace internal {
 
 Connection::Connection(Connection::BusType type)
     : busType_(type)
 {
-    sd_bus* bus{};
-    auto r = busTypeToFactory[busType_](&bus);
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to open system bus", -r);
-
+    auto bus = openBus(busType_);
     bus_.reset(bus);
 
-    // Process all requests that are part of the initial handshake,
-    // like processing the Hello message response, authentication etc.,
-    // to avoid connection authentication timeout in dbus daemon.
-    r = sd_bus_flush(bus_.get());
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to flush system bus on opening", -r);
+    finishHandshake(bus);
 
-    r = eventfd(0, EFD_SEMAPHORE | EFD_CLOEXEC);
-    SDBUS_THROW_ERROR_IF(r < 0, "Failed to create event object", -errno);
-    runFd_ = r;
+    exitLoopFd_ = createProcessingExitDescriptor();
 }
 
 Connection::~Connection()
 {
     leaveProcessingLoop();
-    close(runFd_);
+    closeProcessingExitDescriptor(exitLoopFd_);
 }
 
 void Connection::requestName(const std::string& name)
 {
     auto r = sd_bus_request_name(bus_.get(), name.c_str(), 0);
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to request bus name", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to request bus name", -r);
 }
 
 void Connection::releaseName(const std::string& name)
 {
     auto r = sd_bus_release_name(bus_.get(), name.c_str());
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to release bus name", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to release bus name", -r);
 }
 
 void Connection::enterProcessingLoop()
 {
-    int semaphoreFd = runFd_;
-    short int semaphoreEvents = POLLIN;
-
     while (true)
     {
-        /* Process requests */
-        int r = sd_bus_process(bus_.get(), nullptr);
-        SDBUS_THROW_ERROR_IF(r < 0, "Failed to process bus requests", -r);
-        if (r > 0) /* we processed a request, try to process another one, right-away */
-            continue;
+        auto processed = processPendingRequest(bus_.get());
+        if (processed)
+            continue; // Process next one
 
-        r = sd_bus_get_fd(bus_.get());
-        SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus descriptor", -r);
-        auto sdbusFd = r;
-
-        r = sd_bus_get_events(bus_.get());
-        SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus descriptor", -r);
-        short int sdbusEvents = r;
-
-        struct pollfd fds[] = {{sdbusFd, sdbusEvents, 0}, {semaphoreFd, semaphoreEvents, 0}};
-
-        /* Wait for the next request to process */
-        uint64_t usec;
-        sd_bus_get_timeout(bus_.get(), &usec);
-
-        auto fdsCount = sizeof(fds)/sizeof(fds[0]);
-        r = poll(fds, fdsCount, usec == (uint64_t) -1 ? -1 : (usec+999)/1000);
-        if (r < 0 && errno == EINTR)
-            continue;
-        SDBUS_THROW_ERROR_IF(r < 0, "Failed to wait on the bus", -errno);
-
-        if (fds[1].revents & POLLIN)
-            break;
+        auto success = waitForNextRequest(bus_.get(), exitLoopFd_);
+        if (!success)
+            break; // Exit processing loop
     }
 }
 
@@ -129,12 +84,8 @@ void Connection::enterProcessingLoopAsync()
 
 void Connection::leaveProcessingLoop()
 {
-    assert(runFd_ >= 0);
-    uint64_t value = 1;
-    write(runFd_, &value, sizeof(value));
-
-    if (asyncLoopThread_.joinable())
-        asyncLoopThread_.join();
+    notifyProcessingLoopToExit();
+    joinWithProcessingLoop();
 }
 
 void* Connection::addObjectVTable( const std::string& objectPath
@@ -143,14 +94,15 @@ void* Connection::addObjectVTable( const std::string& objectPath
                                  , void* userData )
 {
     sd_bus_slot *slot{};
+
     auto r = sd_bus_add_object_vtable( bus_.get()
                                      , &slot
                                      , objectPath.c_str()
                                      , interfaceName.c_str()
                                      , static_cast<const sd_bus_vtable*>(vtable)
                                      , userData );
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to register object vtable", -r);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to register object vtable", -r);
 
     return slot;
 }
@@ -166,15 +118,18 @@ sdbus::Message Connection::createMethodCall( const std::string& destination
                                            , const std::string& methodName ) const
 {
     sd_bus_message *sdbusMsg{};
-    SCOPE_EXIT{ sd_bus_message_unref(sdbusMsg); }; // Returned message will become an owner of sdbusMsg
+
+    // Returned message will become an owner of sdbusMsg
+    SCOPE_EXIT{ sd_bus_message_unref(sdbusMsg); };
+
     auto r = sd_bus_message_new_method_call( bus_.get()
                                            , &sdbusMsg
                                            , destination.c_str()
                                            , objectPath.c_str()
                                            , interfaceName.c_str()
                                            , methodName.c_str() );
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to create method call", -r);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to create method call", -r);
 
     return Message(sdbusMsg, Message::Type::eMethodCall);
 }
@@ -184,14 +139,17 @@ sdbus::Message Connection::createSignal( const std::string& objectPath
                                        , const std::string& signalName ) const
 {
     sd_bus_message *sdbusSignal{};
-    SCOPE_EXIT{ sd_bus_message_unref(sdbusSignal); }; // Returned message will become an owner of sdbusSignal
+
+    // Returned message will become an owner of sdbusSignal
+    SCOPE_EXIT{ sd_bus_message_unref(sdbusSignal); };
+
     auto r = sd_bus_message_new_signal( bus_.get()
                                       , &sdbusSignal
                                       , objectPath.c_str()
                                       , interfaceName.c_str()
                                       , signalName.c_str() );
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to create signal", -r);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to create signal", -r);
 
     return Message(sdbusSignal, Message::Type::eSignal);
 }
@@ -203,10 +161,11 @@ void* Connection::registerSignalHandler( const std::string& objectPath
                                        , void* userData )
 {
     sd_bus_slot *slot{};
+
     auto filter = composeSignalMatchFilter(objectPath, interfaceName, signalName);
     auto r = sd_bus_add_match(bus_.get(), &slot, filter.c_str(), callback, userData);
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to register signal handler", -r);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to register signal handler", -r);
 
     return slot;
 }
@@ -221,15 +180,120 @@ std::unique_ptr<sdbus::internal::IConnection> Connection::clone() const
     return std::make_unique<sdbus::internal::Connection>(busType_);
 }
 
+sd_bus* Connection::openBus(Connection::BusType type)
+{
+    static std::map<sdbus::internal::Connection::BusType, int(*)(sd_bus **)> busTypeToFactory
+    {
+        {sdbus::internal::Connection::BusType::eSystem, &sd_bus_open_system},
+        {sdbus::internal::Connection::BusType::eSession, &sd_bus_open_user}
+    };
+
+    sd_bus* bus{};
+
+    auto r = busTypeToFactory[type](&bus);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to open bus", -r);
+    assert(bus != nullptr);
+
+    return bus;
+}
+
+void Connection::finishHandshake(sd_bus* bus)
+{
+    // Process all requests that are part of the initial handshake,
+    // like processing the Hello message response, authentication etc.,
+    // to avoid connection authentication timeout in dbus daemon.
+
+    assert(bus != nullptr);
+
+    auto r = sd_bus_flush(bus);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to flush bus on opening", -r);
+}
+
+int Connection::createProcessingExitDescriptor()
+{
+    // Mechanism for graceful termination of processing loop
+
+    auto r = eventfd(0, EFD_SEMAPHORE | EFD_CLOEXEC);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to create event object", -errno);
+
+    return r;
+}
+
+void Connection::closeProcessingExitDescriptor(int fd)
+{
+    close(fd);
+}
+
+void Connection::notifyProcessingLoopToExit()
+{
+    assert(exitLoopFd_ >= 0);
+    uint64_t value = 1;
+    write(exitLoopFd_, &value, sizeof(value));
+}
+
+void Connection::joinWithProcessingLoop()
+{
+    if (asyncLoopThread_.joinable())
+        asyncLoopThread_.join();
+}
+
+bool Connection::processPendingRequest(sd_bus* bus)
+{
+    assert(bus != nullptr);
+
+    int r = sd_bus_process(bus, nullptr);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to process bus requests", -r);
+
+    return r > 0;
+}
+
+bool Connection::waitForNextRequest(sd_bus* bus, int exitFd)
+{
+    assert(bus != nullptr);
+    assert(exitFd != 0);
+
+    auto r = sd_bus_get_fd(bus);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus descriptor", -r);
+    auto sdbusFd = r;
+
+    r = sd_bus_get_events(bus);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus events", -r);
+    short int sdbusEvents = r;
+
+    uint64_t usec;
+    sd_bus_get_timeout(bus, &usec);
+
+    struct pollfd fds[] = {{sdbusFd, sdbusEvents, 0}, {exitFd, POLLIN, 0}};
+    auto fdsCount = sizeof(fds)/sizeof(fds[0]);
+
+    r = poll(fds, fdsCount, usec == (uint64_t) -1 ? -1 : (usec+999)/1000);
+
+    if (r < 0 && errno == EINTR)
+        return true; // Try again
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to wait on the bus", -errno);
+
+    if (fds[1].revents & POLLIN)
+        return false; // Got exit notification
+
+    return true;
+}
+
 std::string Connection::composeSignalMatchFilter( const std::string& objectPath
                                                 , const std::string& interfaceName
                                                 , const std::string& signalName )
 {
     std::string filter;
+
     filter += "type='signal',";
     filter += "interface='" + interfaceName + "',";
     filter += "member='" + signalName + "',";
     filter += "path='" + objectPath + "'";
+
     return filter;
 }
 

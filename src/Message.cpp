@@ -85,8 +85,7 @@ Message& Message::operator<<(bool item)
     int intItem = item;
 
     auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_BOOLEAN, &intItem);
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to serialize a bool value", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a bool value", -r);
 
     return *this;
 }
@@ -94,8 +93,7 @@ Message& Message::operator<<(bool item)
 Message& Message::operator<<(int16_t item)
 {
     auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_INT16, &item);
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to serialize a int16_t value", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a int16_t value", -r);
 
     return *this;
 }
@@ -103,8 +101,7 @@ Message& Message::operator<<(int16_t item)
 Message& Message::operator<<(int32_t item)
 {
     auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_INT32, &item);
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to serialize a int32_t value", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a int32_t value", -r);
 
     return *this;
 }
@@ -112,8 +109,7 @@ Message& Message::operator<<(int32_t item)
 Message& Message::operator<<(int64_t item)
 {
     auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_INT64, &item);
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to serialize a int64_t value", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a int64_t value", -r);
 
     return *this;
 }
@@ -121,8 +117,7 @@ Message& Message::operator<<(int64_t item)
 Message& Message::operator<<(uint8_t item)
 {
     auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_BYTE, &item);
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to serialize a byte value", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a byte value", -r);
 
     return *this;
 }
@@ -130,8 +125,7 @@ Message& Message::operator<<(uint8_t item)
 Message& Message::operator<<(uint16_t item)
 {
     auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_UINT16, &item);
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to serialize a uint16_t value", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a uint16_t value", -r);
 
     return *this;
 }
@@ -139,8 +133,7 @@ Message& Message::operator<<(uint16_t item)
 Message& Message::operator<<(uint32_t item)
 {
     auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_UINT32, &item);
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to serialize a uint32_t value", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a uint32_t value", -r);
 
     return *this;
 }
@@ -148,8 +141,7 @@ Message& Message::operator<<(uint32_t item)
 Message& Message::operator<<(uint64_t item)
 {
     auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_UINT64, &item);
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to serialize a uint64_t value", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a uint64_t value", -r);
 
     return *this;
 }
@@ -157,8 +149,7 @@ Message& Message::operator<<(uint64_t item)
 Message& Message::operator<<(double item)
 {
     auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_DOUBLE, &item);
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to serialize a double value", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a double value", -r);
 
     return *this;
 }
@@ -166,8 +157,7 @@ Message& Message::operator<<(double item)
 Message& Message::operator<<(const char* item)
 {
     auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_STRING, item);
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to serialize a C-string value", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a C-string value", -r);
 
     return *this;
 }
@@ -175,8 +165,7 @@ Message& Message::operator<<(const char* item)
 Message& Message::operator<<(const std::string& item)
 {
     auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_STRING, item.c_str());
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to serialize a string value", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a string value", -r);
 
     return *this;
 }
@@ -191,8 +180,7 @@ Message& Message::operator<<(const Variant &item)
 Message& Message::operator<<(const ObjectPath &item)
 {
     auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_OBJECT_PATH, item.c_str());
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to serialize an ObjectPath value", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize an ObjectPath value", -r);
 
     return *this;
 }
@@ -200,8 +188,7 @@ Message& Message::operator<<(const ObjectPath &item)
 Message& Message::operator<<(const Signature &item)
 {
     auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_SIGNATURE, item.c_str());
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to serialize an Signature value", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize an Signature value", -r);
 
     return *this;
 }
@@ -213,8 +200,8 @@ Message& Message::operator>>(bool& item)
     auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_BOOLEAN, &intItem);
     if (r == 0)
         ok_ = false;
-    else if (r < 0)
-        SDBUS_THROW_ERROR("Failed to deserialize a bool value", -r);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to deserialize a bool value", -r);
 
     item = static_cast<bool>(intItem);
 
@@ -226,8 +213,8 @@ Message& Message::operator>>(int16_t& item)
     auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_INT16, &item);
     if (r == 0)
         ok_ = false;
-    else if (r < 0)
-        SDBUS_THROW_ERROR("Failed to deserialize a int16_t value", -r);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to deserialize a int16_t value", -r);
 
     return *this;
 }
@@ -237,8 +224,8 @@ Message& Message::operator>>(int32_t& item)
     auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_INT32, &item);
     if (r == 0)
         ok_ = false;
-    else if (r < 0)
-        SDBUS_THROW_ERROR("Failed to deserialize a int32_t value", -r);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to deserialize a int32_t value", -r);
 
     return *this;
 }
@@ -248,8 +235,8 @@ Message& Message::operator>>(int64_t& item)
     auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_INT64, &item);
     if (r == 0)
         ok_ = false;
-    else if (r < 0)
-        SDBUS_THROW_ERROR("Failed to deserialize a bool value", -r);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to deserialize a bool value", -r);
 
     return *this;
 }
@@ -259,8 +246,8 @@ Message& Message::operator>>(uint8_t& item)
     auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_BYTE, &item);
     if (r == 0)
         ok_ = false;
-    else if (r < 0)
-        SDBUS_THROW_ERROR("Failed to deserialize a byte value", -r);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to deserialize a byte value", -r);
 
     return *this;
 }
@@ -270,8 +257,8 @@ Message& Message::operator>>(uint16_t& item)
     auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_UINT16, &item);
     if (r == 0)
         ok_ = false;
-    else if (r < 0)
-        SDBUS_THROW_ERROR("Failed to deserialize a uint16_t value", -r);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to deserialize a uint16_t value", -r);
 
     return *this;
 }
@@ -281,8 +268,8 @@ Message& Message::operator>>(uint32_t& item)
     auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_UINT32, &item);
     if (r == 0)
         ok_ = false;
-    else if (r < 0)
-        SDBUS_THROW_ERROR("Failed to deserialize a uint32_t value", -r);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to deserialize a uint32_t value", -r);
 
     return *this;
 }
@@ -292,8 +279,8 @@ Message& Message::operator>>(uint64_t& item)
     auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_UINT64, &item);
     if (r == 0)
         ok_ = false;
-    else if (r < 0)
-        SDBUS_THROW_ERROR("Failed to deserialize a uint64_t value", -r);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to deserialize a uint64_t value", -r);
 
     return *this;
 }
@@ -303,8 +290,8 @@ Message& Message::operator>>(double& item)
     auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_DOUBLE, &item);
     if (r == 0)
         ok_ = false;
-    else if (r < 0)
-        SDBUS_THROW_ERROR("Failed to deserialize a double value", -r);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to deserialize a double value", -r);
 
     return *this;
 }
@@ -314,8 +301,8 @@ Message& Message::operator>>(char*& item)
     auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_STRING, &item);
     if (r == 0)
         ok_ = false;
-    else if (r < 0)
-        SDBUS_THROW_ERROR("Failed to deserialize a string value", -r);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to deserialize a string value", -r);
 
     return *this;
 }
@@ -350,8 +337,8 @@ Message& Message::operator>>(ObjectPath &item)
     auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_OBJECT_PATH, &str);
     if (r == 0)
         ok_ = false;
-    else if (r < 0)
-        SDBUS_THROW_ERROR("Failed to deserialize an ObjectPath value", -r);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to deserialize an ObjectPath value", -r);
 
     if (str != nullptr)
         item = str;
@@ -365,8 +352,8 @@ Message& Message::operator>>(Signature &item)
     auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_SIGNATURE, &str);
     if (r == 0)
         ok_ = false;
-    else if (r < 0)
-        SDBUS_THROW_ERROR("Failed to deserialize a Signature value", -r);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to deserialize a Signature value", -r);
 
     if (str != nullptr)
         item = str;
@@ -378,8 +365,7 @@ Message& Message::operator>>(Signature &item)
 Message& Message::openContainer(const std::string& signature)
 {
     auto r = sd_bus_message_open_container((sd_bus_message*)msg_, SD_BUS_TYPE_ARRAY, signature.c_str());
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to open a container", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to open a container", -r);
 
     return *this;
 }
@@ -387,8 +373,7 @@ Message& Message::openContainer(const std::string& signature)
 Message& Message::closeContainer()
 {
     auto r = sd_bus_message_close_container((sd_bus_message*)msg_);
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to close a container", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to close a container", -r);
 
     return *this;
 }
@@ -396,8 +381,7 @@ Message& Message::closeContainer()
 Message& Message::openDictEntry(const std::string& signature)
 {
     auto r = sd_bus_message_open_container((sd_bus_message*)msg_, SD_BUS_TYPE_DICT_ENTRY, signature.c_str());
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to open a dictionary entry", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to open a dictionary entry", -r);
 
     return *this;
 }
@@ -405,8 +389,7 @@ Message& Message::openDictEntry(const std::string& signature)
 Message& Message::closeDictEntry()
 {
     auto r = sd_bus_message_close_container((sd_bus_message*)msg_);
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to close a dictionary entry", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to close a dictionary entry", -r);
 
     return *this;
 }
@@ -414,8 +397,7 @@ Message& Message::closeDictEntry()
 Message& Message::openVariant(const std::string& signature)
 {
     auto r = sd_bus_message_open_container((sd_bus_message*)msg_, SD_BUS_TYPE_VARIANT, signature.c_str());
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to open a variant", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to open a variant", -r);
 
     return *this;
 }
@@ -423,8 +405,7 @@ Message& Message::openVariant(const std::string& signature)
 Message& Message::closeVariant()
 {
     auto r = sd_bus_message_close_container((sd_bus_message*)msg_);
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to close a variant", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to close a variant", -r);
 
     return *this;
 }
@@ -432,8 +413,7 @@ Message& Message::closeVariant()
 Message& Message::openStruct(const std::string& signature)
 {
     auto r = sd_bus_message_open_container((sd_bus_message*)msg_, SD_BUS_TYPE_STRUCT, signature.c_str());
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to open a struct", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to open a struct", -r);
 
     return *this;
 }
@@ -441,8 +421,7 @@ Message& Message::openStruct(const std::string& signature)
 Message& Message::closeStruct()
 {
     auto r = sd_bus_message_close_container((sd_bus_message*)msg_);
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to close a struct", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to close a struct", -r);
 
     return *this;
 }
@@ -453,8 +432,8 @@ Message& Message::enterContainer(const std::string& signature)
     auto r = sd_bus_message_enter_container((sd_bus_message*)msg_, SD_BUS_TYPE_ARRAY, signature.c_str());
     if (r == 0)
         ok_ = false;
-    else if (r < 0)
-        SDBUS_THROW_ERROR("Failed to enter a container", -r);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to enter a container", -r);
 
     return *this;
 }
@@ -462,8 +441,7 @@ Message& Message::enterContainer(const std::string& signature)
 Message& Message::exitContainer()
 {
     auto r = sd_bus_message_exit_container((sd_bus_message*)msg_);
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to exit a container", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to exit a container", -r);
 
     return *this;
 }
@@ -473,8 +451,8 @@ Message& Message::enterDictEntry(const std::string& signature)
     auto r = sd_bus_message_enter_container((sd_bus_message*)msg_, SD_BUS_TYPE_DICT_ENTRY, signature.c_str());
     if (r == 0)
         ok_ = false;
-    else if (r < 0)
-        SDBUS_THROW_ERROR("Failed to enter a dictionary entry", -r);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to enter a dictionary entry", -r);
 
     return *this;
 }
@@ -482,8 +460,7 @@ Message& Message::enterDictEntry(const std::string& signature)
 Message& Message::exitDictEntry()
 {
     auto r = sd_bus_message_exit_container((sd_bus_message*)msg_);
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to exit a dictionary entry", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to exit a dictionary entry", -r);
 
     return *this;
 }
@@ -493,8 +470,8 @@ Message& Message::enterVariant(const std::string& signature)
     auto r = sd_bus_message_enter_container((sd_bus_message*)msg_, SD_BUS_TYPE_VARIANT, signature.c_str());
     if (r == 0)
         ok_ = false;
-    else if (r < 0)
-        SDBUS_THROW_ERROR("Failed to enter a variant", -r);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to enter a variant", -r);
 
     return *this;
 }
@@ -502,8 +479,7 @@ Message& Message::enterVariant(const std::string& signature)
 Message& Message::exitVariant()
 {
     auto r = sd_bus_message_exit_container((sd_bus_message*)msg_);
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to exit a variant", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to exit a variant", -r);
 
     return *this;
 }
@@ -513,8 +489,8 @@ Message& Message::enterStruct(const std::string& signature)
     auto r = sd_bus_message_enter_container((sd_bus_message*)msg_, SD_BUS_TYPE_STRUCT, signature.c_str());
     if (r == 0)
         ok_ = false;
-    else if (r < 0)
-        SDBUS_THROW_ERROR("Failed to enter a struct", -r);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to enter a struct", -r);
 
     return *this;
 }
@@ -522,8 +498,7 @@ Message& Message::enterStruct(const std::string& signature)
 Message& Message::exitStruct()
 {
     auto r = sd_bus_message_exit_container((sd_bus_message*)msg_);
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to exit a struct", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to exit a struct", -r);
 
     return *this;
 }
@@ -542,8 +517,7 @@ void Message::clearFlags()
 void Message::copyTo(Message& destination, bool complete) const
 {
     auto r = sd_bus_message_copy((sd_bus_message*)destination.msg_, (sd_bus_message*)msg_, complete);
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to copy the message", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to copy the message", -r);
 }
 
 void Message::seal()
@@ -551,15 +525,13 @@ void Message::seal()
     const auto messageCookie = 1;
     const auto sealTimeout = 0;
     auto r = sd_bus_message_seal((sd_bus_message*)msg_, messageCookie, sealTimeout);
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to seal the message", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to seal the message", -r);
 }
 
 void Message::rewind(bool complete)
 {
     auto r = sd_bus_message_rewind((sd_bus_message*)msg_, complete);
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to rewind the message", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to rewind the message", -r);
 }
 
 Message Message::send() const
@@ -585,16 +557,14 @@ Message Message::send() const
     else if (type_ == Type::eMethodReply)
     {
         auto r = sd_bus_send(nullptr, (sd_bus_message*)msg_, nullptr);
-        if (r < 0)
-            SDBUS_THROW_ERROR("Failed to send reply", -r);
+        SDBUS_THROW_ERROR_IF(r < 0, "Failed to send reply", -r);
 
         return Message();
     }
     else if (type_ == Type::eSignal)
     {
         auto r = sd_bus_send(nullptr, (sd_bus_message*)msg_, nullptr);
-        if (r < 0)
-            SDBUS_THROW_ERROR("Failed to emit signal", -r);
+        SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit signal", -r);
 
         return Message();
     }
@@ -610,8 +580,7 @@ Message Message::createReply() const
     sd_bus_message *sdbusReply{};
     SCOPE_EXIT{ sd_bus_message_unref(sdbusReply); }; // Returned message will become an owner of sdbusReply
     auto r = sd_bus_message_new_method_return((sd_bus_message*)msg_, &sdbusReply);
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to create method reply", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to create method reply", -r);
 
     assert(sdbusReply != nullptr);
 
@@ -633,8 +602,7 @@ void Message::peekType(std::string& type, std::string& contents) const
     char typeSig;
     const char* contentsSig;
     auto r = sd_bus_message_peek_type((sd_bus_message*)msg_, &typeSig, &contentsSig);
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to peek message type", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to peek message type", -r);
     type = typeSig;
     contents = contentsSig;
 }
@@ -661,14 +629,12 @@ Message createPlainMessage()
     sd_bus* bus{};
     SCOPE_EXIT{ sd_bus_unref(bus); }; // sdbusMsg will hold reference to the bus
     r = sd_bus_default_system(&bus);
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to get default system bus", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get default system bus", -r);
 
     sd_bus_message* sdbusMsg{};
     SCOPE_EXIT{ sd_bus_message_unref(sdbusMsg); }; // Returned message will become an owner of sdbusMsg
     r = sd_bus_message_new(bus, &sdbusMsg, _SD_BUS_MESSAGE_TYPE_INVALID);
-    if (r < 0)
-        SDBUS_THROW_ERROR("Failed to create a new message", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to create a new message", -r);
 
     return Message(sdbusMsg, Message::Type::ePlainMessage);
 }

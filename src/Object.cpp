@@ -103,49 +103,8 @@ void Object::finishRegistration()
         const auto& interfaceName = item.first;
         auto& interfaceData = item.second;
 
-        auto& vtable = interfaceData.vtable_;
-        assert(vtable.empty());
-
-        vtable.push_back(createVTableStartItem());
-        for (const auto& item : interfaceData.methods_)
-        {
-            const auto& methodName = item.first;
-            const auto& methodData = item.second;
-
-            vtable.push_back(createVTableMethodItem( methodName.c_str()
-                                                   , methodData.inputArgs_.c_str()
-                                                   , methodData.outputArgs_.c_str()
-                                                   , &Object::sdbus_method_callback ));
-        }
-        for (const auto& item : interfaceData.signals_)
-        {
-            const auto& signalName = item.first;
-            const auto& signalData = item.second;
-
-            vtable.push_back(createVTableSignalItem( signalName.c_str()
-                                                   , signalData.signature_.c_str() ));
-        }
-        for (const auto& item : interfaceData.properties_)
-        {
-            const auto& propertyName = item.first;
-            const auto& propertyData = item.second;
-
-            if (!propertyData.setCallback_)
-                vtable.push_back(createVTablePropertyItem( propertyName.c_str()
-                                                         , propertyData.signature_.c_str()
-                                                         , &Object::sdbus_property_get_callback ));
-            else
-                vtable.push_back(createVTableWritablePropertyItem( propertyName.c_str()
-                                                                 , propertyData.signature_.c_str()
-                                                                 , &Object::sdbus_property_get_callback
-                                                                 , &Object::sdbus_property_set_callback ));
-        }
-        vtable.push_back(createVTableEndItem());
-
-        // Tell, don't ask
-        auto slot = (sd_bus_slot*) connection_.addObjectVTable(objectPath_, interfaceName, &vtable[0], this);
-        interfaceData.slot_.reset(slot);
-        interfaceData.slot_.get_deleter() = [this](void *slot){ connection_.removeObjectVTable(slot); };
+        const auto& vtable = createInterfaceVTable(interfaceData);
+        activateInterfaceVTable(interfaceName, interfaceData, vtable);
     }
 }
 
@@ -158,6 +117,75 @@ sdbus::Message Object::createSignal(const std::string& interfaceName, const std:
 void Object::emitSignal(const sdbus::Message& message)
 {
     message.send();
+}
+
+const std::vector<sd_bus_vtable>& Object::createInterfaceVTable(InterfaceData& interfaceData)
+{
+    auto& vtable = interfaceData.vtable_;
+    assert(vtable.empty());
+
+    vtable.push_back(createVTableStartItem());
+    registerMethodsToVTable(interfaceData, vtable);
+    registerSignalsToVTable(interfaceData, vtable);
+    registerPropertiesToVTable(interfaceData, vtable);
+    vtable.push_back(createVTableEndItem());
+
+    return vtable;
+}
+
+void Object::registerMethodsToVTable(const InterfaceData& interfaceData, std::vector<sd_bus_vtable>& vtable)
+{
+    for (const auto& item : interfaceData.methods_)
+    {
+        const auto& methodName = item.first;
+        const auto& methodData = item.second;
+
+        vtable.push_back(createVTableMethodItem( methodName.c_str()
+                                               , methodData.inputArgs_.c_str()
+                                               , methodData.outputArgs_.c_str()
+                                               , &Object::sdbus_method_callback ));
+    }
+}
+
+void Object::registerSignalsToVTable(const InterfaceData& interfaceData, std::vector<sd_bus_vtable>& vtable)
+{
+    for (const auto& item : interfaceData.signals_)
+    {
+        const auto& signalName = item.first;
+        const auto& signalData = item.second;
+
+        vtable.push_back(createVTableSignalItem( signalName.c_str()
+                                               , signalData.signature_.c_str() ));
+    }
+}
+
+void Object::registerPropertiesToVTable(const InterfaceData& interfaceData, std::vector<sd_bus_vtable>& vtable)
+{
+    for (const auto& item : interfaceData.properties_)
+    {
+        const auto& propertyName = item.first;
+        const auto& propertyData = item.second;
+
+        if (!propertyData.setCallback_)
+            vtable.push_back(createVTablePropertyItem( propertyName.c_str()
+                                                     , propertyData.signature_.c_str()
+                                                     , &Object::sdbus_property_get_callback ));
+        else
+            vtable.push_back(createVTableWritablePropertyItem( propertyName.c_str()
+                                                             , propertyData.signature_.c_str()
+                                                             , &Object::sdbus_property_get_callback
+                                                             , &Object::sdbus_property_set_callback ));
+    }
+}
+
+void Object::activateInterfaceVTable( const std::string& interfaceName
+                                    , InterfaceData& interfaceData
+                                    , const std::vector<sd_bus_vtable>& vtable )
+{
+    // Tell, don't ask
+    auto slot = (sd_bus_slot*) connection_.addObjectVTable(objectPath_, interfaceName, &vtable[0], this);
+    interfaceData.slot_.reset(slot);
+    interfaceData.slot_.get_deleter() = [this](void *slot){ connection_.removeObjectVTable(slot); };
 }
 
 int Object::sdbus_method_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError)

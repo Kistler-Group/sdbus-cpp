@@ -71,26 +71,6 @@ namespace internal {
         void emitSignal(const sdbus::Message& message) override;
 
     private:
-        static int sdbus_method_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
-        static int sdbus_property_get_callback( sd_bus *bus
-                                              , const char *objectPath
-                                              , const char *interface
-                                              , const char *property
-                                              , sd_bus_message *sdbusReply
-                                              , void *userData
-                                              , sd_bus_error *retError );
-        static int sdbus_property_set_callback( sd_bus *bus
-                                              , const char *objectPath
-                                              , const char *interface
-                                              , const char *property
-                                              , sd_bus_message *sdbusValue
-                                              , void *userData
-                                              , sd_bus_error *retError );
-
-    private:
-        sdbus::internal::IConnection& connection_;
-        std::string objectPath_;
-
         using InterfaceName = std::string;
         struct InterfaceData
         {
@@ -120,6 +100,34 @@ namespace internal {
 
             std::unique_ptr<void, std::function<void(void*)>> slot_;
         };
+
+        static const std::vector<sd_bus_vtable>& createInterfaceVTable(InterfaceData& interfaceData);
+        static void registerMethodsToVTable(const InterfaceData& interfaceData, std::vector<sd_bus_vtable>& vtable);
+        static void registerSignalsToVTable(const InterfaceData& interfaceData, std::vector<sd_bus_vtable>& vtable);
+        static void registerPropertiesToVTable(const InterfaceData& interfaceData, std::vector<sd_bus_vtable>& vtable);
+        void activateInterfaceVTable( const std::string& interfaceName
+                                    , InterfaceData& interfaceData
+                                    , const std::vector<sd_bus_vtable>& vtable );
+
+        static int sdbus_method_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
+        static int sdbus_property_get_callback( sd_bus *bus
+                                              , const char *objectPath
+                                              , const char *interface
+                                              , const char *property
+                                              , sd_bus_message *sdbusReply
+                                              , void *userData
+                                              , sd_bus_error *retError );
+        static int sdbus_property_set_callback( sd_bus *bus
+                                              , const char *objectPath
+                                              , const char *interface
+                                              , const char *property
+                                              , sd_bus_message *sdbusValue
+                                              , void *userData
+                                              , sd_bus_error *retError );
+
+    private:
+        sdbus::internal::IConnection& connection_;
+        std::string objectPath_;
         std::map<InterfaceName, InterfaceData> interfaces_;
     };
 
