@@ -231,6 +231,13 @@ namespace sdbus {
         SignalEmitter emitSignal(const std::string& signalName);
 
         virtual ~IObject() = 0;
+
+        /* TODO doc and move fnc decl up */
+        virtual void registerMethod( const std::string& interfaceName
+                                   , const std::string& methodName
+                                   , const std::string& inputSignature
+                                   , const std::string& outputSignature
+                                   , async_method_callback asyncMethodCallback ) = 0;
     };
 
     inline MethodRegistrator IObject::registerMethod(const std::string& methodName)

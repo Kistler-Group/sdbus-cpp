@@ -48,6 +48,9 @@ namespace sdbus {
 
 namespace sdbus {
 
+    // TODO cleanup
+    class AsyncReply{};
+
     /********************************************//**
      * @class Message
      *
@@ -144,6 +147,7 @@ namespace sdbus {
         void rewind(bool complete);
 
         Message createReply() const;
+        AsyncReply createAsyncReply() const;
         Message send() const;
 
     private:

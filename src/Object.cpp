@@ -48,9 +48,36 @@ void Object::registerMethod( const std::string& interfaceName
 {
     SDBUS_THROW_ERROR_IF(!methodCallback, "Invalid method callback provided", EINVAL);
 
-    auto& interface = interfaces_[interfaceName];
+    auto syncCallback = [callback = std::move(methodCallback)](Message& msg)
+    {
+        auto reply = msg.createReply();
+        callback(msg, reply);
+        reply.send();
+    };
 
-    InterfaceData::MethodData methodData{inputSignature, outputSignature, std::move(methodCallback)};
+    auto& interface = interfaces_[interfaceName];
+    InterfaceData::MethodData methodData{inputSignature, outputSignature, std::move(syncCallback)};
+    auto inserted = interface.methods_.emplace(methodName, std::move(methodData)).second;
+
+    SDBUS_THROW_ERROR_IF(!inserted, "Failed to register method: method already exists", EINVAL);
+}
+
+void Object::registerMethod( const std::string& interfaceName
+                           , const std::string& methodName
+                           , const std::string& inputSignature
+                           , const std::string& outputSignature
+                           , async_method_callback asyncMethodCallback )
+{
+    SDBUS_THROW_ERROR_IF(!asyncMethodCallback, "Invalid method callback provided", EINVAL);
+
+    auto asyncCallback = [callback = std::move(asyncMethodCallback)](Message& msg)
+    {
+        auto reply = msg.createAsyncReply();
+        callback(msg, reply);
+    };
+
+    auto& interface = interfaces_[interfaceName];
+    InterfaceData::MethodData methodData{inputSignature, outputSignature, std::move(asyncCallback)};
     auto inserted = interface.methods_.emplace(methodName, std::move(methodData)).second;
 
     SDBUS_THROW_ERROR_IF(!inserted, "Failed to register method: method already exists", EINVAL);
@@ -116,6 +143,10 @@ sdbus::Message Object::createSignal(const std::string& interfaceName, const std:
 
 void Object::emitSignal(const sdbus::Message& message)
 {
+    // TODO: Make signal emitting asynchronous. Now signal can probably be emitted only from user code
+    // handled within the D-Bus processing loop thread, but not from any thread. In principle it will
+    // be the same as async replies.
+    // TODO: SDBUS_THROW_IF message is not a signal
     message.send();
 }
 
@@ -197,19 +228,14 @@ int Object::sdbus_method_callback(sd_bus_message *sdbusMessage, void *userData, 
     auto& callback = object->interfaces_[message.getInterfaceName()].methods_[message.getMemberName()].callback_;
     assert(callback);
 
-    auto reply = message.createReply();
-
     try
     {
-        callback(message, reply);
+        callback(message);
     }
     catch (const sdbus::Error& e)
     {
         sd_bus_error_set(retError, e.getName().c_str(), e.getMessage().c_str());
-        return 1;
     }
-
-    reply.send();
 
     return 1;
 }

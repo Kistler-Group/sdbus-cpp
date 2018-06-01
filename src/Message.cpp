@@ -587,6 +587,11 @@ Message Message::createReply() const
     return Message(sdbusReply, Type::eMethodReply);
 }
 
+AsyncReply Message::createAsyncReply() const
+{
+    return AsyncReply{};
+}
+
 std::string Message::getInterfaceName() const
 {
     return sd_bus_message_get_interface((sd_bus_message*)msg_);

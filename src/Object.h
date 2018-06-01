@@ -32,6 +32,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <functional>
 #include <memory>
 #include <cassert>
 
@@ -49,6 +50,12 @@ namespace internal {
                            , const std::string& inputSignature
                            , const std::string& outputSignature
                            , method_callback methodCallback ) override;
+
+        void registerMethod( const std::string& interfaceName
+                           , const std::string& methodName
+                           , const std::string& inputSignature
+                           , const std::string& outputSignature
+                           , async_method_callback asyncMethodCallback ) override;
 
         void registerSignal( const std::string& interfaceName
                            , const std::string& signalName
@@ -79,7 +86,7 @@ namespace internal {
             {
                 std::string inputArgs_;
                 std::string outputArgs_;
-                method_callback callback_;
+                std::function<void(Message&)> callback_;
             };
             std::map<MethodName, MethodData> methods_;
             using SignalName = std::string;
