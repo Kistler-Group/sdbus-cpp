@@ -60,13 +60,13 @@ ObjectProxy::~ObjectProxy()
         signalConnection_->leaveProcessingLoop();
 }
 
-Message ObjectProxy::createMethodCall(const std::string& interfaceName, const std::string& methodName)
+MethodCall ObjectProxy::createMethodCall(const std::string& interfaceName, const std::string& methodName)
 {
     // Tell, don't ask
     return connection_->createMethodCall(destination_, objectPath_, interfaceName, methodName);
 }
 
-Message ObjectProxy::callMethod(const Message& message)
+MethodReply ObjectProxy::callMethod(const MethodCall& message)
 {
     return message.send();
 }
@@ -138,7 +138,7 @@ void ObjectProxy::registerSignalHandlers(sdbus::internal::IConnection& connectio
 
 int ObjectProxy::sdbus_signal_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error */*retError*/)
 {
-    Message message(sdbusMessage, Message::Type::eSignal);
+    Signal message(sdbusMessage);
 
     auto* object = static_cast<ObjectProxy*>(userData);
     // Note: The lookup can be optimized by using sorted vectors instead of associative containers

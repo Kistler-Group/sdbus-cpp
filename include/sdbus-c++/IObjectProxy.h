@@ -33,7 +33,8 @@
 
 // Forward declarations
 namespace sdbus {
-    class Message;
+    class MethodCall;
+    class MethodReply;
     class IConnection;
 }
 
@@ -65,7 +66,7 @@ namespace sdbus {
         *
         * @throws sdbus::Error in case of failure
         */
-        virtual Message createMethodCall(const std::string& interfaceName, const std::string& methodName) = 0;
+        virtual MethodCall createMethodCall(const std::string& interfaceName, const std::string& methodName) = 0;
 
         /*!
         * @brief Calls method on the proxied D-Bus object
@@ -76,7 +77,7 @@ namespace sdbus {
         *
         * @throws sdbus::Error in case of failure
         */
-        virtual Message callMethod(const sdbus::Message& message) = 0;
+        virtual MethodReply callMethod(const sdbus::MethodCall& message) = 0;
 
         /*!
         * @brief Registers a handler for the desired signal emitted by the proxied D-Bus object

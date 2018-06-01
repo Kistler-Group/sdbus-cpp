@@ -112,10 +112,10 @@ void Connection::removeObjectVTable(void* vtableHandle)
     sd_bus_slot_unref((sd_bus_slot *)vtableHandle);
 }
 
-sdbus::Message Connection::createMethodCall( const std::string& destination
-                                           , const std::string& objectPath
-                                           , const std::string& interfaceName
-                                           , const std::string& methodName ) const
+sdbus::MethodCall Connection::createMethodCall( const std::string& destination
+                                              , const std::string& objectPath
+                                              , const std::string& interfaceName
+                                              , const std::string& methodName ) const
 {
     sd_bus_message *sdbusMsg{};
 
@@ -131,12 +131,12 @@ sdbus::Message Connection::createMethodCall( const std::string& destination
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create method call", -r);
 
-    return Message(sdbusMsg, Message::Type::eMethodCall);
+    return MethodCall(sdbusMsg);
 }
 
-sdbus::Message Connection::createSignal( const std::string& objectPath
-                                       , const std::string& interfaceName
-                                       , const std::string& signalName ) const
+sdbus::Signal Connection::createSignal( const std::string& objectPath
+                                      , const std::string& interfaceName
+                                      , const std::string& signalName ) const
 {
     sd_bus_message *sdbusSignal{};
 
@@ -151,7 +151,7 @@ sdbus::Message Connection::createSignal( const std::string& objectPath
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create signal", -r);
 
-    return Message(sdbusSignal, Message::Type::eSignal);
+    return Signal(sdbusSignal);
 }
 
 void* Connection::registerSignalHandler( const std::string& objectPath

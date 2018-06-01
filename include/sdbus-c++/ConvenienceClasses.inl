@@ -60,7 +60,7 @@ namespace sdbus {
                               , methodName_
                               , signature_of_function_input_arguments<_Function>::str()
                               , signature_of_function_output_arguments<_Function>::str()
-                              , [callback = std::forward<_Function>(callback)](Message& msg, Message& reply)
+                              , [callback = std::forward<_Function>(callback)](MethodCall& msg, MethodReply& reply)
         {
             // Create a tuple of callback input arguments' types, which will be used
             // as a storage for the argument values deserialized from the message.
@@ -339,7 +339,7 @@ namespace sdbus {
 
         objectProxy_.registerSignalHandler( interfaceName_
                                           , signalName_
-                                          , [callback = std::forward<_Function>(callback)](Message& signal)
+                                          , [callback = std::forward<_Function>(callback)](Signal& signal)
         {
             // Create a tuple of callback input arguments' types, which will be used
             // as a storage for the argument values deserialized from the signal message.

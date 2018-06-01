@@ -34,7 +34,7 @@
 
 // Forward declarations
 namespace sdbus {
-    class Message;
+    class Signal;
     class IConnection;
 }
 
@@ -138,7 +138,7 @@ namespace sdbus {
         *
         * @throws sdbus::Error in case of failure
         */
-        virtual Message createSignal(const std::string& interfaceName, const std::string& signalName) = 0;
+        virtual Signal createSignal(const std::string& interfaceName, const std::string& signalName) = 0;
 
         /*!
         * @brief Emits signal on D-Bus
@@ -149,7 +149,7 @@ namespace sdbus {
         *
         * @throws sdbus::Error in case of failure
         */
-        virtual void emitSignal(const sdbus::Message& message) = 0;
+        virtual void emitSignal(const sdbus::Signal& message) = 0;
 
         /*!
         * @brief Registers method that the object will provide on D-Bus

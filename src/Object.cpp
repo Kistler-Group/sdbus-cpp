@@ -27,6 +27,7 @@
 #include <sdbus-c++/IConnection.h>
 #include <sdbus-c++/Message.h>
 #include <sdbus-c++/Error.h>
+#include <sdbus-c++/AsyncResult.h>
 #include "IConnection.h"
 #include "VTableUtils.h"
 #include <systemd/sd-bus.h>
@@ -48,7 +49,7 @@ void Object::registerMethod( const std::string& interfaceName
 {
     SDBUS_THROW_ERROR_IF(!methodCallback, "Invalid method callback provided", EINVAL);
 
-    auto syncCallback = [callback = std::move(methodCallback)](Message& msg)
+    auto syncCallback = [callback = std::move(methodCallback)](MethodCall& msg)
     {
         auto reply = msg.createReply();
         callback(msg, reply);
@@ -70,10 +71,10 @@ void Object::registerMethod( const std::string& interfaceName
 {
     SDBUS_THROW_ERROR_IF(!asyncMethodCallback, "Invalid method callback provided", EINVAL);
 
-    auto asyncCallback = [callback = std::move(asyncMethodCallback)](Message& msg)
+    auto asyncCallback = [callback = std::move(asyncMethodCallback)](MethodCall& msg)
     {
-        auto reply = msg.createAsyncReply();
-        callback(msg, reply);
+        AsyncResult result{msg}; // TODO: Add *this or similar
+        callback(msg, result);
     };
 
     auto& interface = interfaces_[interfaceName];
@@ -135,13 +136,13 @@ void Object::finishRegistration()
     }
 }
 
-sdbus::Message Object::createSignal(const std::string& interfaceName, const std::string& signalName)
+sdbus::Signal Object::createSignal(const std::string& interfaceName, const std::string& signalName)
 {
     // Tell, don't ask
     return connection_.createSignal(objectPath_, interfaceName, signalName);
 }
 
-void Object::emitSignal(const sdbus::Message& message)
+void Object::emitSignal(const sdbus::Signal& message)
 {
     // TODO: Make signal emitting asynchronous. Now signal can probably be emitted only from user code
     // handled within the D-Bus processing loop thread, but not from any thread. In principle it will
@@ -221,7 +222,7 @@ void Object::activateInterfaceVTable( const std::string& interfaceName
 
 int Object::sdbus_method_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError)
 {
-    Message message(sdbusMessage, Message::Type::eMethodCall);
+    MethodCall message(sdbusMessage);
 
     auto* object = static_cast<Object*>(userData);
     // Note: The lookup can be optimized by using sorted vectors instead of associative containers
@@ -248,7 +249,7 @@ int Object::sdbus_property_get_callback( sd_bus */*bus*/
                                        , void *userData
                                        , sd_bus_error *retError )
 {
-    Message reply(sdbusReply, Message::Type::ePlainMessage);
+    Message reply(sdbusReply);
 
     auto* object = static_cast<Object*>(userData);
     // Note: The lookup can be optimized by using sorted vectors instead of associative containers
@@ -280,7 +281,7 @@ int Object::sdbus_property_set_callback( sd_bus */*bus*/
                                        , void *userData
                                        , sd_bus_error *retError )
 {
-    Message value(sdbusValue, Message::Type::ePlainMessage);
+    Message value(sdbusValue);
 
     auto* object = static_cast<Object*>(userData);
     // Note: The lookup can be optimized by using sorted vectors instead of associative containers
@@ -294,7 +295,6 @@ int Object::sdbus_property_set_callback( sd_bus */*bus*/
     catch (const sdbus::Error& e)
     {
         sd_bus_error_set(retError, e.getName().c_str(), e.getMessage().c_str());
-        return 1;
     }
 
     return 1;

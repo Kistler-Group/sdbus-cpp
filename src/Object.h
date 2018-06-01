@@ -74,8 +74,8 @@ namespace internal {
 
         void finishRegistration() override;
 
-        sdbus::Message createSignal(const std::string& interfaceName, const std::string& signalName) override;
-        void emitSignal(const sdbus::Message& message) override;
+        sdbus::Signal createSignal(const std::string& interfaceName, const std::string& signalName) override;
+        void emitSignal(const sdbus::Signal& message) override;
 
     private:
         using InterfaceName = std::string;
@@ -86,7 +86,7 @@ namespace internal {
             {
                 std::string inputArgs_;
                 std::string outputArgs_;
-                std::function<void(Message&)> callback_;
+                std::function<void(MethodCall&)> callback_;
             };
             std::map<MethodName, MethodData> methods_;
             using SignalName = std::string;

@@ -52,8 +52,8 @@ namespace internal {
                    , std::string objectPath );
         ~ObjectProxy();
 
-        Message createMethodCall(const std::string& interfaceName, const std::string& methodName) override;
-        Message callMethod(const Message& message) override;
+        MethodCall createMethodCall(const std::string& interfaceName, const std::string& methodName) override;
+        MethodReply callMethod(const MethodCall& message) override;
 
         void registerSignalHandler( const std::string& interfaceName
                                   , const std::string& signalName

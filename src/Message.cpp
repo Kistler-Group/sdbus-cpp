@@ -31,11 +31,10 @@
 #include <systemd/sd-bus.h>
 #include <cassert>
 
-namespace sdbus { /*namespace internal {*/
+namespace sdbus {
 
-Message::Message(void *msg, Type type) noexcept
+Message::Message(void *msg) noexcept
     : msg_(msg)
-    , type_(type)
 {
     assert(msg_ != nullptr);
     sd_bus_message_ref((sd_bus_message*)msg_);
@@ -49,7 +48,6 @@ Message::Message(const Message& other) noexcept
 Message& Message::operator=(const Message& other) noexcept
 {
     msg_ = other.msg_;
-    type_ = other.type_;
     ok_ = other.ok_;
 
     sd_bus_message_ref((sd_bus_message*)msg_);
@@ -66,8 +64,6 @@ Message& Message::operator=(Message&& other) noexcept
 {
     msg_ = other.msg_;
     other.msg_ = nullptr;
-    type_ = other.type_;
-    other.type_ = {};
     ok_ = other.ok_;
     other.ok_ = true;
 
@@ -534,64 +530,6 @@ void Message::rewind(bool complete)
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to rewind the message", -r);
 }
 
-Message Message::send() const
-{
-    if (type_ == Type::eMethodCall)
-    {
-        sd_bus_message* sdbusReply{};
-        SCOPE_EXIT{ sd_bus_message_unref(sdbusReply); }; // Returned message will become an owner of sdbusReply
-        sd_bus_error sdbusError = SD_BUS_ERROR_NULL;
-        SCOPE_EXIT{ sd_bus_error_free(&sdbusError); };
-
-        auto r = sd_bus_call(nullptr, (sd_bus_message*)msg_, 0, &sdbusError, &sdbusReply);
-
-        if (sd_bus_error_is_set(&sdbusError))
-        {
-            throw sdbus::Error(sdbusError.name, sdbusError.message);
-        }
-
-        SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method", -r);
-
-        return Message(sdbusReply);
-    }
-    else if (type_ == Type::eMethodReply)
-    {
-        auto r = sd_bus_send(nullptr, (sd_bus_message*)msg_, nullptr);
-        SDBUS_THROW_ERROR_IF(r < 0, "Failed to send reply", -r);
-
-        return Message();
-    }
-    else if (type_ == Type::eSignal)
-    {
-        auto r = sd_bus_send(nullptr, (sd_bus_message*)msg_, nullptr);
-        SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit signal", -r);
-
-        return Message();
-    }
-    else
-    {
-        assert(false);
-        return Message();
-    }
-}
-
-Message Message::createReply() const
-{
-    sd_bus_message *sdbusReply{};
-    SCOPE_EXIT{ sd_bus_message_unref(sdbusReply); }; // Returned message will become an owner of sdbusReply
-    auto r = sd_bus_message_new_method_return((sd_bus_message*)msg_, &sdbusReply);
-    SDBUS_THROW_ERROR_IF(r < 0, "Failed to create method reply", -r);
-
-    assert(sdbusReply != nullptr);
-
-    return Message(sdbusReply, Type::eMethodReply);
-}
-
-AsyncReply Message::createAsyncReply() const
-{
-    return AsyncReply{};
-}
-
 std::string Message::getInterfaceName() const
 {
     return sd_bus_message_get_interface((sd_bus_message*)msg_);
@@ -622,9 +560,70 @@ bool Message::isEmpty() const
     return sd_bus_message_is_empty((sd_bus_message*)msg_);
 }
 
-Message::Type Message::getType() const
+void* Message::getMsg() const
 {
-    return type_;
+    return msg_;
+}
+
+MethodReply MethodCall::send() const
+{
+    sd_bus_message* sdbusReply{};
+    SCOPE_EXIT{ sd_bus_message_unref(sdbusReply); }; // Returned message will become an owner of sdbusReply
+    sd_bus_error sdbusError = SD_BUS_ERROR_NULL;
+    SCOPE_EXIT{ sd_bus_error_free(&sdbusError); };
+
+    auto r = sd_bus_call(nullptr, (sd_bus_message*)getMsg(), 0, &sdbusError, &sdbusReply);
+
+    if (sd_bus_error_is_set(&sdbusError))
+    {
+        throw sdbus::Error(sdbusError.name, sdbusError.message);
+    }
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method", -r);
+
+    return MethodReply(sdbusReply);
+}
+
+MethodReply MethodCall::createReply() const
+{
+    sd_bus_message *sdbusReply{};
+    SCOPE_EXIT{ sd_bus_message_unref(sdbusReply); }; // Returned message will become an owner of sdbusReply
+
+    auto r = sd_bus_message_new_method_return((sd_bus_message*)getMsg(), &sdbusReply);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to create method reply", -r);
+
+    assert(sdbusReply != nullptr);
+
+    return MethodReply(sdbusReply);
+}
+
+MethodReply MethodCall::createErrorReply(const Error& error) const
+{
+    sd_bus_error sdbusError = SD_BUS_ERROR_NULL;
+    SCOPE_EXIT{ sd_bus_error_free(&sdbusError); };
+    sd_bus_error_set(&sdbusError, error.getName().c_str(), error.getMessage().c_str());
+
+    sd_bus_message *sdbusErrorReply{};
+    SCOPE_EXIT{ sd_bus_message_unref(sdbusErrorReply); }; // Returned message will become an owner of sdbusErrorReply
+
+    auto r = sd_bus_message_new_method_error((sd_bus_message*)getMsg(), &sdbusErrorReply, &sdbusError);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to create method error reply", -r);
+
+    assert(sdbusErrorReply != nullptr);
+
+    return MethodReply(sdbusErrorReply);
+}
+
+void MethodReply::send() const
+{
+    auto r = sd_bus_send(nullptr, (sd_bus_message*)getMsg(), nullptr);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to send reply", -r);
+}
+
+void Signal::send() const
+{
+    auto r = sd_bus_send(nullptr, (sd_bus_message*)getMsg(), nullptr);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit signal", -r);
 }
 
 Message createPlainMessage()
@@ -641,7 +640,7 @@ Message createPlainMessage()
     r = sd_bus_message_new(bus, &sdbusMsg, _SD_BUS_MESSAGE_TYPE_INVALID);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create a new message", -r);
 
-    return Message(sdbusMsg, Message::Type::ePlainMessage);
+    return Message(sdbusMsg);
 }
 
-/*}*/}
+}

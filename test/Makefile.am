@@ -14,7 +14,7 @@ endif
 
 # Setting per-file flags
 AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_srcdir)/src
-AM_CXXFLAGS = @libsdbus_cpp_CFLAGS@ @SYSTEMD_CFLAGS@ -W -Wall -Werror -pedantic -pipe -std=c++14
+AM_CXXFLAGS = @libsdbus_cpp_CFLAGS@ @SYSTEMD_CFLAGS@ -W -Wall -Werror -pedantic -pipe -std=c++17
 AM_LDFLAGS = @libsdbus_cpp_LIBS@ @SYSTEMD_LIBS@
 
 CLEANFILES = *~ *.lo *.la

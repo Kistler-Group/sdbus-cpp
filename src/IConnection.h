@@ -32,7 +32,8 @@
 
 // Forward declaration
 namespace sdbus {
-    class Message;
+    class MethodCall;
+    class Signal;
 }
 
 namespace sdbus {
@@ -47,14 +48,14 @@ namespace internal {
                                      , void* userData ) = 0;
         virtual void removeObjectVTable(void* vtableHandle) = 0;
 
-        virtual sdbus::Message createMethodCall( const std::string& destination
-                                               , const std::string& objectPath
-                                               , const std::string& interfaceName
-                                               , const std::string& methodName ) const = 0;
+        virtual sdbus::MethodCall createMethodCall( const std::string& destination
+                                                  , const std::string& objectPath
+                                                  , const std::string& interfaceName
+                                                  , const std::string& methodName ) const = 0;
 
-        virtual sdbus::Message createSignal( const std::string& objectPath
-                                           , const std::string& interfaceName
-                                           , const std::string& signalName ) const = 0;
+        virtual sdbus::Signal createSignal( const std::string& objectPath
+                                          , const std::string& interfaceName
+                                          , const std::string& signalName ) const = 0;
 
         virtual void* registerSignalHandler( const std::string& objectPath
                                            , const std::string& interfaceName

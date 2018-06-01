@@ -110,13 +110,6 @@ TEST(AMessage, IsNotEmptyWhenContainsAValue)
     ASSERT_FALSE(msg.isEmpty());
 }
 
-TEST(AMessage, ReturnsItsTypeWhenAsked)
-{
-    sdbus::Message msg{sdbus::createPlainMessage()};
-
-    ASSERT_THAT(msg.getType(), Eq(sdbus::Message::Type::ePlainMessage));
-}
-
 TEST(AMessage, CanCarryASimpleInteger)
 {
     sdbus::Message msg{sdbus::createPlainMessage()};

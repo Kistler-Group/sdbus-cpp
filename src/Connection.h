@@ -62,13 +62,13 @@ namespace sdbus { namespace internal {
                              , void* userData ) override;
         void removeObjectVTable(void* vtableHandle) override;
 
-        sdbus::Message createMethodCall( const std::string& destination
-                                       , const std::string& objectPath
-                                       , const std::string& interfaceName
-                                       , const std::string& methodName ) const override;
-        sdbus::Message createSignal( const std::string& objectPath
-                                   , const std::string& interfaceName
-                                   , const std::string& signalName ) const override;
+        sdbus::MethodCall createMethodCall( const std::string& destination
+                                          , const std::string& objectPath
+                                          , const std::string& interfaceName
+                                          , const std::string& methodName ) const override;
+        sdbus::Signal createSignal( const std::string& objectPath
+                                  , const std::string& interfaceName
+                                  , const std::string& signalName ) const override;
 
         void* registerSignalHandler( const std::string& objectPath
                                    , const std::string& interfaceName

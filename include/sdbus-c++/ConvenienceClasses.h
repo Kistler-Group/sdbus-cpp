@@ -103,7 +103,7 @@ namespace sdbus {
     private:
         IObject& object_;
         const std::string& signalName_;
-        Message signal_;
+        Signal signal_;
         int exceptions_{}; // Number of active exceptions when SignalEmitter is constructed
     };
 
@@ -122,7 +122,7 @@ namespace sdbus {
     private:
         IObjectProxy& objectProxy_;
         const std::string& methodName_;
-        Message method_;
+        MethodCall method_;
         int exceptions_{}; // Number of active exceptions when MethodInvoker is constructed
         bool methodCalled_{};
     };

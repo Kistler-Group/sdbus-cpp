@@ -40,14 +40,17 @@ namespace sdbus {
     class ObjectPath;
     class Signature;
     class Message;
-    class AsyncReply;
+    class MethodCall;
+    class MethodReply;
+    class Signal;
+    class AsyncResult;
 }
 
 namespace sdbus {
 
-    using method_callback = std::function<void(Message& msg, Message& reply)>;
-    using async_method_callback = std::function<void(Message& msg, AsyncReply reply)>;
-    using signal_handler = std::function<void(Message& signal)>;
+    using method_callback = std::function<void(MethodCall& msg, MethodReply& reply)>;
+    using async_method_callback = std::function<void(MethodCall& msg, AsyncResult result)>;
+    using signal_handler = std::function<void(Signal& signal)>;
     using property_set_callback = std::function<void(Message& msg)>;
     using property_get_callback = std::function<void(Message& reply)>;
 

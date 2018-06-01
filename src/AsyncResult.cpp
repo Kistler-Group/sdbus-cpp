@@ -1,9 +1,9 @@
 /**
  * (C) 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
  *
- * @file sdbus-c++.h
+ * @file Object.cpp
  *
- * Created on: Jan 19, 2017
+ * Created on: Nov 8, 2016
  * Project: sdbus-c++
  * Description: High-level D-Bus IPC C++ library based on sd-bus
  *
@@ -23,13 +23,19 @@
  * along with sdbus-c++. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <sdbus-c++/IConnection.h>
-#include <sdbus-c++/IObject.h>
-#include <sdbus-c++/IObjectProxy.h>
-#include <sdbus-c++/Interfaces.h>
-#include <sdbus-c++/Message.h>
 #include <sdbus-c++/AsyncResult.h>
-#include <sdbus-c++/Types.h>
-#include <sdbus-c++/TypeTraits.h>
-#include <sdbus-c++/Introspection.h>
-#include <sdbus-c++/Error.h>
+
+namespace sdbus {
+
+AsyncResult::AsyncResult(const MethodCall& msg)
+    : call_(msg)
+{
+}
+
+void AsyncResult::send(const MethodReply& /*reply*/) const
+{
+    // TODO: Push message to the queue and signal the push
+    // for the processing loop thread.
+}
+
+}
