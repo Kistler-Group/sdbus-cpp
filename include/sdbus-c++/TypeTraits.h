@@ -26,6 +26,7 @@
 #ifndef SDBUS_CXX_TYPETRAITS_H_
 #define SDBUS_CXX_TYPETRAITS_H_
 
+#include <type_traits>
 #include <string>
 #include <vector>
 #include <map>
@@ -43,18 +44,18 @@ namespace sdbus {
     class MethodCall;
     class MethodReply;
     class Signal;
-    class AsyncResult;
+    class MethodResult;
+    template <typename... _Results> class Result;
 }
 
 namespace sdbus {
 
     using method_callback = std::function<void(MethodCall& msg, MethodReply& reply)>;
-    using async_method_callback = std::function<void(MethodCall& msg, AsyncResult result)>;
+    using async_method_callback = std::function<void(MethodCall& msg, MethodResult result)>;
     using signal_handler = std::function<void(Signal& signal)>;
     using property_set_callback = std::function<void(Message& msg)>;
     using property_get_callback = std::function<void(Message& reply)>;
 
-    // Primary template
     template <typename _T>
     struct signature_of
     {
@@ -306,6 +307,7 @@ namespace sdbus {
         }
     };
 
+
     template <typename _Type>
     struct function_traits
         : public function_traits<decltype(&_Type::operator())>
@@ -333,10 +335,19 @@ namespace sdbus {
 
         static constexpr std::size_t arity = sizeof...(_Args);
 
+        template <size_t _Idx, typename _Enabled = void>
+        struct arg;
+
         template <size_t _Idx>
-        struct arg
+        struct arg<_Idx, std::enable_if_t<(_Idx < arity)>>
         {
-            typedef std::tuple_element_t<_Idx, std::tuple<_Args...>> type;
+            typedef std::tuple_element_t<_Idx, arguments_type> type;
+        };
+
+        template <size_t _Idx>
+        struct arg<_Idx, std::enable_if_t<!(_Idx < arity)>>
+        {
+            typedef void type;
         };
 
         template <size_t _Idx>
@@ -383,6 +394,12 @@ namespace sdbus {
 
     template <typename _FunctionType, size_t _Idx>
     using function_argument_t = typename function_traits<_FunctionType>::template arg_t<_Idx>;
+
+    template <typename _FunctionType>
+    constexpr bool function_argument_count_v = function_traits<_FunctionType>::arity;
+
+    template <typename _FunctionType>
+    using last_function_argument_t = function_argument_t<_FunctionType, function_argument_count_v<_FunctionType>-1>;
 
     template <typename _FunctionType>
     using function_result_t = typename function_traits<_FunctionType>::result_type;
@@ -484,6 +501,22 @@ namespace sdbus {
                                  , std::forward<_Tuple>(t)
                                  , std::make_index_sequence<std::tuple_size<std::decay_t<_Tuple>>::value>{} );
     }
+
+
+    template <typename _Type, template <typename...> class _Template>
+    struct is_instantiation_of : std::false_type
+    {
+    };
+
+    template <template <typename...> class _Template, typename... _Types>
+    struct is_instantiation_of<_Template<_Types...>, _Template> : std::true_type { };
+
+    template <typename _Type, template <typename...> class _Template>
+    constexpr bool is_instantiation_of_v = is_instantiation_of<_Type, _Template>::value;
+
+    template <class _Function>
+    constexpr bool is_async_method = std::is_void<function_result_t<_Function>>::value
+                                  && is_instantiation_of_v<last_function_argument_t<_Function>, Result>;
 
 }
 

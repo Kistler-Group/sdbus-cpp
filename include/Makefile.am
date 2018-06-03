@@ -14,7 +14,7 @@ libsdbuscpp_HEADERS = \
 	$(HEADER_DIR)/IObject.h \
 	$(HEADER_DIR)/IObjectProxy.h \
 	$(HEADER_DIR)/Message.h \
-	$(HEADER_DIR)/AsyncResult.h \
+	$(HEADER_DIR)/MethodResult.h \
 	$(HEADER_DIR)/Types.h \
 	$(HEADER_DIR)/TypeTraits.h \
 	$(HEADER_DIR)/sdbus-c++.h

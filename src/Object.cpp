@@ -27,7 +27,7 @@
 #include <sdbus-c++/IConnection.h>
 #include <sdbus-c++/Message.h>
 #include <sdbus-c++/Error.h>
-#include <sdbus-c++/AsyncResult.h>
+#include <sdbus-c++/MethodResult.h>
 #include "IConnection.h"
 #include "VTableUtils.h"
 #include <systemd/sd-bus.h>
@@ -73,7 +73,7 @@ void Object::registerMethod( const std::string& interfaceName
 
     auto asyncCallback = [callback = std::move(asyncMethodCallback)](MethodCall& msg)
     {
-        AsyncResult result{msg}; // TODO: Add *this or similar
+        MethodResult result{msg}; // TODO: Add *this or similar
         callback(msg, result);
     };
 

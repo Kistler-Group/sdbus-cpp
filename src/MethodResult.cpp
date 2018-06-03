@@ -23,19 +23,22 @@
  * along with sdbus-c++. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <sdbus-c++/AsyncResult.h>
+#include <sdbus-c++/MethodResult.h>
 
 namespace sdbus {
 
-AsyncResult::AsyncResult(const MethodCall& msg)
+MethodResult::MethodResult(const MethodCall& msg)
     : call_(msg)
 {
 }
 
-void AsyncResult::send(const MethodReply& /*reply*/) const
+void MethodResult::send(const MethodReply& /*reply*/) const
 {
     // TODO: Push message to the queue and signal the push
     // for the processing loop thread.
+//    std::tuple<int, double, bool> mytuple;
+//    std::tuple_element_t<3, std::tuple<int, double, bool>> i;
+//    (void)i;
 }
 
 }

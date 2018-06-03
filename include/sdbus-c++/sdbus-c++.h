@@ -28,7 +28,7 @@
 #include <sdbus-c++/IObjectProxy.h>
 #include <sdbus-c++/Interfaces.h>
 #include <sdbus-c++/Message.h>
-#include <sdbus-c++/AsyncResult.h>
+#include <sdbus-c++/MethodResult.h>
 #include <sdbus-c++/Types.h>
 #include <sdbus-c++/TypeTraits.h>
 #include <sdbus-c++/Introspection.h>
