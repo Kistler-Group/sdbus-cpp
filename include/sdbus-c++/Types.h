@@ -98,9 +98,11 @@ namespace sdbus {
     public:
         using std::tuple<_ValueTypes...>::tuple;
 
-        // Constructor for GCC 7.1.0 and above
-#if __GNUC__ > 7 || (__GNUC__ == 7 && (__GNUC_MINOR__ > 1 || (__GNUC_MINOR__ == 1 && __GNUC_PATCHLEVEL__ > 0)) 
-        Struct(const std::tuple<_ValueTypes...>& t)
+        // Disable constructor if an older then 7.1.0 version of GCC is used 
+#if !((defined(__GNUC__) || defined(__GNUG__)) && !defined(__clang__) && !(__GNUC__ > 7 || (__GNUC__ == 7 && (__GNUC_MINOR__ > 1 || (__GNUC_MINOR__ == 1 && __GNUC_PATCHLEVEL__ > 0)))))
+        Struct() = default;
+
+        explicit Struct(const std::tuple<_ValueTypes...>& t)
             : std::tuple<_ValueTypes...>(t)
         {
         }
