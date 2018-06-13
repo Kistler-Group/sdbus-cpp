@@ -88,10 +88,6 @@ namespace sdbus {
     template <typename _Function>
     inline std::enable_if_t<is_async_method<_Function>> MethodRegistrator::implementedAs(_Function&& callback)
     {
-        //constexpr bool chrum = is_instantiation_of_v<Result, function_argument_t<_Function, function_argument_count_v<_Function> - 1 >>;
-        //constexpr bool chrum = is_instantiation_of_v<Result, function_argument_t<_Function, function_argument_count_v<_Function>-1>>;
-        //(void)chrum;
-
         SDBUS_THROW_ERROR_IF(interfaceName_.empty(), "DBus interface not specified when registering a DBus method", EINVAL);
 
         object_.registerMethod( interfaceName_
@@ -104,57 +100,15 @@ namespace sdbus {
             // as a storage for the argument values deserialized from the message.
             tuple_of_function_input_arg_types_t<_Function> inputArgs;
 
-            // Deserialize input arguments from the message into the tuple
+            // Deserialize input arguments from the message into the tuple,
+            // plus store the result object as a last item of the tuple.
             msg >> inputArgs;
+            std::last_tuple_element(inputArgs) = std::move(result);
 
             // Invoke callback with input arguments from the tuple.
-            // For callbacks returning a non-void value, `apply' also returns that value.
-            // For callbacks returning void, `apply' returns an empty tuple.
-            auto ret = apply(callback, inputArgs); // We don't yet have C++17's std::apply :-(
-
-            // The return value is stored to the reply message.
-            // In case of void functions, ret is an empty tuple and thus nothing is stored.
-            reply << ret;
+            apply(callback, inputArgs); // TODO: Use std::apply when switching to full C++17 support
         });
     }
-
-//    template <typename _Function>
-//    inline void MethodRegistrator::implementedAs(_Function&& callback)
-//    {
-//        constexpr bool returnsVoid = std::is_void<function_result_t<_Function>>::value;
-//    	static_assert(returnsVoid, "Async method handler's return value must be void");
-//    	//constexpr bool lastArgumentIsAsyncResult = is_instantiation_of_v<AsyncResult, function_argument_t<_Function, function_argument_count_v<_Function>-1>>;
-//    	constexpr bool lastArgumentIsAsyncResult = is_instantiation_of_v<AsyncResult, function_argument_t<_Function, 0>>;
-//    	static_assert(lastArgumentIsAsyncResult, "Async method handler's last parameter must be a return value holder");
-//
-//        (void)callback;
-//
-//        SDBUS_THROW_ERROR_IF(interfaceName_.empty(), "DBus interface not specified when registering a DBus method", EINVAL);
-//
-//        object_.registerMethod( interfaceName_
-//                              , methodName_
-//                              , signature_of_function_input_arguments<_Function>::str()
-//                              , signature_of_function_output_arguments<_Function>::str()
-//                              , [callback = std::forward<_Function>(callback)](MethodCall& msg, MethodReply& reply)
-//        {
-//            // Create a tuple of callback input arguments' types, which will be used
-//            // as a storage for the argument values deserialized from the message.
-//            tuple_of_function_input_arg_types_t<_Function> inputArgs;
-//
-//            // Deserialize input arguments from the message into the tuple
-//            msg >> inputArgs;
-//
-//            // Invoke callback with input arguments from the tuple.
-//            // For callbacks returning a non-void value, `apply' also returns that value.
-//            // For callbacks returning void, `apply' returns an empty tuple.
-//            auto ret = apply(callback, inputArgs); // We don't yet have C++17's std::apply :-(
-//
-//            // The return value is stored to the reply message.
-//            // In case of void functions, ret is an empty tuple and thus nothing is stored.
-//            reply << ret;
-//        });
-//    }
-
 
     // Moved into the library to isolate from C++17 dependency
     /*

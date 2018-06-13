@@ -27,9 +27,11 @@
 #define SDBUS_CXX_METHODRESULT_H_
 
 #include <sdbus-c++/Message.h>
+#include <cassert>
 
 // Forward declaration
 namespace sdbus {
+    class Object;
     class Error;
 }
 
@@ -45,21 +47,26 @@ namespace sdbus {
      ***********************************************/
     class MethodResult
     {
-    public:
-        MethodResult(const MethodCall& msg);
+    protected:
+        friend Object;
+        MethodResult() = default;
+        MethodResult(const MethodCall& msg, Object& object);
+
         template <typename... _Results> void returnResults(const _Results&... results) const;
         void returnError(const Error& error) const;
 
-    protected:
+    private:
         void send(const MethodReply& reply) const;
 
     private:
         MethodCall call_;
+        Object* object_{};
     };
 
     template <typename... _Results>
     inline void MethodResult::returnResults(const _Results&... results) const
     {
+        assert(call_.isValid());
         auto reply = call_.createReply();
 #ifdef __cpp_fold_expressions
         (reply << ... << results);
@@ -85,27 +92,31 @@ namespace sdbus {
      *
      ***********************************************/
     template <typename... _Results>
-    class Result
+    class Result : protected MethodResult
     {
     public:
-        Result(const MethodResult& result);
+        Result() = default;
+        Result(MethodResult result);
         void returnResults(const _Results&... results) const;
         void returnError(const Error& error) const;
-
-    private:
-        MethodResult result_;
     };
+
+    template <typename... _Results>
+    inline Result<_Results...>::Result(MethodResult result)
+        : MethodResult(std::move(result))
+    {
+    }
 
     template <typename... _Results>
     inline void Result<_Results...>::returnResults(const _Results&... results) const
     {
-        result_.returnResults(results...);
+        MethodResult::returnResults(results...);
     }
 
     template <typename... _Results>
     inline void Result<_Results...>::returnError(const Error& error) const
     {
-        result_.returnError(error);
+        MethodResult::returnError(error);
     }
 
 //    class AsyncResultBase

@@ -73,7 +73,7 @@ void Object::registerMethod( const std::string& interfaceName
 
     auto asyncCallback = [callback = std::move(asyncMethodCallback)](MethodCall& msg)
     {
-        MethodResult result{msg}; // TODO: Add *this or similar
+        MethodResult result{msg, *this}; // TODO: Add *this or similar
         callback(msg, result);
     };
 
@@ -138,7 +138,6 @@ void Object::finishRegistration()
 
 sdbus::Signal Object::createSignal(const std::string& interfaceName, const std::string& signalName)
 {
-    // Tell, don't ask
     return connection_.createSignal(objectPath_, interfaceName, signalName);
 }
 
@@ -149,6 +148,11 @@ void Object::emitSignal(const sdbus::Signal& message)
     // be the same as async replies.
     // TODO: SDBUS_THROW_IF message is not a signal
     message.send();
+}
+
+void Object::sendReplyAsynchronously(const MethodReply& reply)
+{
+    connection_.sendReplyAsynchronously(reply);
 }
 
 const std::vector<sd_bus_vtable>& Object::createInterfaceVTable(InterfaceData& interfaceData)

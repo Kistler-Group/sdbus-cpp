@@ -42,13 +42,13 @@ Connection::Connection(Connection::BusType type)
 
     finishHandshake(bus);
 
-    exitLoopFd_ = createProcessingExitDescriptor();
+    notificationFd_ = createLoopNotificationDescriptor();
 }
 
 Connection::~Connection()
 {
     leaveProcessingLoop();
-    closeProcessingExitDescriptor(exitLoopFd_);
+    closeLoopNotificationDescriptor(notificationFd_);
 }
 
 void Connection::requestName(const std::string& name)
@@ -71,9 +71,11 @@ void Connection::enterProcessingLoop()
         if (processed)
             continue; // Process next one
 
-        auto success = waitForNextRequest(bus_.get(), exitLoopFd_);
+        auto success = waitForNextRequest(bus_.get(), notificationFd_);
         if (!success)
             break; // Exit processing loop
+        if (success.asyncMsgsToProcess)
+            processAsynchronousMessages();
     }
 }
 
@@ -175,6 +177,13 @@ void Connection::unregisterSignalHandler(void* handlerCookie)
     sd_bus_slot_unref((sd_bus_slot *)handlerCookie);
 }
 
+void Connection::sendReplyAsynchronously(const sdbus::MethodReply& reply)
+{
+    std::lock_guard<std::mutex> guard(mutex_);
+    asyncReplies_.push_back(reply);
+    notifyProcessingLoop();
+}
+
 std::unique_ptr<sdbus::internal::IConnection> Connection::clone() const
 {
     return std::make_unique<sdbus::internal::Connection>(busType_);
@@ -211,10 +220,8 @@ void Connection::finishHandshake(sd_bus* bus)
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to flush bus on opening", -r);
 }
 
-int Connection::createProcessingExitDescriptor()
+int Connection::createLoopNotificationDescriptor()
 {
-    // Mechanism for graceful termination of processing loop
-
     auto r = eventfd(0, EFD_SEMAPHORE | EFD_CLOEXEC);
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create event object", -errno);
@@ -222,16 +229,23 @@ int Connection::createProcessingExitDescriptor()
     return r;
 }
 
-void Connection::closeProcessingExitDescriptor(int fd)
+void Connection::closeLoopNotificationDescriptor(int fd)
 {
     close(fd);
 }
 
+void Connection::notifyProcessingLoop()
+{
+    assert(processLoopFd_ >= 0);
+    uint64_t value = 1;
+    write(processLoopFd_, &value, sizeof(value));
+}
+
 void Connection::notifyProcessingLoopToExit()
 {
-    assert(exitLoopFd_ >= 0);
-    uint64_t value = 1;
-    write(exitLoopFd_, &value, sizeof(value));
+    exitLoopThread_ = true;
+
+    notifyProcessingLoop();
 }
 
 void Connection::joinWithProcessingLoop()
@@ -251,7 +265,17 @@ bool Connection::processPendingRequest(sd_bus* bus)
     return r > 0;
 }
 
-bool Connection::waitForNextRequest(sd_bus* bus, int exitFd)
+bool Connection::processAsynchronousMessages()
+{
+    std::lock_guard<std::mutex> guard(mutex_);
+    while (!asyncReplies_.empty())
+    {
+        auto reply = asyncReplies_.pop_front();
+        reply.send();
+    }
+}
+
+WaitResult Connection::waitForNextRequest(sd_bus* bus, int exitFd)
 {
     assert(bus != nullptr);
     assert(exitFd != 0);
@@ -273,14 +297,20 @@ bool Connection::waitForNextRequest(sd_bus* bus, int exitFd)
     r = poll(fds, fdsCount, usec == (uint64_t) -1 ? -1 : (usec+999)/1000);
 
     if (r < 0 && errno == EINTR)
-        return true; // Try again
+        return {true, false}; // Try again
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to wait on the bus", -errno);
 
     if (fds[1].revents & POLLIN)
-        return false; // Got exit notification
+    {
+        if (exitLoopThread_)
+            return {false, false}; // Got exit notification
 
-    return true;
+        // Otherwise we have some async messages to process
+        return {false, true};
+    }
+
+    return {true, false};
 }
 
 std::string Connection::composeSignalMatchFilter( const std::string& objectPath

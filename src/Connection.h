@@ -27,12 +27,13 @@
 #define SDBUS_CXX_INTERNAL_CONNECTION_H_
 
 #include <sdbus-c++/IConnection.h>
+#include <sdbus-c++/Message.h>
+#include "IConnection.h"
 #include <systemd/sd-bus.h>
 #include <memory>
-#include <atomic>
 #include <thread>
-
-#include "IConnection.h"
+#include <mutex>
+#include <deque>
 
 namespace sdbus { namespace internal {
 
@@ -77,25 +78,41 @@ namespace sdbus { namespace internal {
                                    , void* userData ) override;
         void unregisterSignalHandler(void* handlerCookie) override;
 
+        void sendReplyAsynchronously(const sdbus::MethodReply& reply) override;
+
         std::unique_ptr<sdbus::internal::IConnection> clone() const override;
 
     private:
+        struct WaitResult
+        {
+            bool msgsToProcess;
+            bool asyncMsgsToProcess;
+            operator bool()
+            {
+                return msgsToProcess || asyncMsgsToProcess;
+            }
+        }
         static sd_bus* openBus(Connection::BusType type);
         static void finishHandshake(sd_bus* bus);
-        static int createProcessingExitDescriptor();
-        static void closeProcessingExitDescriptor(int fd);
+        static int createLoopNotificationDescriptor();
+        static void closeLoopNotificationDescriptor(int fd);
         static bool processPendingRequest(sd_bus* bus);
-        static bool waitForNextRequest(sd_bus* bus, int exitFd);
+        bool processAsynchronousMessages();
+        static WaitResult waitForNextRequest(sd_bus* bus, int exitFd);
         static std::string composeSignalMatchFilter( const std::string& objectPath
                                                    , const std::string& interfaceName
                                                    , const std::string& signalName );
+        void notifyProcessingLoop();
         void notifyProcessingLoopToExit();
         void joinWithProcessingLoop();
 
     private:
         std::unique_ptr<sd_bus, decltype(&sd_bus_flush_close_unref)> bus_{nullptr, &sd_bus_flush_close_unref};
         std::thread asyncLoopThread_;
-        std::atomic<int> exitLoopFd_{-1};
+        std::mutex mutex_;
+        std::deque<MethodReply> asyncReplies_;
+        std::atomic<bool> exitLoopThread_;
+        int notificationFd_{-1};
         BusType busType_;
 
         static constexpr const uint64_t POLL_TIMEOUT_USEC = 500000;

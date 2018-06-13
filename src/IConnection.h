@@ -33,6 +33,7 @@
 // Forward declaration
 namespace sdbus {
     class MethodCall;
+    class MethodReply;
     class Signal;
 }
 
@@ -66,6 +67,8 @@ namespace internal {
 
         virtual void enterProcessingLoopAsync() = 0;
         virtual void leaveProcessingLoop() = 0;
+
+        virtual void sendReplyAsynchronously(const sdbus::MethodReply& reply) = 0l
 
         virtual std::unique_ptr<sdbus::internal::IConnection> clone() const = 0;
 

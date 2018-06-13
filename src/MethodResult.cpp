@@ -24,16 +24,21 @@
  */
 
 #include <sdbus-c++/MethodResult.h>
+#include "Object.h"
 
 namespace sdbus {
 
-MethodResult::MethodResult(const MethodCall& msg)
+MethodResult::MethodResult(const MethodCall& msg, Object& object)
     : call_(msg)
+    , object_(&object)
 {
 }
 
-void MethodResult::send(const MethodReply& /*reply*/) const
+void MethodResult::send(const MethodReply& reply) const
 {
+    assert(object_ != nullptr);
+    object_->sendReplyAsynchronously(reply);
+
     // TODO: Push message to the queue and signal the push
     // for the processing loop thread.
 //    std::tuple<int, double, bool> mytuple;
