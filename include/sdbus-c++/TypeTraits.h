@@ -307,6 +307,17 @@ namespace sdbus {
         }
     };
 
+    template <typename... _Results>
+    struct signature_of<Result<_Results...>>
+    {
+        static constexpr bool is_valid = true;
+
+        static const std::string str()
+        {
+            return "";
+        }
+    };
+
 
     template <typename _Type>
     struct function_traits

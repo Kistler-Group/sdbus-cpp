@@ -31,7 +31,9 @@
 
 // Forward declaration
 namespace sdbus {
-    class Object;
+    namespace internal {
+        class Object;
+    }
     class Error;
 }
 
@@ -48,9 +50,9 @@ namespace sdbus {
     class MethodResult
     {
     protected:
-        friend Object;
+        friend sdbus::internal::Object;
         MethodResult() = default;
-        MethodResult(const MethodCall& msg, Object& object);
+        MethodResult(const MethodCall& msg, sdbus::internal::Object& object);
 
         template <typename... _Results> void returnResults(const _Results&... results) const;
         void returnError(const Error& error) const;
@@ -60,7 +62,7 @@ namespace sdbus {
 
     private:
         MethodCall call_;
-        Object* object_{};
+        sdbus::internal::Object* object_{};
     };
 
     template <typename... _Results>
@@ -119,46 +121,6 @@ namespace sdbus {
         MethodResult::returnError(error);
     }
 
-//    class AsyncResultBase
-//    {
-//    protected:
-//        AsyncResultBase(const MethodCall& msg);
-//        void send(const MethodReply& reply) const;
-//
-//        MethodCall call_;
-//    };
-//
-//    /********************************************//**
-//     * @class AsyncResult
-//     *
-//     * Represents result of an asynchronous server-side method.
-//     * An instance is provided to the method and shall be set
-//     * by the method to either method return value or an error.
-//     *
-//     ***********************************************/
-//    template <typename... _Results>
-//    class AsyncResult : protected AsyncResultBase
-//    {
-//    public:
-//        using AsyncResultBase::AsyncResultBase;
-//        void returnResults(const _Results&... results) const;
-//        void returnError(const Error& error) const;
-//    };
-//
-//    template <typename... _Results>
-//    inline void AsyncResult<_Results...>::returnResults(const _Results&... results) const
-//    {
-//        auto reply = call_.createReply();
-//        (reply << ... << results);
-//        send(reply);
-//    }
-//
-//    template <typename... _Results>
-//    inline void AsyncResult<_Results...>::returnError(const Error& error) const
-//    {
-//        auto reply = call_.createErrorReply(error);
-//        send(reply);
-//    }
 }
 
 #endif /* SDBUS_CXX_METHODRESULT_H_ */

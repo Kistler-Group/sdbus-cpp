@@ -67,11 +67,11 @@ void Connection::enterProcessingLoop()
 {
     while (true)
     {
-        auto processed = processPendingRequest(bus_.get());
+        auto processed = processPendingRequest();
         if (processed)
             continue; // Process next one
 
-        auto success = waitForNextRequest(bus_.get(), notificationFd_);
+        auto success = waitForNextRequest();
         if (!success)
             break; // Exit processing loop
         if (success.asyncMsgsToProcess)
@@ -180,7 +180,7 @@ void Connection::unregisterSignalHandler(void* handlerCookie)
 void Connection::sendReplyAsynchronously(const sdbus::MethodReply& reply)
 {
     std::lock_guard<std::mutex> guard(mutex_);
-    asyncReplies_.push_back(reply);
+    asyncReplies_.push(reply);
     notifyProcessingLoop();
 }
 
@@ -236,9 +236,9 @@ void Connection::closeLoopNotificationDescriptor(int fd)
 
 void Connection::notifyProcessingLoop()
 {
-    assert(processLoopFd_ >= 0);
+    assert(notificationFd_ >= 0);
     uint64_t value = 1;
-    write(processLoopFd_, &value, sizeof(value));
+    write(notificationFd_, &value, sizeof(value));
 }
 
 void Connection::notifyProcessingLoopToExit()
@@ -254,8 +254,10 @@ void Connection::joinWithProcessingLoop()
         asyncLoopThread_.join();
 }
 
-bool Connection::processPendingRequest(sd_bus* bus)
+bool Connection::processPendingRequest()
 {
+    auto bus = bus_.get();
+
     assert(bus != nullptr);
 
     int r = sd_bus_process(bus, nullptr);
@@ -265,20 +267,24 @@ bool Connection::processPendingRequest(sd_bus* bus)
     return r > 0;
 }
 
-bool Connection::processAsynchronousMessages()
+void Connection::processAsynchronousMessages()
 {
     std::lock_guard<std::mutex> guard(mutex_);
     while (!asyncReplies_.empty())
     {
-        auto reply = asyncReplies_.pop_front();
+        auto reply = asyncReplies_.front();
+        asyncReplies_.pop();
+        std::cout << "Server sending async reply " << sd_bus_message_get_signature((sd_bus_message *)reply.getMsg(), true) << std::endl;
         reply.send();
     }
 }
 
-WaitResult Connection::waitForNextRequest(sd_bus* bus, int exitFd)
+Connection::WaitResult Connection::waitForNextRequest()
 {
+    auto bus = bus_.get();
+
     assert(bus != nullptr);
-    assert(exitFd != 0);
+    assert(notificationFd_ != 0);
 
     auto r = sd_bus_get_fd(bus);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus descriptor", -r);
@@ -291,7 +297,7 @@ WaitResult Connection::waitForNextRequest(sd_bus* bus, int exitFd)
     uint64_t usec;
     sd_bus_get_timeout(bus, &usec);
 
-    struct pollfd fds[] = {{sdbusFd, sdbusEvents, 0}, {exitFd, POLLIN, 0}};
+    struct pollfd fds[] = {{sdbusFd, sdbusEvents, 0}, {notificationFd_, POLLIN, 0}};
     auto fdsCount = sizeof(fds)/sizeof(fds[0]);
 
     r = poll(fds, fdsCount, usec == (uint64_t) -1 ? -1 : (usec+999)/1000);

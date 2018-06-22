@@ -71,9 +71,10 @@ void Object::registerMethod( const std::string& interfaceName
 {
     SDBUS_THROW_ERROR_IF(!asyncMethodCallback, "Invalid method callback provided", EINVAL);
 
-    auto asyncCallback = [callback = std::move(asyncMethodCallback)](MethodCall& msg)
+    auto asyncCallback = [this, callback = std::move(asyncMethodCallback)](MethodCall& msg)
     {
-        MethodResult result{msg, *this}; // TODO: Add *this or similar
+        //auto reply = msg.createReply();
+        MethodResult result{msg, *this};
         callback(msg, result);
     };
 

@@ -32,8 +32,9 @@
 #include <systemd/sd-bus.h>
 #include <memory>
 #include <thread>
+#include <atomic>
 #include <mutex>
-#include <deque>
+#include <queue>
 
 namespace sdbus { namespace internal {
 
@@ -91,14 +92,14 @@ namespace sdbus { namespace internal {
             {
                 return msgsToProcess || asyncMsgsToProcess;
             }
-        }
+        };
         static sd_bus* openBus(Connection::BusType type);
         static void finishHandshake(sd_bus* bus);
         static int createLoopNotificationDescriptor();
         static void closeLoopNotificationDescriptor(int fd);
-        static bool processPendingRequest(sd_bus* bus);
-        bool processAsynchronousMessages();
-        static WaitResult waitForNextRequest(sd_bus* bus, int exitFd);
+        bool processPendingRequest();
+        void processAsynchronousMessages();
+        WaitResult waitForNextRequest();
         static std::string composeSignalMatchFilter( const std::string& objectPath
                                                    , const std::string& interfaceName
                                                    , const std::string& signalName );
@@ -110,7 +111,7 @@ namespace sdbus { namespace internal {
         std::unique_ptr<sd_bus, decltype(&sd_bus_flush_close_unref)> bus_{nullptr, &sd_bus_flush_close_unref};
         std::thread asyncLoopThread_;
         std::mutex mutex_;
-        std::deque<MethodReply> asyncReplies_;
+        std::queue<MethodReply> asyncReplies_;
         std::atomic<bool> exitLoopThread_;
         int notificationFd_{-1};
         BusType busType_;

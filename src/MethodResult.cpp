@@ -28,7 +28,7 @@
 
 namespace sdbus {
 
-MethodResult::MethodResult(const MethodCall& msg, Object& object)
+MethodResult::MethodResult(const MethodCall& msg, sdbus::internal::Object& object)
     : call_(msg)
     , object_(&object)
 {
@@ -38,12 +38,6 @@ void MethodResult::send(const MethodReply& reply) const
 {
     assert(object_ != nullptr);
     object_->sendReplyAsynchronously(reply);
-
-    // TODO: Push message to the queue and signal the push
-    // for the processing loop thread.
-//    std::tuple<int, double, bool> mytuple;
-//    std::tuple_element_t<3, std::tuple<int, double, bool>> i;
-//    (void)i;
 }
 
 }

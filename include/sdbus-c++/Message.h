@@ -161,6 +161,7 @@ namespace sdbus {
     {
     public:
         using Message::Message;
+        using Message::getMsg; // TODO DELETE!
         void send() const;
     };
 
@@ -345,7 +346,7 @@ namespace sdbus {
     }
 
     template <typename... _Results>
-    inline Message& operator>>(Message& msg, sdbus::Result<_Results...>& item)
+    inline Message& operator>>(Message& msg, sdbus::Result<_Results...>& /*item*/)
     {
         // Intentionally do nothing
         return msg;
