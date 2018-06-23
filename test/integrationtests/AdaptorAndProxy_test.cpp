@@ -40,9 +40,12 @@
 #include <string>
 #include <thread>
 #include <tuple>
+#include <chrono>
 
 using ::testing::Eq;
 using ::testing::Gt;
+using ::testing::ElementsAre;
+using namespace std::chrono_literals;
 
 namespace
 {
@@ -67,7 +70,7 @@ private:
     {
         m_adaptor = std::make_unique<TestingAdaptor>(m_connection);
         m_proxy = std::make_unique<TestingProxy>(INTERFACE_NAME, OBJECT_PATH);
-        usleep(50000); // Give time for the proxy to start listening to signals
+        std::this_thread::sleep_for(50ms); // Give time for the proxy to start listening to signals
     }
 
     void TearDown() override
@@ -195,6 +198,35 @@ TEST_F(SdbusTestObject, CallsMethodWithComplexTypeSuccesfully)
 {
     auto resComplex = m_proxy->getComplex();
     ASSERT_THAT(resComplex.count(0), Eq(1));
+}
+
+TEST_F(SdbusTestObject, DoesServerSideAsynchoronousMethodInParallel)
+{
+    std::mutex mtx;
+    std::vector<uint32_t> results;
+    std::atomic<bool> invoke{};
+    std::atomic<int> startedCount{};
+    auto call = [&](uint32_t param)
+    {
+        TestingProxy proxy{INTERFACE_NAME, OBJECT_PATH};
+        auto i = ++startedCount;
+        std::cout << "startedCount incremented to" << i << std::endl;
+        while (!invoke) ;
+        std::cout << "going to do async operation " << i << std::endl;
+        auto result = proxy.doOperationAsync(param);
+        std::cout << "did async operation " << i << std::endl;
+        std::lock_guard<std::mutex> guard(mtx);
+        results.push_back(result);
+    };
+
+    std::thread invocations[]{std::thread{call, 1500}, std::thread{call, 1000}, std::thread{call, 500}};
+    while (startedCount != 3) ;
+    std::cout << "Got all threads ready" << std::endl;
+    invoke = true;
+    std::cout << "Joining with threads" << std::endl;
+    std::for_each(std::begin(invocations), std::end(invocations), [](auto& t){ t.join(); });
+
+    ASSERT_THAT(results, ElementsAre(500, 1000, 1500));
 }
 
 TEST_F(SdbusTestObject, FailsCallingNonexistentMethod)

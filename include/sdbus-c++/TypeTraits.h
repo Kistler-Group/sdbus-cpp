@@ -307,18 +307,20 @@ namespace sdbus {
         }
     };
 
-    template <typename... _Results>
-    struct signature_of<Result<_Results...>>
-    {
-        static constexpr bool is_valid = true;
+//    template <typename... _Results>
+//    struct signature_of<Result<_Results...>>
+//    {
+//        static constexpr bool is_valid = true;
+//
+//        static const std::string str()
+//        {
+//            return "";
+//        }
+//    };
 
-        static const std::string str()
-        {
-            return "";
-        }
-    };
 
-
+    // Function traits implementation inspired by (c) kennytm,
+    // https://github.com/kennytm/utils/blob/master/traits.hpp
     template <typename _Type>
     struct function_traits
         : public function_traits<decltype(&_Type::operator())>
@@ -334,13 +336,12 @@ namespace sdbus {
         : public function_traits<_Type>
     {};
 
-    // Function traits implementation inspired by (c) kennytm,
-    // https://github.com/kennytm/utils/blob/master/traits.hpp
     template <typename _ReturnType, typename... _Args>
-    struct function_traits<_ReturnType(_Args...)>
+    struct function_traits_base
     {
         typedef _ReturnType result_type;
         typedef std::tuple<_Args...> arguments_type;
+        typedef std::tuple<std::decay_t<_Args>...> decayed_arguments_type;
 
         typedef _ReturnType function_type(_Args...);
 
@@ -363,6 +364,20 @@ namespace sdbus {
 
         template <size_t _Idx>
         using arg_t = typename arg<_Idx>::type;
+    };
+
+    template <typename _ReturnType, typename... _Args>
+    struct function_traits<_ReturnType(_Args...)>
+        : public function_traits_base<_ReturnType, _Args...>
+    {
+        static constexpr bool is_async_method = false;
+    };
+
+    template <typename... _Args, typename... _Results>
+    struct function_traits<void(Result<_Results...>, _Args...)>
+        : public function_traits_base<std::tuple<_Results...>, _Args...>
+    {
+        static constexpr bool is_async_method = true;
     };
 
     template <typename _ReturnType, typename... _Args>
@@ -403,14 +418,14 @@ namespace sdbus {
         : public function_traits<FunctionType>
     {};
 
+    template <class _Function>
+    constexpr auto is_async_method = function_traits<_Function>::is_async_method;
+
     template <typename _FunctionType, size_t _Idx>
     using function_argument_t = typename function_traits<_FunctionType>::template arg_t<_Idx>;
 
     template <typename _FunctionType>
-    constexpr bool function_argument_count_v = function_traits<_FunctionType>::arity;
-
-    template <typename _FunctionType>
-    using last_function_argument_t = function_argument_t<_FunctionType, function_argument_count_v<_FunctionType>-1>;
+    constexpr auto function_argument_count_v = function_traits<_FunctionType>::arity;
 
     template <typename _FunctionType>
     using function_result_t = typename function_traits<_FunctionType>::result_type;
@@ -437,27 +452,23 @@ namespace sdbus {
         }
     };
 
-    // Get a tuple of function input argument types from function signature.
-    // But first, convert provided function signature to the standardized form `out(in...)'.
     template <typename _Function>
     struct tuple_of_function_input_arg_types
-        : public tuple_of_function_input_arg_types<typename function_traits<_Function>::function_type>
-    {};
-
-    // Get a tuple of function input argument types from function signature.
-    // Function signature is expected in the standardized form `out(in...)'.
-    template <typename _ReturnType, typename... _Args>
-    struct tuple_of_function_input_arg_types<_ReturnType(_Args...)>
     {
-        // Arguments may be cv-qualified and may be references, so we have to strip cv and references
-        // with decay_t in order to get real 'naked' types.
-        // Example: for a function with signature void(const int i, const std::vector<float> v, double d)
-        // the `type' will be `std::tuple<int, std::vector<float>, double>'.
-        typedef std::tuple<std::decay_t<_Args>...> type;
+        typedef typename function_traits<_Function>::decayed_arguments_type type;
     };
 
     template <typename _Function>
     using tuple_of_function_input_arg_types_t = typename tuple_of_function_input_arg_types<_Function>::type;
+
+    template <typename _Function>
+    struct tuple_of_function_output_arg_types
+    {
+        typedef typename function_traits<_Function>::result_type type;
+    };
+
+    template <typename _Function>
+    using tuple_of_function_output_arg_types_t = typename tuple_of_function_output_arg_types<_Function>::type;
 
     template <typename _Function>
     struct signature_of_function_input_arguments
@@ -473,12 +484,29 @@ namespace sdbus {
     {
         static const std::string str()
         {
-            return aggregate_signature<function_result_t<_Function>>::str();
+            return aggregate_signature<tuple_of_function_output_arg_types_t<_Function>>::str();
         }
     };
 
     namespace detail
     {
+//        template <class _Function, class _Tuple, std::size_t... _I>
+//        constexpr decltype(auto) apply_impl( _Function&& f
+//                                           , _Tuple&& t
+//                                           , std::index_sequence<_I...> )
+//        {
+//            return std::forward<_Function>(f)(std::get<_I>(std::forward<_Tuple>(t))...);
+//        }
+
+        template <class _Function, class _Tuple, std::size_t... _I>
+        constexpr decltype(auto) apply_impl( _Function&& f
+                                           , MethodResult&& r
+                                           , _Tuple&& t
+                                           , std::index_sequence<_I...> )
+        {
+            return std::forward<_Function>(f)(std::move(r), std::get<_I>(std::forward<_Tuple>(t))...);
+        }
+
         // Version of apply_impl for functions returning non-void values.
         // In this case just forward function return value.
         template <class _Function, class _Tuple, std::size_t... _I>
@@ -513,21 +541,32 @@ namespace sdbus {
                                  , std::make_index_sequence<std::tuple_size<std::decay_t<_Tuple>>::value>{} );
     }
 
-
-    template <typename _Type, template <typename...> class _Template>
-    struct is_instantiation_of : std::false_type
+    // Convert tuple `t' of values into a list of arguments
+    // and invoke function `f' with those arguments.
+    template <class _Function, class _Tuple>
+    constexpr decltype(auto) apply(_Function&& f, MethodResult&& r, _Tuple&& t)
     {
-    };
+        return detail::apply_impl( std::forward<_Function>(f)
+                                 , std::move(r)
+                                 , std::forward<_Tuple>(t)
+                                 , std::make_index_sequence<std::tuple_size<std::decay_t<_Tuple>>::value>{} );
+    }
 
-    template <template <typename...> class _Template, typename... _Types>
-    struct is_instantiation_of<_Template<_Types...>, _Template> : std::true_type { };
 
-    template <typename _Type, template <typename...> class _Template>
-    constexpr bool is_instantiation_of_v = is_instantiation_of<_Type, _Template>::value;
-
-    template <class _Function>
-    constexpr bool is_async_method = std::is_void<function_result_t<_Function>>::value
-                                  && is_instantiation_of_v<last_function_argument_t<_Function>, Result>;
+//    template <typename _Type, template <typename...> class _Template>
+//    struct is_instantiation_of : std::false_type
+//    {
+//    };
+//
+//    template <template <typename...> class _Template, typename... _Types>
+//    struct is_instantiation_of<_Template<_Types...>, _Template> : std::true_type { };
+//
+//    template <typename _Type, template <typename...> class _Template>
+//    constexpr auto is_instantiation_of_v = is_instantiation_of<_Type, _Template>::value;
+//
+//    template <class _Function>
+//    constexpr auto is_async_method = std::is_void<function_result_t<_Function>>::value
+//                                  && is_instantiation_of_v<last_function_argument_t<_Function>, Result>;
 
 }
 

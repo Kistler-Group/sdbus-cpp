@@ -55,10 +55,6 @@ namespace sdbus {
     template <typename _Function>
     inline std::enable_if_t<!is_async_method<_Function>> MethodRegistrator::implementedAs(_Function&& callback)
     {
-        //constexpr bool chrum = is_instantiation_of_v<Result, function_argument_t<_Function, function_argument_count_v<_Function> - 1 >>;
-        //constexpr bool chrum = is_instantiation_of_v<Result, function_argument_t<_Function, function_argument_count_v<_Function>-1>>;
-        //(void)chrum;
-
         SDBUS_THROW_ERROR_IF(interfaceName_.empty(), "DBus interface not specified when registering a DBus method", EINVAL);
 
         object_.registerMethod( interfaceName_
@@ -73,6 +69,15 @@ namespace sdbus {
 
             // Deserialize input arguments from the message into the tuple
             msg >> inputArgs;
+
+//            if constexpr (std::is_void<function_result_t<_Function>>::value)
+//            {
+//                apply(callback, inputArgs);
+//            }
+//            else
+//            {
+//                reply << apply(callback, inputArgs);
+//            }
 
             // Invoke callback with input arguments from the tuple.
             // For callbacks returning a non-void value, `apply' also returns that value.
@@ -93,9 +98,10 @@ namespace sdbus {
         object_.registerMethod( interfaceName_
                               , methodName_
                               , signature_of_function_input_arguments<_Function>::str()
-                              , signature_of_function_output_arguments<_Function>::str()
+                              , signature_of_function_output_arguments<_Function>::str() //signature_of<last_function_argument_t<_Function>>::str() // because last argument contains output types
                               , [callback = std::forward<_Function>(callback)](MethodCall& msg, MethodResult result)
         {
+            printf("signature_of_function_input_arguments<_Function>::str() == %s\n", signature_of_function_input_arguments<_Function>::str().c_str());
             // Create a tuple of callback input arguments' types, which will be used
             // as a storage for the argument values deserialized from the message.
             tuple_of_function_input_arg_types_t<_Function> inputArgs;
@@ -103,11 +109,12 @@ namespace sdbus {
             // Deserialize input arguments from the message into the tuple,
             // plus store the result object as a last item of the tuple.
             msg >> inputArgs;
-            static_assert(std::tuple_size<decltype(inputArgs)>::value > 0);
-            std::get<std::tuple_size<decltype(inputArgs)>::value-1>(inputArgs) = std::move(result);
+            //static_assert(std::tuple_size<decltype(inputArgs)>::value > 0);
+            //std::get<std::tuple_size<decltype(inputArgs)>::value-1>(inputArgs) = std::move(result);
+            //std::get<0>(inputArgs) = std::move(result);
 
             // Invoke callback with input arguments from the tuple.
-            apply(callback, inputArgs); // TODO: Use std::apply when switching to full C++17 support
+            apply(callback, std::move(result), inputArgs); // TODO: Use std::apply when switching to full C++17 support
         });
     }
 

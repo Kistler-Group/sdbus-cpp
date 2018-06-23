@@ -120,6 +120,20 @@ public:
         return result;
     }
 
+    uint32_t doOperationSync(uint32_t param)
+    {
+        uint32_t result;
+        object_.callMethod("doOperationSync").onInterface(INTERFACE_NAME).withArguments(param).storeResultsTo(result);
+        return result;
+    }
+
+    uint32_t doOperationAsync(uint32_t param)
+    {
+        uint32_t result;
+        object_.callMethod("doOperationAsync").onInterface(INTERFACE_NAME).withArguments(param).storeResultsTo(result);
+        return result;
+    }
+
     sdbus::Signature getSignature()
     {
         sdbus::Signature result;

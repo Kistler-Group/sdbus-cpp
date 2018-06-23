@@ -27,6 +27,8 @@
 #define SDBUS_CPP_INTEGRATIONTESTS_TESTINGADAPTOR_H_
 
 #include "adaptor-glue.h"
+#include <thread>
+#include <chrono>
 
 class TestingAdaptor : public sdbus::Interfaces<testing_adaptor>
 {
@@ -96,6 +98,22 @@ protected:
             res += x;
         }
         return res;
+    }
+
+    uint32_t doOperationSync(uint32_t param)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(param));
+        return param;
+    }
+
+    void doOperationAsync(uint32_t param, sdbus::Result<uint32_t> result)
+    {
+        // The same as doOperationSync, just written as an asynchronous method callback
+        std::thread([param, result = std::move(result)]()
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(param));
+            result.returnResults(param);
+        }).detach();
     }
 
     sdbus::Signature getSignature() const { return SIGNATURE_VALUE; }
