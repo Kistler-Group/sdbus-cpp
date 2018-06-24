@@ -12,3 +12,6 @@ v0.2.4
 v0.2.5
 - Real fix for issue with sdbus::Struct inherited constructors
 - Little code refactorings and improvements
+
+v0.2.6
+- Fixed memory leak in Message copy operations
