@@ -336,19 +336,25 @@ namespace sdbus {
 
         static constexpr std::size_t arity = sizeof...(_Args);
 
-        template <size_t _Idx, typename _Enabled = void>
-        struct arg;
+//        template <size_t _Idx, typename _Enabled = void>
+//        struct arg;
+//
+//        template <size_t _Idx>
+//        struct arg<_Idx, std::enable_if_t<(_Idx < arity)>>
+//        {
+//            typedef std::tuple_element_t<_Idx, arguments_type> type;
+//        };
+//
+//        template <size_t _Idx>
+//        struct arg<_Idx, std::enable_if_t<!(_Idx < arity)>>
+//        {
+//            typedef void type;
+//        };
 
         template <size_t _Idx>
-        struct arg<_Idx, std::enable_if_t<(_Idx < arity)>>
+        struct arg
         {
-            typedef std::tuple_element_t<_Idx, arguments_type> type;
-        };
-
-        template <size_t _Idx>
-        struct arg<_Idx, std::enable_if_t<!(_Idx < arity)>>
-        {
-            typedef void type;
+            typedef std::tuple_element_t<_Idx, std::tuple<_Args...>> type;
         };
 
         template <size_t _Idx>
@@ -409,6 +415,9 @@ namespace sdbus {
 
     template <class _Function>
     constexpr auto is_async_method_v = function_traits<_Function>::is_async;
+
+    template <typename _FunctionType>
+    using function_arguments_t = typename function_traits<_FunctionType>::arguments_type;
 
     template <typename _FunctionType, size_t _Idx>
     using function_argument_t = typename function_traits<_FunctionType>::template arg_t<_Idx>;
