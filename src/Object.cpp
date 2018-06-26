@@ -73,7 +73,6 @@ void Object::registerMethod( const std::string& interfaceName
 
     auto asyncCallback = [this, callback = std::move(asyncMethodCallback)](MethodCall& msg)
     {
-        //auto reply = msg.createReply();
         MethodResult result{msg, *this};
         callback(msg, result);
     };
@@ -147,7 +146,6 @@ void Object::emitSignal(const sdbus::Signal& message)
     // TODO: Make signal emitting asynchronous. Now signal can probably be emitted only from user code
     // handled within the D-Bus processing loop thread, but not from any thread. In principle it will
     // be the same as async replies.
-    // TODO: SDBUS_THROW_IF message is not a signal
     message.send();
 }
 

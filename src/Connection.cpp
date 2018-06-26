@@ -274,7 +274,6 @@ void Connection::processAsynchronousMessages()
     {
         auto reply = asyncReplies_.front();
         asyncReplies_.pop();
-        std::cout << "Server sending async reply " << sd_bus_message_get_signature((sd_bus_message *)reply.getMsg(), true) << std::endl;
         reply.send();
     }
 }

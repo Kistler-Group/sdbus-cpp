@@ -202,6 +202,7 @@ TEST_F(SdbusTestObject, CallsMethodWithComplexTypeSuccesfully)
 
 TEST_F(SdbusTestObject, DoesServerSideAsynchoronousMethodInParallel)
 {
+    // Yeah, this is kinda timing-dependent test, but times should be safe...
     std::mutex mtx;
     std::vector<uint32_t> results;
     std::atomic<bool> invoke{};
@@ -209,21 +210,16 @@ TEST_F(SdbusTestObject, DoesServerSideAsynchoronousMethodInParallel)
     auto call = [&](uint32_t param)
     {
         TestingProxy proxy{INTERFACE_NAME, OBJECT_PATH};
-        auto i = ++startedCount;
-        std::cout << "startedCount incremented to" << i << std::endl;
+        ++startedCount;
         while (!invoke) ;
-        std::cout << "going to do async operation " << i << std::endl;
         auto result = proxy.doOperationAsync(param);
-        std::cout << "did async operation " << i << std::endl;
         std::lock_guard<std::mutex> guard(mtx);
         results.push_back(result);
     };
 
     std::thread invocations[]{std::thread{call, 1500}, std::thread{call, 1000}, std::thread{call, 500}};
     while (startedCount != 3) ;
-    std::cout << "Got all threads ready" << std::endl;
     invoke = true;
-    std::cout << "Joining with threads" << std::endl;
     std::for_each(std::begin(invocations), std::end(invocations), [](auto& t){ t.join(); });
 
     ASSERT_THAT(results, ElementsAre(500, 1000, 1500));

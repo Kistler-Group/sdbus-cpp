@@ -5,7 +5,7 @@ libsdbus_c___la_SOURCES = \
 	Connection.cpp \
 	ConvenienceClasses.cpp \
 	Message.cpp \
-	AsyncResult.cpp \
+	MethodResult.cpp \
 	Object.cpp \
 	ObjectProxy.cpp \
 	Types.cpp \

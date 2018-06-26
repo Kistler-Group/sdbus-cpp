@@ -53,7 +53,7 @@ namespace sdbus {
     }
 
     template <typename _Function>
-    inline std::enable_if_t<!is_async_method<_Function>> MethodRegistrator::implementedAs(_Function&& callback)
+    inline std::enable_if_t<!is_async_method_v<_Function>> MethodRegistrator::implementedAs(_Function&& callback)
     {
         SDBUS_THROW_ERROR_IF(interfaceName_.empty(), "DBus interface not specified when registering a DBus method", EINVAL);
 
@@ -91,7 +91,7 @@ namespace sdbus {
     }
 
     template <typename _Function>
-    inline std::enable_if_t<is_async_method<_Function>> MethodRegistrator::implementedAs(_Function&& callback)
+    inline std::enable_if_t<is_async_method_v<_Function>> MethodRegistrator::implementedAs(_Function&& callback)
     {
         SDBUS_THROW_ERROR_IF(interfaceName_.empty(), "DBus interface not specified when registering a DBus method", EINVAL);
 
@@ -101,7 +101,6 @@ namespace sdbus {
                               , signature_of_function_output_arguments<_Function>::str() //signature_of<last_function_argument_t<_Function>>::str() // because last argument contains output types
                               , [callback = std::forward<_Function>(callback)](MethodCall& msg, MethodResult result)
         {
-            printf("signature_of_function_input_arguments<_Function>::str() == %s\n", signature_of_function_input_arguments<_Function>::str().c_str());
             // Create a tuple of callback input arguments' types, which will be used
             // as a storage for the argument values deserialized from the message.
             tuple_of_function_input_arg_types_t<_Function> inputArgs;

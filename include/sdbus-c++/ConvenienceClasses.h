@@ -46,9 +46,9 @@ namespace sdbus {
         MethodRegistrator(IObject& object, const std::string& methodName);
         MethodRegistrator& onInterface(const std::string& interfaceName);
         template <typename _Function>
-        std::enable_if_t<!is_async_method<_Function>> implementedAs(_Function&& callback);
+        std::enable_if_t<!is_async_method_v<_Function>> implementedAs(_Function&& callback);
         template <typename _Function>
-        std::enable_if_t<is_async_method<_Function>> implementedAs(_Function&& callback);
+        std::enable_if_t<is_async_method_v<_Function>> implementedAs(_Function&& callback);
 
     private:
         IObject& object_;

@@ -307,17 +307,6 @@ namespace sdbus {
         }
     };
 
-//    template <typename... _Results>
-//    struct signature_of<Result<_Results...>>
-//    {
-//        static constexpr bool is_valid = true;
-//
-//        static const std::string str()
-//        {
-//            return "";
-//        }
-//    };
-
 
     // Function traits implementation inspired by (c) kennytm,
     // https://github.com/kennytm/utils/blob/master/traits.hpp
@@ -370,14 +359,14 @@ namespace sdbus {
     struct function_traits<_ReturnType(_Args...)>
         : public function_traits_base<_ReturnType, _Args...>
     {
-        static constexpr bool is_async_method = false;
+        static constexpr bool is_async = false;
     };
 
     template <typename... _Args, typename... _Results>
     struct function_traits<void(Result<_Results...>, _Args...)>
         : public function_traits_base<std::tuple<_Results...>, _Args...>
     {
-        static constexpr bool is_async_method = true;
+        static constexpr bool is_async = true;
     };
 
     template <typename _ReturnType, typename... _Args>
@@ -419,7 +408,7 @@ namespace sdbus {
     {};
 
     template <class _Function>
-    constexpr auto is_async_method = function_traits<_Function>::is_async_method;
+    constexpr auto is_async_method_v = function_traits<_Function>::is_async;
 
     template <typename _FunctionType, size_t _Idx>
     using function_argument_t = typename function_traits<_FunctionType>::template arg_t<_Idx>;
@@ -429,28 +418,6 @@ namespace sdbus {
 
     template <typename _FunctionType>
     using function_result_t = typename function_traits<_FunctionType>::result_type;
-
-    template <typename _Type>
-    struct aggregate_signature
-    {
-        static const std::string str()
-        {
-            return signature_of<std::decay_t<_Type>>::str();
-        }
-    };
-
-    template <typename... _Types>
-    struct aggregate_signature<std::tuple<_Types...>>
-    {
-        static const std::string str()
-        {
-            std::initializer_list<std::string> signatures{signature_of<std::decay_t<_Types>>::str()...};
-            std::string signature;
-            for (const auto& item : signatures)
-                signature += item;
-            return signature;
-        }
-    };
 
     template <typename _Function>
     struct tuple_of_function_input_arg_types
@@ -469,6 +436,29 @@ namespace sdbus {
 
     template <typename _Function>
     using tuple_of_function_output_arg_types_t = typename tuple_of_function_output_arg_types<_Function>::type;
+
+    template <typename _Type>
+    struct aggregate_signature
+    {
+        static const std::string str()
+        {
+            return signature_of<std::decay_t<_Type>>::str();
+        }
+    };
+
+    template <typename... _Types>
+    struct aggregate_signature<std::tuple<_Types...>>
+    {
+        static const std::string str()
+        {
+            // TODO: This could be a fold expression in C++17...
+            std::initializer_list<std::string> signatures{signature_of<std::decay_t<_Types>>::str()...};
+            std::string signature;
+            for (const auto& item : signatures)
+                signature += item;
+            return signature;
+        }
+    };
 
     template <typename _Function>
     struct signature_of_function_input_arguments
@@ -490,14 +480,6 @@ namespace sdbus {
 
     namespace detail
     {
-//        template <class _Function, class _Tuple, std::size_t... _I>
-//        constexpr decltype(auto) apply_impl( _Function&& f
-//                                           , _Tuple&& t
-//                                           , std::index_sequence<_I...> )
-//        {
-//            return std::forward<_Function>(f)(std::get<_I>(std::forward<_Tuple>(t))...);
-//        }
-
         template <class _Function, class _Tuple, std::size_t... _I>
         constexpr decltype(auto) apply_impl( _Function&& f
                                            , MethodResult&& r
@@ -551,23 +533,6 @@ namespace sdbus {
                                  , std::forward<_Tuple>(t)
                                  , std::make_index_sequence<std::tuple_size<std::decay_t<_Tuple>>::value>{} );
     }
-
-
-//    template <typename _Type, template <typename...> class _Template>
-//    struct is_instantiation_of : std::false_type
-//    {
-//    };
-//
-//    template <template <typename...> class _Template, typename... _Types>
-//    struct is_instantiation_of<_Template<_Types...>, _Template> : std::true_type { };
-//
-//    template <typename _Type, template <typename...> class _Template>
-//    constexpr auto is_instantiation_of_v = is_instantiation_of<_Type, _Template>::value;
-//
-//    template <class _Function>
-//    constexpr auto is_async_method = std::is_void<function_result_t<_Function>>::value
-//                                  && is_instantiation_of_v<last_function_argument_t<_Function>, Result>;
-
 }
 
 #endif /* SDBUS_CXX_TYPETRAITS_H_ */
