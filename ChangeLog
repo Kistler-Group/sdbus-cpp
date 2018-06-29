@@ -8,3 +8,10 @@ v0.2.4
 - Fixed issue with googlemock
 - Added object proxy factory overload that takes unique_ptr to a connection
 - Workaround: Clang compilation error when compiling sdbus::Struct (seems like an issue of Clang)
+
+v0.2.5
+- Real fix for issue with sdbus::Struct inherited constructors
+- Little code refactorings and improvements
+
+v0.2.6
+- Fixed memory leak in Message copy operations
