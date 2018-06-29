@@ -70,15 +70,6 @@ namespace sdbus {
             // Deserialize input arguments from the message into the tuple
             msg >> inputArgs;
 
-//            if constexpr (std::is_void<function_result_t<_Function>>::value)
-//            {
-//                apply(callback, inputArgs);
-//            }
-//            else
-//            {
-//                reply << apply(callback, inputArgs);
-//            }
-
             // Invoke callback with input arguments from the tuple.
             // For callbacks returning a non-void value, `apply' also returns that value.
             // For callbacks returning void, `apply' returns an empty tuple.
