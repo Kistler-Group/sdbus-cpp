@@ -13,8 +13,8 @@ Using sdbus-c++ library
 8. [Implementing the Concatenator example using convenience sdbus-c++ API layer](#implementing-the-concatenator-example-using-convenience-sdbus-c-api-layer)
 9. [Implementing the Concatenator example using sdbus-c++-generated stubs](#implementing-the-concatenator-example-using-sdbus-c-generated-stubs)
 10. [Asynchronous server-side methods](#asynchronous-server-side-methods)
-10. [Using D-Bus properties](#using-d-bus-properties)
-11. [Conclusion](#conclusion)
+11. [Using D-Bus properties](#using-d-bus-properties)
+12. [Conclusion](#conclusion)
 
 Introduction
 ------------
