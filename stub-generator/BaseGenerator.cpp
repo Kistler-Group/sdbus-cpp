@@ -126,12 +126,15 @@ std::tuple<std::string, std::string, std::string> BaseGenerator::argsToNamesAndT
 /**
  *
  */
-std::string BaseGenerator::outArgsToType(const Nodes& args) const
+std::string BaseGenerator::outArgsToType(const Nodes& args, bool bareList) const
 {
     std::ostringstream retTypeSS;
 
     if (args.size() == 0)
     {
+        if (bareList)
+            return "";
+
         retTypeSS << "void";
     }
     else if (args.size() == 1)
@@ -141,7 +144,8 @@ std::string BaseGenerator::outArgsToType(const Nodes& args) const
     }
     else if (args.size() >= 2)
     {
-        retTypeSS << "std::tuple<";
+        if (!bareList)
+            retTypeSS << "std::tuple<";
 
         bool firstArg = true;
         for (const auto& arg : args)
@@ -150,7 +154,8 @@ std::string BaseGenerator::outArgsToType(const Nodes& args) const
             retTypeSS << signature_to_type(arg->get("type"));
         }
 
-        retTypeSS << ">";
+        if (!bareList)
+            retTypeSS << ">";
     }
 
     return retTypeSS.str();

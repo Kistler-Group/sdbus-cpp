@@ -94,7 +94,7 @@ protected:
      * @param args
      * @return return type
      */
-    std::string outArgsToType(const sdbuscpp::xml::Nodes& args) const;
+    std::string outArgsToType(const sdbuscpp::xml::Nodes& args, bool bareList = false) const;
 
 };
 
