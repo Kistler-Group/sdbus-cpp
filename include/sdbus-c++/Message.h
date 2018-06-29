@@ -161,7 +161,6 @@ namespace sdbus {
     {
     public:
         using Message::Message;
-        using Message::getMsg; // TODO DELETE!
         void send() const;
     };
 
@@ -342,13 +341,6 @@ namespace sdbus {
     inline Message& operator>>(Message& msg, std::tuple<_ValueTypes...>& item)
     {
         detail::deserialize_tuple(msg, item, std::index_sequence_for<_ValueTypes...>{});
-        return msg;
-    }
-
-    template <typename... _Results>
-    inline Message& operator>>(Message& msg, sdbus::Result<_Results...>& /*item*/)
-    {
-        // Intentionally do nothing
         return msg;
     }
 

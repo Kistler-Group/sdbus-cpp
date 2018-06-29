@@ -71,6 +71,28 @@ namespace sdbus {
                                    , method_callback methodCallback ) = 0;
 
         /*!
+        * @brief Registers method that the object will provide on D-Bus
+        *
+        * @param[in] interfaceName Name of an interface that the method will belong to
+        * @param[in] methodName Name of the method
+        * @param[in] inputSignature D-Bus signature of method input parameters
+        * @param[in] outputSignature D-Bus signature of method output parameters
+        * @param[in] asyncMethodCallback Callback that implements the body of the method
+        *
+        * This overload register a method callback that will have a freedom to execute
+        * its body in asynchronous contexts, and send the results from those contexts.
+        * This can help in e.g. long operations, which then don't block the D-Bus processing
+        * loop thread.
+        *
+        * @throws sdbus::Error in case of failure
+        */
+        virtual void registerMethod( const std::string& interfaceName
+                                   , const std::string& methodName
+                                   , const std::string& inputSignature
+                                   , const std::string& outputSignature
+                                   , async_method_callback asyncMethodCallback ) = 0;
+
+        /*!
         * @brief Registers signal that the object will emit on D-Bus
         *
         * @param[in] interfaceName Name of an interface that the signal will fall under
@@ -231,13 +253,6 @@ namespace sdbus {
         SignalEmitter emitSignal(const std::string& signalName);
 
         virtual ~IObject() = 0;
-
-        /* TODO doc and move fnc decl up */
-        virtual void registerMethod( const std::string& interfaceName
-                                   , const std::string& methodName
-                                   , const std::string& inputSignature
-                                   , const std::string& outputSignature
-                                   , async_method_callback asyncMethodCallback ) = 0;
     };
 
     inline MethodRegistrator IObject::registerMethod(const std::string& methodName)

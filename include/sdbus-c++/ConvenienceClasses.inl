@@ -99,9 +99,6 @@ namespace sdbus {
             // Deserialize input arguments from the message into the tuple,
             // plus store the result object as a last item of the tuple.
             msg >> inputArgs;
-            //static_assert(std::tuple_size<decltype(inputArgs)>::value > 0);
-            //std::get<std::tuple_size<decltype(inputArgs)>::value-1>(inputArgs) = std::move(result);
-            //std::get<0>(inputArgs) = std::move(result);
 
             // Invoke callback with input arguments from the tuple.
             apply(callback, std::move(result), inputArgs); // TODO: Use std::apply when switching to full C++17 support
