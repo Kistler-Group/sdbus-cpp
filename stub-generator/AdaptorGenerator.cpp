@@ -136,25 +136,47 @@ std::tuple<std::string, std::string> AdaptorGenerator::processMethods(const Node
     {
         auto methodName = method->get("name");
 
+        bool async{false};
+        Nodes annotations = (*method)["annotation"];
+
+        for (const auto& annotation : annotations)
+        {
+            if (annotation->get("name") == "org.freedesktop.DBus.Method.Async"
+                && (annotation->get("value") == "server" || annotation->get("value") == "clientserver"))
+            {
+                async = true;
+                break;
+            }
+        }
+
         Nodes args = (*method)["arg"];
         Nodes inArgs = args.select("direction" , "in");
         Nodes outArgs = args.select("direction" , "out");
 
         std::string argStr, argTypeStr;
         std::tie(argStr, argTypeStr, std::ignore) = argsToNamesAndTypes(inArgs);
+        
+        using namespace std::string_literals;
 
         registrationSS << tab << tab << "object_.registerMethod(\""
                 << methodName << "\")"
                 << ".onInterface(interfaceName)"
                 << ".implementedAs("
                 << "[this]("
+                << (async ? "sdbus::Result<" + outArgsToType(outArgs, true) + "> result" + (argTypeStr.empty() ? "" : ", ") : "")
                 << argTypeStr
-                << "){ return this->" << methodName << "("
+                << "){ " << (async ? "" : "return ") << "this->" << methodName << "("
+                << (async ? "std::move(result)"s + (argTypeStr.empty() ? "" : ", ") : "")
                 << argStr << "); });" << endl;
 
         declarationSS << tab
-                << "virtual " << outArgsToType(outArgs) << " " << methodName
-                << "(" << argTypeStr << ") = 0;" << endl;
+                << "virtual "
+                << (async ? "void" : outArgsToType(outArgs))
+                << " " << methodName
+                << "("
+                << (async ? "sdbus::Result<" + outArgsToType(outArgs, true) + "> result" + (argTypeStr.empty() ? "" : ", ") : "")
+                << argTypeStr
+                << ") = 0;" << endl;
     }
 
     return std::make_tuple(registrationSS.str(), declarationSS.str());

@@ -29,6 +29,7 @@
 #include <sdbus-c++/IObject.h>
 #include <sdbus-c++/IObjectProxy.h>
 #include <sdbus-c++/Message.h>
+#include <sdbus-c++/MethodResult.h>
 #include <sdbus-c++/Types.h>
 #include <sdbus-c++/TypeTraits.h>
 #include <sdbus-c++/Error.h>
@@ -52,7 +53,7 @@ namespace sdbus {
     }
 
     template <typename _Function>
-    inline void MethodRegistrator::implementedAs(_Function&& callback)
+    inline std::enable_if_t<!is_async_method_v<_Function>> MethodRegistrator::implementedAs(_Function&& callback)
     {
         SDBUS_THROW_ERROR_IF(interfaceName_.empty(), "DBus interface not specified when registering a DBus method", EINVAL);
 
@@ -60,7 +61,7 @@ namespace sdbus {
                               , methodName_
                               , signature_of_function_input_arguments<_Function>::str()
                               , signature_of_function_output_arguments<_Function>::str()
-                              , [callback = std::forward<_Function>(callback)](Message& msg, Message& reply)
+                              , [callback = std::forward<_Function>(callback)](MethodCall& msg, MethodReply& reply)
         {
             // Create a tuple of callback input arguments' types, which will be used
             // as a storage for the argument values deserialized from the message.
@@ -80,6 +81,29 @@ namespace sdbus {
         });
     }
 
+    template <typename _Function>
+    inline std::enable_if_t<is_async_method_v<_Function>> MethodRegistrator::implementedAs(_Function&& callback)
+    {
+        SDBUS_THROW_ERROR_IF(interfaceName_.empty(), "DBus interface not specified when registering a DBus method", EINVAL);
+
+        object_.registerMethod( interfaceName_
+                              , methodName_
+                              , signature_of_function_input_arguments<_Function>::str()
+                              , signature_of_function_output_arguments<_Function>::str() //signature_of<last_function_argument_t<_Function>>::str() // because last argument contains output types
+                              , [callback = std::forward<_Function>(callback)](MethodCall& msg, MethodResult result)
+        {
+            // Create a tuple of callback input arguments' types, which will be used
+            // as a storage for the argument values deserialized from the message.
+            tuple_of_function_input_arg_types_t<_Function> inputArgs;
+
+            // Deserialize input arguments from the message into the tuple,
+            // plus store the result object as a last item of the tuple.
+            msg >> inputArgs;
+
+            // Invoke callback with input arguments from the tuple.
+            apply(callback, std::move(result), inputArgs); // TODO: Use std::apply when switching to full C++17 support
+        });
+    }
 
     // Moved into the library to isolate from C++17 dependency
     /*
@@ -339,7 +363,7 @@ namespace sdbus {
 
         objectProxy_.registerSignalHandler( interfaceName_
                                           , signalName_
-                                          , [callback = std::forward<_Function>(callback)](Message& signal)
+                                          , [callback = std::forward<_Function>(callback)](Signal& signal)
         {
             // Create a tuple of callback input arguments' types, which will be used
             // as a storage for the argument values deserialized from the signal message.

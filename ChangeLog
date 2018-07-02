@@ -15,3 +15,11 @@ v0.2.5
 
 v0.2.6
 - Fixed memory leak in Message copy operations
+
+v0.3.0
+- Introduced support for asynchronous server-side methods
+- Refactored the concept of Message into distinctive concrete message types
+- As this release comes with breaking API changes:
+    * if you're using lower-level API, please rename 'Message' to whatever concrete message type (MethodCall, MethodReply, Signal) is needed there,
+    * if you're using higher-level API, please re-compile and re-link your application against sdbus-c++,
+    * if you're using generated stub headers, please re-compile and re-link your application against sdbus-c++.

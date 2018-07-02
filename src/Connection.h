@@ -27,12 +27,14 @@
 #define SDBUS_CXX_INTERNAL_CONNECTION_H_
 
 #include <sdbus-c++/IConnection.h>
+#include <sdbus-c++/Message.h>
+#include "IConnection.h"
 #include <systemd/sd-bus.h>
 #include <memory>
-#include <atomic>
 #include <thread>
-
-#include "IConnection.h"
+#include <atomic>
+#include <mutex>
+#include <queue>
 
 namespace sdbus { namespace internal {
 
@@ -62,13 +64,13 @@ namespace sdbus { namespace internal {
                              , void* userData ) override;
         void removeObjectVTable(void* vtableHandle) override;
 
-        sdbus::Message createMethodCall( const std::string& destination
-                                       , const std::string& objectPath
-                                       , const std::string& interfaceName
-                                       , const std::string& methodName ) const override;
-        sdbus::Message createSignal( const std::string& objectPath
-                                   , const std::string& interfaceName
-                                   , const std::string& signalName ) const override;
+        sdbus::MethodCall createMethodCall( const std::string& destination
+                                          , const std::string& objectPath
+                                          , const std::string& interfaceName
+                                          , const std::string& methodName ) const override;
+        sdbus::Signal createSignal( const std::string& objectPath
+                                  , const std::string& interfaceName
+                                  , const std::string& signalName ) const override;
 
         void* registerSignalHandler( const std::string& objectPath
                                    , const std::string& interfaceName
@@ -77,25 +79,41 @@ namespace sdbus { namespace internal {
                                    , void* userData ) override;
         void unregisterSignalHandler(void* handlerCookie) override;
 
+        void sendReplyAsynchronously(const sdbus::MethodReply& reply) override;
+
         std::unique_ptr<sdbus::internal::IConnection> clone() const override;
 
     private:
+        struct WaitResult
+        {
+            bool msgsToProcess;
+            bool asyncMsgsToProcess;
+            operator bool()
+            {
+                return msgsToProcess || asyncMsgsToProcess;
+            }
+        };
         static sd_bus* openBus(Connection::BusType type);
         static void finishHandshake(sd_bus* bus);
-        static int createProcessingExitDescriptor();
-        static void closeProcessingExitDescriptor(int fd);
-        static bool processPendingRequest(sd_bus* bus);
-        static bool waitForNextRequest(sd_bus* bus, int exitFd);
+        static int createLoopNotificationDescriptor();
+        static void closeLoopNotificationDescriptor(int fd);
+        bool processPendingRequest();
+        void processAsynchronousMessages();
+        WaitResult waitForNextRequest();
         static std::string composeSignalMatchFilter( const std::string& objectPath
                                                    , const std::string& interfaceName
                                                    , const std::string& signalName );
+        void notifyProcessingLoop();
         void notifyProcessingLoopToExit();
         void joinWithProcessingLoop();
 
     private:
         std::unique_ptr<sd_bus, decltype(&sd_bus_flush_close_unref)> bus_{nullptr, &sd_bus_flush_close_unref};
         std::thread asyncLoopThread_;
-        std::atomic<int> exitLoopFd_{-1};
+        std::mutex mutex_;
+        std::queue<MethodReply> asyncReplies_;
+        std::atomic<bool> exitLoopThread_;
+        int notificationFd_{-1};
         BusType busType_;
 
         static constexpr const uint64_t POLL_TIMEOUT_USEC = 500000;

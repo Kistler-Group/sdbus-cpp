@@ -27,7 +27,9 @@
 #define SDBUS_CXX_CONVENIENCECLASSES_H_
 
 #include <sdbus-c++/Message.h>
+#include <sdbus-c++/TypeTraits.h>
 #include <string>
+#include <type_traits>
 
 // Forward declarations
 namespace sdbus {
@@ -43,7 +45,10 @@ namespace sdbus {
     public:
         MethodRegistrator(IObject& object, const std::string& methodName);
         MethodRegistrator& onInterface(const std::string& interfaceName);
-        template <typename _Function> void implementedAs(_Function&& callback);
+        template <typename _Function>
+        std::enable_if_t<!is_async_method_v<_Function>> implementedAs(_Function&& callback);
+        template <typename _Function>
+        std::enable_if_t<is_async_method_v<_Function>> implementedAs(_Function&& callback);
 
     private:
         IObject& object_;
@@ -103,7 +108,7 @@ namespace sdbus {
     private:
         IObject& object_;
         const std::string& signalName_;
-        Message signal_;
+        Signal signal_;
         int exceptions_{}; // Number of active exceptions when SignalEmitter is constructed
     };
 
@@ -122,7 +127,7 @@ namespace sdbus {
     private:
         IObjectProxy& objectProxy_;
         const std::string& methodName_;
-        Message method_;
+        MethodCall method_;
         int exceptions_{}; // Number of active exceptions when MethodInvoker is constructed
         bool methodCalled_{};
     };

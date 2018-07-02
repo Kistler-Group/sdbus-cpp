@@ -28,6 +28,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <cstdint>
+#include <type_traits>
 
 using ::testing::Eq;
 
@@ -126,4 +127,43 @@ namespace
 TYPED_TEST(Type2DBusTypeSignatureConversion, ConvertsTypeToProperDBusSignature)
 {
     ASSERT_THAT(sdbus::signature_of<TypeParam>::str(), Eq(this->dbusTypeSignature_));
+}
+
+TEST(FreeFunctionTypeTraits, DetectsTraitsOfTrivialSignatureFunction)
+{
+    void f();
+    using Fnc = decltype(f);
+
+    static_assert(!sdbus::is_async_method_v<Fnc>, "Free function incorrectly detected as async method");
+    static_assert(std::is_same<sdbus::function_arguments_t<Fnc>, std::tuple<>>::value, "Incorrectly detected free function parameters");
+    static_assert(std::is_same<sdbus::tuple_of_function_input_arg_types_t<Fnc>, std::tuple<>>::value, "Incorrectly detected tuple of free function parameters");
+    static_assert(std::is_same<sdbus::tuple_of_function_output_arg_types_t<Fnc>, void>::value, "Incorrectly detected tuple of free function return types");
+    static_assert(sdbus::function_argument_count_v<Fnc> == 0, "Incorrectly detected free function parameter count");
+    static_assert(std::is_void<sdbus::function_result_t<Fnc>>::value, "Incorrectly detected free function return type");
+}
+
+TEST(FreeFunctionTypeTraits, DetectsTraitsOfNontrivialSignatureFunction)
+{
+    std::tuple<char, int> f(double&, const char*, int);
+    using Fnc = decltype(f);
+
+    static_assert(!sdbus::is_async_method_v<Fnc>, "Free function incorrectly detected as async method");
+    static_assert(std::is_same<sdbus::function_arguments_t<Fnc>, std::tuple<double&, const char*, int>>::value, "Incorrectly detected free function parameters");
+    static_assert(std::is_same<sdbus::tuple_of_function_input_arg_types_t<Fnc>, std::tuple<double, const char*, int>>::value, "Incorrectly detected tuple of free function parameters");
+    static_assert(std::is_same<sdbus::tuple_of_function_output_arg_types_t<Fnc>, std::tuple<char, int>>::value, "Incorrectly detected tuple of free function return types");
+    static_assert(sdbus::function_argument_count_v<Fnc> == 3, "Incorrectly detected free function parameter count");
+    static_assert(std::is_same<sdbus::function_result_t<Fnc>, std::tuple<char, int>>::value, "Incorrectly detected free function return type");
+}
+
+TEST(FreeFunctionTypeTraits, DetectsTraitsOfAsyncFunction)
+{
+    void f(sdbus::Result<char, int>, double&, const char*, int);
+    using Fnc = decltype(f);
+
+    static_assert(sdbus::is_async_method_v<Fnc>, "Free async function incorrectly detected as sync method");
+    static_assert(std::is_same<sdbus::function_arguments_t<Fnc>, std::tuple<double&, const char*, int>>::value, "Incorrectly detected free function parameters");
+    static_assert(std::is_same<sdbus::tuple_of_function_input_arg_types_t<Fnc>, std::tuple<double, const char*, int>>::value, "Incorrectly detected tuple of free function parameters");
+    static_assert(std::is_same<sdbus::tuple_of_function_output_arg_types_t<Fnc>, std::tuple<char, int>>::value, "Incorrectly detected tuple of free function return types");
+    static_assert(sdbus::function_argument_count_v<Fnc> == 3, "Incorrectly detected free function parameter count");
+    static_assert(std::is_same<sdbus::function_result_t<Fnc>, std::tuple<char, int>>::value, "Incorrectly detected free function return type");
 }

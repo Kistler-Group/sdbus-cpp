@@ -44,6 +44,12 @@ namespace sdbus {
     class ObjectPath;
     class Signature;
     template <typename... _ValueTypes> class Struct;
+
+    class Message;
+    class MethodCall;
+    class MethodReply;
+    class Signal;
+    template <typename... _Results> class Result;
 }
 
 namespace sdbus {
@@ -65,16 +71,8 @@ namespace sdbus {
     class Message
     {
     public:
-        enum class Type
-        {
-            ePlainMessage
-        ,   eMethodCall
-        ,   eMethodReply
-        ,   eSignal
-        };
-
         Message() = default;
-        Message(void *msg, Type type = Type::ePlainMessage) noexcept;
+        Message(void *msg) noexcept;
         Message(const Message&) noexcept;
         Message& operator=(const Message&) noexcept;
         Message(Message&& other) noexcept;
@@ -137,19 +135,40 @@ namespace sdbus {
         void peekType(std::string& type, std::string& contents) const;
         bool isValid() const;
         bool isEmpty() const;
-        Type getType() const;
 
         void copyTo(Message& destination, bool complete) const;
         void seal();
         void rewind(bool complete);
 
-        Message createReply() const;
-        Message send() const;
+    protected:
+        void* getMsg() const;
 
     private:
         void* msg_{};
-        Type type_{Type::ePlainMessage};
         mutable bool ok_{true};
+    };
+
+    class MethodCall : public Message
+    {
+    public:
+        using Message::Message;
+        MethodReply send() const;
+        MethodReply createReply() const;
+        MethodReply createErrorReply(const sdbus::Error& error) const;
+    };
+
+    class MethodReply : public Message
+    {
+    public:
+        using Message::Message;
+        void send() const;
+    };
+
+    class Signal : public Message
+    {
+    public:
+        using Message::Message;
+        void send() const;
     };
 
     template <typename _Element>
