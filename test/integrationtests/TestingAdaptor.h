@@ -107,12 +107,20 @@ protected:
 
     void doOperationAsync(uint32_t param, sdbus::Result<uint32_t> result)
     {
-        // The same as doOperationSync, just written as an asynchronous method callback
-        std::thread([param, result = std::move(result)]()
+        if (param == 0)
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(param));
+            // Don't sleep and return the result from this thread
             result.returnResults(param);
-        }).detach();
+        }
+        else
+        {
+            // Process asynchronously in another thread and return the result from there
+            std::thread([param, result = std::move(result)]()
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(param));
+                result.returnResults(param);
+            }).detach();
+        }
     }
 
     sdbus::Signature getSignature() const { return SIGNATURE_VALUE; }
