@@ -225,6 +225,37 @@ TEST_F(SdbusTestObject, DoesServerSideAsynchoronousMethodInParallel)
     ASSERT_THAT(results, ElementsAre(500, 1000, 1500));
 }
 
+TEST_F(SdbusTestObject, HandlesCorrectlyABulkOfParallelServerSideAsyncMethods)
+{
+    std::mutex mtx;
+    std::atomic<size_t> resultCount{};
+    std::atomic<bool> invoke{};
+    std::atomic<int> startedCount{};
+    auto call = [&]()
+    {
+        TestingProxy proxy{INTERFACE_NAME, OBJECT_PATH};
+        ++startedCount;
+        while (!invoke) ;
+
+        size_t localResultCount{};
+        for (size_t i = 0; i < 500; ++i)
+        {
+            auto result = proxy.doOperationAsync(i % 2);
+            if (result == (i % 2)) // Correct return value?
+                localResultCount++;
+        }
+
+        resultCount += localResultCount;
+    };
+
+    std::thread invocations[]{std::thread{call}, std::thread{call}, std::thread{call}};
+    while (startedCount != 3) ;
+    invoke = true;
+    std::for_each(std::begin(invocations), std::end(invocations), [](auto& t){ t.join(); });
+
+    ASSERT_THAT(resultCount, Eq(1500));
+}
+
 TEST_F(SdbusTestObject, FailsCallingNonexistentMethod)
 {
     ASSERT_THROW(m_proxy->callNonexistentMethod(), sdbus::Error);

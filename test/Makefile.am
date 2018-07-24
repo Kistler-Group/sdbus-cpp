@@ -29,7 +29,7 @@ unittests/TypeTraits_test.cpp \
 unittests/Types_test.cpp \
 unittests/Message_test.cpp
 
-libsdbus_c___unittests_LDFLAGS = -L$(top_builddir)/src
+libsdbus_c___unittests_LDFLAGS = -L$(top_builddir)/src -pthread
 
 libsdbus_c___unittests_LDADD = \
 	-lsdbus-c++ \
@@ -45,14 +45,13 @@ integrationtests/libsdbus-c++_integrationtests.cpp \
 integrationtests/Connection_test.cpp \
 integrationtests/AdaptorAndProxy_test.cpp
 
-libsdbus_c___integrationtests_LDFLAGS = -L$(top_builddir)/src
+libsdbus_c___integrationtests_LDFLAGS = -L$(top_builddir)/src -pthread
 
 libsdbus_c___integrationtests_LDADD = \
 	-lsdbus-c++ \
 	@libsdbus_cpp_LIBS@  \
 	@SYSTEMD_LIBS@ \
-	-lgmock \
-	-lpthread
+	-lgmock
 
 TESTS += libsdbus-c++_integrationtests
 

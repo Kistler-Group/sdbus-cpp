@@ -222,7 +222,7 @@ void Connection::finishHandshake(sd_bus* bus)
 
 int Connection::createLoopNotificationDescriptor()
 {
-    auto r = eventfd(0, EFD_SEMAPHORE | EFD_CLOEXEC);
+    auto r = eventfd(0, EFD_SEMAPHORE | EFD_CLOEXEC | EFD_NONBLOCK);
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create event object", -errno);
 
@@ -237,8 +237,11 @@ void Connection::closeLoopNotificationDescriptor(int fd)
 void Connection::notifyProcessingLoop()
 {
     assert(notificationFd_ >= 0);
+
     uint64_t value = 1;
-    write(notificationFd_, &value, sizeof(value));
+    auto r = write(notificationFd_, &value, sizeof(value));
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to notify processing loop", -errno);
 }
 
 void Connection::notifyProcessingLoopToExit()
@@ -312,6 +315,11 @@ Connection::WaitResult Connection::waitForNextRequest()
             return {false, false}; // Got exit notification
 
         // Otherwise we have some async messages to process
+
+        uint64_t value{};
+        auto r = read(notificationFd_, &value, sizeof(value));
+        SDBUS_THROW_ERROR_IF(r < 0, "Failed to read from the event descriptor", -errno);
+
         return {false, true};
     }
 

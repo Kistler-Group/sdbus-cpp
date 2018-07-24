@@ -25,8 +25,8 @@ AC_PROG_INSTALL
 # enable pkg-config
 PKG_PROG_PKG_CONFIG
 
-PKG_CHECK_MODULES(SYSTEMD, [libsystemd >= 0.10.1],,
-    AC_MSG_ERROR([You need the libsystemd library (version 0.10.1 or better)]
+PKG_CHECK_MODULES(SYSTEMD, [libsystemd >= 236],,
+    AC_MSG_ERROR([You need the libsystemd library (version 236 or newer)]
     [https://www.freedesktop.org/wiki/Software/systemd/])
 )
 
