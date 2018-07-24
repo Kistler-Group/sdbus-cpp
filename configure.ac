@@ -5,7 +5,7 @@ AC_PREREQ(2.61)
 # even micro numbers indicate released versions
 m4_define(sdbus_cpp_version_major, 0)
 m4_define(sdbus_cpp_version_minor, 3)
-m4_define(sdbus_cpp_version_micro, 0)
+m4_define(sdbus_cpp_version_micro, 1)
 
 m4_define([sdbus_cpp_version],
           [sdbus_cpp_version_major.sdbus_cpp_version_minor.sdbus_cpp_version_micro])
