@@ -73,7 +73,7 @@ namespace sdbus {
             // Invoke callback with input arguments from the tuple.
             // For callbacks returning a non-void value, `apply' also returns that value.
             // For callbacks returning void, `apply' returns an empty tuple.
-            auto ret = apply(callback, inputArgs); // We don't yet have C++17's std::apply :-(
+            auto ret = sdbus::apply(callback, inputArgs); // We don't yet have C++17's std::apply :-(
 
             // The return value is stored to the reply message.
             // In case of void functions, ret is an empty tuple and thus nothing is stored.
@@ -101,7 +101,7 @@ namespace sdbus {
             msg >> inputArgs;
 
             // Invoke callback with input arguments from the tuple.
-            apply(callback, std::move(result), inputArgs); // TODO: Use std::apply when switching to full C++17 support
+            sdbus::apply(callback, std::move(result), inputArgs); // TODO: Use std::apply when switching to full C++17 support
         });
     }
 
@@ -373,7 +373,7 @@ namespace sdbus {
             signal >> signalArgs;
 
             // Invoke callback with input arguments from the tuple.
-            apply(callback, signalArgs); // We don't yet have C++17's std::apply :-(
+            sdbus::apply(callback, signalArgs); // We don't yet have C++17's std::apply :-(
         });
     }
 
