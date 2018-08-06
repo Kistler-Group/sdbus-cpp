@@ -113,6 +113,14 @@ namespace sdbus {
         {
             getObject().finishRegistration();
         }
+
+        ProxyInterfaces(std::unique_ptr<sdbus::IConnection>&& connection, std::string destination, std::string objectPath)
+            : ObjectHolder<IObjectProxy>(createObjectProxy(std::move(connection), std::move(destination), std::move(objectPath)))
+            , _Interfaces(getObject())...
+        {
+            getObject().finishRegistration();
+        }
+        
     };
 
 }
