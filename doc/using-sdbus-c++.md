@@ -630,6 +630,8 @@ protected:
 };
 ```
 
+In the above example, a proxy is created that creates and maintains its own system bus connection. However, there are `ProxyInterfaces` class template constructor overloads that also take the connection from the user as the first parameter, and pass that connection over to the underlying proxy. The connection instance is used for all D-Bus proxy interfaces listed in the `ProxyInterfaces` template parameter list.
+
 Now let's use this proxy to make remote calls and listen to signals in a real application.
 
 ```cpp
