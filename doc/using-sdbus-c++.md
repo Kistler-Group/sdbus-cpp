@@ -211,9 +211,9 @@ void onConcatenated(sdbus::Signal& signal)
 
 int main(int argc, char *argv[])
 {
-    // Create proxy object for the concatenator object on the server side. Since we don't pass
-    // the D-Bus connection object to the proxy constructor, the proxy will internally create
-    // its own connection to the system bus.
+    // Create proxy object for the concatenator object on the server side. Since here
+    // we are creating the proxy instance without passing connection to it, the proxy
+    // will create its own connection automatically, and it will be system bus connection.
     const char* destinationName = "org.sdbuscpp.concatenator";
     const char* objectPath = "/org/sdbuscpp/concatenator";
     auto concatenatorProxy = sdbus::createObjectProxy(destinationName, objectPath);
@@ -258,9 +258,9 @@ int main(int argc, char *argv[])
 }
 ```
 
-The object proxy is created without explicitly providing a D-Bus connection as an argument in its factory function. In that case, the proxy
-will create its own connection to the *system* bus and listen to signals on it in a separate thread. That means the `onConcatenated` method is invoked always
-in the context of a thread different from the main thread.
+The object proxy can be created by either explicitly passing the connection object to it, or without the connection object. In the former case, we have the freedom of creating our own connection (to either system bus or to session bus) and then we can just move that connection object as the first argument of the proxy factory. The latter option is more convenient (no messing with connection for proxy), the proxy will create and manage its own connection, but the limitation is that it will be the connection to the **system** bus only.
+
+If there are callbacks for signals, proxy will start listening to the signals upon the connection in a separate thread. That means the `onConcatenated` method is invoked always in the context of a thread different from the main thread.
 
 Implementing the Concatenator example using convenience sdbus-c++ API layer
 ---------------------------------------------------------------------------
