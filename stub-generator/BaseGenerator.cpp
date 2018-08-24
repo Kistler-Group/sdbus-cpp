@@ -108,12 +108,21 @@ std::tuple<std::string, std::string, std::string> BaseGenerator::argsToNamesAndT
 {
     std::ostringstream argSS, argTypeSS, typeSS;
 
-    bool firstArg{true};
-    for (const auto& arg : args)
+    for (auto i = 0; i < args.size(); ++i)
     {
-        if (firstArg) firstArg = false; else { argSS << ", "; argTypeSS << ", "; typeSS << ", "; }
+        auto arg = args.at(i);
+        if (i > 0)
+        {
+            argSS << ", ";
+            argTypeSS << ", ";
+            typeSS << ", ";
+        }
 
         auto argName = arg->get("name");
+        if (argName.empty())
+        {
+            argName = "arg" + std::to_string(i);
+        }
         auto type = signature_to_type(arg->get("type"));
         argSS << argName;
         argTypeSS << "const " << type << "& " << argName;
