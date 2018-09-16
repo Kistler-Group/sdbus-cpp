@@ -227,6 +227,12 @@ Message& Message::operator>>(int32_t& item)
     if (r == 0)
         ok_ = false;
 
+    if (r < 0) {
+        r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_UNIX_FD, &item);
+        if (r == 0)
+            ok_ = false;
+    }
+
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to deserialize a int32_t value", -r);
 
     return *this;
