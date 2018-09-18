@@ -108,7 +108,7 @@ std::tuple<std::string, std::string, std::string> BaseGenerator::argsToNamesAndT
 {
     std::ostringstream argSS, argTypeSS, typeSS;
 
-    for (auto i = 0; i < args.size(); ++i)
+    for (size_t i = 0; i < args.size(); ++i)
     {
         auto arg = args.at(i);
         if (i > 0)

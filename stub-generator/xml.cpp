@@ -247,15 +247,15 @@ std::string Document::to_xml() const
 }
 
 void Document::Expat::start_doctype_decl_handler(
-        void* data,
-        const XML_Char* name,
-        const XML_Char* sysid,
-        const XML_Char *pubid,
-        int has_internal_subset)
+        void* /*data*/,
+        const XML_Char* /*name*/,
+        const XML_Char* /*sysid*/,
+        const XML_Char */*pubid*/,
+        int /*has_internal_subset*/)
 {
 }
 
-void Document::Expat::end_doctype_decl_handler(void* data)
+void Document::Expat::end_doctype_decl_handler(void* /*data*/)
 {
 }
 
@@ -300,7 +300,7 @@ void Document::Expat::character_data_handler(void* data, const XML_Char* chars, 
     nod->cdata = std::string(chars, x, y + 1);
 }
 
-void Document::Expat::end_element_handler(void* data, const XML_Char* name)
+void Document::Expat::end_element_handler(void* data, const XML_Char* /*name*/)
 {
     Document* doc = static_cast<Document*>(data);
 

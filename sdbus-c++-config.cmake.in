@@ -1,0 +1,14 @@
+# Config file for the sdbus-c++ package.
+#
+# It defines the following variables:
+#  SDBUSCPP_VERSION      - version of sdbus-c++
+#  SDBUSCPP_FOUND        - set to true
+#  SDBUSCPP_INCLUDE_DIRS - include directories for sdbus-c++
+#  SDBUSCPP_LIBRARY_DIR  - library directories for sdbus-c++
+#  SDBUSCPP_LIBRARIES    - libraries to link against
+
+set(SDBUSCPP_VERSION "@SDBUSCPP_VERSION@")
+set(SDBUSCPP_FOUND "TRUE")
+set(SDBUSCPP_INCLUDE_DIRS "@CMAKE_INSTALL_FULL_INCLUDEDIR@")
+set(SDBUSCPP_LIBRARY_DIR "@CMAKE_INSTALL_FULL_LIBDIR@")
+set(SDBUSCPP_LIBRARIES sdbus-c++)
