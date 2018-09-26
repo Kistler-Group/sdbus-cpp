@@ -64,7 +64,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 set(CMAKE_NO_SYSTEM_FROM_IMPORTED "1")
 
 add_executable(libsdbus-c++_unittests ${UNITTESTS_SRCS} $<TARGET_OBJECTS:sdbuscppobjects>)
-target_link_libraries(libsdbus-c++_unittests systemd gmock gmock_main)
+target_link_libraries(libsdbus-c++_unittests ${SYSTEMD_LIBRARIES} gmock gmock_main)
 
 add_executable(libsdbus-c++_integrationtests ${INTEGRATIONTESTS_SRCS})
 target_link_libraries(libsdbus-c++_integrationtests sdbus-c++ gmock gmock_main)
@@ -82,6 +82,13 @@ install(FILES ${INTEGRATIONTESTS_SOURCE_DIR}/files/libsdbus-cpp-test.conf DESTIN
 #----------------------------------
 
 if(CMAKE_CROSSCOMPILING)
+    if(NOT DEFINED UNIT_TESTS_RUNNER)
+        set(UNIT_TESTS_RUNNER $ENV{UNIT_TESTS_RUNNER})
+    endif()
+    if(NOT DEFINED TEST_DEVICE_IP)
+        set(TEST_DEVICE_IP $ENV{TEST_DEVICE_IP})
+    endif()
+
     if(NOT (UNIT_TESTS_RUNNER AND TEST_DEVICE_IP))
         message(WARNING "UNIT_TESTS_RUNNER and TEST_DEVICE_IP variables must be defined to run tests remotely")
     endif()
