@@ -2,7 +2,7 @@
 # PROJECT INFORMATION
 #-------------------------------
 
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.8)
 
 project(sdbus-c++ VERSION 0.3.2 LANGUAGES C CXX)
 
