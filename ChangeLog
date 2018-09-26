@@ -26,3 +26,6 @@ v0.3.0
 
 v0.3.1
 - Fixed hogging the CPU by server with async methods (issue #15)
+
+v0.3.2
+- Switched from autotools to CMake build system

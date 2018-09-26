@@ -6,20 +6,26 @@ sdbus-c++ is a C++ API library for D-Bus IPC, based on sd-bus implementation.
 Building and installing the library
 -----------------------------------
 
+The library is built using CMake:
+
 ```bash
-$ ./autogen.sh ${CONFIGURE_FLAGS}
+$ mkdir build
+$ cd build
+$ cmake .. ${CONFIGURE_FLAGS_IF_NECESSARY}
 $ make
 $ sudo make install
 ```
 
-Use `--disable-tests` flag when configuring to disable building unit and integration tests for the library.
+By default, the library builds its unit and integration tests. That incorporates downloading and building static libraries of Google Test. Use `-DENABLE_TESTS=OFF` configure flag if you want to disable building the tests.
+
+By default, the library doesn't build the code generator for adaptor and proxy interfaces. Use `-DBUILD_CODE_GEN=ON` flag to also build the code generator.
 
 Dependencies
 ------------
 
 * `C++17` - the library uses C++17 `std::uncaught_exceptions()` feature. When building sdbus-c++ manually, make sure you use a compiler that supports that feature.
 * `libsystemd` - systemd library containing sd-bus implementation. Systemd v236 at least is needed for sdbus-c++ to compile.
-* `googletest` - google unit testing framework, only necessary when building tests
+* `googletest` - google unit testing framework, only necessary when building tests, will be downloaded and built automatically
 
 Licensing
 ---------
@@ -41,4 +47,4 @@ Contributions that increase the library quality, functionality, or fix issues ar
 Contact
 -------
 
-stanislav.angelovic[at]kistler.com
+https://github.com/Kistler-Group/sdbus-cpp

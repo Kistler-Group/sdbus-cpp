@@ -1,5 +1,7 @@
 Building:
-  $ ./autogen.sh ${CONFIGURE_FLAGS}
+  $ mkdir build
+  $ cd build
+  $ cmake .. ${CONFIGURE_FLAGS_IF_NECESSARY}
   $ make
 
 Installing:

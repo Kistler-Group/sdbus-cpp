@@ -1,13 +1,41 @@
-cmake_minimum_required (VERSION 3.4)
+#-------------------------------
+# PROJECT INFORMATION
+#-------------------------------
 
-add_definitions(-std=c++14)
+cmake_minimum_required(VERSION 3.5)
 
-project (sdbuscpp-xml2cpp)
+project(sdbuscpp-xml2cpp)
 
-add_executable(${PROJECT_NAME} xml2cpp.cpp xml.cpp generator_utils.cpp BaseGenerator.cpp AdaptorGenerator.cpp ProxyGenerator.cpp)
+include(GNUInstallDirs)
 
-find_package (EXPAT REQUIRED)
+#-------------------------------
+# PERFORMING CHECKS
+#-------------------------------
+
+find_package(EXPAT REQUIRED)
+
+#-------------------------------
+# SOURCE FILES CONFIGURATION
+#-------------------------------
+
+set(SDBUSCPP_XML2CPP_SRCS xml2cpp.cpp xml.cpp generator_utils.cpp BaseGenerator.cpp AdaptorGenerator.cpp ProxyGenerator.cpp)
+
+#-------------------------------
+# GENERAL COMPILER CONFIGURATION
+#-------------------------------
+
+set(CMAKE_CXX_STANDARD 17)
+
+#----------------------------------
+# EXECUTABLE BUILD INFORMATION
+#----------------------------------
+
+add_executable(${PROJECT_NAME} ${SDBUSCPP_XML2CPP_SRCS})
 
 target_link_libraries (${PROJECT_NAME} ${EXPAT_LIBRARIES})
 
-install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME} DESTINATION bin)
+#----------------------------------
+# INSTALLATION
+#----------------------------------
+
+install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_BINDIR})
