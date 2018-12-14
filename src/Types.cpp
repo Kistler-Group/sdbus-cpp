@@ -51,6 +51,7 @@ void Variant::deserializeFrom(Message& msg)
 
 std::string Variant::peekValueType() const
 {
+    msg_.rewind(false);
     std::string type;
     std::string contents;
     msg_.peekType(type, contents);
