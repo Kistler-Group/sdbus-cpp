@@ -138,6 +138,25 @@ namespace sdbus {
                                      , property_set_callback setCallback ) = 0;
 
         /*!
+        * @brief Registers read/write property that the object will provide on D-Bus
+        *
+        * @param[in] interfaceName Name of an interface that the property will fall under
+        * @param[in] propertyName Name of the property
+        * @param[in] signature D-Bus signature of property parameters
+        * @param[in] getCallback Callback that implements the body of the property getter
+        * @param[in] setCallback Callback that implements the body of the property setter
+        * @param[in] policy Property update behavior
+        *
+        * @throws sdbus::Error in case of failure
+        */
+        virtual void registerProperty(  const std::string& interfaceName
+                                      , const std::string& propertyName
+                                      , const std::string& signature
+                                      , property_get_callback getCallback
+                                      , property_set_callback setCallback
+                                      , PropertyUpdateBehavior policy) = 0;
+
+        /*!
         * @brief Finishes the registration and exports object API on D-Bus
         *
         * The method exports all up to now registered methods, signals and properties on D-Bus.

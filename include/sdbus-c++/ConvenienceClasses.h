@@ -74,6 +74,13 @@ namespace sdbus {
         int exceptions_{}; // Number of active exceptions when SignalRegistrator is constructed
     };
 
+    enum class PropertyUpdateBehavior {
+        Default,
+        EmitsChange,
+        EmitsInvalidation,
+        Constant
+    };
+
     class PropertyRegistrator
     {
     public:
@@ -82,6 +89,7 @@ namespace sdbus {
         PropertyRegistrator& operator=(PropertyRegistrator&& other) = default;
         ~PropertyRegistrator() noexcept(false);
         PropertyRegistrator& onInterface(const std::string& interfaceName);
+        PropertyRegistrator& withUpdateBehavior(PropertyUpdateBehavior behavior);
         template <typename _Function> PropertyRegistrator& withGetter(_Function&& callback);
         template <typename _Function> PropertyRegistrator& withSetter(_Function&& callback);
 
@@ -92,7 +100,9 @@ namespace sdbus {
         std::string propertySignature_;
         property_get_callback getter_;
         property_set_callback setter_;
+        PropertyUpdateBehavior behavior_;
         int exceptions_{}; // Number of active exceptions when PropertyRegistrator is constructed
+
     };
 
     class SignalEmitter

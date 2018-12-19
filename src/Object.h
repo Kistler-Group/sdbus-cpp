@@ -72,6 +72,13 @@ namespace internal {
                              , property_get_callback getCallback
                              , property_set_callback setCallback ) override;
 
+        void registerProperty( const std::string& interfaceName
+                             , const std::string& propertyName
+                             , const std::string& signature
+                             , property_get_callback getCallback
+                             , property_set_callback setCallback
+                             , PropertyUpdateBehavior policy) override;
+
         void finishRegistration() override;
 
         sdbus::Signal createSignal(const std::string& interfaceName, const std::string& signalName) override;
@@ -103,6 +110,7 @@ namespace internal {
                 std::string signature_;
                 property_get_callback getCallback_;
                 property_set_callback setCallback_;
+                PropertyUpdateBehavior behavior_;
             };
             std::map<PropertyName, PropertyData> properties_;
             std::vector<sd_bus_vtable> vtable_;

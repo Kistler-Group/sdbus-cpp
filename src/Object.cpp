@@ -114,15 +114,31 @@ void Object::registerProperty( const std::string& interfaceName
                              , property_get_callback getCallback
                              , property_set_callback setCallback )
 {
+    registerProperty( interfaceName
+                    , propertyName
+                    , signature
+                    , getCallback
+                    , setCallback
+                    , PropertyUpdateBehavior::Default);
+}
+
+void Object::registerProperty(  const std::string& interfaceName
+                              , const std::string& propertyName
+                              , const std::string& signature
+                              , property_get_callback getCallback
+                              , property_set_callback setCallback
+                              , PropertyUpdateBehavior behavior)
+{
     SDBUS_THROW_ERROR_IF(!getCallback && !setCallback, "Invalid property callbacks provided", EINVAL);
 
     auto& interface = interfaces_[interfaceName];
 
-    InterfaceData::PropertyData propertyData{signature, std::move(getCallback), std::move(setCallback)};
+    InterfaceData::PropertyData propertyData{signature, std::move(getCallback), std::move(setCallback), behavior };
     auto inserted = interface.properties_.emplace(propertyName, std::move(propertyData)).second;
 
     SDBUS_THROW_ERROR_IF(!inserted, "Failed to register property: property already exists", EINVAL);
 }
+
 
 void Object::finishRegistration()
 {
@@ -204,12 +220,15 @@ void Object::registerPropertiesToVTable(const InterfaceData& interfaceData, std:
         if (!propertyData.setCallback_)
             vtable.push_back(createVTablePropertyItem( propertyName.c_str()
                                                      , propertyData.signature_.c_str()
-                                                     , &Object::sdbus_property_get_callback ));
+                                                     , &Object::sdbus_property_get_callback
+                                                     , item.second.behavior_ == PropertyUpdateBehavior::Constant));
         else
             vtable.push_back(createVTableWritablePropertyItem( propertyName.c_str()
                                                              , propertyData.signature_.c_str()
                                                              , &Object::sdbus_property_get_callback
-                                                             , &Object::sdbus_property_set_callback ));
+                                                             , &Object::sdbus_property_set_callback
+                                                             , item.second.behavior_ == PropertyUpdateBehavior::EmitsChange
+                                                             , item.second.behavior_ == PropertyUpdateBehavior::EmitsInvalidation));
     }
 }
 
