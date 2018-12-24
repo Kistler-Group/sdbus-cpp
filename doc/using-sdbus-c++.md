@@ -357,7 +357,7 @@ int main(int argc, char *argv[])
     
     // Let's subscribe for the 'concatenated' signals
     const char* interfaceName = "org.sdbuscpp.Concatenator";
-    concatenatorProxy->uponSignal("concatenated").onInterface(interfaceName).call([this](const std::string& str){ onConcatenated(str); });
+    concatenatorProxy->uponSignal("concatenated").onInterface(interfaceName).call([](const std::string& str){ onConcatenated(str); });
     concatenatorProxy->finishRegistration();
     
     std::vector<int> numbers = {1, 2, 3};
@@ -636,6 +636,7 @@ Now let's use this proxy to make remote calls and listen to signals in a real ap
 
 ```cpp
 #include "ConcatenatorProxy.h"
+#include <unistd.h>
 
 int main(int argc, char *argv[])
 {
