@@ -40,6 +40,12 @@ namespace sdbus {
      * @class Variant
      *
      * Variant can hold value of any D-Bus-supported type.
+     * 
+     * Note: Even though thread-aware, Variant objects are not thread-safe.
+     * Some const methods are conceptually const, but not physically const,
+     * thus are not thread-safe. This is by design: normally, clients
+     * should process a single Variant object in a single thread at a time.
+     * Otherwise they need to take care of synchronization by themselves.
      *
      ***********************************************/
     class Variant
