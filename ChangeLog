@@ -29,3 +29,8 @@ v0.3.1
 
 v0.3.2
 - Switched from autotools to CMake build system
+
+v0.3.3
+- Minor fixes in tutorial examples
+- Add comment on threading traits of Variant and its const methods
+- Fix broken invariant of const Variant::peekValueType() method
