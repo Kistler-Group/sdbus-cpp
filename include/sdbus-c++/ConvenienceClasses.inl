@@ -52,6 +52,13 @@ namespace sdbus {
         return *this;
     }
 
+    inline MethodRegistrator& MethodRegistrator::withNoReply()
+    {
+        noReply_ = true;
+
+        return *this;
+    }
+
     template <typename _Function>
     inline std::enable_if_t<!is_async_method_v<_Function>> MethodRegistrator::implementedAs(_Function&& callback)
     {
@@ -62,23 +69,24 @@ namespace sdbus {
                               , signature_of_function_input_arguments<_Function>::str()
                               , signature_of_function_output_arguments<_Function>::str()
                               , [callback = std::forward<_Function>(callback)](MethodCall& msg, MethodReply& reply)
-        {
-            // Create a tuple of callback input arguments' types, which will be used
-            // as a storage for the argument values deserialized from the message.
-            tuple_of_function_input_arg_types_t<_Function> inputArgs;
+                                {
+                                    // Create a tuple of callback input arguments' types, which will be used
+                                    // as a storage for the argument values deserialized from the message.
+                                    tuple_of_function_input_arg_types_t<_Function> inputArgs;
 
-            // Deserialize input arguments from the message into the tuple
-            msg >> inputArgs;
+                                    // Deserialize input arguments from the message into the tuple
+                                    msg >> inputArgs;
 
-            // Invoke callback with input arguments from the tuple.
-            // For callbacks returning a non-void value, `apply' also returns that value.
-            // For callbacks returning void, `apply' returns an empty tuple.
-            auto ret = sdbus::apply(callback, inputArgs); // We don't yet have C++17's std::apply :-(
+                                    // Invoke callback with input arguments from the tuple.
+                                    // For callbacks returning a non-void value, `apply' also returns that value.
+                                    // For callbacks returning void, `apply' returns an empty tuple.
+                                    auto ret = sdbus::apply(callback, inputArgs); // We don't yet have C++17's std::apply :-(
 
-            // The return value is stored to the reply message.
-            // In case of void functions, ret is an empty tuple and thus nothing is stored.
-            reply << ret;
-        });
+                                    // The return value is stored to the reply message.
+                                    // In case of void functions, ret is an empty tuple and thus nothing is stored.
+                                    reply << ret;
+                                }
+                              , noReply_ );
     }
 
     template <typename _Function>
@@ -89,20 +97,21 @@ namespace sdbus {
         object_.registerMethod( interfaceName_
                               , methodName_
                               , signature_of_function_input_arguments<_Function>::str()
-                              , signature_of_function_output_arguments<_Function>::str() //signature_of<last_function_argument_t<_Function>>::str() // because last argument contains output types
+                              , signature_of_function_output_arguments<_Function>::str()
                               , [callback = std::forward<_Function>(callback)](MethodCall& msg, MethodResult result)
-        {
-            // Create a tuple of callback input arguments' types, which will be used
-            // as a storage for the argument values deserialized from the message.
-            tuple_of_function_input_arg_types_t<_Function> inputArgs;
+                                {
+                                    // Create a tuple of callback input arguments' types, which will be used
+                                    // as a storage for the argument values deserialized from the message.
+                                    tuple_of_function_input_arg_types_t<_Function> inputArgs;
 
-            // Deserialize input arguments from the message into the tuple,
-            // plus store the result object as a last item of the tuple.
-            msg >> inputArgs;
+                                    // Deserialize input arguments from the message into the tuple,
+                                    // plus store the result object as a last item of the tuple.
+                                    msg >> inputArgs;
 
-            // Invoke callback with input arguments from the tuple.
-            sdbus::apply(callback, std::move(result), inputArgs); // TODO: Use std::apply when switching to full C++17 support
-        });
+                                    // Invoke callback with input arguments from the tuple.
+                                    sdbus::apply(callback, std::move(result), inputArgs); // TODO: Use std::apply when switching to full C++17 support
+                                }
+                              , noReply_ );
     }
 
     // Moved into the library to isolate from C++17 dependency
@@ -340,6 +349,13 @@ namespace sdbus {
         methodCalled_ = true;
 
         detail::deserialize_pack(reply, args...);
+    }
+
+    inline void MethodInvoker::dontExpectReply()
+    {
+        SDBUS_THROW_ERROR_IF(!method_.isValid(), "DBus interface not specified when calling a DBus method", EINVAL);
+
+        method_.dontExpectReply();
     }
 
 

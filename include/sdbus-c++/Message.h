@@ -155,6 +155,12 @@ namespace sdbus {
         MethodReply send() const;
         MethodReply createReply() const;
         MethodReply createErrorReply(const sdbus::Error& error) const;
+        void dontExpectReply();
+        bool doesntExpectReply() const;
+
+    private:
+        MethodReply sendWithReply() const;
+        MethodReply sendWithNoReply() const;
     };
 
     class MethodReply : public Message

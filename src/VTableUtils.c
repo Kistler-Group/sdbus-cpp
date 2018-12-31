@@ -35,9 +35,11 @@ sd_bus_vtable createVTableStartItem()
 sd_bus_vtable createVTableMethodItem( const char *member
                                     , const char *signature
                                     , const char *result
-                                    , sd_bus_message_handler_t handler )
+                                    , sd_bus_message_handler_t handler
+                                    , bool noReply )
 {
-    struct sd_bus_vtable vtableItem = SD_BUS_METHOD(member, signature, result, handler, SD_BUS_VTABLE_UNPRIVILEGED);
+    uint64_t flags = SD_BUS_VTABLE_UNPRIVILEGED | (noReply ? SD_BUS_VTABLE_METHOD_NO_REPLY : 0ULL);
+    struct sd_bus_vtable vtableItem = SD_BUS_METHOD(member, signature, result, handler, flags);
     return vtableItem;
 }
 

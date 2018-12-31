@@ -200,6 +200,51 @@ TEST_F(SdbusTestObject, CallsMethodWithComplexTypeSuccesfully)
     ASSERT_THAT(resComplex.count(0), Eq(1));
 }
 
+TEST_F(SdbusTestObject, CallsMethodWithDontExpectReplyFlag)
+{
+    m_proxy->multiplyNoReply(INT64_VALUE, DOUBLE_VALUE);
+
+    for (auto i = 0; i < 100; ++i)
+    {
+        if (m_adaptor->wasMultiplyCalled())
+            break;
+        std::this_thread::sleep_for(10ms);
+    }
+    ASSERT_TRUE(m_adaptor->wasMultiplyCalled());
+    ASSERT_THAT(m_adaptor->getMultiplyResult(), Eq(INT64_VALUE * DOUBLE_VALUE));
+}
+
+TEST_F(SdbusTestObject, CallsMethodThatThrowsError)
+{
+    try
+    {
+        m_proxy->throwError();
+        FAIL() << "Expected sdbus::Error exception";
+    }
+    catch (const sdbus::Error& e)
+    {
+        ASSERT_THAT(e.getName(), Eq("org.freedesktop.DBus.Error.AccessDenied"));
+        ASSERT_THAT(e.getMessage(), Eq("A test error occurred (Operation not permitted)"));
+    }
+    catch(...)
+    {
+        FAIL() << "Expected sdbus::Error exception";
+    }
+}
+
+TEST_F(SdbusTestObject, CallsErrorThrowingMethodWithDontExpectReplySet)
+{
+    ASSERT_NO_THROW(m_proxy->throwErrorNoReply());
+
+    for (auto i = 0; i < 100; ++i)
+    {
+        if (m_adaptor->wasThrowErrorCalled())
+            break;
+        std::this_thread::sleep_for(10ms);
+    }
+    ASSERT_TRUE(m_adaptor->wasThrowErrorCalled());
+}
+
 TEST_F(SdbusTestObject, DoesServerSideAsynchoronousMethodInParallel)
 {
     // Yeah, this is kinda timing-dependent test, but times should be safe...

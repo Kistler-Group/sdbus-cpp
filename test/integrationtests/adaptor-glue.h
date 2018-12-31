@@ -97,6 +97,8 @@ protected:
 
         object_.registerMethod("getComplex").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->getComplex(); });
 
+        object_.registerMethod("throwError").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->throwError(); });
+
         // registration of signals is optional, it is useful because of introspection
         object_.registerSignal("simpleSignal").onInterface(INTERFACE_NAME);
         object_.registerSignal("signalWithMap").onInterface(INTERFACE_NAME).withParameters<std::map<int32_t, std::string>>();
@@ -154,6 +156,7 @@ protected:
     virtual sdbus::Signature getSignature() const  = 0;
     virtual sdbus::ObjectPath getObjectPath() const = 0;
     virtual ComplexType getComplex() const = 0;
+    virtual void throwError() const = 0;
 
     virtual std::string state() = 0;
     virtual uint32_t action() = 0;

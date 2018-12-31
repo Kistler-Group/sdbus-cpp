@@ -45,7 +45,8 @@ void Object::registerMethod( const std::string& interfaceName
                            , const std::string& methodName
                            , const std::string& inputSignature
                            , const std::string& outputSignature
-                           , method_callback methodCallback )
+                           , method_callback methodCallback
+                           , bool noReply )
 {
     SDBUS_THROW_ERROR_IF(!methodCallback, "Invalid method callback provided", EINVAL);
 
@@ -57,7 +58,7 @@ void Object::registerMethod( const std::string& interfaceName
     };
 
     auto& interface = interfaces_[interfaceName];
-    InterfaceData::MethodData methodData{inputSignature, outputSignature, std::move(syncCallback)};
+    InterfaceData::MethodData methodData{inputSignature, outputSignature, std::move(syncCallback), noReply};
     auto inserted = interface.methods_.emplace(methodName, std::move(methodData)).second;
 
     SDBUS_THROW_ERROR_IF(!inserted, "Failed to register method: method already exists", EINVAL);
@@ -67,7 +68,8 @@ void Object::registerMethod( const std::string& interfaceName
                            , const std::string& methodName
                            , const std::string& inputSignature
                            , const std::string& outputSignature
-                           , async_method_callback asyncMethodCallback )
+                           , async_method_callback asyncMethodCallback
+                           , bool noReply )
 {
     SDBUS_THROW_ERROR_IF(!asyncMethodCallback, "Invalid method callback provided", EINVAL);
 
@@ -78,7 +80,7 @@ void Object::registerMethod( const std::string& interfaceName
     };
 
     auto& interface = interfaces_[interfaceName];
-    InterfaceData::MethodData methodData{inputSignature, outputSignature, std::move(asyncCallback)};
+    InterfaceData::MethodData methodData{inputSignature, outputSignature, std::move(asyncCallback), noReply};
     auto inserted = interface.methods_.emplace(methodName, std::move(methodData)).second;
 
     SDBUS_THROW_ERROR_IF(!inserted, "Failed to register method: method already exists", EINVAL);
@@ -178,7 +180,8 @@ void Object::registerMethodsToVTable(const InterfaceData& interfaceData, std::ve
         vtable.push_back(createVTableMethodItem( methodName.c_str()
                                                , methodData.inputArgs_.c_str()
                                                , methodData.outputArgs_.c_str()
-                                               , &Object::sdbus_method_callback ));
+                                               , &Object::sdbus_method_callback
+                                               , methodData.noReply_ ));
     }
 }
 

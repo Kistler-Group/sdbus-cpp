@@ -78,6 +78,11 @@ public:
         return result;
     }
 
+    void multiplyNoReply(const int64_t& a, const double& b)
+    {
+        object_.callMethod("multiply").onInterface(INTERFACE_NAME).withArguments(a, b).dontExpectReply();
+    }
+
     std::vector<int16_t> getInts16FromStruct(const sdbus::Struct<uint8_t, int16_t, double, std::string, std::vector<int16_t>>& x)
     {
         std::vector<int16_t> result;
@@ -153,6 +158,16 @@ public:
         ComplexType result;
         object_.callMethod("getComplex").onInterface(INTERFACE_NAME).storeResultsTo(result);
         return result;
+    }
+
+    void throwError()
+    {
+        object_.callMethod("throwError").onInterface(INTERFACE_NAME);
+    }
+
+    void throwErrorNoReply()
+    {
+        object_.callMethod("throwError").onInterface(INTERFACE_NAME).dontExpectReply();
     }
 
     int32_t callNonexistentMethod()

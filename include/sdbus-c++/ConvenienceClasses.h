@@ -45,6 +45,7 @@ namespace sdbus {
     public:
         MethodRegistrator(IObject& object, const std::string& methodName);
         MethodRegistrator& onInterface(const std::string& interfaceName);
+        MethodRegistrator& withNoReply();
         template <typename _Function>
         std::enable_if_t<!is_async_method_v<_Function>> implementedAs(_Function&& callback);
         template <typename _Function>
@@ -54,6 +55,7 @@ namespace sdbus {
         IObject& object_;
         const std::string& methodName_;
         std::string interfaceName_;
+        bool noReply_{};
     };
 
     class SignalRegistrator
@@ -123,6 +125,7 @@ namespace sdbus {
         MethodInvoker& onInterface(const std::string& interfaceName);
         template <typename... _Args> MethodInvoker& withArguments(_Args&&... args);
         template <typename... _Args> void storeResultsTo(_Args&... args);
+        void dontExpectReply();
 
     private:
         IObjectProxy& objectProxy_;

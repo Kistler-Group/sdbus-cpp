@@ -27,6 +27,7 @@
 #define SDBUS_CXX_INTERNAL_VTABLEUTILS_H_
 
 #include <systemd/sd-bus.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,7 +37,8 @@ sd_bus_vtable createVTableStartItem();
 sd_bus_vtable createVTableMethodItem( const char *member
                                     , const char *signature
                                     , const char *result
-                                    , sd_bus_message_handler_t handler );
+                                    , sd_bus_message_handler_t handler
+                                    , bool noReply );
 sd_bus_vtable createVTableSignalItem( const char *member
                                     , const char *signature );
 sd_bus_vtable createVTablePropertyItem( const char *member

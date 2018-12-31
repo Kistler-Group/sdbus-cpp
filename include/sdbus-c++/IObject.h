@@ -61,6 +61,7 @@ namespace sdbus {
         * @param[in] inputSignature D-Bus signature of method input parameters
         * @param[in] outputSignature D-Bus signature of method output parameters
         * @param[in] methodCallback Callback that implements the body of the method
+        * @param[in] noReply If true, the method isn't expected to send reply
         *
         * @throws sdbus::Error in case of failure
         */
@@ -68,7 +69,8 @@ namespace sdbus {
                                    , const std::string& methodName
                                    , const std::string& inputSignature
                                    , const std::string& outputSignature
-                                   , method_callback methodCallback ) = 0;
+                                   , method_callback methodCallback
+                                   , bool noReply = false ) = 0;
 
         /*!
         * @brief Registers method that the object will provide on D-Bus
@@ -78,6 +80,7 @@ namespace sdbus {
         * @param[in] inputSignature D-Bus signature of method input parameters
         * @param[in] outputSignature D-Bus signature of method output parameters
         * @param[in] asyncMethodCallback Callback that implements the body of the method
+        * @param[in] noReply If true, the method isn't expected to send reply
         *
         * This overload register a method callback that will have a freedom to execute
         * its body in asynchronous contexts, and send the results from those contexts.
@@ -90,7 +93,8 @@ namespace sdbus {
                                    , const std::string& methodName
                                    , const std::string& inputSignature
                                    , const std::string& outputSignature
-                                   , async_method_callback asyncMethodCallback ) = 0;
+                                   , async_method_callback asyncMethodCallback
+                                   , bool noReply = false ) = 0;
 
         /*!
         * @brief Registers signal that the object will emit on D-Bus

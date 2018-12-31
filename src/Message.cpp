@@ -571,7 +571,28 @@ void* Message::getMsg() const
     return msg_;
 }
 
+void MethodCall::dontExpectReply()
+{
+    auto r = sd_bus_message_set_expect_reply((sd_bus_message*)getMsg(), 0);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to set the dont-expect-reply flag", -r);
+}
+
+bool MethodCall::doesntExpectReply() const
+{
+    auto r = sd_bus_message_get_expect_reply((sd_bus_message*)getMsg());
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get the dont-expect-reply flag", -r);
+    return r > 0 ? false : true;
+}
+
 MethodReply MethodCall::send() const
+{
+    if (!doesntExpectReply())
+        return sendWithReply();
+    else
+        return sendWithNoReply();
+}
+
+MethodReply MethodCall::sendWithReply() const
 {
     sd_bus_message* sdbusReply{};
     SCOPE_EXIT{ sd_bus_message_unref(sdbusReply); }; // Returned message will become an owner of sdbusReply
@@ -588,6 +609,13 @@ MethodReply MethodCall::send() const
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method", -r);
 
     return MethodReply(sdbusReply);
+}
+
+MethodReply MethodCall::sendWithNoReply() const
+{
+    auto r = sd_bus_send(nullptr, (sd_bus_message*)getMsg(), nullptr);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method with no reply", -r);
+    return MethodReply{}; // No reply
 }
 
 MethodReply MethodCall::createReply() const

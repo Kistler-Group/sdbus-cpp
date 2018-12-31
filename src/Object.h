@@ -49,13 +49,15 @@ namespace internal {
                            , const std::string& methodName
                            , const std::string& inputSignature
                            , const std::string& outputSignature
-                           , method_callback methodCallback ) override;
+                           , method_callback methodCallback
+                           , bool noReply ) override;
 
         void registerMethod( const std::string& interfaceName
                            , const std::string& methodName
                            , const std::string& inputSignature
                            , const std::string& outputSignature
-                           , async_method_callback asyncMethodCallback ) override;
+                           , async_method_callback asyncMethodCallback
+                           , bool noReply ) override;
 
         void registerSignal( const std::string& interfaceName
                            , const std::string& signalName
@@ -89,6 +91,7 @@ namespace internal {
                 std::string inputArgs_;
                 std::string outputArgs_;
                 std::function<void(MethodCall&)> callback_;
+                bool noReply_;
             };
             std::map<MethodName, MethodData> methods_;
             using SignalName = std::string;
