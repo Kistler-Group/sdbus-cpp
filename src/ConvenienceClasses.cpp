@@ -62,6 +62,7 @@ SignalRegistrator::~SignalRegistrator() noexcept(false) // since C++11, destruct
 PropertyRegistrator::PropertyRegistrator(IObject& object, const std::string& propertyName)
     : object_(object)
     , propertyName_(propertyName)
+    , behavior_(PropertyUpdateBehavior::Default)
     , exceptions_(std::uncaught_exceptions())
 {
 }
@@ -87,7 +88,8 @@ PropertyRegistrator::~PropertyRegistrator() noexcept(false) // since C++11, dest
                             , std::move(propertyName_)
                             , std::move(propertySignature_)
                             , std::move(getter_)
-                            , std::move(setter_) );
+                            , std::move(setter_)
+                            , behavior_);
 }
 
 

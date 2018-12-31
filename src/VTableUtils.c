@@ -52,18 +52,36 @@ sd_bus_vtable createVTableSignalItem( const char *member
 
 sd_bus_vtable createVTablePropertyItem( const char *member
                                       , const char *signature
-                                      , sd_bus_property_get_t getter )
+                                      , sd_bus_property_get_t getter
+                                      , bool isConst)
 {
-    struct sd_bus_vtable vtableItem = SD_BUS_PROPERTY(member, signature, getter, 0, 0);
+    unsigned long long sdbusFlags = 0ULL;
+
+    if (isConst)
+        sdbusFlags |= SD_BUS_VTABLE_PROPERTY_CONST;
+
+    struct sd_bus_vtable vtableItem = SD_BUS_PROPERTY(member, signature, getter, 0, sdbusFlags);
     return vtableItem;
 }
 
 sd_bus_vtable createVTableWritablePropertyItem( const char *member
                                               , const char *signature
                                               , sd_bus_property_get_t getter
-                                              , sd_bus_property_set_t setter )
+                                              , sd_bus_property_set_t setter
+                                              , bool emitsChange
+                                              , bool emitsInvalidation)
 {
-    struct sd_bus_vtable vtableItem = SD_BUS_WRITABLE_PROPERTY(member, signature, getter, setter, 0, 0);
+    unsigned long long sdbusFlags = 0ULL;
+
+    if (emitsChange) {
+        sdbusFlags |= SD_BUS_VTABLE_PROPERTY_EMITS_CHANGE;
+    } else {
+        if (emitsInvalidation) {
+            sdbusFlags |= SD_BUS_VTABLE_PROPERTY_EMITS_INVALIDATION;
+        }
+    }
+
+    struct sd_bus_vtable vtableItem = SD_BUS_WRITABLE_PROPERTY(member, signature, getter, setter, 0, sdbusFlags);
     return vtableItem;
 }
 

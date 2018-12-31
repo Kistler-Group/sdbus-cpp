@@ -43,11 +43,14 @@ sd_bus_vtable createVTableSignalItem( const char *member
                                     , const char *signature );
 sd_bus_vtable createVTablePropertyItem( const char *member
                                       , const char *signature
-                                      , sd_bus_property_get_t getter );
+                                      , sd_bus_property_get_t getter
+                                      , bool isConst);
 sd_bus_vtable createVTableWritablePropertyItem( const char *member
                                               , const char *signature
                                               , sd_bus_property_get_t getter
-                                              , sd_bus_property_set_t setter );
+                                              , sd_bus_property_set_t setter
+                                              , bool emitsChange
+                                              , bool emitsInvalidation);
 sd_bus_vtable createVTableEndItem();
 
 #ifdef __cplusplus

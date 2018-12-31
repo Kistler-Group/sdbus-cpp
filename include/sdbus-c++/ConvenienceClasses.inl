@@ -200,6 +200,13 @@ namespace sdbus {
         return *this;
     }
 
+    inline PropertyRegistrator& PropertyRegistrator::withUpdateBehavior(PropertyUpdateBehavior policy)
+    {
+        behavior_ = policy;
+
+        return *this;
+    }
+
     template <typename _Function>
     inline PropertyRegistrator& PropertyRegistrator::withGetter(_Function&& callback)
     {
