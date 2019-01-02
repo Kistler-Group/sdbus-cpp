@@ -41,6 +41,7 @@
 #include <thread>
 #include <tuple>
 #include <chrono>
+#include <fstream>
 
 using ::testing::Eq;
 using ::testing::Gt;
@@ -200,9 +201,9 @@ TEST_F(SdbusTestObject, CallsMethodWithComplexTypeSuccesfully)
     ASSERT_THAT(resComplex.count(0), Eq(1));
 }
 
-TEST_F(SdbusTestObject, CallsMethodWithDontExpectReplyFlag)
+TEST_F(SdbusTestObject, CallsMultiplyMethodWithNoReplyFlag)
 {
-    m_proxy->multiplyNoReply(INT64_VALUE, DOUBLE_VALUE);
+    m_proxy->multiplyWithNoReply(INT64_VALUE, DOUBLE_VALUE);
 
     for (auto i = 0; i < 100; ++i)
     {
@@ -234,7 +235,7 @@ TEST_F(SdbusTestObject, CallsMethodThatThrowsError)
 
 TEST_F(SdbusTestObject, CallsErrorThrowingMethodWithDontExpectReplySet)
 {
-    ASSERT_NO_THROW(m_proxy->throwErrorNoReply());
+    ASSERT_NO_THROW(m_proxy->throwErrorWithNoReply());
 
     for (auto i = 0; i < 100; ++i)
     {
@@ -272,7 +273,6 @@ TEST_F(SdbusTestObject, DoesServerSideAsynchoronousMethodInParallel)
 
 TEST_F(SdbusTestObject, HandlesCorrectlyABulkOfParallelServerSideAsyncMethods)
 {
-    std::mutex mtx;
     std::atomic<size_t> resultCount{};
     std::atomic<bool> invoke{};
     std::atomic<int> startedCount{};
@@ -376,7 +376,7 @@ TEST_F(SdbusTestObject, ReadsReadPropertySuccesfully)
 
 TEST_F(SdbusTestObject, WritesAndReadsReadWritePropertySuccesfully)
 {
-    auto x = 42;
+    uint32_t x = 42;
     ASSERT_NO_THROW(m_proxy->action(x));
     ASSERT_THAT(m_proxy->action(), Eq(x));
 }
@@ -390,4 +390,9 @@ TEST_F(SdbusTestObject, WritesToWritePropertySuccesfully)
 TEST_F(SdbusTestObject, CannotReadFromWriteProperty)
 {
     ASSERT_THROW(m_proxy->blocking(), sdbus::Error);
+}
+
+TEST_F(SdbusTestObject, AnswersXmlApiDescriptionOnIntrospection)
+{
+    ASSERT_THAT(m_proxy->Introspect(), Eq(testing_adaptor::expectedXmlApiDescription));
 }

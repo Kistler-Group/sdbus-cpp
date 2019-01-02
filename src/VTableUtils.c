@@ -26,9 +26,9 @@
 #include "VTableUtils.h"
 #include <systemd/sd-bus.h>
 
-sd_bus_vtable createVTableStartItem()
+sd_bus_vtable createVTableStartItem(uint64_t flags)
 {
-    struct sd_bus_vtable vtableStart = SD_BUS_VTABLE_START(0);
+    struct sd_bus_vtable vtableStart = SD_BUS_VTABLE_START(flags);
     return vtableStart;
 }
 
@@ -36,31 +36,26 @@ sd_bus_vtable createVTableMethodItem( const char *member
                                     , const char *signature
                                     , const char *result
                                     , sd_bus_message_handler_t handler
-                                    , bool noReply )
+                                    , uint64_t flags )
 {
-    uint64_t flags = SD_BUS_VTABLE_UNPRIVILEGED | (noReply ? SD_BUS_VTABLE_METHOD_NO_REPLY : 0ULL);
     struct sd_bus_vtable vtableItem = SD_BUS_METHOD(member, signature, result, handler, flags);
     return vtableItem;
 }
 
 sd_bus_vtable createVTableSignalItem( const char *member
-                                    , const char *signature )
+                                    , const char *signature
+                                    , uint64_t flags )
 {
-    struct sd_bus_vtable vtableItem = SD_BUS_SIGNAL(member, signature, 0);
+    struct sd_bus_vtable vtableItem = SD_BUS_SIGNAL(member, signature, flags);
     return vtableItem;
 }
 
 sd_bus_vtable createVTablePropertyItem( const char *member
                                       , const char *signature
                                       , sd_bus_property_get_t getter
-                                      , bool isConst)
+                                      , uint64_t flags )
 {
-    unsigned long long sdbusFlags = 0ULL;
-
-    if (isConst)
-        sdbusFlags |= SD_BUS_VTABLE_PROPERTY_CONST;
-
-    struct sd_bus_vtable vtableItem = SD_BUS_PROPERTY(member, signature, getter, 0, sdbusFlags);
+    struct sd_bus_vtable vtableItem = SD_BUS_PROPERTY(member, signature, getter, 0, flags);
     return vtableItem;
 }
 
@@ -68,20 +63,9 @@ sd_bus_vtable createVTableWritablePropertyItem( const char *member
                                               , const char *signature
                                               , sd_bus_property_get_t getter
                                               , sd_bus_property_set_t setter
-                                              , bool emitsChange
-                                              , bool emitsInvalidation)
+                                              , uint64_t flags )
 {
-    unsigned long long sdbusFlags = 0ULL;
-
-    if (emitsChange) {
-        sdbusFlags |= SD_BUS_VTABLE_PROPERTY_EMITS_CHANGE;
-    } else {
-        if (emitsInvalidation) {
-            sdbusFlags |= SD_BUS_VTABLE_PROPERTY_EMITS_INVALIDATION;
-        }
-    }
-
-    struct sd_bus_vtable vtableItem = SD_BUS_WRITABLE_PROPERTY(member, signature, getter, setter, 0, sdbusFlags);
+    struct sd_bus_vtable vtableItem = SD_BUS_WRITABLE_PROPERTY(member, signature, getter, setter, 0, flags);
     return vtableItem;
 }
 

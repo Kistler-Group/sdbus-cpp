@@ -51,11 +51,12 @@ protected:
 
     std::tuple<uint32_t, std::string> getTuple() const { return std::make_tuple(UINT32_VALUE, STRING_VALUE); }
 
-    double multiply(const int64_t& a, const double& b) const
+    double multiply(const int64_t& a, const double& b) const { return a * b; }
+
+    void multiplyWithNoReply(const int64_t& a, const double& b) const
     {
         m_multiplyResult = a * b;
         m_multiplyCalled = true;
-        return m_multiplyResult;
     }
 
     std::vector<int16_t> getInts16FromStruct(const sdbus::Struct<uint8_t, int16_t, double, std::string, std::vector<int16_t>>& x) const

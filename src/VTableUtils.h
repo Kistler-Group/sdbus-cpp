@@ -33,24 +33,24 @@
 extern "C" {
 #endif
 
-sd_bus_vtable createVTableStartItem();
+sd_bus_vtable createVTableStartItem(uint64_t flags);
 sd_bus_vtable createVTableMethodItem( const char *member
                                     , const char *signature
                                     , const char *result
                                     , sd_bus_message_handler_t handler
-                                    , bool noReply );
+                                    , uint64_t flags );
 sd_bus_vtable createVTableSignalItem( const char *member
-                                    , const char *signature );
+                                    , const char *signature
+                                    , uint64_t flags );
 sd_bus_vtable createVTablePropertyItem( const char *member
                                       , const char *signature
                                       , sd_bus_property_get_t getter
-                                      , bool isConst);
+                                      , uint64_t flags );
 sd_bus_vtable createVTableWritablePropertyItem( const char *member
                                               , const char *signature
                                               , sd_bus_property_get_t getter
                                               , sd_bus_property_set_t setter
-                                              , bool emitsChange
-                                              , bool emitsInvalidation);
+                                              , uint64_t flags );
 sd_bus_vtable createVTableEndItem();
 
 #ifdef __cplusplus

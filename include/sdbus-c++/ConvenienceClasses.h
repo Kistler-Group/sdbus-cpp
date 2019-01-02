@@ -28,6 +28,7 @@
 
 #include <sdbus-c++/Message.h>
 #include <sdbus-c++/TypeTraits.h>
+#include <sdbus-c++/Flags.h>
 #include <string>
 #include <type_traits>
 
@@ -44,18 +45,29 @@ namespace sdbus {
     {
     public:
         MethodRegistrator(IObject& object, const std::string& methodName);
+        MethodRegistrator(MethodRegistrator&& other) = default;
+        MethodRegistrator& operator=(MethodRegistrator&& other) = default;
+        ~MethodRegistrator() noexcept(false);
+
         MethodRegistrator& onInterface(const std::string& interfaceName);
+        template <typename _Function>
+        std::enable_if_t<!is_async_method_v<_Function>, MethodRegistrator&> implementedAs(_Function&& callback);
+        template <typename _Function>
+        std::enable_if_t<is_async_method_v<_Function>, MethodRegistrator&> implementedAs(_Function&& callback);
+        MethodRegistrator& markAsDeprecated();
+        MethodRegistrator& markAsPrivileged();
         MethodRegistrator& withNoReply();
-        template <typename _Function>
-        std::enable_if_t<!is_async_method_v<_Function>> implementedAs(_Function&& callback);
-        template <typename _Function>
-        std::enable_if_t<is_async_method_v<_Function>> implementedAs(_Function&& callback);
 
     private:
         IObject& object_;
         const std::string& methodName_;
         std::string interfaceName_;
-        bool noReply_{};
+        std::string inputSignature_;
+        std::string outputSignature_;
+        method_callback syncCallback_;
+        async_method_callback asyncCallback_;
+        Flags flags_;
+        int exceptions_{}; // Number of active exceptions when SignalRegistrator is constructed
     };
 
     class SignalRegistrator
@@ -65,22 +77,18 @@ namespace sdbus {
         SignalRegistrator(SignalRegistrator&& other) = default;
         SignalRegistrator& operator=(SignalRegistrator&& other) = default;
         ~SignalRegistrator() noexcept(false);
+
         SignalRegistrator& onInterface(std::string interfaceName);
-        template <typename... _Args> void withParameters();
+        template <typename... _Args> SignalRegistrator& withParameters();
+        SignalRegistrator& markAsDeprecated();
 
     private:
         IObject& object_;
         const std::string& signalName_;
         std::string interfaceName_;
         std::string signalSignature_;
+        Flags flags_;
         int exceptions_{}; // Number of active exceptions when SignalRegistrator is constructed
-    };
-
-    enum class PropertyUpdateBehavior {
-        Default,
-        EmitsChange,
-        EmitsInvalidation,
-        Constant
     };
 
     class PropertyRegistrator
@@ -90,10 +98,13 @@ namespace sdbus {
         PropertyRegistrator(PropertyRegistrator&& other) = default;
         PropertyRegistrator& operator=(PropertyRegistrator&& other) = default;
         ~PropertyRegistrator() noexcept(false);
+
         PropertyRegistrator& onInterface(const std::string& interfaceName);
-        PropertyRegistrator& withUpdateBehavior(PropertyUpdateBehavior behavior);
         template <typename _Function> PropertyRegistrator& withGetter(_Function&& callback);
         template <typename _Function> PropertyRegistrator& withSetter(_Function&& callback);
+        PropertyRegistrator& markAsDeprecated();
+        PropertyRegistrator& markAsPrivileged();
+        PropertyRegistrator& withUpdateBehavior(Flags::PropertyUpdateBehaviorFlags behavior);
 
     private:
         IObject& object_;
@@ -102,9 +113,28 @@ namespace sdbus {
         std::string propertySignature_;
         property_get_callback getter_;
         property_set_callback setter_;
-        PropertyUpdateBehavior behavior_;
+        Flags flags_;
         int exceptions_{}; // Number of active exceptions when PropertyRegistrator is constructed
+    };
 
+    class InterfaceFlagsSetter
+    {
+    public:
+        InterfaceFlagsSetter(IObject& object, const std::string& interfaceName);
+        InterfaceFlagsSetter(InterfaceFlagsSetter&& other) = default;
+        InterfaceFlagsSetter& operator=(InterfaceFlagsSetter&& other) = default;
+        ~InterfaceFlagsSetter() noexcept(false);
+
+        InterfaceFlagsSetter& markAsDeprecated();
+        InterfaceFlagsSetter& markAsPrivileged();
+        InterfaceFlagsSetter& withNoReplyMethods();
+        InterfaceFlagsSetter& withPropertyUpdateBehavior(Flags::PropertyUpdateBehaviorFlags behavior);
+
+    private:
+        IObject& object_;
+        const std::string& interfaceName_;
+        Flags flags_;
+        int exceptions_{}; // Number of active exceptions when InterfaceFlagsSetter is constructed
     };
 
     class SignalEmitter

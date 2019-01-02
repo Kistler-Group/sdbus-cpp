@@ -39,11 +39,40 @@
 
 namespace sdbus {
 
+    // Moved into the library to isolate from C++17 dependency
+    /*
     inline MethodRegistrator::MethodRegistrator(IObject& object, const std::string& methodName)
         : object_(object)
         , methodName_(methodName)
+        , exceptions_(std::uncaught_exceptions()) // Needs C++17
     {
     }
+
+    inline MethodRegistrator::~MethodRegistrator() noexcept(false) // since C++11, destructors must
+    {                                                              // explicitly be allowed to throw
+        // Don't register the method if MethodRegistrator threw an exception in one of its methods
+        if (std::uncaught_exceptions() != exceptions_)
+            return;
+
+        SDBUS_THROW_ERROR_IF(interfaceName_.empty(), "DBus interface not specified when registering a DBus method", EINVAL);
+
+        // registerMethod() can throw. But as the MethodRegistrator shall always be used as an unnamed,
+        // temporary object, i.e. not as a stack-allocated object, the double-exception situation
+        // shall never happen. I.e. it should not happen that this destructor is directly called
+        // in the stack-unwinding process of another flying exception (which would lead to immediate
+        // termination). It can be called indirectly in the destructor of another object, but that's
+        // fine and safe provided that the caller catches exceptions thrown from here.
+        // Therefore, we can allow registerMethod() to throw even if we are in the destructor.
+        // Bottomline is, to be on the safe side, the caller must take care of catching and reacting
+        // to the exception thrown from here if the caller is a destructor itself.
+        if (syncCallback_)
+            object_.registerMethod(interfaceName_, methodName_, inputSignature_, outputSignature_, std::move(syncCallback_));
+        else if(asyncCallback_)
+            object_.registerMethod(interfaceName_, methodName_, inputSignature_, outputSignature_, std::move(asyncCallback_));
+        else
+            SDBUS_THROW_ERROR("Method handler not specified when registering a DBus method", EINVAL);
+    }
+    */
 
     inline MethodRegistrator& MethodRegistrator::onInterface(const std::string& interfaceName)
     {
@@ -52,67 +81,76 @@ namespace sdbus {
         return *this;
     }
 
-    inline MethodRegistrator& MethodRegistrator::withNoReply()
+    template <typename _Function>
+    inline std::enable_if_t<!is_async_method_v<_Function>, MethodRegistrator&> MethodRegistrator::implementedAs(_Function&& callback)
     {
-        noReply_ = true;
+        inputSignature_ = signature_of_function_input_arguments<_Function>::str();
+        outputSignature_ = signature_of_function_output_arguments<_Function>::str();
+        syncCallback_ = [callback = std::forward<_Function>(callback)](MethodCall& msg, MethodReply& reply)
+        {
+            // Create a tuple of callback input arguments' types, which will be used
+            // as a storage for the argument values deserialized from the message.
+            tuple_of_function_input_arg_types_t<_Function> inputArgs;
+
+            // Deserialize input arguments from the message into the tuple
+            msg >> inputArgs;
+
+            // Invoke callback with input arguments from the tuple.
+            // For callbacks returning a non-void value, `apply' also returns that value.
+            // For callbacks returning void, `apply' returns an empty tuple.
+            auto ret = sdbus::apply(callback, inputArgs); // We don't yet have C++17's std::apply :-(
+
+            // The return value is stored to the reply message.
+            // In case of void functions, ret is an empty tuple and thus nothing is stored.
+            reply << ret;
+        };
 
         return *this;
     }
 
     template <typename _Function>
-    inline std::enable_if_t<!is_async_method_v<_Function>> MethodRegistrator::implementedAs(_Function&& callback)
+    inline std::enable_if_t<is_async_method_v<_Function>, MethodRegistrator&> MethodRegistrator::implementedAs(_Function&& callback)
     {
-        SDBUS_THROW_ERROR_IF(interfaceName_.empty(), "DBus interface not specified when registering a DBus method", EINVAL);
+        inputSignature_ = signature_of_function_input_arguments<_Function>::str();
+        outputSignature_ = signature_of_function_output_arguments<_Function>::str();
+        asyncCallback_ = [callback = std::forward<_Function>(callback)](MethodCall& msg, MethodResult result)
+        {
+            // Create a tuple of callback input arguments' types, which will be used
+            // as a storage for the argument values deserialized from the message.
+            tuple_of_function_input_arg_types_t<_Function> inputArgs;
 
-        object_.registerMethod( interfaceName_
-                              , methodName_
-                              , signature_of_function_input_arguments<_Function>::str()
-                              , signature_of_function_output_arguments<_Function>::str()
-                              , [callback = std::forward<_Function>(callback)](MethodCall& msg, MethodReply& reply)
-                                {
-                                    // Create a tuple of callback input arguments' types, which will be used
-                                    // as a storage for the argument values deserialized from the message.
-                                    tuple_of_function_input_arg_types_t<_Function> inputArgs;
+            // Deserialize input arguments from the message into the tuple,
+            // plus store the result object as a last item of the tuple.
+            msg >> inputArgs;
 
-                                    // Deserialize input arguments from the message into the tuple
-                                    msg >> inputArgs;
+            // Invoke callback with input arguments from the tuple.
+            sdbus::apply(callback, std::move(result), inputArgs); // TODO: Use std::apply when switching to full C++17 support
+        };
 
-                                    // Invoke callback with input arguments from the tuple.
-                                    // For callbacks returning a non-void value, `apply' also returns that value.
-                                    // For callbacks returning void, `apply' returns an empty tuple.
-                                    auto ret = sdbus::apply(callback, inputArgs); // We don't yet have C++17's std::apply :-(
-
-                                    // The return value is stored to the reply message.
-                                    // In case of void functions, ret is an empty tuple and thus nothing is stored.
-                                    reply << ret;
-                                }
-                              , noReply_ );
+        return *this;
     }
 
-    template <typename _Function>
-    inline std::enable_if_t<is_async_method_v<_Function>> MethodRegistrator::implementedAs(_Function&& callback)
+    inline MethodRegistrator& MethodRegistrator::markAsDeprecated()
     {
-        SDBUS_THROW_ERROR_IF(interfaceName_.empty(), "DBus interface not specified when registering a DBus method", EINVAL);
+        flags_.set(Flags::DEPRECATED);
 
-        object_.registerMethod( interfaceName_
-                              , methodName_
-                              , signature_of_function_input_arguments<_Function>::str()
-                              , signature_of_function_output_arguments<_Function>::str()
-                              , [callback = std::forward<_Function>(callback)](MethodCall& msg, MethodResult result)
-                                {
-                                    // Create a tuple of callback input arguments' types, which will be used
-                                    // as a storage for the argument values deserialized from the message.
-                                    tuple_of_function_input_arg_types_t<_Function> inputArgs;
-
-                                    // Deserialize input arguments from the message into the tuple,
-                                    // plus store the result object as a last item of the tuple.
-                                    msg >> inputArgs;
-
-                                    // Invoke callback with input arguments from the tuple.
-                                    sdbus::apply(callback, std::move(result), inputArgs); // TODO: Use std::apply when switching to full C++17 support
-                                }
-                              , noReply_ );
+        return *this;
     }
+
+    inline MethodRegistrator& MethodRegistrator::markAsPrivileged()
+    {
+        flags_.set(Flags::PRIVILEGED);
+
+        return *this;
+    }
+
+    inline MethodRegistrator& MethodRegistrator::withNoReply()
+    {
+        flags_.set(Flags::METHOD_NO_REPLY);
+
+        return *this;
+    }
+
 
     // Moved into the library to isolate from C++17 dependency
     /*
@@ -153,9 +191,18 @@ namespace sdbus {
     }
 
     template <typename... _Args>
-    inline void SignalRegistrator::withParameters()
+    inline SignalRegistrator& SignalRegistrator::withParameters()
     {
         signalSignature_ = signature_of_function_input_arguments<void(_Args...)>::str();
+
+        return *this;
+    }
+
+    inline SignalRegistrator& SignalRegistrator::markAsDeprecated()
+    {
+        flags_.set(Flags::DEPRECATED);
+
+        return *this;
     }
 
 
@@ -200,13 +247,6 @@ namespace sdbus {
         return *this;
     }
 
-    inline PropertyRegistrator& PropertyRegistrator::withUpdateBehavior(PropertyUpdateBehavior policy)
-    {
-        behavior_ = policy;
-
-        return *this;
-    }
-
     template <typename _Function>
     inline PropertyRegistrator& PropertyRegistrator::withGetter(_Function&& callback)
     {
@@ -246,6 +286,87 @@ namespace sdbus {
             // Invoke setter with the value
             callback(property);
         };
+
+        return *this;
+    }
+
+    inline PropertyRegistrator& PropertyRegistrator::markAsDeprecated()
+    {
+        flags_.set(Flags::DEPRECATED);
+
+        return *this;
+    }
+
+    inline PropertyRegistrator& PropertyRegistrator::markAsPrivileged()
+    {
+        flags_.set(Flags::PRIVILEGED);
+
+        return *this;
+    }
+
+    inline PropertyRegistrator& PropertyRegistrator::withUpdateBehavior(Flags::PropertyUpdateBehaviorFlags behavior)
+    {
+        flags_.set(behavior);
+
+        return *this;
+    }
+
+
+    // Moved into the library to isolate from C++17 dependency
+    /*
+    inline InterfaceFlagsSetter::InterfaceFlagsSetter(IObject& object, const std::string& interfaceName)
+        : object_(object)
+        , interfaceName_(interfaceName)
+        , exceptions_(std::uncaught_exceptions())
+    {
+    }
+
+    inline InterfaceFlagsSetter::~InterfaceFlagsSetter() noexcept(false) // since C++11, destructors must
+    {                                                                    // explicitly be allowed to throw
+        // Don't set any flags if InterfaceFlagsSetter threw an exception in one of its methods
+        if (std::uncaught_exceptions() != exceptions_)
+            return;
+
+        SDBUS_THROW_ERROR_IF(interfaceName_.empty(), "DBus interface not specified when setting its flags", EINVAL);
+
+        // setInterfaceFlags() can throw. But as the InterfaceFlagsSetter shall always be used as an unnamed,
+        // temporary object, i.e. not as a stack-allocated object, the double-exception situation
+        // shall never happen. I.e. it should not happen that this destructor is directly called
+        // in the stack-unwinding process of another flying exception (which would lead to immediate
+        // termination). It can be called indirectly in the destructor of another object, but that's
+        // fine and safe provided that the caller catches exceptions thrown from here.
+        // Therefore, we can allow setInterfaceFlags() to throw even if we are in the destructor.
+        // Bottomline is, to be on the safe side, the caller must take care of catching and reacting
+        // to the exception thrown from here if the caller is a destructor itself.
+        object_.setInterfaceFlags( std::move(interfaceName_)
+                                 , std::move(flags_) );
+    }
+    */
+
+    inline InterfaceFlagsSetter& InterfaceFlagsSetter::markAsDeprecated()
+    {
+        flags_.set(Flags::DEPRECATED);
+
+        return *this;
+    }
+
+    inline InterfaceFlagsSetter& InterfaceFlagsSetter::markAsPrivileged()
+    {
+        flags_.set(Flags::PRIVILEGED);
+
+        return *this;
+    }
+
+    inline InterfaceFlagsSetter& InterfaceFlagsSetter::withNoReplyMethods()
+    {
+        flags_.set(Flags::METHOD_NO_REPLY);
+
+        return *this;
+    }
+
+    inline InterfaceFlagsSetter& InterfaceFlagsSetter::withPropertyUpdateBehavior(Flags::PropertyUpdateBehaviorFlags behavior)
+    {
+        flags_.set(behavior);
 
         return *this;
     }
