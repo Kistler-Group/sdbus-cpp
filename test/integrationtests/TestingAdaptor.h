@@ -29,6 +29,7 @@
 #include "adaptor-glue.h"
 #include <thread>
 #include <chrono>
+#include <atomic>
 
 class TestingAdaptor : public sdbus::Interfaces<testing_adaptor>
 {
@@ -37,6 +38,10 @@ public:
         sdbus::Interfaces<::testing_adaptor>(connection, OBJECT_PATH) { }
 
     virtual ~TestingAdaptor() { }
+
+    bool wasMultiplyCalled() const { return m_multiplyCalled; }
+    double getMultiplyResult() const { return m_multiplyResult; }
+    bool wasThrowErrorCalled() const { return m_throwErrorCalled; }
 
 protected:
 
@@ -47,6 +52,12 @@ protected:
     std::tuple<uint32_t, std::string> getTuple() const { return std::make_tuple(UINT32_VALUE, STRING_VALUE); }
 
     double multiply(const int64_t& a, const double& b) const { return a * b; }
+
+    void multiplyWithNoReply(const int64_t& a, const double& b) const
+    {
+        m_multiplyResult = a * b;
+        m_multiplyCalled = true;
+    }
 
     std::vector<int16_t> getInts16FromStruct(const sdbus::Struct<uint8_t, int16_t, double, std::string, std::vector<int16_t>>& x) const
     {
@@ -154,6 +165,12 @@ protected:
         };
     }
 
+    void throwError() const
+    {
+        m_throwErrorCalled = true;
+        throw sdbus::createError(1, "A test error occurred");
+    }
+
     std::string state() { return STRING_VALUE; }
     uint32_t action() { return m_action; }
     void action(const uint32_t& value) { m_action = value; }
@@ -164,6 +181,10 @@ private:
     uint32_t m_action;
     bool m_blocking;
 
+    // For dont-expect-reply method call verifications
+    mutable std::atomic<bool> m_multiplyCalled{};
+    mutable double m_multiplyResult{};
+    mutable std::atomic<bool> m_throwErrorCalled{};
 };
 
 

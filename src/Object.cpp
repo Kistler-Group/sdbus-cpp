@@ -28,6 +28,7 @@
 #include <sdbus-c++/Message.h>
 #include <sdbus-c++/Error.h>
 #include <sdbus-c++/MethodResult.h>
+#include <sdbus-c++/Flags.h>
 #include "IConnection.h"
 #include "VTableUtils.h"
 #include <systemd/sd-bus.h>
@@ -45,7 +46,8 @@ void Object::registerMethod( const std::string& interfaceName
                            , const std::string& methodName
                            , const std::string& inputSignature
                            , const std::string& outputSignature
-                           , method_callback methodCallback )
+                           , method_callback methodCallback
+                           , Flags flags )
 {
     SDBUS_THROW_ERROR_IF(!methodCallback, "Invalid method callback provided", EINVAL);
 
@@ -57,7 +59,7 @@ void Object::registerMethod( const std::string& interfaceName
     };
 
     auto& interface = interfaces_[interfaceName];
-    InterfaceData::MethodData methodData{inputSignature, outputSignature, std::move(syncCallback)};
+    InterfaceData::MethodData methodData{inputSignature, outputSignature, std::move(syncCallback), flags};
     auto inserted = interface.methods_.emplace(methodName, std::move(methodData)).second;
 
     SDBUS_THROW_ERROR_IF(!inserted, "Failed to register method: method already exists", EINVAL);
@@ -67,7 +69,8 @@ void Object::registerMethod( const std::string& interfaceName
                            , const std::string& methodName
                            , const std::string& inputSignature
                            , const std::string& outputSignature
-                           , async_method_callback asyncMethodCallback )
+                           , async_method_callback asyncMethodCallback
+                           , Flags flags )
 {
     SDBUS_THROW_ERROR_IF(!asyncMethodCallback, "Invalid method callback provided", EINVAL);
 
@@ -78,7 +81,7 @@ void Object::registerMethod( const std::string& interfaceName
     };
 
     auto& interface = interfaces_[interfaceName];
-    InterfaceData::MethodData methodData{inputSignature, outputSignature, std::move(asyncCallback)};
+    InterfaceData::MethodData methodData{inputSignature, outputSignature, std::move(asyncCallback), flags};
     auto inserted = interface.methods_.emplace(methodName, std::move(methodData)).second;
 
     SDBUS_THROW_ERROR_IF(!inserted, "Failed to register method: method already exists", EINVAL);
@@ -86,11 +89,12 @@ void Object::registerMethod( const std::string& interfaceName
 
 void Object::registerSignal( const std::string& interfaceName
                            , const std::string& signalName
-                           , const std::string& signature )
+                           , const std::string& signature
+                           , Flags flags )
 {
     auto& interface = interfaces_[interfaceName];
 
-    InterfaceData::SignalData signalData{signature};
+    InterfaceData::SignalData signalData{signature, flags};
     auto inserted = interface.signals_.emplace(signalName, std::move(signalData)).second;
 
     SDBUS_THROW_ERROR_IF(!inserted, "Failed to register signal: signal already exists", EINVAL);
@@ -99,29 +103,38 @@ void Object::registerSignal( const std::string& interfaceName
 void Object::registerProperty( const std::string& interfaceName
                              , const std::string& propertyName
                              , const std::string& signature
-                             , property_get_callback getCallback )
+                             , property_get_callback getCallback
+                             , Flags flags )
 {
     registerProperty( interfaceName
                     , propertyName
                     , signature
                     , getCallback
-                    , property_set_callback{} );
+                    , property_set_callback{}
+                    , flags );
 }
 
 void Object::registerProperty( const std::string& interfaceName
                              , const std::string& propertyName
                              , const std::string& signature
                              , property_get_callback getCallback
-                             , property_set_callback setCallback )
+                             , property_set_callback setCallback
+                             , Flags flags )
 {
     SDBUS_THROW_ERROR_IF(!getCallback && !setCallback, "Invalid property callbacks provided", EINVAL);
 
     auto& interface = interfaces_[interfaceName];
 
-    InterfaceData::PropertyData propertyData{signature, std::move(getCallback), std::move(setCallback)};
+    InterfaceData::PropertyData propertyData{signature, std::move(getCallback), std::move(setCallback), flags};
     auto inserted = interface.properties_.emplace(propertyName, std::move(propertyData)).second;
 
     SDBUS_THROW_ERROR_IF(!inserted, "Failed to register property: property already exists", EINVAL);
+}
+
+void Object::setInterfaceFlags(const std::string& interfaceName, Flags flags)
+{
+    auto& interface = interfaces_[interfaceName];
+    interface.flags_ = flags;
 }
 
 void Object::finishRegistration()
@@ -159,7 +172,7 @@ const std::vector<sd_bus_vtable>& Object::createInterfaceVTable(InterfaceData& i
     auto& vtable = interfaceData.vtable_;
     assert(vtable.empty());
 
-    vtable.push_back(createVTableStartItem());
+    vtable.push_back(createVTableStartItem(interfaceData.flags_.toSdBusInterfaceFlags()));
     registerMethodsToVTable(interfaceData, vtable);
     registerSignalsToVTable(interfaceData, vtable);
     registerPropertiesToVTable(interfaceData, vtable);
@@ -178,7 +191,8 @@ void Object::registerMethodsToVTable(const InterfaceData& interfaceData, std::ve
         vtable.push_back(createVTableMethodItem( methodName.c_str()
                                                , methodData.inputArgs_.c_str()
                                                , methodData.outputArgs_.c_str()
-                                               , &Object::sdbus_method_callback ));
+                                               , &Object::sdbus_method_callback
+                                               , methodData.flags_.toSdBusMethodFlags() ));
     }
 }
 
@@ -190,7 +204,8 @@ void Object::registerSignalsToVTable(const InterfaceData& interfaceData, std::ve
         const auto& signalData = item.second;
 
         vtable.push_back(createVTableSignalItem( signalName.c_str()
-                                               , signalData.signature_.c_str() ));
+                                               , signalData.signature_.c_str()
+                                               , signalData.flags_.toSdBusSignalFlags() ));
     }
 }
 
@@ -204,12 +219,14 @@ void Object::registerPropertiesToVTable(const InterfaceData& interfaceData, std:
         if (!propertyData.setCallback_)
             vtable.push_back(createVTablePropertyItem( propertyName.c_str()
                                                      , propertyData.signature_.c_str()
-                                                     , &Object::sdbus_property_get_callback ));
+                                                     , &Object::sdbus_property_get_callback
+                                                     , propertyData.flags_.toSdBusPropertyFlags() ));
         else
             vtable.push_back(createVTableWritablePropertyItem( propertyName.c_str()
                                                              , propertyData.signature_.c_str()
                                                              , &Object::sdbus_property_get_callback
-                                                             , &Object::sdbus_property_set_callback ));
+                                                             , &Object::sdbus_property_set_callback
+                                                             , propertyData.flags_.toSdBusWritablePropertyFlags() ));
     }
 }
 

@@ -31,6 +31,38 @@
 
 namespace sdbus {
 
+MethodRegistrator::MethodRegistrator(IObject& object, const std::string& methodName)
+    : object_(object)
+    , methodName_(methodName)
+    , exceptions_(std::uncaught_exceptions()) // Needs C++17
+{
+}
+
+MethodRegistrator::~MethodRegistrator() noexcept(false) // since C++11, destructors must
+{                                                              // explicitly be allowed to throw
+    // Don't register the method if MethodRegistrator threw an exception in one of its methods
+    if (std::uncaught_exceptions() != exceptions_)
+        return;
+
+    SDBUS_THROW_ERROR_IF(interfaceName_.empty(), "DBus interface not specified when registering a DBus method", EINVAL);
+
+    // registerMethod() can throw. But as the MethodRegistrator shall always be used as an unnamed,
+    // temporary object, i.e. not as a stack-allocated object, the double-exception situation
+    // shall never happen. I.e. it should not happen that this destructor is directly called
+    // in the stack-unwinding process of another flying exception (which would lead to immediate
+    // termination). It can be called indirectly in the destructor of another object, but that's
+    // fine and safe provided that the caller catches exceptions thrown from here.
+    // Therefore, we can allow registerMethod() to throw even if we are in the destructor.
+    // Bottomline is, to be on the safe side, the caller must take care of catching and reacting
+    // to the exception thrown from here if the caller is a destructor itself.
+    if (syncCallback_)
+        object_.registerMethod(interfaceName_, methodName_, inputSignature_, outputSignature_, std::move(syncCallback_), flags_);
+    else if(asyncCallback_)
+        object_.registerMethod(interfaceName_, methodName_, inputSignature_, outputSignature_, std::move(asyncCallback_), flags_);
+    else
+        SDBUS_THROW_ERROR("Method handler not specified when registering a DBus method", EINVAL);
+}
+
 SignalRegistrator::SignalRegistrator(IObject& object, const std::string& signalName)
     : object_(object)
     , signalName_(signalName)
@@ -55,7 +87,7 @@ SignalRegistrator::~SignalRegistrator() noexcept(false) // since C++11, destruct
     // Therefore, we can allow registerSignal() to throw even if we are in the destructor.
     // Bottomline is, to be on the safe side, the caller must take care of catching and reacting
     // to the exception thrown from here if the caller is a destructor itself.
-    object_.registerSignal(interfaceName_, signalName_, signalSignature_);
+    object_.registerSignal(interfaceName_, signalName_, signalSignature_, flags_);
 }
 
 
@@ -87,7 +119,37 @@ PropertyRegistrator::~PropertyRegistrator() noexcept(false) // since C++11, dest
                             , std::move(propertyName_)
                             , std::move(propertySignature_)
                             , std::move(getter_)
-                            , std::move(setter_) );
+                            , std::move(setter_)
+                            , flags_ );
+}
+
+
+InterfaceFlagsSetter::InterfaceFlagsSetter(IObject& object, const std::string& interfaceName)
+    : object_(object)
+    , interfaceName_(interfaceName)
+    , exceptions_(std::uncaught_exceptions())
+{
+}
+
+InterfaceFlagsSetter::~InterfaceFlagsSetter() noexcept(false) // since C++11, destructors must
+{                                                                    // explicitly be allowed to throw
+    // Don't set any flags if InterfaceFlagsSetter threw an exception in one of its methods
+    if (std::uncaught_exceptions() != exceptions_)
+        return;
+
+    SDBUS_THROW_ERROR_IF(interfaceName_.empty(), "DBus interface not specified when setting its flags", EINVAL);
+
+    // setInterfaceFlags() can throw. But as the InterfaceFlagsSetter shall always be used as an unnamed,
+    // temporary object, i.e. not as a stack-allocated object, the double-exception situation
+    // shall never happen. I.e. it should not happen that this destructor is directly called
+    // in the stack-unwinding process of another flying exception (which would lead to immediate
+    // termination). It can be called indirectly in the destructor of another object, but that's
+    // fine and safe provided that the caller catches exceptions thrown from here.
+    // Therefore, we can allow setInterfaceFlags() to throw even if we are in the destructor.
+    // Bottomline is, to be on the safe side, the caller must take care of catching and reacting
+    // to the exception thrown from here if the caller is a destructor itself.
+    object_.setInterfaceFlags( std::move(interfaceName_)
+                             , std::move(flags_) );
 }
 
 

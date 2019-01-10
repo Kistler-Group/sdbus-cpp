@@ -26,42 +26,46 @@
 #include "VTableUtils.h"
 #include <systemd/sd-bus.h>
 
-sd_bus_vtable createVTableStartItem()
+sd_bus_vtable createVTableStartItem(uint64_t flags)
 {
-    struct sd_bus_vtable vtableStart = SD_BUS_VTABLE_START(0);
+    struct sd_bus_vtable vtableStart = SD_BUS_VTABLE_START(flags);
     return vtableStart;
 }
 
 sd_bus_vtable createVTableMethodItem( const char *member
                                     , const char *signature
                                     , const char *result
-                                    , sd_bus_message_handler_t handler )
+                                    , sd_bus_message_handler_t handler
+                                    , uint64_t flags )
 {
-    struct sd_bus_vtable vtableItem = SD_BUS_METHOD(member, signature, result, handler, SD_BUS_VTABLE_UNPRIVILEGED);
+    struct sd_bus_vtable vtableItem = SD_BUS_METHOD(member, signature, result, handler, flags);
     return vtableItem;
 }
 
 sd_bus_vtable createVTableSignalItem( const char *member
-                                    , const char *signature )
+                                    , const char *signature
+                                    , uint64_t flags )
 {
-    struct sd_bus_vtable vtableItem = SD_BUS_SIGNAL(member, signature, 0);
+    struct sd_bus_vtable vtableItem = SD_BUS_SIGNAL(member, signature, flags);
     return vtableItem;
 }
 
 sd_bus_vtable createVTablePropertyItem( const char *member
                                       , const char *signature
-                                      , sd_bus_property_get_t getter )
+                                      , sd_bus_property_get_t getter
+                                      , uint64_t flags )
 {
-    struct sd_bus_vtable vtableItem = SD_BUS_PROPERTY(member, signature, getter, 0, 0);
+    struct sd_bus_vtable vtableItem = SD_BUS_PROPERTY(member, signature, getter, 0, flags);
     return vtableItem;
 }
 
 sd_bus_vtable createVTableWritablePropertyItem( const char *member
                                               , const char *signature
                                               , sd_bus_property_get_t getter
-                                              , sd_bus_property_set_t setter )
+                                              , sd_bus_property_set_t setter
+                                              , uint64_t flags )
 {
-    struct sd_bus_vtable vtableItem = SD_BUS_WRITABLE_PROPERTY(member, signature, getter, setter, 0, 0);
+    struct sd_bus_vtable vtableItem = SD_BUS_WRITABLE_PROPERTY(member, signature, getter, setter, 0, flags);
     return vtableItem;
 }
 

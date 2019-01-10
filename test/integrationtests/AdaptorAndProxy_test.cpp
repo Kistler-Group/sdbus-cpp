@@ -41,6 +41,7 @@
 #include <thread>
 #include <tuple>
 #include <chrono>
+#include <fstream>
 
 using ::testing::Eq;
 using ::testing::Gt;
@@ -200,6 +201,51 @@ TEST_F(SdbusTestObject, CallsMethodWithComplexTypeSuccesfully)
     ASSERT_THAT(resComplex.count(0), Eq(1));
 }
 
+TEST_F(SdbusTestObject, CallsMultiplyMethodWithNoReplyFlag)
+{
+    m_proxy->multiplyWithNoReply(INT64_VALUE, DOUBLE_VALUE);
+
+    for (auto i = 0; i < 100; ++i)
+    {
+        if (m_adaptor->wasMultiplyCalled())
+            break;
+        std::this_thread::sleep_for(10ms);
+    }
+    ASSERT_TRUE(m_adaptor->wasMultiplyCalled());
+    ASSERT_THAT(m_adaptor->getMultiplyResult(), Eq(INT64_VALUE * DOUBLE_VALUE));
+}
+
+TEST_F(SdbusTestObject, CallsMethodThatThrowsError)
+{
+    try
+    {
+        m_proxy->throwError();
+        FAIL() << "Expected sdbus::Error exception";
+    }
+    catch (const sdbus::Error& e)
+    {
+        ASSERT_THAT(e.getName(), Eq("org.freedesktop.DBus.Error.AccessDenied"));
+        ASSERT_THAT(e.getMessage(), Eq("A test error occurred (Operation not permitted)"));
+    }
+    catch(...)
+    {
+        FAIL() << "Expected sdbus::Error exception";
+    }
+}
+
+TEST_F(SdbusTestObject, CallsErrorThrowingMethodWithDontExpectReplySet)
+{
+    ASSERT_NO_THROW(m_proxy->throwErrorWithNoReply());
+
+    for (auto i = 0; i < 100; ++i)
+    {
+        if (m_adaptor->wasThrowErrorCalled())
+            break;
+        std::this_thread::sleep_for(10ms);
+    }
+    ASSERT_TRUE(m_adaptor->wasThrowErrorCalled());
+}
+
 TEST_F(SdbusTestObject, DoesServerSideAsynchoronousMethodInParallel)
 {
     // Yeah, this is kinda timing-dependent test, but times should be safe...
@@ -227,7 +273,6 @@ TEST_F(SdbusTestObject, DoesServerSideAsynchoronousMethodInParallel)
 
 TEST_F(SdbusTestObject, HandlesCorrectlyABulkOfParallelServerSideAsyncMethods)
 {
-    std::mutex mtx;
     std::atomic<size_t> resultCount{};
     std::atomic<bool> invoke{};
     std::atomic<int> startedCount{};
@@ -331,7 +376,7 @@ TEST_F(SdbusTestObject, ReadsReadPropertySuccesfully)
 
 TEST_F(SdbusTestObject, WritesAndReadsReadWritePropertySuccesfully)
 {
-    auto x = 42;
+    uint32_t x = 42;
     ASSERT_NO_THROW(m_proxy->action(x));
     ASSERT_THAT(m_proxy->action(), Eq(x));
 }
@@ -345,4 +390,9 @@ TEST_F(SdbusTestObject, WritesToWritePropertySuccesfully)
 TEST_F(SdbusTestObject, CannotReadFromWriteProperty)
 {
     ASSERT_THROW(m_proxy->blocking(), sdbus::Error);
+}
+
+TEST_F(SdbusTestObject, AnswersXmlApiDescriptionOnIntrospection)
+{
+    ASSERT_THAT(m_proxy->Introspect(), Eq(testing_adaptor::expectedXmlApiDescription));
 }

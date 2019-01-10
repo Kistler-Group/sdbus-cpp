@@ -32,6 +32,7 @@
 
 // STL
 #include <tuple>
+#include <set>
 
 class AdaptorGenerator : public BaseGenerator
 {
@@ -73,6 +74,19 @@ private:
      */
     std::tuple<std::string, std::string> processProperties(const sdbuscpp::xml::Nodes& properties) const;
 
+    /**
+     * Get annotations listed for a given node
+     * @param node
+     * @return map of annotation names to their values
+     */
+    std::map<std::string, std::string> getAnnotations(sdbuscpp::xml::Node& node) const;
+
+    /**
+     * Get flag for property update behavior annotation value
+     * @param annotationValue
+     * @return flag
+     */
+    std::string propertyAnnotationToFlag(const std::string& annotationValue) const;
 };
 
 

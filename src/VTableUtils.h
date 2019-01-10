@@ -27,25 +27,30 @@
 #define SDBUS_CXX_INTERNAL_VTABLEUTILS_H_
 
 #include <systemd/sd-bus.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-sd_bus_vtable createVTableStartItem();
+sd_bus_vtable createVTableStartItem(uint64_t flags);
 sd_bus_vtable createVTableMethodItem( const char *member
                                     , const char *signature
                                     , const char *result
-                                    , sd_bus_message_handler_t handler );
+                                    , sd_bus_message_handler_t handler
+                                    , uint64_t flags );
 sd_bus_vtable createVTableSignalItem( const char *member
-                                    , const char *signature );
+                                    , const char *signature
+                                    , uint64_t flags );
 sd_bus_vtable createVTablePropertyItem( const char *member
                                       , const char *signature
-                                      , sd_bus_property_get_t getter );
+                                      , sd_bus_property_get_t getter
+                                      , uint64_t flags );
 sd_bus_vtable createVTableWritablePropertyItem( const char *member
                                               , const char *signature
                                               , sd_bus_property_get_t getter
-                                              , sd_bus_property_set_t setter );
+                                              , sd_bus_property_set_t setter
+                                              , uint64_t flags );
 sd_bus_vtable createVTableEndItem();
 
 #ifdef __cplusplus

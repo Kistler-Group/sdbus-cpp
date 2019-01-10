@@ -28,10 +28,10 @@
 
 #include "proxy-glue.h"
 
-class TestingProxy : public sdbus::ProxyInterfaces<::testing_proxy>
+class TestingProxy : public sdbus::ProxyInterfaces<::testing_proxy, sdbus::introspectable_proxy>
 {
 public:
-    using sdbus::ProxyInterfaces<::testing_proxy>::ProxyInterfaces;
+    using sdbus::ProxyInterfaces<::testing_proxy, sdbus::introspectable_proxy>::ProxyInterfaces;
 
     int getSimpleCallCount() const { return m_simpleCallCounter; }
     std::map<int32_t, std::string> getMap() const { return m_map; }

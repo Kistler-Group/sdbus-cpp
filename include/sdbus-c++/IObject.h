@@ -28,6 +28,7 @@
 
 #include <sdbus-c++/ConvenienceClasses.h>
 #include <sdbus-c++/TypeTraits.h>
+#include <sdbus-c++/Flags.h>
 #include <functional>
 #include <string>
 #include <memory>
@@ -61,6 +62,7 @@ namespace sdbus {
         * @param[in] inputSignature D-Bus signature of method input parameters
         * @param[in] outputSignature D-Bus signature of method output parameters
         * @param[in] methodCallback Callback that implements the body of the method
+        * @param[in] noReply If true, the method isn't expected to send reply
         *
         * @throws sdbus::Error in case of failure
         */
@@ -68,7 +70,8 @@ namespace sdbus {
                                    , const std::string& methodName
                                    , const std::string& inputSignature
                                    , const std::string& outputSignature
-                                   , method_callback methodCallback ) = 0;
+                                   , method_callback methodCallback
+                                   , Flags flags = {} ) = 0;
 
         /*!
         * @brief Registers method that the object will provide on D-Bus
@@ -78,6 +81,7 @@ namespace sdbus {
         * @param[in] inputSignature D-Bus signature of method input parameters
         * @param[in] outputSignature D-Bus signature of method output parameters
         * @param[in] asyncMethodCallback Callback that implements the body of the method
+        * @param[in] noReply If true, the method isn't expected to send reply
         *
         * This overload register a method callback that will have a freedom to execute
         * its body in asynchronous contexts, and send the results from those contexts.
@@ -90,7 +94,8 @@ namespace sdbus {
                                    , const std::string& methodName
                                    , const std::string& inputSignature
                                    , const std::string& outputSignature
-                                   , async_method_callback asyncMethodCallback ) = 0;
+                                   , async_method_callback asyncMethodCallback
+                                   , Flags flags = {} ) = 0;
 
         /*!
         * @brief Registers signal that the object will emit on D-Bus
@@ -103,7 +108,8 @@ namespace sdbus {
         */
         virtual void registerSignal( const std::string& interfaceName
                                    , const std::string& signalName
-                                   , const std::string& signature ) = 0;
+                                   , const std::string& signature
+                                   , Flags flags = {} ) = 0;
 
         /*!
         * @brief Registers read-only property that the object will provide on D-Bus
@@ -118,7 +124,8 @@ namespace sdbus {
         virtual void registerProperty( const std::string& interfaceName
                                      , const std::string& propertyName
                                      , const std::string& signature
-                                     , property_get_callback getCallback ) = 0;
+                                     , property_get_callback getCallback
+                                     , Flags flags = {} ) = 0;
 
         /*!
         * @brief Registers read/write property that the object will provide on D-Bus
@@ -135,7 +142,18 @@ namespace sdbus {
                                      , const std::string& propertyName
                                      , const std::string& signature
                                      , property_get_callback getCallback
-                                     , property_set_callback setCallback ) = 0;
+                                     , property_set_callback setCallback
+                                     , Flags flags = {} ) = 0;
+
+        /*!
+        * @brief Sets flags for a given interface
+        *
+        * @param[in] interfaceName Name of an interface whose flags will be set
+        * @param[in] flags Flags to be set
+        *
+        * @throws sdbus::Error in case of failure
+        */
+        virtual void setInterfaceFlags(const std::string& interfaceName, Flags flags) = 0;
 
         /*!
         * @brief Finishes the registration and exports object API on D-Bus
@@ -232,6 +250,23 @@ namespace sdbus {
         PropertyRegistrator registerProperty(const std::string& propertyName);
 
         /*!
+        * @brief Sets flags (annotations) for a given interface
+        *
+        * @param[in] interfaceName Name of an interface whose flags will be set
+        * @return A helper object for convenient setting of Interface flags
+        *
+        * This is a high-level, convenience alternative to the other setInterfaceFlags overload.
+        *
+        * Example of use:
+        * @code
+        * object_.setInterfaceFlags("com.kistler.foo").markAsDeprecated().withPropertyUpdateBehavior(sdbus::Flags::EMITS_NO_SIGNAL);
+        * @endcode
+        *
+        * @throws sdbus::Error in case of failure
+        */
+        InterfaceFlagsSetter setInterfaceFlags(const std::string& interfaceName);
+
+        /*!
         * @brief Emits signal on D-Bus
         *
         * @param[in] signalName Name of the signal
@@ -268,6 +303,11 @@ namespace sdbus {
     inline PropertyRegistrator IObject::registerProperty(const std::string& propertyName)
     {
         return PropertyRegistrator(*this, std::move(propertyName));
+    }
+
+    inline InterfaceFlagsSetter IObject::setInterfaceFlags(const std::string& interfaceName)
+    {
+        return InterfaceFlagsSetter(*this, std::move(interfaceName));
     }
 
     inline SignalEmitter IObject::emitSignal(const std::string& signalName)

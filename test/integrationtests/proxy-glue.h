@@ -45,7 +45,6 @@ protected:
                 { this->onSignalWithoutRegistration(s); });
     }
 
-
     virtual void onSimpleSignal() = 0;
     virtual void onSignalWithMap(const std::map<int32_t, std::string>& map) = 0;
     virtual void onSignalWithVariant(const sdbus::Variant& v) = 0;
@@ -76,6 +75,11 @@ public:
         double result;
         object_.callMethod("multiply").onInterface(INTERFACE_NAME).withArguments(a, b).storeResultsTo(result);
         return result;
+    }
+
+    void multiplyWithNoReply(const int64_t& a, const double& b)
+    {
+        object_.callMethod("multiplyWithNoReply").onInterface(INTERFACE_NAME).withArguments(a, b).dontExpectReply();
     }
 
     std::vector<int16_t> getInts16FromStruct(const sdbus::Struct<uint8_t, int16_t, double, std::string, std::vector<int16_t>>& x)
@@ -153,6 +157,16 @@ public:
         ComplexType result;
         object_.callMethod("getComplex").onInterface(INTERFACE_NAME).storeResultsTo(result);
         return result;
+    }
+
+    void throwError()
+    {
+        object_.callMethod("throwError").onInterface(INTERFACE_NAME);
+    }
+
+    void throwErrorWithNoReply()
+    {
+        object_.callMethod("throwErrorWithNoReply").onInterface(INTERFACE_NAME).dontExpectReply();
     }
 
     int32_t callNonexistentMethod()

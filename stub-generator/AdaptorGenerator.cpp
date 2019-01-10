@@ -89,6 +89,30 @@ std::string AdaptorGenerator::processInterface(Node& interface) const
     Nodes signals = interface["signal"];
     Nodes properties = interface["property"];
 
+    auto annotations = getAnnotations(interface);
+    std::string annotationRegistration;
+    for (const auto& annotation : annotations)
+    {
+        const auto& annotationName = annotation.first;
+        const auto& annotationValue = annotation.second;
+
+        if (annotationName == "org.freedesktop.DBus.Deprecated" && annotationValue == "true")
+            annotationRegistration += ".markAsDeprecated()";
+        else if (annotationName == "org.freedesktop.systemd1.Privileged" && annotationValue == "true")
+            annotationRegistration += ".markAsPrivileged()";
+        else if (annotationName == "org.freedesktop.DBus.Property.EmitsChangedSignal")
+            annotationRegistration += ".withPropertyUpdateBehavior(" + propertyAnnotationToFlag(annotationValue) + ")";
+        else
+            std::cerr << "Node: " << ifaceName << ": "
+                      << "Option '" << annotationName << "' not allowed or supported in this context! Option ignored..." << std::endl;
+    }
+    if(!annotationRegistration.empty())
+    {
+        std::stringstream str;
+        str << tab << tab << "object_.setInterfaceFlags(interfaceName)" << annotationRegistration << ";" << endl;
+        annotationRegistration = str.str();
+    }
+
     std::string methodRegistration, methodDeclaration;
     std::tie(methodRegistration, methodDeclaration) = processMethods(methods);
 
@@ -99,10 +123,11 @@ std::string AdaptorGenerator::processInterface(Node& interface) const
     std::tie(propertyRegistration, propertyAccessorDeclaration) = processProperties(properties);
 
     body << tab << "{" << endl
-            << methodRegistration
-            << signalRegistration
-            << propertyRegistration
-            << tab << "}" << endl << endl;
+                       << annotationRegistration
+                       << methodRegistration
+                       << signalRegistration
+                       << propertyRegistration
+         << tab << "}" << endl << endl;
 
     if (!signalMethods.empty())
     {
@@ -136,17 +161,25 @@ std::tuple<std::string, std::string> AdaptorGenerator::processMethods(const Node
     {
         auto methodName = method->get("name");
 
+        auto annotations = getAnnotations(*method);
         bool async{false};
-        Nodes annotations = (*method)["annotation"];
-
+        std::string annotationRegistration;
         for (const auto& annotation : annotations)
         {
-            if (annotation->get("name") == "org.freedesktop.DBus.Method.Async"
-                && (annotation->get("value") == "server" || annotation->get("value") == "clientserver"))
-            {
+            const auto& annotationName = annotation.first;
+            const auto& annotationValue = annotation.second;
+
+            if (annotationName == "org.freedesktop.DBus.Deprecated" && annotationValue == "true")
+                annotationRegistration += ".markAsDeprecated()";
+            else if (annotationName == "org.freedesktop.DBus.Method.NoReply" && annotationValue == "true")
+                annotationRegistration += ".withNoReply()";
+            else if (annotationName == "org.freedesktop.DBus.Method.Async" && (annotationValue == "server" || annotationValue == "clientserver"))
                 async = true;
-                break;
-            }
+            else if (annotationName == "org.freedesktop.systemd1.Privileged" && annotationValue == "true")
+                annotationRegistration += ".markAsPrivileged()";
+            else
+                std::cerr << "Node: " << methodName << ": "
+                          << "Option '" << annotationName << "' not allowed or supported in this context! Option ignored..." << std::endl;
         }
 
         Nodes args = (*method)["arg"];
@@ -167,7 +200,8 @@ std::tuple<std::string, std::string> AdaptorGenerator::processMethods(const Node
                 << argTypeStr
                 << "){ " << (async ? "" : "return ") << "this->" << methodName << "("
                 << (async ? "std::move(result)"s + (argTypeStr.empty() ? "" : ", ") : "")
-                << argStr << "); });" << endl;
+                << argStr << "); })"
+                << annotationRegistration << ";" << endl;
 
         declarationSS << tab
                 << "virtual "
@@ -190,6 +224,21 @@ std::tuple<std::string, std::string> AdaptorGenerator::processSignals(const Node
     for (const auto& signal : signals)
     {
         auto name = signal->get("name");
+
+        auto annotations = getAnnotations(*signal);
+        std::string annotationRegistration;
+        for (const auto& annotation : annotations)
+        {
+            const auto& annotationName = annotation.first;
+            const auto& annotationValue = annotation.second;
+
+            if (annotationName == "org.freedesktop.DBus.Deprecated" && annotationValue == "true")
+                annotationRegistration += ".markAsDeprecated()";
+            else
+                std::cerr << "Node: " << name << ": "
+                          << "Option '" << annotationName << "' not allowed or supported in this context! Option ignored..." << std::endl;
+        }
+
         Nodes args = (*signal)["arg"];
 
         std::string argStr, argTypeStr, typeStr;;
@@ -204,6 +253,7 @@ std::tuple<std::string, std::string> AdaptorGenerator::processSignals(const Node
             signalRegistrationSS << ".withParameters<" << typeStr << ">()";
         }
 
+        signalRegistrationSS << annotationRegistration;
         signalRegistrationSS << ";" << endl;
 
         signalMethodSS << tab << "void " << name << "(" << argTypeStr << ")" << endl
@@ -238,6 +288,24 @@ std::tuple<std::string, std::string> AdaptorGenerator::processProperties(const N
         auto propertyArg = std::string("value");
         auto propertyTypeArg = std::string("const ") + propertyType + "& " + propertyArg;
 
+        auto annotations = getAnnotations(*property);
+        std::string annotationRegistration;
+        for (const auto& annotation : annotations)
+        {
+            const auto& annotationName = annotation.first;
+            const auto& annotationValue = annotation.second;
+
+            if (annotationName == "org.freedesktop.DBus.Deprecated" && annotationValue == "true")
+                annotationRegistration += ".markAsDeprecated()";
+            else if (annotationName == "org.freedesktop.DBus.Property.EmitsChangedSignal")
+                annotationRegistration += ".withUpdateBehavior(" + propertyAnnotationToFlag(annotationValue) + ")";
+            else if (annotationName == "org.freedesktop.systemd1.Privileged" && annotationValue == "true")
+                annotationRegistration += ".markAsPrivileged()";
+            else
+                std::cerr << "Node: " << propertyName << ": "
+                          << "Option '" << annotationName << "' not allowed or supported in this context! Option ignored..." << std::endl;
+        }
+
         registrationSS << tab << tab << "object_.registerProperty(\""
                 << propertyName << "\")"
                 << ".onInterface(interfaceName)";
@@ -254,6 +322,7 @@ std::tuple<std::string, std::string> AdaptorGenerator::processProperties(const N
                    "{ this->" << propertyName << "(" << propertyArg << "); })";
         }
 
+        registrationSS << annotationRegistration;
         registrationSS << ";" << endl;
 
         if (propertyAccess == "read" || propertyAccess == "readwrite")
@@ -263,4 +332,26 @@ std::tuple<std::string, std::string> AdaptorGenerator::processProperties(const N
     }
 
     return std::make_tuple(registrationSS.str(), declarationSS.str());
+}
+
+std::map<std::string, std::string> AdaptorGenerator::getAnnotations( sdbuscpp::xml::Node& node) const
+{
+    std::map<std::string, std::string> result;
+
+    Nodes annotations = (node)["annotation"];
+    for (const auto& annotation : annotations)
+    {
+        result[annotation->get("name")] = annotation->get("value");
+    }
+
+    return result;
+}
+
+std::string AdaptorGenerator::propertyAnnotationToFlag(const std::string& annotationValue) const
+{
+    return annotationValue == "true" ? "sdbus::Flags::EMITS_CHANGE_SIGNAL"
+         : annotationValue == "invalidates" ? "sdbus::Flags::EMITS_INVALIDATION_SIGNAL"
+         : annotationValue == "const" ? "sdbus::Flags::CONST_PROPERTY_VALUE"
+         : annotationValue == "false" ? "sdbus::Flags::EMITS_NO_SIGNAL"
+         : "EMITS_CHANGE_SIGNAL"; // Default
 }

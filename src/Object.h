@@ -49,28 +49,35 @@ namespace internal {
                            , const std::string& methodName
                            , const std::string& inputSignature
                            , const std::string& outputSignature
-                           , method_callback methodCallback ) override;
+                           , method_callback methodCallback
+                           , Flags flags ) override;
 
         void registerMethod( const std::string& interfaceName
                            , const std::string& methodName
                            , const std::string& inputSignature
                            , const std::string& outputSignature
-                           , async_method_callback asyncMethodCallback ) override;
+                           , async_method_callback asyncMethodCallback
+                           , Flags flags ) override;
 
         void registerSignal( const std::string& interfaceName
                            , const std::string& signalName
-                           , const std::string& signature ) override;
-
-        void registerProperty( const std::string& interfaceName
-                             , const std::string& propertyName
-                             , const std::string& signature
-                             , property_get_callback getCallback ) override;
+                           , const std::string& signature
+                           , Flags flags ) override;
 
         void registerProperty( const std::string& interfaceName
                              , const std::string& propertyName
                              , const std::string& signature
                              , property_get_callback getCallback
-                             , property_set_callback setCallback ) override;
+                             , Flags flags ) override;
+
+        void registerProperty( const std::string& interfaceName
+                             , const std::string& propertyName
+                             , const std::string& signature
+                             , property_get_callback getCallback
+                             , property_set_callback setCallback
+                             , Flags flags ) override;
+
+        void setInterfaceFlags(const std::string& interfaceName, Flags flags) override;
 
         void finishRegistration() override;
 
@@ -89,12 +96,14 @@ namespace internal {
                 std::string inputArgs_;
                 std::string outputArgs_;
                 std::function<void(MethodCall&)> callback_;
+                Flags flags_;
             };
             std::map<MethodName, MethodData> methods_;
             using SignalName = std::string;
             struct SignalData
             {
                 std::string signature_;
+                Flags flags_;
             };
             std::map<SignalName, SignalData> signals_;
             using PropertyName = std::string;
@@ -103,9 +112,11 @@ namespace internal {
                 std::string signature_;
                 property_get_callback getCallback_;
                 property_set_callback setCallback_;
+                Flags flags_;
             };
             std::map<PropertyName, PropertyData> properties_;
             std::vector<sd_bus_vtable> vtable_;
+            Flags flags_;
 
             std::unique_ptr<void, std::function<void(void*)>> slot_;
         };

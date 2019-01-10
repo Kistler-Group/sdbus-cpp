@@ -72,6 +72,14 @@ namespace sdbus {
         * @brief Calls method on the proxied D-Bus object
         *
         * @param[in] message Message representing a method call
+        * @return A method reply message
+        *
+        * Normally, the call is blocking, i.e. it waits for the remote method to finish with either
+        * a return value or an error.
+        *
+        * If the method call argument is set to not expect reply, the call will not wait for the remote
+        * method to finish, i.e. the call will be non-blocking, and the function will return an empty,
+        * invalid MethodReply object (representing void).
         *
         * Note: To avoid messing with messages, use higher-level API defined below.
         *

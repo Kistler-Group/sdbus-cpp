@@ -120,7 +120,6 @@ namespace sdbus {
         {
             getObject().finishRegistration();
         }
-        
     };
 
 }

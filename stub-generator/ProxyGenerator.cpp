@@ -127,6 +127,24 @@ std::string ProxyGenerator::processMethods(const Nodes& methods) const
         Nodes inArgs = args.select("direction" , "in");
         Nodes outArgs = args.select("direction" , "out");
 
+        bool dontExpectReply{false};
+        Nodes annotations = (*method)["annotation"];
+        for (const auto& annotation : annotations)
+        {
+            if (annotation->get("name") == "org.freedesktop.DBus.Method.NoReply"
+                && annotation->get("value") == "true")
+            {
+                dontExpectReply = true;
+                break;
+            }
+        }
+        if (dontExpectReply && outArgs.size() > 0)
+        {
+            std::cerr << "Function: " << name << ": ";
+            std::cerr << "Option 'org.freedesktop.DBus.Method.NoReply' not allowed for methods with 'out' variables! Option ignored..." << std::endl;
+            dontExpectReply = false;
+        }
+
         auto retType = outArgsToType(outArgs);
         std::string argStr, argTypeStr;
         std::tie(argStr, argTypeStr, std::ignore) = argsToNamesAndTypes(inArgs);
@@ -152,13 +170,16 @@ std::string ProxyGenerator::processMethods(const Nodes& methods) const
             methodSS << ".storeResultsTo(result);" << endl
                     << tab << tab << "return result";
         }
+        else if (dontExpectReply)
+        {
+            methodSS << ".dontExpectReply()";
+        }
 
         methodSS << ";" << endl << tab << "}" << endl << endl;
     }
 
     return methodSS.str();
 }
-
 
 std::tuple<std::string, std::string> ProxyGenerator::processSignals(const Nodes& signals) const
 {
