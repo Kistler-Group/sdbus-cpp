@@ -34,3 +34,7 @@ v0.3.3
 - Minor fixes in tutorial examples
 - Add comment on threading traits of Variant and its const methods
 - Fix broken invariant of const Variant::peekValueType() method
+
+v0.4.0
+- Introduce support and implementation of common D-Bus annotations
+- Remove hard-coded warning-related compiler options from the build system
