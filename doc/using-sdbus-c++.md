@@ -29,21 +29,19 @@ method calls, signals and properties. There is room for additions and improvemen
 Integrating sdbus-c++ into your project
 ---------------------------------------
 
-The library build system is based on Autotools. The library supports `pkg-config`, so integrating it into your autotools project 
-is a two step process.
+The library build system is based on CMake. The library provides a config file, so integrating it into your CMake project is rather straight-forward:
 
-1. Add `PKG_CHECK_MODULES` macro into your `configure.ac`:
 ```bash
-PKG_CHECK_MODULES(SDBUSCPP, [sdbus-c++ >= 0.1],,
-    AC_MSG_ERROR([You need the sdbus-c++ library (version 0.1 or better)]
-    [http://www.kistler.com/])
-)
+find_package(sdbus-c++ REQUIRED)
 ```
 
-2. Update `*_CFLAGS` and `*_LDFLAGS` in Makefiles of modules that use *sdbus-c++*, for example like this:
+The library also supports `pkg-config`, so it easily be integrated into e.g. an Autotools project:
+
 ```bash
-AM_CXXFLAGS = -std=c++17 -pedantic -W -Wall @SDBUSCPP_CFLAGS@ ...
-AM_LDFLAGS = @SDBUSCPP_LIBS@ ...
+PKG_CHECK_MODULES(SDBUSCPP, [sdbus-c++ >= 0.4],,
+    AC_MSG_ERROR([You need the sdbus-c++ library (version 0.4 or newer)]
+    [http://www.kistler.com/])
+)
 ```
 
 Note: sdbus-c++ library depends on C++17, since it uses C++17 `std::uncaught_exceptions()` feature. When building sdbus-c++ manually, make sure you use a compiler that supports that feature. To use the library, make sure you have a C++ standard library that supports the feature. The feature is supported by e.g. gcc >= 6, and clang >= 3.7.
