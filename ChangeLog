@@ -38,3 +38,6 @@ v0.3.3
 v0.4.0
 - Introduce support and implementation of common D-Bus annotations
 - Remove hard-coded warning-related compiler options from the build system
+
+v0.4.1
+- Change constexpr member into a getter method to be compatible across odr-usage rules of various compiler versions
