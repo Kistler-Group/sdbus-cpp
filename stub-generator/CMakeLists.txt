@@ -35,7 +35,7 @@ set(SDBUSCPP_XML2CPP_SRCS
 # GENERAL COMPILER CONFIGURATION
 #-------------------------------
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 14)
 
 #----------------------------------
 # EXECUTABLE BUILD INFORMATION
