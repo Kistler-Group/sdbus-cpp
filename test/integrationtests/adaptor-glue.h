@@ -172,7 +172,9 @@ protected:
     virtual void blocking(const bool& value) = 0;
 
 public: // For testing purposes
-    static constexpr char expectedXmlApiDescription[] =
+    std::string getExpectedXmlApiDescription()
+    {
+        return
 R"delimiter(<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
 "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
 <node>
@@ -303,6 +305,7 @@ R"delimiter(<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspectio
  </interface>
 </node>
 )delimiter";
+    }
 
 };
 

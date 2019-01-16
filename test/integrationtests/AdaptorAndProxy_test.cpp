@@ -394,5 +394,5 @@ TEST_F(SdbusTestObject, CannotReadFromWriteProperty)
 
 TEST_F(SdbusTestObject, AnswersXmlApiDescriptionOnIntrospection)
 {
-    ASSERT_THAT(m_proxy->Introspect(), Eq(testing_adaptor::expectedXmlApiDescription));
+    ASSERT_THAT(m_proxy->Introspect(), Eq(m_adaptor->getExpectedXmlApiDescription()));
 }
