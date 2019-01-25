@@ -100,6 +100,15 @@ namespace sdbus {
         , public _Interfaces...
     {
     public:
+        /*!
+        * @brief Creates fully working object proxy instance
+        *
+        * @param[in] destination Bus name that provides a D-Bus object
+        * @param[in] objectPath Path of the D-Bus object
+        *
+        * This constructor overload creates a proxy that manages its own D-Bus connection(s).
+        * For more information on its behavior, consult @ref createObjectProxy(std::string, std::string)
+        */
         ProxyInterfaces(std::string destination, std::string objectPath)
             : ObjectHolder<IObjectProxy>(createObjectProxy(std::move(destination), std::move(objectPath)))
             , _Interfaces(getObject())...
@@ -107,6 +116,16 @@ namespace sdbus {
             getObject().finishRegistration();
         }
 
+        /*!
+        * @brief Creates fully working object proxy instance
+        *
+        * @param[in] connection D-Bus connection to be used by the proxy object
+        * @param[in] destination Bus name that provides a D-Bus object
+        * @param[in] objectPath Path of the D-Bus object
+        *
+        * The proxy created this way just references a D-Bus connection owned and managed by the user.
+        * For more information on its behavior, consult @ref createObjectProxy(IConnection&,std::string, std::string)
+        */
         ProxyInterfaces(IConnection& connection, std::string destination, std::string objectPath)
             : ObjectHolder<IObjectProxy>(createObjectProxy(connection, std::move(destination), std::move(objectPath)))
             , _Interfaces(getObject())...
@@ -114,6 +133,16 @@ namespace sdbus {
             getObject().finishRegistration();
         }
 
+        /*!
+        * @brief Creates fully working object proxy instance
+        *
+        * @param[in] connection D-Bus connection to be used by the proxy object
+        * @param[in] destination Bus name that provides a D-Bus object
+        * @param[in] objectPath Path of the D-Bus object
+        *
+        * The proxy created this way becomes an owner of the connection.
+        * For more information on its behavior, consult @ref createObjectProxy(std::unique_ptr<sdbus::IConnection>&&,std::string, std::string)
+        */
         ProxyInterfaces(std::unique_ptr<sdbus::IConnection>&& connection, std::string destination, std::string objectPath)
             : ObjectHolder<IObjectProxy>(createObjectProxy(std::move(connection), std::move(destination), std::move(objectPath)))
             , _Interfaces(getObject())...
