@@ -69,6 +69,15 @@ target_link_libraries(libsdbus-c++_unittests ${SYSTEMD_LIBRARIES} gmock gmock_ma
 add_executable(libsdbus-c++_integrationtests ${INTEGRATIONTESTS_SRCS})
 target_link_libraries(libsdbus-c++_integrationtests sdbus-c++ gmock gmock_main)
 
+# Manual performance tests
+option(ENABLE_PERFTESTS "Build and install manual performance tests (default OFF)" OFF)
+if(ENABLE_PERFTESTS)
+    add_executable(libsdbus-c++_perftests_client perftests/client.cpp perftests/perftest-proxy.h)
+    target_link_libraries(libsdbus-c++_perftests_client sdbus-c++)
+    add_executable(libsdbus-c++_perftests_server perftests/server.cpp perftests/perftest-adaptor.h)
+    target_link_libraries(libsdbus-c++_perftests_server sdbus-c++)
+endif()
+
 #----------------------------------
 # INSTALLATION
 #----------------------------------
@@ -76,6 +85,12 @@ target_link_libraries(libsdbus-c++_integrationtests sdbus-c++ gmock gmock_main)
 install(TARGETS libsdbus-c++_unittests DESTINATION /opt/test/bin)
 install(TARGETS libsdbus-c++_integrationtests DESTINATION /opt/test/bin)
 install(FILES ${INTEGRATIONTESTS_SOURCE_DIR}/files/libsdbus-cpp-test.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/dbus-1/system.d)
+
+if(ENABLE_PERFTESTS)
+    install(TARGETS libsdbus-c++_perftests_client DESTINATION /opt/test/bin)
+    install(TARGETS libsdbus-c++_perftests_server DESTINATION /opt/test/bin)
+    install(FILES perftests/files/org.sdbuscpp.perftest.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/dbus-1/system.d)
+endif()
 
 #----------------------------------
 # RUNNING THE TESTS UPON BUILD

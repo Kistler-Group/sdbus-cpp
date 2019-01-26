@@ -124,15 +124,6 @@ if(BUILD_CODE_GEN)
     add_subdirectory("${CMAKE_SOURCE_DIR}/stub-generator")
 endif()
 
-#----------------------------------
-# PERFORMANCE TESTS
-#----------------------------------
-
-option(ENABLE_PERFTESTS "Build and install performance tests (default OFF)" OFF)
-
-if(ENABLE_PERFTESTS)
-    add_subdirectory("${CMAKE_SOURCE_DIR}/perftest")
-endif()
 
 #----------------------------------
 # DOCUMENTATION
