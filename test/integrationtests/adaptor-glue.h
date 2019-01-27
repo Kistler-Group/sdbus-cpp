@@ -212,11 +212,11 @@ R"delimiter(<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspectio
  </interface>
  <interface name="com.kistler.testsdbuscpp">
   <annotation name="org.freedesktop.DBus.Deprecated" value="true"/>
-  <method name="doOperationAsync">
+  <method name="doOperation">
    <arg type="u" direction="in"/>
    <arg type="u" direction="out"/>
   </method>
-  <method name="doOperationSync">
+  <method name="doOperationAsync">
    <arg type="u" direction="in"/>
    <arg type="u" direction="out"/>
   </method>
