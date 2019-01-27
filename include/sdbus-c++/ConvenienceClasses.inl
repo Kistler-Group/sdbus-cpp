@@ -119,8 +119,7 @@ namespace sdbus {
             // as a storage for the argument values deserialized from the message.
             tuple_of_function_input_arg_types_t<_Function> inputArgs;
 
-            // Deserialize input arguments from the message into the tuple,
-            // plus store the result object as a last item of the tuple.
+            // Deserialize input arguments from the message into the tuple.
             msg >> inputArgs;
 
             // Invoke callback with input arguments from the tuple.
@@ -484,6 +483,49 @@ namespace sdbus {
         SDBUS_THROW_ERROR_IF(!method_.isValid(), "DBus interface not specified when calling a DBus method", EINVAL);
 
         method_.dontExpectReply();
+    }
+
+
+    inline AsyncMethodInvoker::AsyncMethodInvoker(IObjectProxy& objectProxy, const std::string& methodName)
+        : objectProxy_(objectProxy)
+        , methodName_(methodName)
+    {
+    }
+
+    inline AsyncMethodInvoker& AsyncMethodInvoker::onInterface(const std::string& interfaceName)
+    {
+        method_ = objectProxy_.createAsyncMethodCall(interfaceName, methodName_);
+
+        return *this;
+    }
+
+    template <typename... _Args>
+    inline AsyncMethodInvoker& AsyncMethodInvoker::withArguments(_Args&&... args)
+    {
+        SDBUS_THROW_ERROR_IF(!method_.isValid(), "DBus interface not specified when calling a DBus method", EINVAL);
+
+        detail::serialize_pack(method_, std::forward<_Args>(args)...);
+
+        return *this;
+    }
+
+    template <typename _Function>
+    void AsyncMethodInvoker::uponReplyInvoke(_Function&& callback)
+    {
+        SDBUS_THROW_ERROR_IF(!method_.isValid(), "DBus interface not specified when calling a DBus method", EINVAL);
+
+        objectProxy_.callMethod(method_, [callback = std::forward<_Function>(callback)](MethodReply& reply, const Error* error)
+        {
+            // Create a tuple of callback input arguments' types, which will be used
+            // as a storage for the argument values deserialized from the message.
+            tuple_of_function_input_arg_types_t<_Function> args;
+
+            // Deserialize input arguments from the message into the tuple.
+            reply >> args;
+
+            // Invoke callback with input arguments from the tuple.
+            sdbus::apply(callback, error, args); // TODO: Use std::apply when switching to full C++17 support
+        });
     }
 
 

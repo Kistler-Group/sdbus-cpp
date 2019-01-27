@@ -53,7 +53,9 @@ namespace internal {
         ~ObjectProxy();
 
         MethodCall createMethodCall(const std::string& interfaceName, const std::string& methodName) override;
+        AsyncMethodCall createAsyncMethodCall(const std::string& interfaceName, const std::string& methodName) override;
         MethodReply callMethod(const MethodCall& message) override;
+        void callMethod(const AsyncMethodCall& message, async_reply_handler asyncReplyCallback) override;
 
         void registerSignalHandler( const std::string& interfaceName
                                   , const std::string& signalName
@@ -63,6 +65,7 @@ namespace internal {
     private:
         bool listensToSignals() const;
         void registerSignalHandlers(sdbus::internal::IConnection& connection);
+        static int sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
         static int sdbus_signal_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
 
     private:

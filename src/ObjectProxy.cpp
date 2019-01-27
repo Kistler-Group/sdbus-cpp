@@ -66,9 +66,20 @@ MethodCall ObjectProxy::createMethodCall(const std::string& interfaceName, const
     return connection_->createMethodCall(destination_, objectPath_, interfaceName, methodName);
 }
 
+AsyncMethodCall ObjectProxy::createAsyncMethodCall(const std::string& interfaceName, const std::string& methodName)
+{
+    return AsyncMethodCall{createMethodCall(interfaceName, methodName)};
+}
+
 MethodReply ObjectProxy::callMethod(const MethodCall& message)
 {
     return message.send();
+}
+
+void ObjectProxy::callMethod(const AsyncMethodCall& message, async_reply_handler asyncReplyCallback)
+{
+    // The new-ed handler gets deleted in the sdbus_async_reply_handler
+    message.send((void*)&ObjectProxy::sdbus_async_reply_handler, new async_reply_handler(std::move(asyncReplyCallback)));
 }
 
 void ObjectProxy::registerSignalHandler( const std::string& interfaceName
@@ -136,11 +147,30 @@ void ObjectProxy::registerSignalHandlers(sdbus::internal::IConnection& connectio
     }
 }
 
+int ObjectProxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError)
+{
+    MethodReply message(sdbusMessage);
+
+    std::unique_ptr<async_reply_handler> asyncReplyCallback{static_cast<async_reply_handler*>(userData)};
+    assert(asyncReplyCallback != nullptr);
+
+    if (!sd_bus_error_is_set(retError))
+    {
+        (*asyncReplyCallback)(message, nullptr);
+    }
+    else
+    {
+        sdbus::Error error(retError->name, retError->message);
+        (*asyncReplyCallback)(message, &error);
+    }
+}
+
 int ObjectProxy::sdbus_signal_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error */*retError*/)
 {
     Signal message(sdbusMessage);
 
     auto* object = static_cast<ObjectProxy*>(userData);
+    assert(object != nullptr);
     // Note: The lookup can be optimized by using sorted vectors instead of associative containers
     auto& callback = object->interfaces_[message.getInterfaceName()].signals_[message.getMemberName()].callback_;
     assert(callback);

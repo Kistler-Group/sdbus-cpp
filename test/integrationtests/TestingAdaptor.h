@@ -110,7 +110,7 @@ protected:
         return res;
     }
 
-    uint32_t doOperationSync(uint32_t param)
+    uint32_t doOperation(uint32_t param)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(param));
         return param;
