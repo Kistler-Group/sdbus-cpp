@@ -35,7 +35,6 @@ namespace sdbus { namespace internal {
 
 ObjectProxy::ObjectProxy(sdbus::internal::IConnection& connection, std::string destination, std::string objectPath)
     : connection_(&connection, [](sdbus::internal::IConnection *){ /* Intentionally left empty */ })
-    , ownConnection_(false)
     , destination_(std::move(destination))
     , objectPath_(std::move(objectPath))
 {
@@ -45,30 +44,22 @@ ObjectProxy::ObjectProxy( std::unique_ptr<sdbus::internal::IConnection>&& connec
                         , std::string destination
                         , std::string objectPath )
     : connection_(std::move(connection))
-    , ownConnection_(true)
     , destination_(std::move(destination))
     , objectPath_(std::move(objectPath))
 {
-}
-
-ObjectProxy::~ObjectProxy()
-{
-    // If the dedicated connection for signals is used, we have to stop the processing loop
-    // upon this connection prior to unregistering signal slots in the interfaces_ container,
-    // otherwise we might have a race condition of two threads working upon one connection.
-    if (signalConnection_ != nullptr)
-        signalConnection_->leaveProcessingLoop();
+    // The connection is ours only, so we have to manage event loop upon this connection,
+    // so we get signals, async replies, and other messages from D-Bus.
+    connection_->enterProcessingLoopAsync();
 }
 
 MethodCall ObjectProxy::createMethodCall(const std::string& interfaceName, const std::string& methodName)
 {
-    // Tell, don't ask
     return connection_->createMethodCall(destination_, objectPath_, interfaceName, methodName);
 }
 
 AsyncMethodCall ObjectProxy::createAsyncMethodCall(const std::string& interfaceName, const std::string& methodName)
 {
-    return AsyncMethodCall{createMethodCall(interfaceName, methodName)};
+    return AsyncMethodCall{ObjectProxy::createMethodCall(interfaceName, methodName)};
 }
 
 MethodReply ObjectProxy::callMethod(const MethodCall& message)
@@ -99,30 +90,7 @@ void ObjectProxy::registerSignalHandler( const std::string& interfaceName
 
 void ObjectProxy::finishRegistration()
 {
-    bool hasSignals = listensToSignals();
-
-    if (hasSignals && ownConnection_)
-    {
-        // Let's use dedicated signalConnection_ for signals,
-        // which will then be used by the processing loop thread.
-        signalConnection_ = connection_->clone();
-        registerSignalHandlers(*signalConnection_);
-        signalConnection_->enterProcessingLoopAsync();
-    }
-    else if (hasSignals)
-    {
-        // Let's used connection provided from the outside.
-        registerSignalHandlers(*connection_);
-    }
-}
-
-bool ObjectProxy::listensToSignals() const
-{
-    for (auto& interfaceItem : interfaces_)
-        if (!interfaceItem.second.signals_.empty())
-            return true;
-
-    return false;
+    registerSignalHandlers(*connection_);
 }
 
 void ObjectProxy::registerSignalHandlers(sdbus::internal::IConnection& connection)

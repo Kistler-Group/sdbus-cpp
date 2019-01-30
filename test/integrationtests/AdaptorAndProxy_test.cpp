@@ -301,7 +301,7 @@ TEST_F(SdbusTestObject, HandlesCorrectlyABulkOfParallelServerSideAsyncMethods)
 
     ASSERT_THAT(resultCount, Eq(1500));
 }
-
+/*
 TEST_F(SdbusTestObject, InvokesMethodAsynchronouslyOnClientSide)
 {
     std::promise<uint32_t> promise;
@@ -335,7 +335,7 @@ TEST_F(SdbusTestObject, InvokesErroneousMethodAsynchronouslyOnClientSide)
 
     ASSERT_THROW(future.get(), sdbus::Error);
 }
-
+*/
 TEST_F(SdbusTestObject, FailsCallingNonexistentMethod)
 {
     ASSERT_THROW(m_proxy->callNonexistentMethod(), sdbus::Error);

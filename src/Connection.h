@@ -34,6 +34,7 @@
 #include <thread>
 #include <atomic>
 #include <mutex>
+#include <future>
 #include <queue>
 
 namespace sdbus { namespace internal {
@@ -79,6 +80,7 @@ namespace sdbus { namespace internal {
                                    , void* userData ) override;
         void unregisterSignalHandler(void* handlerCookie) override;
 
+        MethodReply callMethod(const MethodCall& message);
         void sendReplyAsynchronously(const sdbus::MethodReply& reply) override;
 
         std::unique_ptr<sdbus::internal::IConnection> clone() const override;
@@ -110,8 +112,25 @@ namespace sdbus { namespace internal {
     private:
         std::unique_ptr<sd_bus, decltype(&sd_bus_flush_close_unref)> bus_{nullptr, &sd_bus_flush_close_unref};
         std::thread asyncLoopThread_;
-        std::mutex mutex_;
-        std::queue<MethodReply> asyncReplies_;
+        std::atomic<std::thread::id> loopThreadId_;
+        std::mutex loopMutex_;
+
+        //std::queue<MethodReply> asyncReplies_;
+        struct UserRequest
+        {
+            Message msg;
+            Message::Type msgType;
+            std::promise<Message> ret;
+            Message::Type retType;
+
+            static_assert(sizeof(Message) == sizeof(MethodCall));
+            static_assert(sizeof(Message) == sizeof(AsyncMethodCall));
+            static_assert(sizeof(Message) == sizeof(MethodReply));
+            static_assert(sizeof(Message) == sizeof(Signal));
+        };
+        std::queue<UserRequest> userRequests_;
+        std::mutex userRequestsMutex_;
+
         std::atomic<bool> exitLoopThread_;
         int notificationFd_{-1};
         BusType busType_;
