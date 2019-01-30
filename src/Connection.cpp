@@ -65,6 +65,10 @@ void Connection::releaseName(const std::string& name)
 
 void Connection::enterProcessingLoop()
 {
+    loopThreadId_ = std::this_thread::get_id();
+
+    std::lock_guard<std::mutex> guard(loopMutex_);
+
     while (true)
     {
         auto processed = processPendingRequest();
@@ -77,11 +81,15 @@ void Connection::enterProcessingLoop()
         if (success.asyncMsgsToProcess)
             processAsynchronousMessages();
     }
+
+    loopThreadId_ = std::thread::id{};
 }
 
 void Connection::enterProcessingLoopAsync()
 {
-    asyncLoopThread_ = std::thread([this](){ enterProcessingLoop(); });
+    // TODO: Check that joinable() means a valid non-empty thread
+    if (!asyncLoopThread_.joinable())
+        asyncLoopThread_ = std::thread([this](){ enterProcessingLoop(); });
 }
 
 void Connection::leaveProcessingLoop()
@@ -124,6 +132,7 @@ sdbus::MethodCall Connection::createMethodCall( const std::string& destination
     // Returned message will become an owner of sdbusMsg
     SCOPE_EXIT{ sd_bus_message_unref(sdbusMsg); };
 
+    // It is thread-safe to create a message this way
     auto r = sd_bus_message_new_method_call( bus_.get()
                                            , &sdbusMsg
                                            , destination.c_str()
@@ -136,6 +145,41 @@ sdbus::MethodCall Connection::createMethodCall( const std::string& destination
     return MethodCall(sdbusMsg);
 }
 
+sdbus::MethodReply Connection::callMethod(const MethodCall& message)
+{
+    std::thread::id loopThreadId = loopThreadId_;
+
+    // Is the loop not yet on? => Go make synchronous call
+    while (loopThreadId == std::thread::id{})
+    {
+        // Did the loop begin in the meantime? Or try_lock() failed spuriously?
+        if (!loopMutex_.try_lock())
+            continue;
+
+        // Synchronous call
+        std::lock_guard<std::mutex> guard(loopMutex_, std::adopt_lock);
+        return message.send();
+    }
+
+    // Is the loop on and we are in the same thread? => Go for synchronous call
+    if (loopThreadId == std::this_thread::get_id())
+    {
+        assert(!loopMutex_.try_lock());
+        return message.send(); // Synchronous call
+    }
+
+    // We are in a different thread than the loop thread => Asynchronous call
+    UserRequest request{message, Message::Type::METHOD_CALL, {}, Message::Type::METHOD_REPLY};
+    auto future = request.ret.get_future();
+    {
+        std::lock_guard<std::mutex> guard(userRequestsMutex_);
+        userRequests_.push(request);
+    }
+    // Wait for the reply from the loop thread
+    auto reply = future.get();
+    return *static_cast<const MethodReply*>(&reply);
+}
+
 sdbus::Signal Connection::createSignal( const std::string& objectPath
                                       , const std::string& interfaceName
                                       , const std::string& signalName ) const
@@ -145,6 +189,7 @@ sdbus::Signal Connection::createSignal( const std::string& objectPath
     // Returned message will become an owner of sdbusSignal
     SCOPE_EXIT{ sd_bus_message_unref(sdbusSignal); };
 
+    // It is thread-safe to create a message this way
     auto r = sd_bus_message_new_signal( bus_.get()
                                       , &sdbusSignal
                                       , objectPath.c_str()

@@ -1,0 +1,62 @@
+Aktualne spravanie:
+
+* Proxy dostane connection ako referenciu zvonka:
+	* Ak na tej connection bezi processing loop, tak
+		* bud mozeme robit RPC volanie, ked je to z callbacku nasho serveroveho D-Bus API (overene od Lennarta)
+		  - vsetko je serializovane - volania a prijimania, i viacere proxy objekty medzi sebou,
+		* alebo nemozeme (t.j. z ineho threadu) lebo connection nie je thread-safe.
+	* Ak nebezi (nie idealny stav z hladiska D-Bus daemona), tak
+		* mozeme robit RPC volania iba ak mame zarucenu synchronizaciu medzi viacerymi proxy objektami nad touto istou connection,
+		* neprijimame signaly samozrejme, lebo nebezi loop.
+	Vyhody: Skalovatelnost - proxy zdielaju jednu connection a jeden jej loop thread.
+	Nevyhody: Nie je to dotiahnute do konca, v podsate to nefunguje hlavne ak bezi loop nad connection.
+
+* Proxy dostane vlastnu connection zvonka alebo si ju vytvori vlastnu:
+	* Tu connection pouziva na volania, nebezi na nej loop.
+		Vyhody: Je nezavisly threadovo i message-komunikativne od inych proxy
+		Nevyhody: Skalovatelnost
+	* Plus, ak pocuva na signaly, tak si vytvori kopiu connection, na nej thread s loop.
+		Nevyhody: Skalovatelnost - V tomto pripade mame teda 2x connection per proxy a 1 thread per proxy
+
+
+Navrhovane spravanie:
+
+Pouzivatel si zvoli
+
+* Skalovatelnost a nenarocnost na resourcy - pouzivatel chce mat 1 connection a 1 processing loop thread nad nou.
+  Pripadne 2 ak chce time-slicingovo oddelit server cast od proxy casti (ze nie su incoming server / outgoing proxy requesty serializovane medzi sebou).
+
+* Alebo sa nestara a kazdy proxy bude mat vlastnu connection a vlastny event loop thread nad nou.
+
+Oba pristupy z hladiska implementacie znamenaju, ze proxy ma vzdy connection handlovanu niekym.
+
+Teraz ako by fungovalo RPC volanie z proxy:
+
+* Proxy musi nejak poslat message do connection:
+	* Ak je call thread rovnaky ako connection event loop thread (vtedy ak sme v nejakom server method callbacku a pouzivame tuto connection,
+	  alebo ak sme v handleri na signal), tak v podstate mozeme vykonat to volania priamo, rovnako ako to je teraz.
+	* Ak je call thread iny (robime volanie cez proxy odkialkolvek), tak musime MethodCall msg poslat cez queue do connection threadu.
+	  (Tu mozeme vyuzit queue ktory tam uz mame na async replies - davat tam std::pair<Message, MsgType>)
+	  Teraz:
+		-> Mame sync call? Tak spolu s msg vsak musime poslat z proxy aj promise<MethodReply>, a v proxy si z promise ziskat future
+		   a na nom cakat na odpoved z Connection.
+		   Zatial Connection posle msg cez msg.send(), hned dostane reply, a reply setne do promise.
+		   Cakajuci proxy sa zobudi a vrati reply.
+		   TODO: Jednoducho to urobit tak ako Object::sendReplyAsynchronously - ze send() deleguje hned to connection::send, a ta bude mat if.
+		-> Mame async call? Tak otazka je ci bude mat mapu slotov na std::function ObjectProxy alebo Connection. Vyzera ze Connection, kvoli timingu. Nie, tak nakoniec ObjectProxy, juchuu, lebo nekorelujeme cez slot.
+		   Ked connection, tak ta zavola AsyncMethodCall::send(), ktory zoberie callback, user data, timeout a vrati slot.
+		   Connection si ulozi do mapy slot a std::function, a je to.
+	Takze finalna impelmentacia ObjectProxy::send(MethodCall):
+		connection_->send(msg);
+	Takze finalna impelmentacia ObjectProxy::send(AsyncMethodCall):
+		connection_->send(msg); -> a ta vnutri da userdata ako new std::function
+
+
+	* Proxy dostane referenciu na connection zvonka.
+		* Na nej si zaregistruje signaly a metody
+		
+		
+TODO: Dokumentacia
+* Ze proxy komplet zmenil pohlad na koneksny - ze koneksny vzdy maju svoj thread, pokial ich vlastni proxy.
+
+TODO: Prerobit i Object na taky style ze berie bud Connection& alebo Connection&& (a vtedy si pusti vlastny thread, ak uz nebezi);

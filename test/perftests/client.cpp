@@ -92,7 +92,7 @@ int main(int /*argc*/, char */*argv*/[])
     const char* objectPath = "/org/sdbuscpp/perftest";
     PerftestClient client(destinationName, objectPath);
 
-    const unsigned int repetitions{20};
+    const unsigned int repetitions{2};
     unsigned int msgCount = 1000;
     unsigned int msgSize{};
     

@@ -71,6 +71,16 @@ namespace sdbus {
     class Message
     {
     public:
+        enum class Type
+        {    METHOD_CALL
+        ,    ASYNC_METHOD_CALL
+        ,    METHOD_REPLY
+        /*,  ASYNC_METHOD_REPLY? */
+        ,    SIGNAL
+        ,    PLAIN_MESSAGE
+        };
+
+    public:
         Message() = default;
         Message(void *msg) noexcept;
         Message(const Message&) noexcept;
