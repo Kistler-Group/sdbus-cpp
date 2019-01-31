@@ -156,15 +156,12 @@ sdbus::Signal Object::createSignal(const std::string& interfaceName, const std::
 
 void Object::emitSignal(const sdbus::Signal& message)
 {
-    // TODO: Make signal emitting asynchronous. Now signal can probably be emitted only from user code
-    // handled within the D-Bus processing loop thread, but not from any thread. In principle it will
-    // be the same as async replies.
-    message.send();
+    connection_.emitSignal(message);
 }
 
-void Object::sendReplyAsynchronously(const MethodReply& reply)
+void Object::sendMethodReply(const MethodReply& reply)
 {
-    connection_.sendReplyAsynchronously(reply);
+    connection_.sendMethodReply(reply);
 }
 
 const std::vector<sd_bus_vtable>& Object::createInterfaceVTable(InterfaceData& interfaceData)

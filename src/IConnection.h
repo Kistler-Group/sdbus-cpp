@@ -33,6 +33,7 @@
 // Forward declaration
 namespace sdbus {
     class MethodCall;
+    class AsyncMethodCall;
     class MethodReply;
     class Signal;
 }
@@ -49,14 +50,14 @@ namespace internal {
                                      , void* userData ) = 0;
         virtual void removeObjectVTable(void* vtableHandle) = 0;
 
-        virtual sdbus::MethodCall createMethodCall( const std::string& destination
-                                                  , const std::string& objectPath
-                                                  , const std::string& interfaceName
-                                                  , const std::string& methodName ) const = 0;
+        virtual MethodCall createMethodCall( const std::string& destination
+                                           , const std::string& objectPath
+                                           , const std::string& interfaceName
+                                           , const std::string& methodName ) const = 0;
 
-        virtual sdbus::Signal createSignal( const std::string& objectPath
-                                          , const std::string& interfaceName
-                                          , const std::string& signalName ) const = 0;
+        virtual Signal createSignal( const std::string& objectPath
+                                   , const std::string& interfaceName
+                                   , const std::string& signalName ) const = 0;
 
         virtual void* registerSignalHandler( const std::string& objectPath
                                            , const std::string& interfaceName
@@ -68,7 +69,10 @@ namespace internal {
         virtual void enterProcessingLoopAsync() = 0;
         virtual void leaveProcessingLoop() = 0;
 
-        virtual void sendReplyAsynchronously(const sdbus::MethodReply& reply) = 0;
+        virtual MethodReply callMethod(const MethodCall& message) = 0;
+        virtual void callMethod(const AsyncMethodCall& message, void* callback, void* userData) = 0;
+        virtual void sendMethodReply(const MethodReply& message) = 0;
+        virtual void emitSignal(const Signal& message) = 0;
 
         virtual std::unique_ptr<sdbus::internal::IConnection> clone() const = 0;
 

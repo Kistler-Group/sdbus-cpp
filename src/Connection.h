@@ -29,6 +29,7 @@
 #include <sdbus-c++/IConnection.h>
 #include <sdbus-c++/Message.h>
 #include "IConnection.h"
+#include "ScopeGuard.h"
 #include <systemd/sd-bus.h>
 #include <memory>
 #include <thread>
@@ -51,7 +52,7 @@ namespace sdbus { namespace internal {
         };
 
         Connection(BusType type);
-        ~Connection();
+        ~Connection() override;
 
         void requestName(const std::string& name) override;
         void releaseName(const std::string& name) override;
@@ -65,13 +66,13 @@ namespace sdbus { namespace internal {
                              , void* userData ) override;
         void removeObjectVTable(void* vtableHandle) override;
 
-        sdbus::MethodCall createMethodCall( const std::string& destination
-                                          , const std::string& objectPath
-                                          , const std::string& interfaceName
-                                          , const std::string& methodName ) const override;
-        sdbus::Signal createSignal( const std::string& objectPath
-                                  , const std::string& interfaceName
-                                  , const std::string& signalName ) const override;
+        MethodCall createMethodCall( const std::string& destination
+                                   , const std::string& objectPath
+                                   , const std::string& interfaceName
+                                   , const std::string& methodName ) const override;
+        Signal createSignal( const std::string& objectPath
+                           , const std::string& interfaceName
+                           , const std::string& signalName ) const override;
 
         void* registerSignalHandler( const std::string& objectPath
                                    , const std::string& interfaceName
@@ -80,8 +81,10 @@ namespace sdbus { namespace internal {
                                    , void* userData ) override;
         void unregisterSignalHandler(void* handlerCookie) override;
 
-        MethodReply callMethod(const MethodCall& message);
-        void sendReplyAsynchronously(const sdbus::MethodReply& reply) override;
+        MethodReply callMethod(const MethodCall& message) override;
+        void callMethod(const AsyncMethodCall& message, void* callback, void* userData) override;
+        void sendMethodReply(const MethodReply& message) override;
+        void emitSignal(const Signal& message) override;
 
         std::unique_ptr<sdbus::internal::IConnection> clone() const override;
 
@@ -95,12 +98,106 @@ namespace sdbus { namespace internal {
                 return msgsToProcess || asyncMsgsToProcess;
             }
         };
+
+        // TODO move down
+        struct IUserRequest
+        {
+            virtual void process() = 0;
+            virtual ~IUserRequest() = default;
+        };
+
+        struct MethodCallRequest : IUserRequest
+        {
+            MethodCall msg;
+            std::promise<MethodReply> result;
+
+            void process() override
+            {
+                SCOPE_EXIT_NAMED(onSdbusError){ result.set_exception(std::current_exception()); };
+
+                auto reply = msg.send();
+                result.set_value(std::move(reply));
+
+                onSdbusError.dismiss();
+            }
+        };
+
+        struct AsyncMethodCallRequest : IUserRequest
+        {
+            AsyncMethodCall msg;
+            void* callback;
+            void* userData;
+
+            // TODO: Catch exception and store to promise?
+            void process() override
+            {
+                msg.send(callback, userData);
+            }
+        };
+
+        struct MethodReplyRequest : IUserRequest
+        {
+            MethodReply msg;
+
+            // TODO: Catch exception and store to promise?
+            void process() override
+            {
+                msg.send();
+            }
+        };
+
+        struct SignalEmissionRequest : IUserRequest
+        {
+            Signal msg;
+
+            // TODO: Catch exception and store to promise?
+            void process() override
+            {
+                msg.send();
+            }
+        };
+
+        struct SignalRegistrationRequest : IUserRequest
+        {
+            std::function<void*()> registerSignalHandler;
+            std::promise<void*> result;
+
+            void process() override
+            {
+                SCOPE_EXIT_NAMED(onSdbusError){ result.set_exception(std::current_exception()); };
+
+                assert(registerSignalHandler);
+                void* slot = registerSignalHandler();
+                result.set_value(slot);
+
+                onSdbusError.dismiss();
+            }
+        };
+
+        struct SignalUnregistrationRequest : IUserRequest
+        {
+            std::function<void()> unregisterSignalHandler;
+            std::promise<void> result;
+
+            void process() override
+            {
+                SCOPE_EXIT_NAMED(onSdbusError){ result.set_exception(std::current_exception()); };
+
+                assert(unregisterSignalHandler);
+                unregisterSignalHandler();
+                result.set_value();
+
+                onSdbusError.dismiss();
+            }
+        };
+
         static sd_bus* openBus(Connection::BusType type);
         static void finishHandshake(sd_bus* bus);
         static int createLoopNotificationDescriptor();
         static void closeLoopNotificationDescriptor(int fd);
         bool processPendingRequest();
-        void processAsynchronousMessages();
+        void queueUserRequest(std::unique_ptr<IUserRequest>&& request);
+        void processUserRequests();
         WaitResult waitForNextRequest();
         static std::string composeSignalMatchFilter( const std::string& objectPath
                                                    , const std::string& interfaceName
@@ -115,20 +212,7 @@ namespace sdbus { namespace internal {
         std::atomic<std::thread::id> loopThreadId_;
         std::mutex loopMutex_;
 
-        //std::queue<MethodReply> asyncReplies_;
-        struct UserRequest
-        {
-            Message msg;
-            Message::Type msgType;
-            std::promise<Message> ret;
-            Message::Type retType;
-
-            static_assert(sizeof(Message) == sizeof(MethodCall));
-            static_assert(sizeof(Message) == sizeof(AsyncMethodCall));
-            static_assert(sizeof(Message) == sizeof(MethodReply));
-            static_assert(sizeof(Message) == sizeof(Signal));
-        };
-        std::queue<UserRequest> userRequests_;
+        std::queue<std::unique_ptr<IUserRequest>> userRequests_;
         std::mutex userRequestsMutex_;
 
         std::atomic<bool> exitLoopThread_;

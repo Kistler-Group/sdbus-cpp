@@ -37,7 +37,7 @@ MethodResult::MethodResult(const MethodCall& msg, sdbus::internal::Object& objec
 void MethodResult::send(const MethodReply& reply) const
 {
     assert(object_ != nullptr);
-    object_->sendReplyAsynchronously(reply);
+    object_->sendMethodReply(reply);
 }
 
 }
