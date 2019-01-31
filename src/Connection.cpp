@@ -79,7 +79,7 @@ void Connection::enterProcessingLoop()
         if (!success)
             break; // Exit processing loop
         if (success.asyncMsgsToProcess)
-            processAsynchronousMessages();
+            processUserRequests();
     }
 
     loopThreadId_ = std::thread::id{};
@@ -122,10 +122,10 @@ void Connection::removeObjectVTable(void* vtableHandle)
     sd_bus_slot_unref((sd_bus_slot *)vtableHandle);
 }
 
-sdbus::MethodCall Connection::createMethodCall( const std::string& destination
-                                              , const std::string& objectPath
-                                              , const std::string& interfaceName
-                                              , const std::string& methodName ) const
+MethodCall Connection::createMethodCall( const std::string& destination
+                                       , const std::string& objectPath
+                                       , const std::string& interfaceName
+                                       , const std::string& methodName ) const
 {
     sd_bus_message *sdbusMsg{};
 
@@ -145,44 +145,9 @@ sdbus::MethodCall Connection::createMethodCall( const std::string& destination
     return MethodCall(sdbusMsg);
 }
 
-sdbus::MethodReply Connection::callMethod(const MethodCall& message)
-{
-    std::thread::id loopThreadId = loopThreadId_;
-
-    // Is the loop not yet on? => Go make synchronous call
-    while (loopThreadId == std::thread::id{})
-    {
-        // Did the loop begin in the meantime? Or try_lock() failed spuriously?
-        if (!loopMutex_.try_lock())
-            continue;
-
-        // Synchronous call
-        std::lock_guard<std::mutex> guard(loopMutex_, std::adopt_lock);
-        return message.send();
-    }
-
-    // Is the loop on and we are in the same thread? => Go for synchronous call
-    if (loopThreadId == std::this_thread::get_id())
-    {
-        assert(!loopMutex_.try_lock());
-        return message.send(); // Synchronous call
-    }
-
-    // We are in a different thread than the loop thread => Asynchronous call
-    UserRequest request{message, Message::Type::METHOD_CALL, {}, Message::Type::METHOD_REPLY};
-    auto future = request.ret.get_future();
-    {
-        std::lock_guard<std::mutex> guard(userRequestsMutex_);
-        userRequests_.push(request);
-    }
-    // Wait for the reply from the loop thread
-    auto reply = future.get();
-    return *static_cast<const MethodReply*>(&reply);
-}
-
-sdbus::Signal Connection::createSignal( const std::string& objectPath
-                                      , const std::string& interfaceName
-                                      , const std::string& signalName ) const
+Signal Connection::createSignal( const std::string& objectPath
+                               , const std::string& interfaceName
+                               , const std::string& signalName ) const
 {
     sd_bus_message *sdbusSignal{};
 
@@ -207,14 +172,61 @@ void* Connection::registerSignalHandler( const std::string& objectPath
                                        , sd_bus_message_handler_t callback
                                        , void* userData )
 {
-    sd_bus_slot *slot{};
+    auto registerSignalHandler = [this]( const std::string& objectPath
+                                       , const std::string& interfaceName
+                                       , const std::string& signalName
+                                       , sd_bus_message_handler_t callback
+                                       , void* userData )
+    {
+        sd_bus_slot *slot{};
 
-    auto filter = composeSignalMatchFilter(objectPath, interfaceName, signalName);
-    auto r = sd_bus_add_match(bus_.get(), &slot, filter.c_str(), callback, userData);
+        auto filter = composeSignalMatchFilter(objectPath, interfaceName, signalName);
+        auto r = sd_bus_add_match(bus_.get(), &slot, filter.c_str(), callback, userData);
 
-    SDBUS_THROW_ERROR_IF(r < 0, "Failed to register signal handler", -r);
+        SDBUS_THROW_ERROR_IF(r < 0, "Failed to register signal handler", -r);
 
-    return slot;
+        return slot;
+    };
+
+    std::thread::id loopThreadId = loopThreadId_;
+
+    // Is the loop not yet on? => Go make synchronous call
+    while (loopThreadId == std::thread::id{})
+    {
+        // Did the loop begin in the meantime? Or try_lock() failed spuriously?
+        if (!loopMutex_.try_lock())
+            continue;
+
+        // Synchronous call
+        std::lock_guard<std::mutex> guard(loopMutex_, std::adopt_lock);
+        return registerSignalHandler(objectPath, interfaceName, signalName, callback, userData);
+    }
+
+    // Is the loop on and we are in the same thread? => Go for synchronous call
+    if (loopThreadId == std::this_thread::get_id())
+    {
+        assert(!loopMutex_.try_lock());
+        return registerSignalHandler(objectPath, interfaceName, signalName, callback, userData);
+    }
+
+    // We are in a different thread than the loop thread => Asynchronous call
+    std::promise<void*> result;
+    auto future = result.get_future();
+    queueUserRequest([registerSignalHandler, objectPath, interfaceName, signalName, callback, userData, &result]()
+    {
+        SCOPE_EXIT_NAMED(onSdbusError){ result.set_exception(std::current_exception()); };
+
+        void* slot = registerSignalHandler(objectPath, interfaceName, signalName, callback, userData);
+        result.set_value(slot);
+
+        onSdbusError.dismiss();
+    });
+    auto request = std::make_unique<SignalRegistrationRequest>();
+    request->registerSignalHandler = registerSignalHandler;
+    auto future = request->result.get_future();
+    queueUserRequest(std::move(request));
+    // Wait for the reply from the loop thread
+    return future.get();
 }
 
 void Connection::unregisterSignalHandler(void* handlerCookie)
@@ -222,11 +234,129 @@ void Connection::unregisterSignalHandler(void* handlerCookie)
     sd_bus_slot_unref((sd_bus_slot *)handlerCookie);
 }
 
-void Connection::sendReplyAsynchronously(const sdbus::MethodReply& reply)
+//class AsyncExecutor
+//ifPossibleExecuteSync()
+
+MethodReply Connection::callMethod(const MethodCall& message)
 {
-    std::lock_guard<std::mutex> guard(mutex_);
-    asyncReplies_.push(reply);
-    notifyProcessingLoop();
+    //ifPossibleExecuteSync().otherwiseExecuteAsync();
+    std::thread::id loopThreadId = loopThreadId_;
+
+    // Is the loop not yet on? => Go make synchronous call
+    while (loopThreadId == std::thread::id{})
+    {
+        // Did the loop begin in the meantime? Or try_lock() failed spuriously?
+        if (!loopMutex_.try_lock())
+            continue;
+
+        // Synchronous call
+        std::lock_guard<std::mutex> guard(loopMutex_, std::adopt_lock);
+        return message.send();
+    }
+
+    // Is the loop on and we are in the same thread? => Go for synchronous call
+    if (loopThreadId == std::this_thread::get_id())
+    {
+        assert(!loopMutex_.try_lock());
+        return message.send(); // Synchronous call
+    }
+
+    // We are in a different thread than the loop thread => Asynchronous call
+    auto request = std::make_unique<MethodCallRequest>();
+    request->msg = message;
+    auto future = request->result.get_future();
+    queueUserRequest(std::move(request));
+    // Wait for the reply from the loop thread
+    return future.get();
+}
+
+void Connection::callMethod(const AsyncMethodCall& message, void* callback, void* userData)
+{
+    std::thread::id loopThreadId = loopThreadId_;
+
+    // Is the loop not yet on? => Go make synchronous call
+    while (loopThreadId == std::thread::id{})
+    {
+        // Did the loop begin in the meantime? Or try_lock() failed spuriously?
+        if (!loopMutex_.try_lock())
+            continue;
+
+        // Synchronous call
+        std::lock_guard<std::mutex> guard(loopMutex_, std::adopt_lock);
+        return message.send(callback, userData);
+    }
+
+    // Is the loop on and we are in the same thread? => Go for synchronous call
+    if (loopThreadId == std::this_thread::get_id())
+    {
+        assert(!loopMutex_.try_lock());
+        return message.send(callback, userData); // Synchronous call
+    }
+
+    // We are in a different thread than the loop thread => Asynchronous call
+    auto request = std::make_unique<AsyncMethodCallRequest>();
+    request->msg = message;
+    request->callback = callback;
+    request->userData = userData;
+    queueUserRequest(std::move(request));
+}
+
+void Connection::sendMethodReply(const MethodReply& message)
+{
+    std::thread::id loopThreadId = loopThreadId_;
+
+    // Is the loop not yet on? => Go make synchronous call
+    while (loopThreadId == std::thread::id{})
+    {
+        // Did the loop begin in the meantime? Or try_lock() failed spuriously?
+        if (!loopMutex_.try_lock())
+            continue;
+
+        // Synchronous call
+        std::lock_guard<std::mutex> guard(loopMutex_, std::adopt_lock);
+        return message.send();
+    }
+
+    // Is the loop on and we are in the same thread? => Go for synchronous call
+    if (loopThreadId == std::this_thread::get_id())
+    {
+        assert(!loopMutex_.try_lock());
+        return message.send(); // Synchronous call
+    }
+
+    // We are in a different thread than the loop thread => Asynchronous call
+    auto request = std::make_unique<MethodReplyRequest>();
+    request->msg = message;
+    queueUserRequest(std::move(request));
+}
+
+void Connection::emitSignal(const Signal& message)
+{
+    std::thread::id loopThreadId = loopThreadId_;
+
+    // Is the loop not yet on? => Go make synchronous call
+    while (loopThreadId == std::thread::id{})
+    {
+        // Did the loop begin in the meantime? Or try_lock() failed spuriously?
+        if (!loopMutex_.try_lock())
+            continue;
+
+        // Synchronous call
+        std::lock_guard<std::mutex> guard(loopMutex_, std::adopt_lock);
+        return message.send();
+    }
+
+    // Is the loop on and we are in the same thread? => Go for synchronous call
+    if (loopThreadId == std::this_thread::get_id())
+    {
+        assert(!loopMutex_.try_lock());
+        return message.send(); // Synchronous call
+    }
+
+    // We are in a different thread than the loop thread => Asynchronous call
+    auto request = std::make_unique<SignalEmissionRequest>();
+    request->msg = message;
+    queueUserRequest(std::move(request));
 }
 
 std::unique_ptr<sdbus::internal::IConnection> Connection::clone() const
@@ -315,14 +445,23 @@ bool Connection::processPendingRequest()
     return r > 0;
 }
 
-void Connection::processAsynchronousMessages()
+void Connection::queueUserRequest(std::unique_ptr<IUserRequest>&& request)
 {
-    std::lock_guard<std::mutex> guard(mutex_);
-    while (!asyncReplies_.empty())
     {
-        auto reply = asyncReplies_.front();
-        asyncReplies_.pop();
-        reply.send();
+        std::lock_guard<std::mutex> guard(userRequestsMutex_);
+        userRequests_.push(std::move(request));
+    }
+    notifyProcessingLoop();
+}
+
+void Connection::processUserRequests()
+{
+    std::lock_guard<std::mutex> guard(userRequestsMutex_);
+    while (!userRequests_.empty())
+    {
+        auto& reply = userRequests_.front();
+        reply->process();
+        userRequests_.pop();
     }
 }
 

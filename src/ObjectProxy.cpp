@@ -49,7 +49,7 @@ ObjectProxy::ObjectProxy( std::unique_ptr<sdbus::internal::IConnection>&& connec
 {
     // The connection is ours only, so we have to manage event loop upon this connection,
     // so we get signals, async replies, and other messages from D-Bus.
-    connection_->enterProcessingLoopAsync();
+    // TODO uncomment connection_->enterProcessingLoopAsync();
 }
 
 MethodCall ObjectProxy::createMethodCall(const std::string& interfaceName, const std::string& methodName)
@@ -64,13 +64,16 @@ AsyncMethodCall ObjectProxy::createAsyncMethodCall(const std::string& interfaceN
 
 MethodReply ObjectProxy::callMethod(const MethodCall& message)
 {
-    return message.send();
+    return connection_->callMethod(message);
 }
 
 void ObjectProxy::callMethod(const AsyncMethodCall& message, async_reply_handler asyncReplyCallback)
 {
-    // The new-ed handler gets deleted in the sdbus_async_reply_handler
-    message.send((void*)&ObjectProxy::sdbus_async_reply_handler, new async_reply_handler(std::move(asyncReplyCallback)));
+    auto callback = (void*)&ObjectProxy::sdbus_async_reply_handler;
+    // Allocated userData gets deleted in the sdbus_async_reply_handler
+    auto userData = new async_reply_handler(std::move(asyncReplyCallback));
+
+    connection_->callMethod(message, callback, userData);
 }
 
 void ObjectProxy::registerSignalHandler( const std::string& interfaceName
