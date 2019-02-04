@@ -45,7 +45,7 @@ public:
 
 protected:
 
-    void noArgNoReturn() const { }
+    void noArgNoReturn() const { std::cerr << "Server: noArgNoReturn() called;" << std::endl;}
 
     int32_t getInt() const { return INT32_VALUE; }
 

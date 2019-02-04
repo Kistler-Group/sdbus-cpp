@@ -43,11 +43,13 @@ Connection::Connection(Connection::BusType type)
     finishHandshake(bus);
 
     notificationFd_ = createLoopNotificationDescriptor();
+    std::cerr << "Created eventfd " << notificationFd_ << " of " << this << std::endl;
 }
 
 Connection::~Connection()
 {
     leaveProcessingLoop();
+    std::cerr << "Closing eventfd " << notificationFd_ << " of " << this << std::endl;
     closeLoopNotificationDescriptor(notificationFd_);
 }
 
@@ -87,8 +89,9 @@ void Connection::enterProcessingLoop()
 
 void Connection::enterProcessingLoopAsync()
 {
+    std::cerr << "--> enterProcessingLoopAsync() for connection " << this << std::endl;
     // TODO: Check that joinable() means a valid non-empty thread
-    if (!asyncLoopThread_.joinable())
+    //if (!asyncLoopThread_.joinable())
         asyncLoopThread_ = std::thread([this](){ enterProcessingLoop(); });
 }
 
@@ -166,6 +169,122 @@ Signal Connection::createSignal( const std::string& objectPath
     return Signal(sdbusSignal);
 }
 
+
+template<typename _Callable, typename... _Args, std::enable_if_t<std::is_void<function_result_t<_Callable>>::value, int>>
+inline auto Connection::tryExecuteSync(_Callable&& fnc, const _Args&... args)
+{
+    std::thread::id loopThreadId = loopThreadId_.load(std::memory_order_relaxed);
+
+    // Is the loop not yet on? => Go make synchronous call
+    while (loopThreadId == std::thread::id{})
+    {
+        // Did the loop begin in the meantime? Or try_lock() failed spuriously?
+        if (!loopMutex_.try_lock())
+        {
+            loopThreadId = loopThreadId_.load(std::memory_order_relaxed);
+            continue;
+        }
+
+        // Synchronous call
+        std::lock_guard<std::mutex> guard(loopMutex_, std::adopt_lock);
+        sdbus::invoke(std::forward<_Callable>(fnc), args...);
+        return true;
+    }
+
+    // Is the loop on and we are in the same thread? => Go for synchronous call
+    if (loopThreadId == std::this_thread::get_id())
+    {
+        assert(!loopMutex_.try_lock());
+        sdbus::invoke(std::forward<_Callable>(fnc), args...);
+        return true;
+    }
+
+    return false;
+}
+
+template<typename _Callable, typename... _Args, std::enable_if_t<!std::is_void<function_result_t<_Callable>>::value, int>>
+inline auto Connection::tryExecuteSync(_Callable&& fnc, const _Args&... args)
+{
+    std::thread::id loopThreadId = loopThreadId_.load(std::memory_order_relaxed);
+
+    // Is the loop not yet on? => Go make synchronous call
+    while (loopThreadId == std::thread::id{})
+    {
+        // Did the loop begin in the meantime? Or try_lock() failed spuriously?
+        if (!loopMutex_.try_lock())
+        {
+            loopThreadId = loopThreadId_.load(std::memory_order_relaxed);
+            continue;
+        }
+
+        // Synchronous call
+        std::lock_guard<std::mutex> guard(loopMutex_, std::adopt_lock);
+        return std::make_pair(true, sdbus::invoke(std::forward<_Callable>(fnc), args...));
+    }
+
+    // Is the loop on and we are in the same thread? => Go for synchronous call
+    if (loopThreadId == std::this_thread::get_id())
+    {
+        assert(!loopMutex_.try_lock());
+        return std::make_pair(true, sdbus::invoke(std::forward<_Callable>(fnc), args...));
+    }
+
+    return std::make_pair(false, function_result_t<_Callable>{});
+}
+
+template<typename _Callable, typename... _Args, std::enable_if_t<std::is_void<function_result_t<_Callable>>::value, int>>
+inline void Connection::executeAsync(_Callable&& fnc, const _Args&... args)
+{
+    std::promise<void> result;
+    auto future = result.get_future();
+
+    queueUserRequest([fnc = std::forward<_Callable>(fnc), args..., &result]()
+    {
+        SCOPE_EXIT_NAMED(onSdbusError){ result.set_exception(std::current_exception()); };
+
+        std::cerr << "  [lt] ... Invoking void request from within event loop thread..." << std::endl;
+        sdbus::invoke(fnc, args...);
+        std::cerr << "  [lt] Request invoked" << std::endl;
+        result.set_value();
+
+        onSdbusError.dismiss();
+    });
+
+    // Wait for the the processing loop thread to process the request
+    future.get();
+}
+
+template<typename _Callable, typename... _Args, std::enable_if_t<!std::is_void<function_result_t<_Callable>>::value, int>>
+inline auto Connection::executeAsync(_Callable&& fnc, const _Args&... args)
+{
+    std::promise<function_result_t<_Callable>> result;
+    auto future = result.get_future();
+
+    queueUserRequest([fnc = std::forward<_Callable>(fnc), args..., &result]()
+    {
+        SCOPE_EXIT_NAMED(onSdbusError){ result.set_exception(std::current_exception()); };
+
+        std::cerr << "  [lt] ... Invoking request from within event loop thread..." << std::endl;
+        auto returnValue = sdbus::invoke(fnc, args...);
+        std::cerr << "  [lt] Request invoked and got result" << std::endl;
+        result.set_value(returnValue);
+
+        onSdbusError.dismiss();
+    });
+
+    // Wait for the reply from the processing loop thread
+    return future.get();
+}
+
+template<typename _Callable, typename... _Args>
+inline void Connection::executeAsyncAndDontWaitForResult(_Callable&& fnc, const _Args&... args)
+{
+    queueUserRequest([fnc = std::forward<_Callable>(fnc), args...]()
+    {
+        sdbus::invoke(fnc, args...);
+    });
+}
+
 void* Connection::registerSignalHandler( const std::string& objectPath
                                        , const std::string& interfaceName
                                        , const std::string& signalName
@@ -182,181 +301,62 @@ void* Connection::registerSignalHandler( const std::string& objectPath
 
         auto filter = composeSignalMatchFilter(objectPath, interfaceName, signalName);
         auto r = sd_bus_add_match(bus_.get(), &slot, filter.c_str(), callback, userData);
+        std::cerr << "Registered signal " << signalName << " with slot " << slot << std::endl;
 
         SDBUS_THROW_ERROR_IF(r < 0, "Failed to register signal handler", -r);
 
         return slot;
     };
 
-    std::thread::id loopThreadId = loopThreadId_;
-
-    // Is the loop not yet on? => Go make synchronous call
-    while (loopThreadId == std::thread::id{})
-    {
-        // Did the loop begin in the meantime? Or try_lock() failed spuriously?
-        if (!loopMutex_.try_lock())
-            continue;
-
-        // Synchronous call
-        std::lock_guard<std::mutex> guard(loopMutex_, std::adopt_lock);
-        return registerSignalHandler(objectPath, interfaceName, signalName, callback, userData);
-    }
-
-    // Is the loop on and we are in the same thread? => Go for synchronous call
-    if (loopThreadId == std::this_thread::get_id())
-    {
-        assert(!loopMutex_.try_lock());
-        return registerSignalHandler(objectPath, interfaceName, signalName, callback, userData);
-    }
-
-    // We are in a different thread than the loop thread => Asynchronous call
-    std::promise<void*> result;
-    auto future = result.get_future();
-    queueUserRequest([registerSignalHandler, objectPath, interfaceName, signalName, callback, userData, &result]()
-    {
-        SCOPE_EXIT_NAMED(onSdbusError){ result.set_exception(std::current_exception()); };
-
-        void* slot = registerSignalHandler(objectPath, interfaceName, signalName, callback, userData);
-        result.set_value(slot);
-
-        onSdbusError.dismiss();
-    });
-    auto request = std::make_unique<SignalRegistrationRequest>();
-    request->registerSignalHandler = registerSignalHandler;
-    auto future = request->result.get_future();
-    queueUserRequest(std::move(request));
-    // Wait for the reply from the loop thread
-    return future.get();
+    std::cerr << "Trying to register signal " << signalName << " synchronously..." << std::endl;
+    auto result = tryExecuteSync(registerSignalHandler, objectPath, interfaceName, signalName, callback, userData);
+    if (!result.first) std::cerr << "  ... Nope, going async way" << std::endl;
+    return result.first ? result.second
+                        : executeAsync(registerSignalHandler, objectPath, interfaceName, signalName, callback, userData);
 }
 
 void Connection::unregisterSignalHandler(void* handlerCookie)
 {
-    sd_bus_slot_unref((sd_bus_slot *)handlerCookie);
+    auto result = tryExecuteSync(sd_bus_slot_unref, (sd_bus_slot *)handlerCookie);
+//    if (!result.first)
+//        executeAsync(sd_bus_slot_unref, (sd_bus_slot *)handlerCookie);
+    if (result.first)
+    {
+        std::cerr << "Synchronously unregistered signal " << handlerCookie << ": " << result.second << std::endl;
+        return;
+    }
+    auto slot = executeAsync(sd_bus_slot_unref, (sd_bus_slot *)handlerCookie);
+    std::cerr << "Asynchronously unregistered signal " << handlerCookie << ": " << slot << std::endl;
 }
-
-//class AsyncExecutor
-//ifPossibleExecuteSync()
 
 MethodReply Connection::callMethod(const MethodCall& message)
 {
-    //ifPossibleExecuteSync().otherwiseExecuteAsync();
-    std::thread::id loopThreadId = loopThreadId_;
-
-    // Is the loop not yet on? => Go make synchronous call
-    while (loopThreadId == std::thread::id{})
-    {
-        // Did the loop begin in the meantime? Or try_lock() failed spuriously?
-        if (!loopMutex_.try_lock())
-            continue;
-
-        // Synchronous call
-        std::lock_guard<std::mutex> guard(loopMutex_, std::adopt_lock);
-        return message.send();
-    }
-
-    // Is the loop on and we are in the same thread? => Go for synchronous call
-    if (loopThreadId == std::this_thread::get_id())
-    {
-        assert(!loopMutex_.try_lock());
-        return message.send(); // Synchronous call
-    }
-
-    // We are in a different thread than the loop thread => Asynchronous call
-    auto request = std::make_unique<MethodCallRequest>();
-    request->msg = message;
-    auto future = request->result.get_future();
-    queueUserRequest(std::move(request));
-    // Wait for the reply from the loop thread
-    return future.get();
+    std::cerr << "Trying to call method synchronously..." << std::endl;
+    auto result = tryExecuteSync(&MethodCall::send, message);
+    if (!result.first) std::cerr << "  ... Nope, going async way" << std::endl;
+    return result.first ? result.second
+                        : executeAsync(&MethodCall::send, message);
 }
 
 void Connection::callMethod(const AsyncMethodCall& message, void* callback, void* userData)
 {
-    std::thread::id loopThreadId = loopThreadId_;
-
-    // Is the loop not yet on? => Go make synchronous call
-    while (loopThreadId == std::thread::id{})
-    {
-        // Did the loop begin in the meantime? Or try_lock() failed spuriously?
-        if (!loopMutex_.try_lock())
-            continue;
-
-        // Synchronous call
-        std::lock_guard<std::mutex> guard(loopMutex_, std::adopt_lock);
-        return message.send(callback, userData);
-    }
-
-    // Is the loop on and we are in the same thread? => Go for synchronous call
-    if (loopThreadId == std::this_thread::get_id())
-    {
-        assert(!loopMutex_.try_lock());
-        return message.send(callback, userData); // Synchronous call
-    }
-
-    // We are in a different thread than the loop thread => Asynchronous call
-    auto request = std::make_unique<AsyncMethodCallRequest>();
-    request->msg = message;
-    request->callback = callback;
-    request->userData = userData;
-    queueUserRequest(std::move(request));
+    auto result = tryExecuteSync(&AsyncMethodCall::send, message, callback, userData);
+    if (!result)
+        executeAsyncAndDontWaitForResult(&AsyncMethodCall::send, message, callback, userData);
 }
 
 void Connection::sendMethodReply(const MethodReply& message)
 {
-    std::thread::id loopThreadId = loopThreadId_;
-
-    // Is the loop not yet on? => Go make synchronous call
-    while (loopThreadId == std::thread::id{})
-    {
-        // Did the loop begin in the meantime? Or try_lock() failed spuriously?
-        if (!loopMutex_.try_lock())
-            continue;
-
-        // Synchronous call
-        std::lock_guard<std::mutex> guard(loopMutex_, std::adopt_lock);
-        return message.send();
-    }
-
-    // Is the loop on and we are in the same thread? => Go for synchronous call
-    if (loopThreadId == std::this_thread::get_id())
-    {
-        assert(!loopMutex_.try_lock());
-        return message.send(); // Synchronous call
-    }
-
-    // We are in a different thread than the loop thread => Asynchronous call
-    auto request = std::make_unique<MethodReplyRequest>();
-    request->msg = message;
-    queueUserRequest(std::move(request));
+    auto result = tryExecuteSync(&MethodReply::send, message);
+    if (!result)
+        executeAsyncAndDontWaitForResult(&MethodReply::send, message);
 }
 
 void Connection::emitSignal(const Signal& message)
 {
-    std::thread::id loopThreadId = loopThreadId_;
-
-    // Is the loop not yet on? => Go make synchronous call
-    while (loopThreadId == std::thread::id{})
-    {
-        // Did the loop begin in the meantime? Or try_lock() failed spuriously?
-        if (!loopMutex_.try_lock())
-            continue;
-
-        // Synchronous call
-        std::lock_guard<std::mutex> guard(loopMutex_, std::adopt_lock);
-        return message.send();
-    }
-
-    // Is the loop on and we are in the same thread? => Go for synchronous call
-    if (loopThreadId == std::this_thread::get_id())
-    {
-        assert(!loopMutex_.try_lock());
-        return message.send(); // Synchronous call
-    }
-
-    // We are in a different thread than the loop thread => Asynchronous call
-    auto request = std::make_unique<SignalEmissionRequest>();
-    request->msg = message;
-    queueUserRequest(std::move(request));
+    auto result = tryExecuteSync(&Signal::send, message);
+    if (!result)
+        executeAsyncAndDontWaitForResult(&Signal::send, message);
 }
 
 std::unique_ptr<sdbus::internal::IConnection> Connection::clone() const
@@ -413,10 +413,14 @@ void Connection::notifyProcessingLoop()
 {
     assert(notificationFd_ >= 0);
 
-    uint64_t value = 1;
-    auto r = write(notificationFd_, &value, sizeof(value));
-
-    SDBUS_THROW_ERROR_IF(r < 0, "Failed to notify processing loop", -errno);
+    for (int i = 0; i < 1; ++i)
+    {
+        //std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        uint64_t value = 1;
+        auto r = write(notificationFd_, &value, sizeof(value));
+        std::cerr << "Wrote to notification fd " << notificationFd_ << std::endl;
+        SDBUS_THROW_ERROR_IF(r < 0, "Failed to notify processing loop", -errno);
+    }
 }
 
 void Connection::notifyProcessingLoopToExit()
@@ -445,11 +449,12 @@ bool Connection::processPendingRequest()
     return r > 0;
 }
 
-void Connection::queueUserRequest(std::unique_ptr<IUserRequest>&& request)
+void Connection::queueUserRequest(UserRequest&& request)
 {
     {
         std::lock_guard<std::mutex> guard(userRequestsMutex_);
         userRequests_.push(std::move(request));
+        std::cerr << "Pushed to user request queue. Size: " << userRequests_.size() << std::endl;
     }
     notifyProcessingLoop();
 }
@@ -459,8 +464,8 @@ void Connection::processUserRequests()
     std::lock_guard<std::mutex> guard(userRequestsMutex_);
     while (!userRequests_.empty())
     {
-        auto& reply = userRequests_.front();
-        reply->process();
+        auto& request = userRequests_.front();
+        request();
         userRequests_.pop();
     }
 }
@@ -483,22 +488,31 @@ Connection::WaitResult Connection::waitForNextRequest()
     uint64_t usec;
     sd_bus_get_timeout(bus, &usec);
 
-    struct pollfd fds[] = {{sdbusFd, sdbusEvents, 0}, {notificationFd_, POLLIN, 0}};
+    struct pollfd fds[] = {{sdbusFd, sdbusEvents, 0}, {notificationFd_, POLLIN | POLLHUP | POLLERR | POLLNVAL, 0}};
     auto fdsCount = sizeof(fds)/sizeof(fds[0]);
 
+    std::cerr << "[lt] Going to poll on fs " << sdbusFd << ", " << notificationFd_ << " with timeout " << usec << " and fdscount == " << fdsCount << std::endl;
     r = poll(fds, fdsCount, usec == (uint64_t) -1 ? -1 : (usec+999)/1000);
 
     if (r < 0 && errno == EINTR)
+    {
+        std::cerr << "<<<>>>> GOT EINTR" << std::endl;
         return {true, false}; // Try again
+    }
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to wait on the bus", -errno);
 
+    if ((fds[1].revents & POLLHUP) || (fds[1].revents & POLLERR) || ((fds[1].revents & POLLNVAL)))
+    {
+        std::cerr << "!!!!!!!!!! Something went wrong on polling" << std::endl;
+    }
     if (fds[1].revents & POLLIN)
     {
         if (exitLoopThread_)
             return {false, false}; // Got exit notification
 
-        // Otherwise we have some async messages to process
+        // Otherwise we have some user requests to process
+        std::cerr << "Loop found it has some async requests to process" << std::endl;
 
         uint64_t value{};
         auto r = read(notificationFd_, &value, sizeof(value));
