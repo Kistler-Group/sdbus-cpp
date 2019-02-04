@@ -99,104 +99,14 @@ namespace sdbus { namespace internal {
             }
         };
 
-        // TODO move down
-        struct IUserRequest
-        {
-            virtual void process() = 0;
-            virtual ~IUserRequest() = default;
-        };
-
-        struct MethodCallRequest : IUserRequest
-        {
-            MethodCall msg;
-            std::promise<MethodReply> result;
-
-            void process() override
-            {
-                SCOPE_EXIT_NAMED(onSdbusError){ result.set_exception(std::current_exception()); };
-
-                auto reply = msg.send();
-                result.set_value(std::move(reply));
-
-                onSdbusError.dismiss();
-            }
-        };
-
-        struct AsyncMethodCallRequest : IUserRequest
-        {
-            AsyncMethodCall msg;
-            void* callback;
-            void* userData;
-
-            // TODO: Catch exception and store to promise?
-            void process() override
-            {
-                msg.send(callback, userData);
-            }
-        };
-
-        struct MethodReplyRequest : IUserRequest
-        {
-            MethodReply msg;
-
-            // TODO: Catch exception and store to promise?
-            void process() override
-            {
-                msg.send();
-            }
-        };
-
-        struct SignalEmissionRequest : IUserRequest
-        {
-            Signal msg;
-
-            // TODO: Catch exception and store to promise?
-            void process() override
-            {
-                msg.send();
-            }
-        };
-
-        struct SignalRegistrationRequest : IUserRequest
-        {
-            std::function<void*()> registerSignalHandler;
-            std::promise<void*> result;
-
-            void process() override
-            {
-                SCOPE_EXIT_NAMED(onSdbusError){ result.set_exception(std::current_exception()); };
-
-                assert(registerSignalHandler);
-                void* slot = registerSignalHandler();
-                result.set_value(slot);
-
-                onSdbusError.dismiss();
-            }
-        };
-
-        struct SignalUnregistrationRequest : IUserRequest
-        {
-            std::function<void()> unregisterSignalHandler;
-            std::promise<void> result;
-
-            void process() override
-            {
-                SCOPE_EXIT_NAMED(onSdbusError){ result.set_exception(std::current_exception()); };
-
-                assert(unregisterSignalHandler);
-                unregisterSignalHandler();
-                result.set_value();
-
-                onSdbusError.dismiss();
-            }
-        };
+        using UserRequest = std::function<void()>;
 
         static sd_bus* openBus(Connection::BusType type);
         static void finishHandshake(sd_bus* bus);
         static int createLoopNotificationDescriptor();
         static void closeLoopNotificationDescriptor(int fd);
         bool processPendingRequest();
-        void queueUserRequest(std::unique_ptr<IUserRequest>&& request);
+        void queueUserRequest(UserRequest&& request);
         void processUserRequests();
         WaitResult waitForNextRequest();
         static std::string composeSignalMatchFilter( const std::string& objectPath
@@ -206,13 +116,25 @@ namespace sdbus { namespace internal {
         void notifyProcessingLoopToExit();
         void joinWithProcessingLoop();
 
+        // TODO move this and threading logic and method around it to separate class?
+        template <typename _Callable, typename... _Args, std::enable_if_t<std::is_void<function_result_t<_Callable>>::value, int> = 0>
+        inline auto tryExecuteSync(_Callable&& fnc, const _Args&... args);
+        template <typename _Callable, typename... _Args, std::enable_if_t<!std::is_void<function_result_t<_Callable>>::value, int> = 0>
+        inline auto tryExecuteSync(_Callable&& fnc, const _Args&... args);
+        template <typename _Callable, typename... _Args, std::enable_if_t<std::is_void<function_result_t<_Callable>>::value, int> = 0>
+        inline void executeAsync(_Callable&& fnc, const _Args&... args);
+        template <typename _Callable, typename... _Args, std::enable_if_t<!std::is_void<function_result_t<_Callable>>::value, int> = 0>
+        inline auto executeAsync(_Callable&& fnc, const _Args&... args);
+        template <typename _Callable, typename... _Args>
+        inline void executeAsyncAndDontWaitForResult(_Callable&& fnc, const _Args&... args);
+
     private:
         std::unique_ptr<sd_bus, decltype(&sd_bus_flush_close_unref)> bus_{nullptr, &sd_bus_flush_close_unref};
         std::thread asyncLoopThread_;
         std::atomic<std::thread::id> loopThreadId_;
         std::mutex loopMutex_;
 
-        std::queue<std::unique_ptr<IUserRequest>> userRequests_;
+        std::queue<UserRequest> userRequests_;
         std::mutex userRequestsMutex_;
 
         std::atomic<bool> exitLoopThread_;

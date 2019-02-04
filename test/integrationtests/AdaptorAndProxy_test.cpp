@@ -59,10 +59,12 @@ public:
     {
         m_connection.requestName(INTERFACE_NAME);
         m_connection.enterProcessingLoopAsync();
+        //m_connection2.enterProcessingLoopAsync();
     }
 
     static void TearDownTestCase()
     {
+        //m_connection2.leaveProcessingLoop();
         m_connection.leaveProcessingLoop();
         m_connection.releaseName(INTERFACE_NAME);
     }
@@ -71,7 +73,7 @@ private:
     void SetUp() override
     {
         m_adaptor = std::make_unique<TestingAdaptor>(m_connection);
-        m_proxy = std::make_unique<TestingProxy>(INTERFACE_NAME, OBJECT_PATH);
+        m_proxy = std::make_unique<TestingProxy>(/*m_connection2, */INTERFACE_NAME, OBJECT_PATH);
         std::this_thread::sleep_for(50ms); // Give time for the proxy to start listening to signals
     }
 
@@ -83,12 +85,14 @@ private:
 
 public:
     static sdbus::internal::Connection m_connection;
+    //static sdbus::internal::Connection m_connection2;
 
     std::unique_ptr<TestingAdaptor> m_adaptor;
     std::unique_ptr<TestingProxy> m_proxy;
 };
 
 sdbus::internal::Connection AdaptorAndProxyFixture::m_connection{sdbus::internal::Connection::BusType::eSystem};
+//sdbus::internal::Connection AdaptorAndProxyFixture::m_connection2{sdbus::internal::Connection::BusType::eSystem};
 
 }
 
@@ -96,16 +100,16 @@ sdbus::internal::Connection AdaptorAndProxyFixture::m_connection{sdbus::internal
 /* --          TEST CASES           -- */
 /*-------------------------------------*/
 
-TEST(AdaptorAndProxy, CanBeConstructedSuccesfully)
-{
-    auto connection = sdbus::createConnection();
-    connection->requestName(INTERFACE_NAME);
+//TEST(AdaptorAndProxy, CanBeConstructedSuccesfully)
+//{
+//    auto connection = sdbus::createConnection();
+//    connection->requestName(INTERFACE_NAME);
 
-    ASSERT_NO_THROW(TestingAdaptor adaptor(*connection));
-    ASSERT_NO_THROW(TestingProxy proxy(INTERFACE_NAME, OBJECT_PATH));
+//    ASSERT_NO_THROW(TestingAdaptor adaptor(*connection));
+//    ASSERT_NO_THROW(TestingProxy proxy(INTERFACE_NAME, OBJECT_PATH));
 
-    connection->releaseName(INTERFACE_NAME);
-}
+//    connection->releaseName(INTERFACE_NAME);
+//}
 
 // Methods
 

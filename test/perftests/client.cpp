@@ -90,72 +90,84 @@ int main(int /*argc*/, char */*argv*/[])
 {
     const char* destinationName = "org.sdbuscpp.perftest";
     const char* objectPath = "/org/sdbuscpp/perftest";
-    PerftestClient client(destinationName, objectPath);
+    //PerftestClient client(destinationName, objectPath);
 
     const unsigned int repetitions{2};
     unsigned int msgCount = 1000;
     unsigned int msgSize{};
     
-    msgSize = 20;
-    std::cout << "** Measuring signals of size " << msgSize << " bytes (" << repetitions << " repetitions)..." << std::endl << std::endl;
-    client.m_msgCount = msgCount; client.m_msgSize = msgSize;
-    for (unsigned int r = 0; r < repetitions; ++r)
     {
-        client.sendDataSignals(msgCount, msgSize);
-        
-        std::this_thread::sleep_for(1000ms);
-    }
-    
-    msgSize = 1000;
-    std::cout << std::endl << "** Measuring signals of size " << msgSize << " bytes (" << repetitions << " repetitions)..." << std::endl << std::endl;
-    client.m_msgCount = msgCount; client.m_msgSize = msgSize;
-    for (unsigned int r = 0; r < repetitions; ++r)
-    {
-        client.sendDataSignals(msgCount, msgSize);
-        
-        std::this_thread::sleep_for(1000ms);
-    }
-    
-    msgSize = 20;
-    std::cout << std::endl << "** Measuring method calls of size " << msgSize << " bytes (" << repetitions << " repetitions)..." << std::endl << std::endl;
-    for (unsigned int r = 0; r < repetitions; ++r)
-    {
-        auto str1 = createRandomString(msgSize/2);
-        auto str2 = createRandomString(msgSize/2);
-        
-        auto startTime = std::chrono::steady_clock::now();
-        for (unsigned int i = 0; i < msgCount; i++)
+        PerftestClient client(destinationName, objectPath);
+        msgSize = 20;
+        std::cout << "** Measuring signals of size " << msgSize << " bytes (" << repetitions << " repetitions)..." << std::endl << std::endl;
+        client.m_msgCount = msgCount; client.m_msgSize = msgSize;
+        for (unsigned int r = 0; r < repetitions; ++r)
         {
-            auto result = client.concatenateTwoStrings(str1, str2);
-            
-            assert(result.size() == str1.size() + str2.size());
-            assert(result.size() == msgSize);
+            client.sendDataSignals(msgCount, msgSize);
+
+            std::this_thread::sleep_for(1000ms);
         }
-        auto stopTime = std::chrono::steady_clock::now();
-        std::cout << "Called " << msgCount << " methods in: " << std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count() << " ms" << std::endl;
-        
-        std::this_thread::sleep_for(1000ms);
     }
     
-    msgSize = 1000;
-    std::cout << std::endl << "** Measuring method calls of size " << msgSize << " bytes (" << repetitions << " repetitions)..." << std::endl << std::endl;
-    for (unsigned int r = 0; r < repetitions; ++r)
     {
-        auto str1 = createRandomString(msgSize/2);
-        auto str2 = createRandomString(msgSize/2);
-        
-        auto startTime = std::chrono::steady_clock::now();
-        for (unsigned int i = 0; i < msgCount; i++)
+        PerftestClient client(destinationName, objectPath);
+        msgSize = 1000;
+        std::cout << std::endl << "** Measuring signals of size " << msgSize << " bytes (" << repetitions << " repetitions)..." << std::endl << std::endl;
+        client.m_msgCount = msgCount; client.m_msgSize = msgSize;
+        for (unsigned int r = 0; r < repetitions; ++r)
         {
-            auto result = client.concatenateTwoStrings(str1, str2);
-            
-            assert(result.size() == str1.size() + str2.size());
-            assert(result.size() == msgSize);
+            client.sendDataSignals(msgCount, msgSize);
+
+            std::this_thread::sleep_for(1000ms);
         }
-        auto stopTime = std::chrono::steady_clock::now();
-        std::cout << "Called " << msgCount << " methods in: " << std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count() << " ms" << std::endl;
-        
-        std::this_thread::sleep_for(1000ms);
+    }
+    
+    {
+        PerftestClient client(destinationName, objectPath);
+        msgSize = 20;
+        std::cout << std::endl << "** Measuring method calls of size " << msgSize << " bytes (" << repetitions << " repetitions)..." << std::endl << std::endl;
+        for (unsigned int r = 0; r < repetitions; ++r)
+        {
+            auto str1 = createRandomString(msgSize/2);
+            auto str2 = createRandomString(msgSize/2);
+
+            auto startTime = std::chrono::steady_clock::now();
+            for (unsigned int i = 0; i < msgCount; i++)
+            {
+                auto result = client.concatenateTwoStrings(str1, str2);
+
+                assert(result.size() == str1.size() + str2.size());
+                assert(result.size() == msgSize);
+            }
+            auto stopTime = std::chrono::steady_clock::now();
+            std::cout << "Called " << msgCount << " methods in: " << std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count() << " ms" << std::endl;
+
+            std::this_thread::sleep_for(1000ms);
+        }
+    }
+    
+    {
+        PerftestClient client(destinationName, objectPath);
+        msgSize = 1000;
+        std::cout << std::endl << "** Measuring method calls of size " << msgSize << " bytes (" << repetitions << " repetitions)..." << std::endl << std::endl;
+        for (unsigned int r = 0; r < repetitions; ++r)
+        {
+            auto str1 = createRandomString(msgSize/2);
+            auto str2 = createRandomString(msgSize/2);
+
+            auto startTime = std::chrono::steady_clock::now();
+            for (unsigned int i = 0; i < msgCount; i++)
+            {
+                auto result = client.concatenateTwoStrings(str1, str2);
+
+                assert(result.size() == str1.size() + str2.size());
+                assert(result.size() == msgSize);
+            }
+            auto stopTime = std::chrono::steady_clock::now();
+            std::cout << "Called " << msgCount << " methods in: " << std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count() << " ms" << std::endl;
+
+            std::this_thread::sleep_for(1000ms);
+        }
     }
     
     return 0;
