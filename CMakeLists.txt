@@ -124,7 +124,6 @@ if(BUILD_CODE_GEN)
     add_subdirectory("${CMAKE_SOURCE_DIR}/stub-generator")
 endif()
 
-
 #----------------------------------
 # DOCUMENTATION
 #----------------------------------
