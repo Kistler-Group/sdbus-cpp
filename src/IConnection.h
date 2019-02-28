@@ -74,8 +74,6 @@ namespace internal {
         virtual void sendMethodReply(const MethodReply& message) = 0;
         virtual void emitSignal(const Signal& message) = 0;
 
-        virtual std::unique_ptr<sdbus::internal::IConnection> clone() const = 0;
-
         virtual ~IConnection() = default;
     };
 

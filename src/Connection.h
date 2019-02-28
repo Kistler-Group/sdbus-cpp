@@ -33,10 +33,7 @@
 #include <systemd/sd-bus.h>
 #include <memory>
 #include <thread>
-#include <atomic>
 #include <mutex>
-#include <future>
-#include <queue>
 
 namespace sdbus { namespace internal {
 
@@ -86,37 +83,22 @@ namespace sdbus { namespace internal {
         void sendMethodReply(const MethodReply& message) override;
         void emitSignal(const Signal& message) override;
 
-        std::unique_ptr<sdbus::internal::IConnection> clone() const override;
-
     private:
-        struct WaitResult
-        {
-            bool msgsToProcess;
-            bool asyncMsgsToProcess;
-            operator bool()
-            {
-                return msgsToProcess || asyncMsgsToProcess;
-            }
-        };
-
-        using UserRequest = std::function<void()>;
-
         static sd_bus* openBus(Connection::BusType type);
         static void finishHandshake(sd_bus* bus);
-        static int createLoopNotificationDescriptor();
-        static void closeLoopNotificationDescriptor(int fd);
+        static int createProcessingLoopExitDescriptor();
+        static void closeProcessingLoopExitDescriptor(int fd);
         bool processPendingRequest();
-        void queueUserRequest(UserRequest&& request);
-        void processUserRequests();
-        WaitResult waitForNextRequest();
+        bool waitForNextRequest();
         static std::string composeSignalMatchFilter( const std::string& objectPath
                                                    , const std::string& interfaceName
                                                    , const std::string& signalName );
-        void notifyProcessingLoop();
         void notifyProcessingLoopToExit();
+        void clearExitNotification();
         void joinWithProcessingLoop();
 
         // TODO move this and threading logic and method around it to separate class?
+        /*
         template <typename _Callable, typename... _Args, std::enable_if_t<std::is_void<function_result_t<_Callable>>::value, int> = 0>
         inline auto tryExecuteSync(_Callable&& fnc, const _Args&... args);
         template <typename _Callable, typename... _Args, std::enable_if_t<!std::is_void<function_result_t<_Callable>>::value, int> = 0>
@@ -127,21 +109,15 @@ namespace sdbus { namespace internal {
         inline auto executeAsync(_Callable&& fnc, const _Args&... args);
         template <typename _Callable, typename... _Args>
         inline void executeAsyncAndDontWaitForResult(_Callable&& fnc, const _Args&... args);
+        */
 
     private:
         std::unique_ptr<sd_bus, decltype(&sd_bus_flush_close_unref)> bus_{nullptr, &sd_bus_flush_close_unref};
-        std::thread asyncLoopThread_;
-        std::atomic<std::thread::id> loopThreadId_;
-        std::mutex loopMutex_;
-
-        std::queue<UserRequest> userRequests_;
-        std::mutex userRequestsMutex_;
-
-        std::atomic<bool> exitLoopThread_;
-        int notificationFd_{-1};
         BusType busType_;
+        std::recursive_mutex busMutex_;
 
-        static constexpr const uint64_t POLL_TIMEOUT_USEC = 500000;
+        std::thread asyncLoopThread_;
+        int loopExitFd_{-1};
     };
 
 }}

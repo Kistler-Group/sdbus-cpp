@@ -93,7 +93,8 @@ set_target_properties(sdbus-c++
     VERSION "${SDBUSCPP_VERSION}"
     SOVERSION "${SDBUSCPP_VERSION_MAJOR}"
     OUTPUT_NAME "sdbus-c++")
-target_link_libraries(sdbus-c++ -L/home/aeywalee/data/repos/systemd/.libs/ -lsystemd)
+#target_link_libraries(sdbus-c++ -L/home/aeywalee/data/repos/systemd/.libs/ -lsystemd)
+target_link_libraries(sdbus-c++ -lsystemd)
 
 #----------------------------------
 # INSTALLATION

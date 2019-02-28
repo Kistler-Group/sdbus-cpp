@@ -128,14 +128,15 @@ int ObjectProxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *u
     std::unique_ptr<async_reply_handler> asyncReplyCallback{static_cast<async_reply_handler*>(userData)};
     assert(asyncReplyCallback != nullptr);
 
-    if (!sd_bus_error_is_set(retError))
+    const auto* error = sd_bus_message_get_error(sdbusMessage);
+    if (error == nullptr)
     {
         (*asyncReplyCallback)(message, nullptr);
     }
     else
     {
-        sdbus::Error error(retError->name, retError->message);
-        (*asyncReplyCallback)(message, &error);
+        sdbus::Error exception(error->name, error->message);
+        (*asyncReplyCallback)(message, &exception);
     }
 }
 
