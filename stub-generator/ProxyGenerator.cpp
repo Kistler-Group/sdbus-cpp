@@ -97,7 +97,14 @@ std::string ProxyGenerator::processInterface(Node& interface) const
             << tab << "}" << endl << endl
             << declaration << endl;
 
-    std::string methodDefinitions = processMethods(methods);
+    std::string methodDefinitions, asyncDeclarations;
+    std::tie(methodDefinitions, asyncDeclarations) = processMethods(methods);
+
+    if (!asyncDeclarations.empty())
+    {
+        body << asyncDeclarations << endl;
+    }
+
     if (!methodDefinitions.empty())
     {
         body << "public:" << endl << methodDefinitions;
@@ -117,9 +124,10 @@ std::string ProxyGenerator::processInterface(Node& interface) const
     return body.str();
 }
 
-std::string ProxyGenerator::processMethods(const Nodes& methods) const
+std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes& methods) const
 {
-    std::ostringstream methodSS;
+    std::ostringstream definitionSS, asyncDeclarationSS;
+
     for (const auto& method : methods)
     {
         auto name = method->get("name");
@@ -128,15 +136,15 @@ std::string ProxyGenerator::processMethods(const Nodes& methods) const
         Nodes outArgs = args.select("direction" , "out");
 
         bool dontExpectReply{false};
+        bool async{false};
         Nodes annotations = (*method)["annotation"];
         for (const auto& annotation : annotations)
         {
-            if (annotation->get("name") == "org.freedesktop.DBus.Method.NoReply"
-                && annotation->get("value") == "true")
-            {
+            if (annotation->get("name") == "org.freedesktop.DBus.Method.NoReply" && annotation->get("value") == "true")
                 dontExpectReply = true;
-                break;
-            }
+            else if (annotation->get("name") == "org.freedesktop.DBus.Method.Async"
+                     && (annotation->get("value") == "client" || annotation->get("value") == "clientserver"))
+                async = true;
         }
         if (dontExpectReply && outArgs.size() > 0)
         {
@@ -146,39 +154,52 @@ std::string ProxyGenerator::processMethods(const Nodes& methods) const
         }
 
         auto retType = outArgsToType(outArgs);
-        std::string argStr, argTypeStr;
-        std::tie(argStr, argTypeStr, std::ignore) = argsToNamesAndTypes(inArgs);
+        std::string inArgStr, inArgTypeStr;
+        std::tie(inArgStr, inArgTypeStr, std::ignore) = argsToNamesAndTypes(inArgs);
+        std::string outArgStr, outArgTypeStr;
+        std::tie(outArgStr, outArgTypeStr, std::ignore) = argsToNamesAndTypes(outArgs);
 
-        methodSS << tab << retType << " " << name << "(" << argTypeStr << ")" << endl
+        definitionSS << tab << (async ? "void" : retType) << " " << name << "(" << inArgTypeStr << ")" << endl
                 << tab << "{" << endl;
 
-        if (outArgs.size() > 0)
+        if (outArgs.size() > 0 && !async)
         {
-            methodSS << tab << tab << retType << " result;" << endl;
+            definitionSS << tab << tab << retType << " result;" << endl;
         }
 
-        methodSS << tab << tab << "object_.callMethod(\"" << name << "\")"
+        definitionSS << tab << tab << "object_.callMethod(\"" << name << "\")"
                         ".onInterface(interfaceName)";
 
         if (inArgs.size() > 0)
         {
-            methodSS << ".withArguments(" << argStr << ")";
+            definitionSS << ".withArguments(" << inArgStr << ")";
         }
 
-        if (outArgs.size() > 0)
+        if (async && !dontExpectReply)
         {
-            methodSS << ".storeResultsTo(result);" << endl
-                    << tab << tab << "return result";
+            auto nameBigFirst = name;
+            nameBigFirst[0] = islower(nameBigFirst[0]) ? nameBigFirst[0] + 'A' - 'a' : nameBigFirst[0];
+
+            definitionSS << ".uponReplyInvoke([this](const sdbus::Error* error" << (outArgTypeStr.empty() ? "" : ", ") << outArgTypeStr << ")"
+                                             "{ this->on" << nameBigFirst << "Reply(" << outArgStr << (outArgStr.empty() ? "" : ", ") << "error); })";
+
+            asyncDeclarationSS << tab << "virtual void on" << nameBigFirst << "Reply("
+                               << outArgTypeStr << (outArgTypeStr.empty() ? "" : ", ")  << "const sdbus::Error* error) = 0;" << endl;
+        }
+        else if (outArgs.size() > 0)
+        {
+            definitionSS << ".storeResultsTo(result);" << endl
+                         << tab << tab << "return result";
         }
         else if (dontExpectReply)
         {
-            methodSS << ".dontExpectReply()";
+            definitionSS << ".dontExpectReply()";
         }
 
-        methodSS << ";" << endl << tab << "}" << endl << endl;
+        definitionSS << ";" << endl << tab << "}" << endl << endl;
     }
 
-    return methodSS.str();
+    return std::make_tuple(definitionSS.str(), asyncDeclarationSS.str());
 }
 
 std::tuple<std::string, std::string> ProxyGenerator::processSignals(const Nodes& signals) const

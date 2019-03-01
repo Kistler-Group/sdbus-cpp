@@ -169,17 +169,31 @@ std::tuple<std::string, std::string> AdaptorGenerator::processMethods(const Node
             const auto& annotationName = annotation.first;
             const auto& annotationValue = annotation.second;
 
-            if (annotationName == "org.freedesktop.DBus.Deprecated" && annotationValue == "true")
-                annotationRegistration += ".markAsDeprecated()";
-            else if (annotationName == "org.freedesktop.DBus.Method.NoReply" && annotationValue == "true")
-                annotationRegistration += ".withNoReply()";
-            else if (annotationName == "org.freedesktop.DBus.Method.Async" && (annotationValue == "server" || annotationValue == "clientserver"))
-                async = true;
-            else if (annotationName == "org.freedesktop.systemd1.Privileged" && annotationValue == "true")
-                annotationRegistration += ".markAsPrivileged()";
+            if (annotationName == "org.freedesktop.DBus.Deprecated")
+            {
+                if (annotationValue == "true")
+                    annotationRegistration += ".markAsDeprecated()";
+            }
+            else if (annotationName == "org.freedesktop.DBus.Method.NoReply")
+            {
+                if (annotationValue == "true")
+                    annotationRegistration += ".withNoReply()";
+            }
+            else if (annotationName == "org.freedesktop.DBus.Method.Async")
+            {
+                if (annotationValue == "server" || annotationValue == "clientserver")
+                    async = true;
+            }
+            else if (annotationName == "org.freedesktop.systemd1.Privileged")
+            {
+                if (annotationValue == "true")
+                    annotationRegistration += ".markAsPrivileged()";
+            }
             else
+            {
                 std::cerr << "Node: " << methodName << ": "
                           << "Option '" << annotationName << "' not allowed or supported in this context! Option ignored..." << std::endl;
+            }
         }
 
         Nodes args = (*method)["arg"];

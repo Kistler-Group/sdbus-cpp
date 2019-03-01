@@ -70,7 +70,7 @@ add_executable(libsdbus-c++_integrationtests ${INTEGRATIONTESTS_SRCS})
 target_link_libraries(libsdbus-c++_integrationtests sdbus-c++ gmock gmock_main)
 
 # Manual performance tests
-option(ENABLE_PERFTESTS "Build and install manual performance tests (default OFF)" OFF)
+option(ENABLE_PERFTESTS "Build and install manual performance tests (default ON)" ON)
 if(ENABLE_PERFTESTS)
     add_executable(libsdbus-c++_perftests_client perftests/client.cpp perftests/perftest-proxy.h)
     target_link_libraries(libsdbus-c++_perftests_client sdbus-c++)
