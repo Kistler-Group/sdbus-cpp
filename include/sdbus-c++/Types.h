@@ -140,6 +140,9 @@ namespace sdbus {
     public:
         using std::string::string;
         using std::string::operator=;
+        ObjectPath(std::string path)
+            : std::string(std::move(path))
+        {}
     };
 
     class Signature : public std::string
@@ -147,6 +150,9 @@ namespace sdbus {
     public:
         using std::string::string;
         using std::string::operator=;
+        Signature(std::string path)
+            : std::string(std::move(path))
+        {}
     };
 
 }
