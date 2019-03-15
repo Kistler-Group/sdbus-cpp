@@ -134,12 +134,15 @@ endif()
 # CMAKE CONFIG & PACKAGE CONFIG
 #----------------------------------
 
+include(CMakePackageConfigHelpers)
 set(SDBUSCPP_CONFIG_INSTALL_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/sdbus-c++)
 
 configure_file(sdbus-c++-config.cmake.in sdbus-c++-config.cmake @ONLY)
 install(FILES ${CMAKE_BINARY_DIR}/sdbus-c++-config.cmake DESTINATION ${SDBUSCPP_CONFIG_INSTALL_DIR} COMPONENT dev)
 
-configure_file(sdbus-c++-config-version.cmake.in sdbus-c++-config-version.cmake @ONLY)
+write_basic_package_version_file(sdbus-c++-config-version.cmake
+        VERSION ${PROJECT_VERSION}
+        COMPATIBILITY AnyNewerVersion)
 install(FILES ${CMAKE_BINARY_DIR}/sdbus-c++-config-version.cmake DESTINATION ${SDBUSCPP_CONFIG_INSTALL_DIR} COMPONENT dev)
 
 configure_file(sdbus-c++.pc.in sdbus-c++.pc @ONLY)
