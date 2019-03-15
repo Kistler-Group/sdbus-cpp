@@ -679,7 +679,7 @@ int main(int argc, char *argv[])
 Asynchronous server-side methods
 --------------------------------
 
-So far in our tutorial, we have only considered simple server methods that are executed in a synchronous way. Sometimes the method call may take longer, however, and we don't want to block (potentially starve) other clients (whose requests may take relative short time). The solution is to execute the D-Bus methods asynchronously. How physically is that done is up to the server design (e.g. thread pool), but sdbus-c++ provides API supporting async methods.
+So far in our tutorial, we have only considered simple server methods that are executed in a synchronous way. Sometimes the method call may take longer, however, and we don't want to block (potentially starve) other clients (whose requests may take relative short time). The solution is to execute the D-Bus methods asynchronously, and return the control quickly back to the D-Bus dispatching thread. sdbus-c++ provides API supporting async methods, and gives users the freedom to come up with their own concrete implementation mechanics (one worker thread? thread pool? ...).
 
 ### Lower-level API
 
@@ -736,8 +736,6 @@ Notice these differences as compared to the synchronous version:
 
 That's all.
 
-Note: We can use the concept of asynchronous D-Bus methods in both the synchronous and asynchronous way. Whether we return the results directly in the callback in the synchronous way, or we pass the arguments and the result holder to a different thread, and compute and set the results in there, is irrelevant to sdbus-c++. This has the benefit that we can decide at run-time, per each method call, whether we execute it synchronously or (perhaps in case of complex operation) execute it asynchronously to e.g. a thread pool.
-
 ### Convenience API
 
 Method callbacks in convenience sdbus-c++ API also need to take the result object as a parameter. The requirements are:
@@ -748,13 +746,15 @@ Method callbacks in convenience sdbus-c++ API also need to take the result objec
 
 For example, we would have to change the concatenate callback signature from `std::string concatenate(const std::vector<int32_t>& numbers, const std::string& separator)` to `void concatenate(sdbus::Result<std::string> result, const std::vector<int32_t>& numbers, const std::string& separator)`.
 
-`sdbus::Result` class template has effectively the same API as `sdbus::MethodResult` class from above example (it inherits from MethodResult), so you use it in the very same way to send the results or an error back to the client.
+`sdbus::Result` class template has effectively the same API as `sdbus::MethodResult` class mentioned in the above example (it inherits from `MethodResult`), so you use it in the very same way to send the results or an error back to the client.
 
 Nothing else has to be changed. The registration of the method callback (`implementedAs`) and all the mechanics around remains completely the same.
 
+Note: Async D-Bus method doesn't necessarily mean we always have to delegate the work to a different thread and immediately return. We can very well execute the work and return the results (via `returnResults()`) or an error (via `return Error()`) synchronously -- i.e. directly in this thread. dbus-c++ doesn't care, it supports both approaches. This has the benefit that we can decide at run-time, per each method call, whether we execute it synchronously or (in case of complex operation, for example) execute it asynchronously by moving the work to a worker thread.
+
 ### Marking async methods in the IDL
 
-sdbus-c++ stub generator can generate stub code for server-side async methods. We just need to annotate the method with the `annotate` element having the "org.freedesktop.DBus.Method.Async" name, like so:
+sdbus-c++ stub generator can generate stub code for server-side async methods. We just need to annotate the method with the `annotate` element having the "org.freedesktop.DBus.Method.Async" name. The element value must be either "server" or "clientserver":
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -773,6 +773,12 @@ sdbus-c++ stub generator can generate stub code for server-side async methods. W
     </interface>
 </node>
 ```
+
+Asynchronous client-side methods
+--------------------------------
+
+sdbus-c++ also supports asynchronous approach at the client (the proxy) side. With this approach, we can issue a D-Bus method call without blocking current thread's execution waiting for the reply.
+TODO Continue.
 
 Using D-Bus properties
 ----------------------
