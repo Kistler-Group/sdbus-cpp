@@ -94,8 +94,9 @@ std::string ProxyGenerator::processInterface(Node& interface) const
 
     body << tab << "{" << endl
             << registration
-            << tab << "}" << endl << endl
-            << declaration << endl;
+            << tab << "}" << endl << endl;
+    if (!declaration.empty())
+        body << declaration << endl;
 
     std::string methodDefinitions, asyncDeclarations;
     std::tie(methodDefinitions, asyncDeclarations) = processMethods(methods);
