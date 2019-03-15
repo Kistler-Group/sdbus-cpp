@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<node name="/org/sdbuscpp/perftest">
+    <interface name="org.sdbuscpp.perftest">
+        <method name="sendDataSignals">
+            <arg type="u" name="numberOfSignals" direction="in" />
+            <arg type="u" name="signalMsgSize" direction="in" />
+        </method>
+        <method name="concatenateTwoStrings">
+            <arg type="s" name="string1" direction="in" />
+            <arg type="s" name="string2" direction="in" />
+            <arg type="s" name="result" direction="out" />
+        </method>
+        <signal name="dataSignal">
+            <arg type="s" name="data" />
+        </signal>
+    </interface>
+</node>
