@@ -777,8 +777,93 @@ sdbus-c++ stub generator can generate stub code for server-side async methods. W
 Asynchronous client-side methods
 --------------------------------
 
-sdbus-c++ also supports asynchronous approach at the client (the proxy) side. With this approach, we can issue a D-Bus method call without blocking current thread's execution waiting for the reply.
-TODO Continue.
+sdbus-c++ also supports asynchronous approach at the client (the proxy) side. With this approach, we can issue a D-Bus method call without blocking current thread's execution while waiting for the reply. We go on doing other things, and when the reply comes, a given callback is invoked within the context of the D-Bus dispatcher thread.
+
+### Lower-level API
+
+Considering the Concatenator example based on lower-level API, if we wanted to call `concatenate` in an async way, we'd have to pass a callback to the proxy when issuing the call, and that callback gets invoked when the reply arrives:
+
+```c++
+int main(int argc, char *argv[])
+{
+    /* ...  */
+    
+    auto callback = [](MethodReply& reply, const Error* error)
+    {
+        if (error == nullptr) // No error
+        {
+            std::string result;
+            reply >> result;
+            std::cout << "Got concatenate result: " << result << std::endl;
+        }
+        else // We got a D-Bus error...
+        {
+            std::cerr << "Got concatenate error " << error->getName() << " with message " << error->getMessage() << std::endl;
+        }
+    }
+
+    // Invoke concatenate on given interface of the object
+    {
+        auto method = concatenatorProxy->createMethodCall(interfaceName, "concatenate");
+        method << numbers << separator;
+        concatenatorProxy->callMethod(method, callback);
+        // When the reply comes, we shall get "Got concatenate result 1:2:3" on the standard output
+    }
+    
+    // Invoke concatenate again, this time with no numbers and we shall get an error
+    {
+        auto method = concatenatorProxy->createMethodCall(interfaceName, "concatenate");
+        method << std::vector<int>() << separator;
+        concatenatorProxy->callMethod(method, callback);
+        // When the reply comes, we shall get concatenation error message on the standard error output
+    }
+
+    /* ... */
+
+    return 0;
+}
+```
+
+The callback is a void-returning function taking two arguments: a reference to the reply message, and a pointer to the prospective Error instance. Zero Error pointer means that no D-Bus error occurred while making the call, and the reply message contains valid reply. Non-zero Error pointer, however, points to the valid Error instance, meaning that an error occurred. Error name and message can then be read out by the client.
+
+### Convenience API
+
+On the convenience API level, the call statement starts with `callMethodAsync()`, and ends with `uponReplyInvoke()` that takes a callback handler. The callback is a void-returning function that takes at least one argument: pointer to the Error instance. All subsequent arguments shall exactly reflect the D-Bus method output arguments. A concatenator example:
+
+```c++
+int main(int argc, char *argv[])
+{
+    /* ...  */
+    
+    auto callback = [](const Error* error, const std::string& concatenatedString)
+    {
+        if (error == nullptr) // No error
+            std::cout << "Got concatenate result: " << concatenatedString << std::endl;
+        else // We got a D-Bus error...
+            std::cerr << "Got concatenate error " << error->getName() << " with message " << error->getMessage() << std::endl;
+    }
+
+    // Invoke concatenate on given interface of the object
+    {
+        concatenatorProxy->callMethodAsync("concatenate").onInterface(interfaceName).withArguments(numbers, separator).uponReplyInvoke(callback);
+        // When the reply comes, we shall get "Got concatenate result 1:2:3" on the standard output
+    }
+
+    // Invoke concatenate again, this time with no numbers and we shall get an error
+    {
+        concatenatorProxy->callMethodAsync("concatenate").onInterface(interfaceName).withArguments(std::vector<int>{}, separator).uponReplyInvoke(callback);
+        // When the reply comes, we shall get concatenation error message on the standard error output
+    }
+
+    /* ... */
+
+    return 0;
+}
+```
+
+Zero Error pointer means that no D-Bus error occurred while making the call, and subsequent arguments are valid D-Bus method return values. Non-zero Error pointer, however, points to the valid Error instance, meaning that an error occurred. Error name and message can then be read out by the client.
+
+TODO: Fix AsyncMethodInvoker's lambda callback so that it checks error* and then creates output arguments.
 
 Using D-Bus properties
 ----------------------
