@@ -36,7 +36,8 @@ set(UNITTESTS_SRCS
     ${UNITTESTS_SOURCE_DIR}/libsdbus-c++_unittests.cpp
     ${UNITTESTS_SOURCE_DIR}/Message_test.cpp
     ${UNITTESTS_SOURCE_DIR}/Types_test.cpp
-    ${UNITTESTS_SOURCE_DIR}/TypeTraits_test.cpp)
+    ${UNITTESTS_SOURCE_DIR}/TypeTraits_test.cpp
+    ${UNITTESTS_SOURCE_DIR}/Connection_test.cpp)
 
 set(INTEGRATIONTESTS_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/integrationtests)
 set(INTEGRATIONTESTS_SRCS
