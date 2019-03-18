@@ -89,7 +89,7 @@ public:
 };
 
 sdbus::internal::Connection AdaptorAndProxyFixture::m_connection{sdbus::internal::Connection::BusType::eSystem,
-                                                                 std::make_unique<SdBus>(SdBus())};
+                                                                 std::make_unique<SdBus>()};
 
 }
 
