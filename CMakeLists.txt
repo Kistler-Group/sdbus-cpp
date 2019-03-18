@@ -33,7 +33,8 @@ set(SDBUSCPP_CPP_SRCS
     ${SDBUSCPP_SOURCE_DIR}/ObjectProxy.cpp
     ${SDBUSCPP_SOURCE_DIR}/Types.cpp
     ${SDBUSCPP_SOURCE_DIR}/Flags.cpp
-    ${SDBUSCPP_SOURCE_DIR}/VTableUtils.c)
+    ${SDBUSCPP_SOURCE_DIR}/VTableUtils.c
+    ${SDBUSCPP_SOURCE_DIR}/SdBus.cpp)
 
 set(SDBUSCPP_HDR_SRCS
     ${SDBUSCPP_SOURCE_DIR}/Connection.h
@@ -42,7 +43,9 @@ set(SDBUSCPP_HDR_SRCS
     ${SDBUSCPP_SOURCE_DIR}/Object.h
     ${SDBUSCPP_SOURCE_DIR}/ObjectProxy.h
     ${SDBUSCPP_SOURCE_DIR}/ScopeGuard.h
-    ${SDBUSCPP_SOURCE_DIR}/VTableUtils.h)
+    ${SDBUSCPP_SOURCE_DIR}/VTableUtils.h
+    ${SDBUSCPP_SOURCE_DIR}/SdBus.h
+    ${SDBUSCPP_SOURCE_DIR}/ISdBus.h)
 
 set(SDBUSCPP_PUBLIC_HDRS
     ${SDBUSCPP_INCLUDE_DIR}/ConvenienceClasses.h

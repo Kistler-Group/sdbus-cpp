@@ -24,6 +24,7 @@
  */
 
 #include "Connection.h"
+#include "SdBus.h"
 #include <sdbus-c++/Message.h>
 #include <sdbus-c++/Error.h>
 #include "ScopeGuard.h"
@@ -34,8 +35,9 @@
 
 namespace sdbus { namespace internal {
 
-Connection::Connection(Connection::BusType type)
-    : busType_(type)
+Connection::Connection(Connection::BusType type, std::unique_ptr<ISdBus>&& interface)
+    : busType_(type),
+      iface_(std::move(interface))
 {
     auto bus = openBus(busType_);
     bus_.reset(bus);
@@ -53,13 +55,13 @@ Connection::~Connection()
 
 void Connection::requestName(const std::string& name)
 {
-    auto r = sd_bus_request_name(bus_.get(), name.c_str(), 0);
+    auto r = iface_->sd_bus_request_name(bus_.get(), name.c_str(), 0);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to request bus name", -r);
 }
 
 void Connection::releaseName(const std::string& name)
 {
-    auto r = sd_bus_release_name(bus_.get(), name.c_str());
+    auto r = iface_->sd_bus_release_name(bus_.get(), name.c_str());
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to release bus name", -r);
 }
 
@@ -97,7 +99,7 @@ void* Connection::addObjectVTable( const std::string& objectPath
 {
     sd_bus_slot *slot{};
 
-    auto r = sd_bus_add_object_vtable( bus_.get()
+    auto r = iface_->sd_bus_add_object_vtable( bus_.get()
                                      , &slot
                                      , objectPath.c_str()
                                      , interfaceName.c_str()
@@ -111,7 +113,7 @@ void* Connection::addObjectVTable( const std::string& objectPath
 
 void Connection::removeObjectVTable(void* vtableHandle)
 {
-    sd_bus_slot_unref((sd_bus_slot *)vtableHandle);
+    iface_->sd_bus_slot_unref((sd_bus_slot *)vtableHandle);
 }
 
 sdbus::MethodCall Connection::createMethodCall( const std::string& destination
@@ -122,9 +124,9 @@ sdbus::MethodCall Connection::createMethodCall( const std::string& destination
     sd_bus_message *sdbusMsg{};
 
     // Returned message will become an owner of sdbusMsg
-    SCOPE_EXIT{ sd_bus_message_unref(sdbusMsg); };
+    SCOPE_EXIT{ iface_->sd_bus_message_unref(sdbusMsg); };
 
-    auto r = sd_bus_message_new_method_call( bus_.get()
+    auto r = iface_->sd_bus_message_new_method_call( bus_.get()
                                            , &sdbusMsg
                                            , destination.c_str()
                                            , objectPath.c_str()
@@ -145,7 +147,7 @@ sdbus::Signal Connection::createSignal( const std::string& objectPath
     // Returned message will become an owner of sdbusSignal
     SCOPE_EXIT{ sd_bus_message_unref(sdbusSignal); };
 
-    auto r = sd_bus_message_new_signal( bus_.get()
+    auto r = iface_->sd_bus_message_new_signal( bus_.get()
                                       , &sdbusSignal
                                       , objectPath.c_str()
                                       , interfaceName.c_str()
@@ -165,7 +167,7 @@ void* Connection::registerSignalHandler( const std::string& objectPath
     sd_bus_slot *slot{};
 
     auto filter = composeSignalMatchFilter(objectPath, interfaceName, signalName);
-    auto r = sd_bus_add_match(bus_.get(), &slot, filter.c_str(), callback, userData);
+    auto r = iface_->sd_bus_add_match(bus_.get(), &slot, filter.c_str(), callback, userData);
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to register signal handler", -r);
 
@@ -174,7 +176,7 @@ void* Connection::registerSignalHandler( const std::string& objectPath
 
 void Connection::unregisterSignalHandler(void* handlerCookie)
 {
-    sd_bus_slot_unref((sd_bus_slot *)handlerCookie);
+    iface_->sd_bus_slot_unref((sd_bus_slot *)handlerCookie);
 }
 
 void Connection::sendReplyAsynchronously(const sdbus::MethodReply& reply)
@@ -186,20 +188,21 @@ void Connection::sendReplyAsynchronously(const sdbus::MethodReply& reply)
 
 std::unique_ptr<sdbus::internal::IConnection> Connection::clone() const
 {
-    return std::make_unique<sdbus::internal::Connection>(busType_);
+    auto interface = std::make_unique<SdBus>();
+    assert(interface != nullptr);
+    return std::make_unique<sdbus::internal::Connection>(busType_, std::move(interface));
 }
 
 sd_bus* Connection::openBus(Connection::BusType type)
 {
-    static std::map<sdbus::internal::Connection::BusType, int(*)(sd_bus **)> busTypeToFactory
-    {
-        {sdbus::internal::Connection::BusType::eSystem, &sd_bus_open_system},
-        {sdbus::internal::Connection::BusType::eSession, &sd_bus_open_user}
-    };
-
     sd_bus* bus{};
-
-    auto r = busTypeToFactory[type](&bus);
+    int r = 0;
+    if (type == BusType::eSystem)
+        r = iface_->sd_bus_open_system(&bus);
+    else if (type == BusType::eSession)
+        r = iface_->sd_bus_open_user(&bus);
+    else
+        assert(false);
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to open bus", -r);
     assert(bus != nullptr);
@@ -215,7 +218,7 @@ void Connection::finishHandshake(sd_bus* bus)
 
     assert(bus != nullptr);
 
-    auto r = sd_bus_flush(bus);
+    auto r = iface_->sd_bus_flush(bus);
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to flush bus on opening", -r);
 }
@@ -263,7 +266,7 @@ bool Connection::processPendingRequest()
 
     assert(bus != nullptr);
 
-    int r = sd_bus_process(bus, nullptr);
+    int r = iface_->sd_bus_process(bus, nullptr);
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to process bus requests", -r);
 
@@ -288,16 +291,16 @@ Connection::WaitResult Connection::waitForNextRequest()
     assert(bus != nullptr);
     assert(notificationFd_ != 0);
 
-    auto r = sd_bus_get_fd(bus);
+    auto r = iface_->sd_bus_get_fd(bus);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus descriptor", -r);
     auto sdbusFd = r;
 
-    r = sd_bus_get_events(bus);
+    r = iface_->sd_bus_get_events(bus);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus events", -r);
     short int sdbusEvents = r;
 
     uint64_t usec;
-    sd_bus_get_timeout(bus, &usec);
+    iface_->sd_bus_get_timeout(bus, &usec);
 
     struct pollfd fds[] = {{sdbusFd, sdbusEvents, 0}, {notificationFd_, POLLIN, 0}};
     auto fdsCount = sizeof(fds)/sizeof(fds[0]);
@@ -356,7 +359,10 @@ std::unique_ptr<sdbus::IConnection> createConnection(const std::string& name)
 
 std::unique_ptr<sdbus::IConnection> createSystemBusConnection()
 {
-    return std::make_unique<sdbus::internal::Connection>(sdbus::internal::Connection::BusType::eSystem);
+    auto interface = std::make_unique<SdBus>();
+    assert(interface != nullptr);
+    return std::make_unique<sdbus::internal::Connection>(sdbus::internal::Connection::BusType::eSystem,
+                                                         std::move(interface));
 }
 
 std::unique_ptr<sdbus::IConnection> createSystemBusConnection(const std::string& name)
@@ -368,7 +374,10 @@ std::unique_ptr<sdbus::IConnection> createSystemBusConnection(const std::string&
 
 std::unique_ptr<sdbus::IConnection> createSessionBusConnection()
 {
-    return std::make_unique<sdbus::internal::Connection>(sdbus::internal::Connection::BusType::eSession);
+    auto interface = std::make_unique<SdBus>();
+    assert(interface != nullptr);
+    return std::make_unique<sdbus::internal::Connection>(sdbus::internal::Connection::BusType::eSession,
+                                                         std::move(interface));
 }
 
 std::unique_ptr<sdbus::IConnection> createSessionBusConnection(const std::string& name)

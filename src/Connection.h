@@ -29,6 +29,8 @@
 #include <sdbus-c++/IConnection.h>
 #include <sdbus-c++/Message.h>
 #include "IConnection.h"
+#include "ISdBus.h"
+
 #include <systemd/sd-bus.h>
 #include <memory>
 #include <thread>
@@ -49,7 +51,7 @@ namespace sdbus { namespace internal {
             eSession
         };
 
-        Connection(BusType type);
+        Connection(BusType type, std::unique_ptr<ISdBus>&& interface);
         ~Connection();
 
         void requestName(const std::string& name) override;
@@ -93,8 +95,8 @@ namespace sdbus { namespace internal {
                 return msgsToProcess || asyncMsgsToProcess;
             }
         };
-        static sd_bus* openBus(Connection::BusType type);
-        static void finishHandshake(sd_bus* bus);
+        sd_bus* openBus(Connection::BusType type);
+        void finishHandshake(sd_bus* bus);
         static int createLoopNotificationDescriptor();
         static void closeLoopNotificationDescriptor(int fd);
         bool processPendingRequest();
@@ -108,7 +110,11 @@ namespace sdbus { namespace internal {
         void joinWithProcessingLoop();
 
     private:
-        std::unique_ptr<sd_bus, decltype(&sd_bus_flush_close_unref)> bus_{nullptr, &sd_bus_flush_close_unref};
+        std::unique_ptr<ISdBus> iface_;
+        std::unique_ptr<sd_bus, std::function<sd_bus*(sd_bus*)>> bus_ {nullptr, [this](sd_bus* bus)
+                                                                                {
+                                                                                    return iface_->sd_bus_flush_close_unref(bus);
+                                                                                }};
         std::thread asyncLoopThread_;
         std::mutex mutex_;
         std::queue<MethodReply> asyncReplies_;

@@ -25,6 +25,7 @@
 
 // Own
 #include "Connection.h"
+#include "SdBus.h"
 
 #include "TestingAdaptor.h"
 #include "TestingProxy.h"
@@ -88,7 +89,8 @@ public:
     std::unique_ptr<TestingProxy> m_proxy;
 };
 
-sdbus::internal::Connection AdaptorAndProxyFixture::m_connection{sdbus::internal::Connection::BusType::eSystem};
+sdbus::internal::Connection AdaptorAndProxyFixture::m_connection{sdbus::internal::Connection::BusType::eSystem,
+                                                                 std::make_unique<SdBus>()};
 
 }
 
