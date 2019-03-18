@@ -151,6 +151,7 @@ int ObjectProxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *u
 {
     MethodReply message(sdbusMessage);
 
+    // We are assuming the ownership of the async reply handler pointer passed here
     std::unique_ptr<async_reply_handler> asyncReplyCallback{static_cast<async_reply_handler*>(userData)};
     assert(asyncReplyCallback != nullptr);
 
