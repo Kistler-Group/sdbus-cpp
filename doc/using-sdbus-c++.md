@@ -753,9 +753,9 @@ Nothing else has to be changed. The registration of the method callback (`implem
 
 Note: Async D-Bus method doesn't necessarily mean we always have to delegate the work to a different thread and immediately return. We can very well execute the work and return the results (via `returnResults()`) or an error (via `return Error()`) synchronously -- i.e. directly in this thread. dbus-c++ doesn't care, it supports both approaches. This has the benefit that we can decide at run-time, per each method call, whether we execute it synchronously or (in case of complex operation, for example) execute it asynchronously by moving the work to a worker thread.
 
-### Marking async methods in the IDL
+### Marking server-side async methods in the IDL
 
-sdbus-c++ stub generator can generate stub code for server-side async methods. We just need to annotate the method with the `annotate` element having the "org.freedesktop.DBus.Method.Async" name. The element value must be either "server" or "clientserver":
+sdbus-c++ stub generator can generate stub code for server-side async methods. We just need to annotate the method with the `annotate` element having the "org.freedesktop.DBus.Method.Async" name. The element value must be either "server" (async method on server-side only) or "clientserver" (async method on both client- and server-side):
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -789,7 +789,7 @@ int main(int argc, char *argv[])
 {
     /* ...  */
     
-    auto callback = [](MethodReply& reply, const Error* error)
+    auto callback = [](MethodReply& reply, const sdbus::Error* error)
     {
         if (error == nullptr) // No error
         {
@@ -825,18 +825,18 @@ int main(int argc, char *argv[])
 }
 ```
 
-The callback is a void-returning function taking two arguments: a reference to the reply message, and a pointer to the prospective Error instance. Zero Error pointer means that no D-Bus error occurred while making the call, and the reply message contains valid reply. Non-zero Error pointer, however, points to the valid Error instance, meaning that an error occurred. Error name and message can then be read out by the client.
+The callback is a void-returning function taking two arguments: a reference to the reply message, and a pointer to the prospective `sdbus::Error` instance. Zero `Error` pointer means that no D-Bus error occurred while making the call, and the reply message contains valid reply. Non-zero `Error` pointer, however, points to the valid `Error` instance, meaning that an error occurred. Error name and message can then be read out by the client from that instance.
 
 ### Convenience API
 
-On the convenience API level, the call statement starts with `callMethodAsync()`, and ends with `uponReplyInvoke()` that takes a callback handler. The callback is a void-returning function that takes at least one argument: pointer to the Error instance. All subsequent arguments shall exactly reflect the D-Bus method output arguments. A concatenator example:
+On the convenience API level, the call statement starts with `callMethodAsync()`, and ends with `uponReplyInvoke()` that takes a callback handler. The callback is a void-returning function that takes at least one argument: pointer to the `sdbus::Error` instance. All subsequent arguments shall exactly reflect the D-Bus method output arguments. A concatenator example:
 
 ```c++
 int main(int argc, char *argv[])
 {
     /* ...  */
     
-    auto callback = [](const Error* error, const std::string& concatenatedString)
+    auto callback = [](const sdbus::Error* error, const std::string& concatenatedString)
     {
         if (error == nullptr) // No error
             std::cout << "Got concatenate result: " << concatenatedString << std::endl;
@@ -862,9 +862,33 @@ int main(int argc, char *argv[])
 }
 ```
 
-Zero Error pointer means that no D-Bus error occurred while making the call, and subsequent arguments are valid D-Bus method return values. Non-zero Error pointer, however, points to the valid Error instance, meaning that an error occurred. Error name and message can then be read out by the client.
+When the `Error` pointer is zero, it means that no D-Bus error occurred while making the call, and subsequent arguments are valid D-Bus method return values. Non-zero `Error` pointer, however, points to the valid `Error` instance, meaning that an error occurred during the call (and subsequent arguments are simply default-constructed). Error name and message can then be read out by the client from `Error` instance. 
 
-TODO: Fix AsyncMethodInvoker's lambda callback so that it checks error* and then creates output arguments.
+### Marking client-side async methods in the IDL
+
+sdbus-c++ stub generator can generate stub code for client-side async methods. We just need to annotate the method with the `annotate` element having the "org.freedesktop.DBus.Method.Async" name. The element value must be either "client" (async on the client-side only) or "clientserver" (async method on both client- and server-side):
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<node name="/org/sdbuscpp/concatenator">
+    <interface name="org.sdbuscpp.Concatenator">
+        <method name="concatenate">
+            <annotation name="org.freedesktop.DBus.Method.Async" value="client" />
+            <arg type="ai" name="numbers" direction="in" />
+            <arg type="s" name="separator" direction="in" />
+            <arg type="s" name="concatenatedString" direction="out" />
+        </method>
+        <signal name="concatenated">
+            <arg type="s" name="concatenatedString" />
+        </signal>
+    </interface>
+</node>
+```
+
+For each client-side async method, a corresponding `on<MethodName>Reply` pure virtual function, where <MethodName> is capitalized D-Bus method name, is generated in the generated proxy class. This function is the callback invoked when the D-Bus method reply arrives, and must be provided a body by overriding it in the implementation class.
+    
+So in the specific example above, the stub generator will generate a `Concatenator_proxy` class similar to one shown in a [dedicated section above](#concatenator-client-glueh), with the difference that it will also generate an additional `virtual void onConcatenateReply(const sdbus::Error* error, const std::string& concatenatedString);` method, which we shall override in derived `ConcatenatorProxy`.
 
 Using D-Bus properties
 ----------------------
