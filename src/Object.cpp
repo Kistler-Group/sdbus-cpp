@@ -252,7 +252,6 @@ int Object::sdbus_method_callback(sd_bus_message *sdbusMessage, void *userData, 
     }
     catch (const sdbus::Error& e)
     {
-        std::cerr << "Server: Caught and returning an error " << e.getName() << std::endl;
         sd_bus_error_set(retError, e.getName().c_str(), e.getMessage().c_str());
     }
 

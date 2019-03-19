@@ -570,26 +570,6 @@ namespace sdbus {
                                  , std::forward<_Tuple>(t)
                                  , std::make_index_sequence<std::tuple_size<std::decay_t<_Tuple>>::value>{} );
     }
-
-    // Invoke a member function (custom version of C++17's invoke until we have full C++17 support)
-    template< typename _Function
-            , typename... _Args
-            , std::enable_if_t<std::is_member_pointer<std::decay_t<_Function>>{}, int> = 0 >
-    constexpr decltype(auto) invoke(_Function&& f, _Args&&... args)
-        noexcept(noexcept(std::mem_fn(f)(std::forward<_Args>(args)...)))
-    {
-        return std::mem_fn(f)(std::forward<_Args>(args)...);
-    }
-
-    // Invoke non-member function (custom version of C++17's invoke until we have full C++17 support)
-    template< typename _Function
-            , typename... _Args
-            , std::enable_if_t<!std::is_member_pointer<std::decay_t<_Function>>{}, int> = 0 >
-    constexpr decltype(auto) invoke(_Function&& f, _Args&&... args)
-        noexcept(noexcept(std::forward<_Function>(f)(std::forward<_Args>(args)...)))
-    {
-        return std::forward<_Function>(f)(std::forward<_Args>(args)...);
-    }
 }
 
 #endif /* SDBUS_CXX_TYPETRAITS_H_ */

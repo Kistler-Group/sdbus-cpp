@@ -183,7 +183,7 @@ sd_bus_slot* Connection::registerSignalHandler( const std::string& objectPath
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to register signal handler", -r);
 
     return slot;
-};
+}
 
 void Connection::unregisterSignalHandler(sd_bus_slot* handlerCookie)
 {
@@ -270,7 +270,6 @@ void Connection::notifyProcessingLoopToExit()
 
     uint64_t value = 1;
     auto r = write(loopExitFd_, &value, sizeof(value));
-    std::cerr << "Wrote to notification fd " << loopExitFd_ << std::endl;
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to notify processing loop", -errno);
 }
 
@@ -318,24 +317,16 @@ bool Connection::waitForNextRequest()
     uint64_t usec;
     iface_->sd_bus_get_timeout(bus, &usec);
 
-    struct pollfd fds[] = {{sdbusFd, sdbusEvents, 0}, {loopExitFd_, POLLIN | POLLHUP | POLLERR | POLLNVAL, 0}};
+    struct pollfd fds[] = {{sdbusFd, sdbusEvents, 0}, {loopExitFd_, POLLIN, 0}};
     auto fdsCount = sizeof(fds)/sizeof(fds[0]);
 
-    std::cerr << "[lt] Going to poll on fs " << sdbusFd << " with events " << sdbusEvents << ", and fs " << loopExitFd_ << " with timeout " << usec << " and fdscount == " << fdsCount << std::endl;
     r = poll(fds, fdsCount, usec == (uint64_t) -1 ? -1 : (usec+999)/1000);
 
     if (r < 0 && errno == EINTR)
-    {
-        std::cerr << "<<<>>>> GOT EINTR" << std::endl;
         return true; // Try again
-    }
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to wait on the bus", -errno);
 
-    if ((fds[1].revents & POLLHUP) || (fds[1].revents & POLLERR) || ((fds[1].revents & POLLNVAL)))
-    {
-        std::cerr << "!!!!!!!!!! Something went wrong on polling" << std::endl;
-    }
     if (fds[1].revents & POLLIN)
     {
         clearExitNotification();

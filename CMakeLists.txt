@@ -13,9 +13,7 @@ include(GNUInstallDirs) # Installation directories for `install` command and pkg
 #-------------------------------
 
 find_package(PkgConfig REQUIRED)
-#pkg_check_modules(SYSTEMD REQUIRED libsystemd>=236)
-
-set(CMAKE_CXX_FLAGS "-O0 -g")
+pkg_check_modules(SYSTEMD REQUIRED libsystemd>=236)
 
 #-------------------------------
 # SOURCE FILES CONFIGURATION
@@ -85,7 +83,7 @@ set(SDBUSCPP_VERSION "${PROJECT_VERSION}")
 # We are building in two steps: first objects, then link them into a library,
 # and that's because we need object files since unit tests link against them.
 add_library(sdbuscppobjects OBJECT ${SDBUSCPP_SRCS})
-#target_include_directories(sdbuscppobjects PUBLIC ${SYSTEMD_INCLUDE_DIRS})
+target_include_directories(sdbuscppobjects PUBLIC ${SYSTEMD_INCLUDE_DIRS})
 target_compile_definitions(sdbuscppobjects PRIVATE BUILDLIB=1)
 set_target_properties(sdbuscppobjects PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
@@ -96,8 +94,9 @@ set_target_properties(sdbus-c++
     VERSION "${SDBUSCPP_VERSION}"
     SOVERSION "${SDBUSCPP_VERSION_MAJOR}"
     OUTPUT_NAME "sdbus-c++")
+# TODO: Remove
 #target_link_libraries(sdbus-c++ -L/home/aeywalee/data/repos/systemd/.libs/ -lsystemd)
-target_link_libraries(sdbus-c++ -lsystemd)
+target_link_libraries(sdbus-c++ ${SYSTEMD_LIBRARIES})
 
 #----------------------------------
 # INSTALLATION

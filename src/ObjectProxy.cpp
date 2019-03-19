@@ -40,6 +40,8 @@ ObjectProxy::ObjectProxy(sdbus::internal::IConnection& connection, std::string d
     , destination_(std::move(destination))
     , objectPath_(std::move(objectPath))
 {
+    // The connection is not ours only, it is managed by the client and we just reference it here,
+    // so we expect the client to manage the event loop upon this connection themselves.
 }
 
 ObjectProxy::ObjectProxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
@@ -52,7 +54,6 @@ ObjectProxy::ObjectProxy( std::unique_ptr<sdbus::internal::IConnection>&& connec
     // The connection is ours only, so we have to manage event loop upon this connection,
     // so we get signals, async replies, and other messages from D-Bus.
     connection_->enterProcessingLoopAsync();
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
 
 MethodCall ObjectProxy::createMethodCall(const std::string& interfaceName, const std::string& methodName)

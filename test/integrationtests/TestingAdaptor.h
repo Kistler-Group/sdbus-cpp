@@ -49,7 +49,7 @@ protected:
 
     int32_t getInt() const { return INT32_VALUE; }
 
-    std::tuple<uint32_t, std::string> getTuple() const { return std::make_tuple(UINT32_VALUE, STRING_VALUE); }
+    std::tuple<uint32_t, std::string> getTuple() const { }
 
     double multiply(const int64_t& a, const double& b) const { return a * b; }
 

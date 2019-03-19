@@ -37,6 +37,7 @@ MethodResult::MethodResult(const MethodCall& msg, sdbus::internal::Object& objec
 void MethodResult::send(const MethodReply& reply) const
 {
     assert(object_ != nullptr);
+    // TODO With ISdBus, reply can be sent directly, no object_ member needed
     object_->sendMethodReply(reply);
 }
 
