@@ -45,13 +45,11 @@ Connection::Connection(Connection::BusType type, std::unique_ptr<ISdBus>&& inter
     finishHandshake(bus);
 
     loopExitFd_ = createProcessingLoopExitDescriptor();
-    //std::cerr << "Created eventfd " << loopExitFd_ << " of " << this << std::endl;
 }
 
 Connection::~Connection()
 {
     leaveProcessingLoop();
-    //std::cerr << "Closing eventfd " << loopExitFd_ << " of " << this << std::endl;
     closeProcessingLoopExitDescriptor(loopExitFd_);
 }
 
