@@ -118,7 +118,7 @@ namespace internal {
             std::vector<sd_bus_vtable> vtable_;
             Flags flags_;
 
-            std::unique_ptr<void, std::function<void(void*)>> slot_;
+            std::unique_ptr<sd_bus_slot, std::function<void(sd_bus_slot*)>> slot_;
         };
 
         static const std::vector<sd_bus_vtable>& createInterfaceVTable(InterfaceData& interfaceData);

@@ -142,7 +142,7 @@ void ObjectProxy::registerSignalHandlers(sdbus::internal::IConnection& connectio
                                                                , &ObjectProxy::sdbus_signal_callback
                                                                , this );
             slot.reset(rawSlotPtr);
-            slot.get_deleter() = [&connection](void *slot){ connection.unregisterSignalHandler(slot); };
+            slot.get_deleter() = [&connection](sd_bus_slot *slot){ connection.unregisterSignalHandler(slot); };
         }
     }
 }

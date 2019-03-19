@@ -52,7 +52,7 @@ namespace sdbus { namespace internal {
         };
 
         Connection(BusType type, std::unique_ptr<ISdBus>&& interface);
-        ~Connection();
+        ~Connection() override;
 
         void requestName(const std::string& name) override;
         void releaseName(const std::string& name) override;
@@ -60,11 +60,11 @@ namespace sdbus { namespace internal {
         void enterProcessingLoopAsync() override;
         void leaveProcessingLoop() override;
 
-        void* addObjectVTable( const std::string& objectPath
-                             , const std::string& interfaceName
-                             , const void* vtable
-                             , void* userData ) override;
-        void removeObjectVTable(void* vtableHandle) override;
+        sd_bus_slot* addObjectVTable( const std::string& objectPath
+                                    , const std::string& interfaceName
+                                    , const sd_bus_vtable* vtable
+                                    , void* userData ) override;
+        void removeObjectVTable(sd_bus_slot* vtableHandle) override;
 
         sdbus::MethodCall createMethodCall( const std::string& destination
                                           , const std::string& objectPath
@@ -74,12 +74,12 @@ namespace sdbus { namespace internal {
                                   , const std::string& interfaceName
                                   , const std::string& signalName ) const override;
 
-        void* registerSignalHandler( const std::string& objectPath
-                                   , const std::string& interfaceName
-                                   , const std::string& signalName
-                                   , sd_bus_message_handler_t callback
-                                   , void* userData ) override;
-        void unregisterSignalHandler(void* handlerCookie) override;
+        sd_bus_slot* registerSignalHandler( const std::string& objectPath
+                                          , const std::string& interfaceName
+                                          , const std::string& signalName
+                                          , sd_bus_message_handler_t callback
+                                          , void* userData ) override;
+        void unregisterSignalHandler(sd_bus_slot* handlerCookie) override;
 
         void sendReplyAsynchronously(const sdbus::MethodReply& reply) override;
 

@@ -50,7 +50,7 @@ namespace internal {
         ObjectProxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
                    , std::string destination
                    , std::string objectPath );
-        ~ObjectProxy();
+        ~ObjectProxy() override;
 
         MethodCall createMethodCall(const std::string& interfaceName, const std::string& methodName) override;
         AsyncMethodCall createAsyncMethodCall(const std::string& interfaceName, const std::string& methodName) override;
@@ -84,7 +84,7 @@ namespace internal {
             struct SignalData
             {
                 signal_handler callback_;
-                std::unique_ptr<void, std::function<void(void*)>> slot_;
+                std::unique_ptr<sd_bus_slot, std::function<void(sd_bus_slot*)>> slot_;
             };
             std::map<SignalName, SignalData> signals_;
         };
