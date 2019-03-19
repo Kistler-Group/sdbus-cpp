@@ -36,8 +36,8 @@
 namespace sdbus { namespace internal {
 
 Connection::Connection(Connection::BusType type, std::unique_ptr<ISdBus>&& interface)
-    : busType_(type),
-      iface_(std::move(interface))
+    : busType_(type)
+    , iface_(std::move(interface))
 {
     auto bus = openBus(busType_);
     bus_.reset(bus);
@@ -92,28 +92,28 @@ void Connection::leaveProcessingLoop()
     joinWithProcessingLoop();
 }
 
-void* Connection::addObjectVTable( const std::string& objectPath
-                                 , const std::string& interfaceName
-                                 , const void* vtable
-                                 , void* userData )
+sd_bus_slot* Connection::addObjectVTable( const std::string& objectPath
+                                        , const std::string& interfaceName
+                                        , const sd_bus_vtable* vtable
+                                        , void* userData )
 {
     sd_bus_slot *slot{};
 
     auto r = iface_->sd_bus_add_object_vtable( bus_.get()
-                                     , &slot
-                                     , objectPath.c_str()
-                                     , interfaceName.c_str()
-                                     , static_cast<const sd_bus_vtable*>(vtable)
-                                     , userData );
+                                             , &slot
+                                             , objectPath.c_str()
+                                             , interfaceName.c_str()
+                                             , vtable
+                                             , userData );
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to register object vtable", -r);
 
     return slot;
 }
 
-void Connection::removeObjectVTable(void* vtableHandle)
+void Connection::removeObjectVTable(sd_bus_slot* vtableHandle)
 {
-    iface_->sd_bus_slot_unref((sd_bus_slot *)vtableHandle);
+    iface_->sd_bus_slot_unref(vtableHandle);
 }
 
 sdbus::MethodCall Connection::createMethodCall( const std::string& destination
@@ -127,11 +127,11 @@ sdbus::MethodCall Connection::createMethodCall( const std::string& destination
     SCOPE_EXIT{ iface_->sd_bus_message_unref(sdbusMsg); };
 
     auto r = iface_->sd_bus_message_new_method_call( bus_.get()
-                                           , &sdbusMsg
-                                           , destination.c_str()
-                                           , objectPath.c_str()
-                                           , interfaceName.c_str()
-                                           , methodName.c_str() );
+                                                   , &sdbusMsg
+                                                   , destination.c_str()
+                                                   , objectPath.c_str()
+                                                   , interfaceName.c_str()
+                                                   , methodName.c_str() );
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create method call", -r);
 
@@ -145,24 +145,24 @@ sdbus::Signal Connection::createSignal( const std::string& objectPath
     sd_bus_message *sdbusSignal{};
 
     // Returned message will become an owner of sdbusSignal
-    SCOPE_EXIT{ sd_bus_message_unref(sdbusSignal); };
+    SCOPE_EXIT{ iface_->sd_bus_message_unref(sdbusSignal); };
 
     auto r = iface_->sd_bus_message_new_signal( bus_.get()
-                                      , &sdbusSignal
-                                      , objectPath.c_str()
-                                      , interfaceName.c_str()
-                                      , signalName.c_str() );
+                                              , &sdbusSignal
+                                              , objectPath.c_str()
+                                              , interfaceName.c_str()
+                                              , signalName.c_str() );
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create signal", -r);
 
     return Signal(sdbusSignal);
 }
 
-void* Connection::registerSignalHandler( const std::string& objectPath
-                                       , const std::string& interfaceName
-                                       , const std::string& signalName
-                                       , sd_bus_message_handler_t callback
-                                       , void* userData )
+sd_bus_slot* Connection::registerSignalHandler( const std::string& objectPath
+                                              , const std::string& interfaceName
+                                              , const std::string& signalName
+                                              , sd_bus_message_handler_t callback
+                                              , void* userData )
 {
     sd_bus_slot *slot{};
 
@@ -174,9 +174,9 @@ void* Connection::registerSignalHandler( const std::string& objectPath
     return slot;
 }
 
-void Connection::unregisterSignalHandler(void* handlerCookie)
+void Connection::unregisterSignalHandler(sd_bus_slot* handlerCookie)
 {
-    iface_->sd_bus_slot_unref((sd_bus_slot *)handlerCookie);
+    iface_->sd_bus_slot_unref(handlerCookie);
 }
 
 void Connection::sendReplyAsynchronously(const sdbus::MethodReply& reply)
