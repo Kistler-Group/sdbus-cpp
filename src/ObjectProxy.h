@@ -80,7 +80,7 @@ namespace internal {
             struct SignalData
             {
                 signal_handler callback_;
-                std::unique_ptr<void, std::function<void(void*)>> slot_;
+                std::unique_ptr<sd_bus_slot, std::function<void(sd_bus_slot*)>> slot_;
             };
             std::map<SignalName, SignalData> signals_;
         };

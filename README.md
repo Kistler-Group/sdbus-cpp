@@ -38,6 +38,7 @@ References/documentation
 * [D-Bus Specification](https://dbus.freedesktop.org/doc/dbus-specification.html)
 * [sd-bus Overview](http://0pointer.net/blog/the-new-sd-bus-api-of-systemd.html)
 * [Tutorial: Using sdbus-c++](doc/using-sdbus-c++.md)
+* [Systemd and dbus configuration](doc/systemd-dbus-config.md)
 
 Contributing
 ------------

@@ -520,8 +520,9 @@ namespace sdbus {
             // as a storage for the argument values deserialized from the message.
             tuple_of_function_input_arg_types_t<_Function> args;
 
-            // Deserialize input arguments from the message into the tuple.
-            reply >> args;
+            // Deserialize input arguments from the message into the tuple (if no error occurred).
+            if (error == nullptr)
+                reply >> args;
 
             // Invoke callback with input arguments from the tuple.
             sdbus::apply(callback, error, args); // TODO: Use std::apply when switching to full C++17 support

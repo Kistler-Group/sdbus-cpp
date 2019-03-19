@@ -284,7 +284,11 @@ namespace sdbus {
     * @return Pointer to the object proxy instance
     *
     * The provided connection will be used by the proxy to issue calls against the object,
-    * and signals, if any, will be subscribed to on this connection.
+    * and signals, if any, will be subscribed to on this connection. Since the caller still
+    * remains the owner of the connection (the proxy just keeps reference to it) after the call,
+    * the proxy will not start its own background processing loop for incoming signals (if any),
+    * as it will rely on the client as an owner of the connection to handle processing of
+    * incoming messages on that connection by themselves.
     *
     * Code example:
     * @code
@@ -305,7 +309,10 @@ namespace sdbus {
     *
     * The provided connection will be used by the proxy to issue calls against the object,
     * and signals, if any, will be subscribed to on this connection. Object proxy becomes
-    * an exclusive owner of this connection.
+    * an exclusive owner of this connection. The effect of this is that when there is at
+    * least one signal in proxy's interface, then the proxy will immediately start its own
+    * processing loop for this connection in a separate internal thread, causing incoming
+    * signals to be correctly received and processed in the context of that internal thread.
     *
     * Code example:
     * @code
@@ -324,6 +331,9 @@ namespace sdbus {
     * @return Pointer to the object proxy instance
     *
     * This factory overload creates a proxy that manages its own D-Bus connection(s).
+    * When there is at least one signal in proxy's interface, then the proxy will immediately
+    * start its own processing loop for this connection in its own separate thread, causing
+    * incoming signals to be correctly received and processed in the context of that thread.
     *
     * Code example:
     * @code

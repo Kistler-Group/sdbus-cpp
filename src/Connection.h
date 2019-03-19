@@ -30,6 +30,7 @@
 #include <sdbus-c++/Message.h>
 #include "IConnection.h"
 #include "ScopeGuard.h"
+#include "ISdBus.h"
 #include <systemd/sd-bus.h>
 #include <memory>
 #include <thread>
@@ -48,7 +49,7 @@ namespace sdbus { namespace internal {
             eSession
         };
 
-        Connection(BusType type);
+        Connection(BusType type, std::unique_ptr<ISdBus>&& interface);
         ~Connection() override;
 
         void requestName(const std::string& name) override;
@@ -57,11 +58,11 @@ namespace sdbus { namespace internal {
         void enterProcessingLoopAsync() override;
         void leaveProcessingLoop() override;
 
-        void* addObjectVTable( const std::string& objectPath
-                             , const std::string& interfaceName
-                             , const void* vtable
-                             , void* userData ) override;
-        void removeObjectVTable(void* vtableHandle) override;
+        sd_bus_slot* addObjectVTable( const std::string& objectPath
+                                    , const std::string& interfaceName
+                                    , const sd_bus_vtable* vtable
+                                    , void* userData ) override;
+        void removeObjectVTable(sd_bus_slot* vtableHandle) override;
 
         MethodCall createMethodCall( const std::string& destination
                                    , const std::string& objectPath
@@ -71,12 +72,12 @@ namespace sdbus { namespace internal {
                            , const std::string& interfaceName
                            , const std::string& signalName ) const override;
 
-        void* registerSignalHandler( const std::string& objectPath
-                                   , const std::string& interfaceName
-                                   , const std::string& signalName
-                                   , sd_bus_message_handler_t callback
-                                   , void* userData ) override;
-        void unregisterSignalHandler(void* handlerCookie) override;
+        sd_bus_slot* registerSignalHandler( const std::string& objectPath
+                                          , const std::string& interfaceName
+                                          , const std::string& signalName
+                                          , sd_bus_message_handler_t callback
+                                          , void* userData ) override;
+        void unregisterSignalHandler(sd_bus_slot* handlerCookie) override;
 
         MethodReply callMethod(const MethodCall& message) override;
         void callMethod(const AsyncMethodCall& message, void* callback, void* userData) override;
@@ -84,8 +85,8 @@ namespace sdbus { namespace internal {
         void emitSignal(const Signal& message) override;
 
     private:
-        static sd_bus* openBus(Connection::BusType type);
-        static void finishHandshake(sd_bus* bus);
+        sd_bus* openBus(Connection::BusType type);
+        void finishHandshake(sd_bus* bus);
         static int createProcessingLoopExitDescriptor();
         static void closeProcessingLoopExitDescriptor(int fd);
         bool processPendingRequest();
@@ -97,23 +98,14 @@ namespace sdbus { namespace internal {
         void clearExitNotification();
         void joinWithProcessingLoop();
 
-        // TODO move this and threading logic and method around it to separate class?
-        /*
-        template <typename _Callable, typename... _Args, std::enable_if_t<std::is_void<function_result_t<_Callable>>::value, int> = 0>
-        inline auto tryExecuteSync(_Callable&& fnc, const _Args&... args);
-        template <typename _Callable, typename... _Args, std::enable_if_t<!std::is_void<function_result_t<_Callable>>::value, int> = 0>
-        inline auto tryExecuteSync(_Callable&& fnc, const _Args&... args);
-        template <typename _Callable, typename... _Args, std::enable_if_t<std::is_void<function_result_t<_Callable>>::value, int> = 0>
-        inline void executeAsync(_Callable&& fnc, const _Args&... args);
-        template <typename _Callable, typename... _Args, std::enable_if_t<!std::is_void<function_result_t<_Callable>>::value, int> = 0>
-        inline auto executeAsync(_Callable&& fnc, const _Args&... args);
-        template <typename _Callable, typename... _Args>
-        inline void executeAsyncAndDontWaitForResult(_Callable&& fnc, const _Args&... args);
-        */
-
     private:
-        std::unique_ptr<sd_bus, decltype(&sd_bus_flush_close_unref)> bus_{nullptr, &sd_bus_flush_close_unref};
+        std::unique_ptr<ISdBus> iface_;
+        std::unique_ptr<sd_bus, std::function<sd_bus*(sd_bus*)>> bus_ {nullptr, [this](sd_bus* bus)
+                                                                                {
+                                                                                    return iface_->sd_bus_flush_close_unref(bus);
+                                                                                }};
         BusType busType_;
+        // TODO This will be moved to ISdBus
         std::recursive_mutex busMutex_;
 
         std::thread asyncLoopThread_;

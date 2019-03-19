@@ -25,6 +25,7 @@
 
 // Own
 #include "Connection.h"
+#include "SdBus.h"
 
 #include "TestingAdaptor.h"
 #include "TestingProxy.h"
@@ -91,7 +92,8 @@ public:
     std::unique_ptr<TestingProxy> m_proxy;
 };
 
-sdbus::internal::Connection AdaptorAndProxyFixture::m_connection{sdbus::internal::Connection::BusType::eSystem};
+sdbus::internal::Connection AdaptorAndProxyFixture::m_connection{sdbus::internal::Connection::BusType::eSystem,
+                                                                 std::make_unique<SdBus>()};
 //sdbus::internal::Connection AdaptorAndProxyFixture::m_connection2{sdbus::internal::Connection::BusType::eSystem};
 
 }
@@ -100,16 +102,16 @@ sdbus::internal::Connection AdaptorAndProxyFixture::m_connection{sdbus::internal
 /* --          TEST CASES           -- */
 /*-------------------------------------*/
 
-//TEST(AdaptorAndProxy, CanBeConstructedSuccesfully)
-//{
-//    auto connection = sdbus::createConnection();
-//    connection->requestName(INTERFACE_NAME);
+TEST(AdaptorAndProxy, CanBeConstructedSuccesfully)
+{
+    auto connection = sdbus::createConnection();
+    connection->requestName(INTERFACE_NAME);
 
-//    ASSERT_NO_THROW(TestingAdaptor adaptor(*connection));
-//    ASSERT_NO_THROW(TestingProxy proxy(INTERFACE_NAME, OBJECT_PATH));
+    ASSERT_NO_THROW(TestingAdaptor adaptor(*connection));
+    ASSERT_NO_THROW(TestingProxy proxy(INTERFACE_NAME, OBJECT_PATH));
 
-//    connection->releaseName(INTERFACE_NAME);
-//}
+    connection->releaseName(INTERFACE_NAME);
+}
 
 // Methods
 

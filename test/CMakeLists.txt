@@ -36,7 +36,8 @@ set(UNITTESTS_SRCS
     ${UNITTESTS_SOURCE_DIR}/libsdbus-c++_unittests.cpp
     ${UNITTESTS_SOURCE_DIR}/Message_test.cpp
     ${UNITTESTS_SOURCE_DIR}/Types_test.cpp
-    ${UNITTESTS_SOURCE_DIR}/TypeTraits_test.cpp)
+    ${UNITTESTS_SOURCE_DIR}/TypeTraits_test.cpp
+    ${UNITTESTS_SOURCE_DIR}/Connection_test.cpp)
 
 set(INTEGRATIONTESTS_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/integrationtests)
 set(INTEGRATIONTESTS_SRCS
@@ -70,7 +71,7 @@ add_executable(libsdbus-c++_integrationtests ${INTEGRATIONTESTS_SRCS})
 target_link_libraries(libsdbus-c++_integrationtests sdbus-c++ gmock gmock_main)
 
 # Manual performance tests
-option(ENABLE_PERFTESTS "Build and install manual performance tests (default ON)" ON)
+option(ENABLE_PERFTESTS "Build and install manual performance tests (default OFF)" OFF)
 if(ENABLE_PERFTESTS)
     add_executable(libsdbus-c++_perftests_client perftests/client.cpp perftests/perftest-proxy.h)
     target_link_libraries(libsdbus-c++_perftests_client sdbus-c++)

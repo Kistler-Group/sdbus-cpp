@@ -44,11 +44,11 @@ namespace internal {
     class IConnection
     {
     public:
-        virtual void* addObjectVTable( const std::string& objectPath
-                                     , const std::string& interfaceName
-                                     , const void* vtable
-                                     , void* userData ) = 0;
-        virtual void removeObjectVTable(void* vtableHandle) = 0;
+        virtual sd_bus_slot* addObjectVTable( const std::string& objectPath
+                                            , const std::string& interfaceName
+                                            , const sd_bus_vtable* vtable
+                                            , void* userData ) = 0;
+        virtual void removeObjectVTable(sd_bus_slot* vtableHandle) = 0;
 
         virtual MethodCall createMethodCall( const std::string& destination
                                            , const std::string& objectPath
@@ -59,12 +59,12 @@ namespace internal {
                                    , const std::string& interfaceName
                                    , const std::string& signalName ) const = 0;
 
-        virtual void* registerSignalHandler( const std::string& objectPath
-                                           , const std::string& interfaceName
-                                           , const std::string& signalName
-                                           , sd_bus_message_handler_t callback
-                                           , void* userData ) = 0;
-        virtual void unregisterSignalHandler(void* handlerCookie) = 0;
+        virtual sd_bus_slot* registerSignalHandler( const std::string& objectPath
+                                                  , const std::string& interfaceName
+                                                  , const std::string& signalName
+                                                  , sd_bus_message_handler_t callback
+                                                  , void* userData ) = 0;
+        virtual void unregisterSignalHandler(sd_bus_slot* handlerCookie) = 0;
 
         virtual void enterProcessingLoopAsync() = 0;
         virtual void leaveProcessingLoop() = 0;

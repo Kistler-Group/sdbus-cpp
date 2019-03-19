@@ -13,8 +13,9 @@ Using sdbus-c++ library
 8. [Implementing the Concatenator example using convenience sdbus-c++ API layer](#implementing-the-concatenator-example-using-convenience-sdbus-c-api-layer)
 9. [Implementing the Concatenator example using sdbus-c++-generated stubs](#implementing-the-concatenator-example-using-sdbus-c-generated-stubs)
 10. [Asynchronous server-side methods](#asynchronous-server-side-methods)
-11. [Using D-Bus properties](#using-d-bus-properties)
-12. [Conclusion](#conclusion)
+11. [Asynchronous client-side methods](#asynchronous-client-side-methods)
+12. [Using D-Bus properties](#using-d-bus-properties)
+13. [Conclusion](#conclusion)
 
 Introduction
 ------------
@@ -256,9 +257,15 @@ int main(int argc, char *argv[])
 }
 ```
 
-The object proxy can be created by either explicitly passing the connection object to it, or without the connection object. In the former case, we have the freedom of creating our own connection (to either system bus or to session bus) and then we can just move that connection object as the first argument of the proxy factory. The latter option is more convenient (no messing with connection for proxy), the proxy will create and manage its own connection, but the limitation is that it will be the connection to the **system** bus only.
+### Proxy and D-Bus connection
 
-If there are callbacks for signals, proxy will start listening to the signals upon the connection in a separate thread. That means the `onConcatenated` method is invoked always in the context of a thread different from the main thread.
+There are three ways of creating the object proxy -- three overloads of `sdbus::createObjectProxy`. They differ from each other as to how the proxy towards the connection will behave upon creation:
+
+* One that takes no connection as a parameter. This one is for convenience -- if you have a simple application and don't want to bother with connections, call this one. Internally, it will create a connection object, and it will be a *system* bus connection. The proxy will immediately create an internal thread and start a processing loop upon the clone of this connection in this thread as long as there is at least one signal registered, so the signals are correctly received and the callbacks are handled from within this internal thread. If there is no signal, i.e. the proxy just provides methods and/or properties, no connection clone is made, no thread is created and no processing loop is started -- you don't pay for what you don't use.
+
+* One that takes the connection as an **rvalue unique_ptr**. This one behaves the same as the above one, just that you must create the connection by yourself, and then `std::move` the ownership of it to the proxy. This comes with a flexibility that you can choose connection type (system, session).
+
+* One that takes the connection as an **lvalue reference**. This one behaves differently. You as a client are the owner of the connection, you take full control of it. The proxy just references the connection. This means the proxy does no async processing on it even when there are signals. It relies on you to manage the processing loop yourself (if you need it for signals).
 
 Implementing the Concatenator example using convenience sdbus-c++ API layer
 ---------------------------------------------------------------------------
@@ -630,6 +637,8 @@ protected:
 
 In the above example, a proxy is created that creates and maintains its own system bus connection. However, there are `ProxyInterfaces` class template constructor overloads that also take the connection from the user as the first parameter, and pass that connection over to the underlying proxy. The connection instance is used for all D-Bus proxy interfaces listed in the `ProxyInterfaces` template parameter list.
 
+Note however that there are multiple `ProxyInterfaces` constructor overloads, and they differ in how the proxy behaves towards the D-Bus connection. These overloads precisely map the `sdbus::createObjectProxy` overloads, as they are actually implemented on top of them. See [Proxy and D-Bus connection](#Proxy-and-D-Bus-connection) for more info.
+
 Now let's use this proxy to make remote calls and listen to signals in a real application.
 
 ```cpp
@@ -671,7 +680,7 @@ int main(int argc, char *argv[])
 Asynchronous server-side methods
 --------------------------------
 
-So far in our tutorial, we have only considered simple server methods that are executed in a synchronous way. Sometimes the method call may take longer, however, and we don't want to block (potentially starve) other clients (whose requests may take relative short time). The solution is to execute the D-Bus methods asynchronously. How physically is that done is up to the server design (e.g. thread pool), but sdbus-c++ provides API supporting async methods.
+So far in our tutorial, we have only considered simple server methods that are executed in a synchronous way. Sometimes the method call may take longer, however, and we don't want to block (potentially starve) other clients (whose requests may take relative short time). The solution is to execute the D-Bus methods asynchronously, and return the control quickly back to the D-Bus dispatching thread. sdbus-c++ provides API supporting async methods, and gives users the freedom to come up with their own concrete implementation mechanics (one worker thread? thread pool? ...).
 
 ### Lower-level API
 
@@ -728,8 +737,6 @@ Notice these differences as compared to the synchronous version:
 
 That's all.
 
-Note: We can use the concept of asynchronous D-Bus methods in both the synchronous and asynchronous way. Whether we return the results directly in the callback in the synchronous way, or we pass the arguments and the result holder to a different thread, and compute and set the results in there, is irrelevant to sdbus-c++. This has the benefit that we can decide at run-time, per each method call, whether we execute it synchronously or (perhaps in case of complex operation) execute it asynchronously to e.g. a thread pool.
-
 ### Convenience API
 
 Method callbacks in convenience sdbus-c++ API also need to take the result object as a parameter. The requirements are:
@@ -740,13 +747,15 @@ Method callbacks in convenience sdbus-c++ API also need to take the result objec
 
 For example, we would have to change the concatenate callback signature from `std::string concatenate(const std::vector<int32_t>& numbers, const std::string& separator)` to `void concatenate(sdbus::Result<std::string> result, const std::vector<int32_t>& numbers, const std::string& separator)`.
 
-`sdbus::Result` class template has effectively the same API as `sdbus::MethodResult` class from above example (it inherits from MethodResult), so you use it in the very same way to send the results or an error back to the client.
+`sdbus::Result` class template has effectively the same API as `sdbus::MethodResult` class mentioned in the above example (it inherits from `MethodResult`), so you use it in the very same way to send the results or an error back to the client.
 
 Nothing else has to be changed. The registration of the method callback (`implementedAs`) and all the mechanics around remains completely the same.
 
-### Marking async methods in the IDL
+Note: Async D-Bus method doesn't necessarily mean we always have to delegate the work to a different thread and immediately return. We can very well execute the work and return the results (via `returnResults()`) or an error (via `return Error()`) synchronously -- i.e. directly in this thread. dbus-c++ doesn't care, it supports both approaches. This has the benefit that we can decide at run-time, per each method call, whether we execute it synchronously or (in case of complex operation, for example) execute it asynchronously by moving the work to a worker thread.
 
-sdbus-c++ stub generator can generate stub code for server-side async methods. We just need to annotate the method with the `annotate` element having the "org.freedesktop.DBus.Method.Async" name, like so:
+### Marking server-side async methods in the IDL
+
+sdbus-c++ stub generator can generate stub code for server-side async methods. We just need to annotate the method with the `annotate` element having the "org.freedesktop.DBus.Method.Async" name. The element value must be either "server" (async method on server-side only) or "clientserver" (async method on both client- and server-side):
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -765,6 +774,121 @@ sdbus-c++ stub generator can generate stub code for server-side async methods. W
     </interface>
 </node>
 ```
+
+Asynchronous client-side methods
+--------------------------------
+
+sdbus-c++ also supports asynchronous approach at the client (the proxy) side. With this approach, we can issue a D-Bus method call without blocking current thread's execution while waiting for the reply. We go on doing other things, and when the reply comes, a given callback is invoked within the context of the D-Bus dispatcher thread.
+
+### Lower-level API
+
+Considering the Concatenator example based on lower-level API, if we wanted to call `concatenate` in an async way, we'd have to pass a callback to the proxy when issuing the call, and that callback gets invoked when the reply arrives:
+
+```c++
+int main(int argc, char *argv[])
+{
+    /* ...  */
+    
+    auto callback = [](MethodReply& reply, const sdbus::Error* error)
+    {
+        if (error == nullptr) // No error
+        {
+            std::string result;
+            reply >> result;
+            std::cout << "Got concatenate result: " << result << std::endl;
+        }
+        else // We got a D-Bus error...
+        {
+            std::cerr << "Got concatenate error " << error->getName() << " with message " << error->getMessage() << std::endl;
+        }
+    }
+
+    // Invoke concatenate on given interface of the object
+    {
+        auto method = concatenatorProxy->createMethodCall(interfaceName, "concatenate");
+        method << numbers << separator;
+        concatenatorProxy->callMethod(method, callback);
+        // When the reply comes, we shall get "Got concatenate result 1:2:3" on the standard output
+    }
+    
+    // Invoke concatenate again, this time with no numbers and we shall get an error
+    {
+        auto method = concatenatorProxy->createMethodCall(interfaceName, "concatenate");
+        method << std::vector<int>() << separator;
+        concatenatorProxy->callMethod(method, callback);
+        // When the reply comes, we shall get concatenation error message on the standard error output
+    }
+
+    /* ... */
+
+    return 0;
+}
+```
+
+The callback is a void-returning function taking two arguments: a reference to the reply message, and a pointer to the prospective `sdbus::Error` instance. Zero `Error` pointer means that no D-Bus error occurred while making the call, and the reply message contains valid reply. Non-zero `Error` pointer, however, points to the valid `Error` instance, meaning that an error occurred. Error name and message can then be read out by the client from that instance.
+
+### Convenience API
+
+On the convenience API level, the call statement starts with `callMethodAsync()`, and ends with `uponReplyInvoke()` that takes a callback handler. The callback is a void-returning function that takes at least one argument: pointer to the `sdbus::Error` instance. All subsequent arguments shall exactly reflect the D-Bus method output arguments. A concatenator example:
+
+```c++
+int main(int argc, char *argv[])
+{
+    /* ...  */
+    
+    auto callback = [](const sdbus::Error* error, const std::string& concatenatedString)
+    {
+        if (error == nullptr) // No error
+            std::cout << "Got concatenate result: " << concatenatedString << std::endl;
+        else // We got a D-Bus error...
+            std::cerr << "Got concatenate error " << error->getName() << " with message " << error->getMessage() << std::endl;
+    }
+
+    // Invoke concatenate on given interface of the object
+    {
+        concatenatorProxy->callMethodAsync("concatenate").onInterface(interfaceName).withArguments(numbers, separator).uponReplyInvoke(callback);
+        // When the reply comes, we shall get "Got concatenate result 1:2:3" on the standard output
+    }
+
+    // Invoke concatenate again, this time with no numbers and we shall get an error
+    {
+        concatenatorProxy->callMethodAsync("concatenate").onInterface(interfaceName).withArguments(std::vector<int>{}, separator).uponReplyInvoke(callback);
+        // When the reply comes, we shall get concatenation error message on the standard error output
+    }
+
+    /* ... */
+
+    return 0;
+}
+```
+
+When the `Error` pointer is zero, it means that no D-Bus error occurred while making the call, and subsequent arguments are valid D-Bus method return values. Non-zero `Error` pointer, however, points to the valid `Error` instance, meaning that an error occurred during the call (and subsequent arguments are simply default-constructed). Error name and message can then be read out by the client from `Error` instance. 
+
+### Marking client-side async methods in the IDL
+
+sdbus-c++ stub generator can generate stub code for client-side async methods. We just need to annotate the method with the `annotate` element having the "org.freedesktop.DBus.Method.Async" name. The element value must be either "client" (async on the client-side only) or "clientserver" (async method on both client- and server-side):
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<node name="/org/sdbuscpp/concatenator">
+    <interface name="org.sdbuscpp.Concatenator">
+        <method name="concatenate">
+            <annotation name="org.freedesktop.DBus.Method.Async" value="client" />
+            <arg type="ai" name="numbers" direction="in" />
+            <arg type="s" name="separator" direction="in" />
+            <arg type="s" name="concatenatedString" direction="out" />
+        </method>
+        <signal name="concatenated">
+            <arg type="s" name="concatenatedString" />
+        </signal>
+    </interface>
+</node>
+```
+
+For each client-side async method, a corresponding `on<MethodName>Reply` pure virtual function, where <MethodName> is capitalized D-Bus method name, is generated in the generated proxy class. This function is the callback invoked when the D-Bus method reply arrives, and must be provided a body by overriding it in the implementation class.
+    
+So in the specific example above, the stub generator will generate a `Concatenator_proxy` class similar to one shown in a [dedicated section above](#concatenator-client-glueh), with the difference that it will also generate an additional `virtual void onConcatenateReply(const sdbus::Error* error, const std::string& concatenatedString);` method, which we shall override in derived `ConcatenatorProxy`.
 
 Using D-Bus properties
 ----------------------

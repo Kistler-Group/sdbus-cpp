@@ -116,7 +116,7 @@ void ObjectProxy::registerSignalHandlers(sdbus::internal::IConnection& connectio
                                                                , &ObjectProxy::sdbus_signal_callback
                                                                , this );
             slot.reset(rawSlotPtr);
-            slot.get_deleter() = [&connection](void *slot){ connection.unregisterSignalHandler(slot); };
+            slot.get_deleter() = [&connection](sd_bus_slot *slot){ connection.unregisterSignalHandler(slot); };
         }
     }
 }
@@ -125,6 +125,7 @@ int ObjectProxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *u
 {
     MethodReply message(sdbusMessage);
 
+    // We are assuming the ownership of the async reply handler pointer passed here
     std::unique_ptr<async_reply_handler> asyncReplyCallback{static_cast<async_reply_handler*>(userData)};
     assert(asyncReplyCallback != nullptr);
 

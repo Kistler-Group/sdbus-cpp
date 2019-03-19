@@ -4,7 +4,7 @@
 
 cmake_minimum_required(VERSION 3.8)
 
-project(sdbus-c++ VERSION 0.4.1 LANGUAGES C CXX)
+project(sdbus-c++ VERSION 0.4.2 LANGUAGES C CXX)
 
 include(GNUInstallDirs) # Installation directories for `install` command and pkgconfig file
 
@@ -35,7 +35,8 @@ set(SDBUSCPP_CPP_SRCS
     ${SDBUSCPP_SOURCE_DIR}/ObjectProxy.cpp
     ${SDBUSCPP_SOURCE_DIR}/Types.cpp
     ${SDBUSCPP_SOURCE_DIR}/Flags.cpp
-    ${SDBUSCPP_SOURCE_DIR}/VTableUtils.c)
+    ${SDBUSCPP_SOURCE_DIR}/VTableUtils.c
+    ${SDBUSCPP_SOURCE_DIR}/SdBus.cpp)
 
 set(SDBUSCPP_HDR_SRCS
     ${SDBUSCPP_SOURCE_DIR}/Connection.h
@@ -44,7 +45,9 @@ set(SDBUSCPP_HDR_SRCS
     ${SDBUSCPP_SOURCE_DIR}/Object.h
     ${SDBUSCPP_SOURCE_DIR}/ObjectProxy.h
     ${SDBUSCPP_SOURCE_DIR}/ScopeGuard.h
-    ${SDBUSCPP_SOURCE_DIR}/VTableUtils.h)
+    ${SDBUSCPP_SOURCE_DIR}/VTableUtils.h
+    ${SDBUSCPP_SOURCE_DIR}/SdBus.h
+    ${SDBUSCPP_SOURCE_DIR}/ISdBus.h)
 
 set(SDBUSCPP_PUBLIC_HDRS
     ${SDBUSCPP_INCLUDE_DIR}/ConvenienceClasses.h
@@ -137,12 +140,15 @@ endif()
 # CMAKE CONFIG & PACKAGE CONFIG
 #----------------------------------
 
+include(CMakePackageConfigHelpers)
 set(SDBUSCPP_CONFIG_INSTALL_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/sdbus-c++)
 
 configure_file(sdbus-c++-config.cmake.in sdbus-c++-config.cmake @ONLY)
 install(FILES ${CMAKE_BINARY_DIR}/sdbus-c++-config.cmake DESTINATION ${SDBUSCPP_CONFIG_INSTALL_DIR} COMPONENT dev)
 
-configure_file(sdbus-c++-config-version.cmake.in sdbus-c++-config-version.cmake @ONLY)
+write_basic_package_version_file(sdbus-c++-config-version.cmake
+        VERSION ${PROJECT_VERSION}
+        COMPATIBILITY AnyNewerVersion)
 install(FILES ${CMAKE_BINARY_DIR}/sdbus-c++-config-version.cmake DESTINATION ${SDBUSCPP_CONFIG_INSTALL_DIR} COMPONENT dev)
 
 configure_file(sdbus-c++.pc.in sdbus-c++.pc @ONLY)

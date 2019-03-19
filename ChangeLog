@@ -41,3 +41,8 @@ v0.4.0
 
 v0.4.1
 - Change constexpr member into a getter method to be compatible across odr-usage rules of various compiler versions
+
+v0.4.2
+- Improve documentation
+- Minor code improvements
+- Introduce sdbus-c++ performance tests with measurements

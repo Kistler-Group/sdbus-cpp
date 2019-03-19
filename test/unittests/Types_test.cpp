@@ -212,3 +212,31 @@ TEST(AStruct, CreatesStructFromTuple)
     ASSERT_THAT(std::get<0>(valueStruct), Eq(std::get<0>(value)));
     ASSERT_THAT(std::get<1>(valueStruct), Eq(std::get<1>(value)));
 }
+
+TEST(AnObjectPath, CanBeConstructedFromCString)
+{
+    const char* aPath = "/some/path";
+
+    ASSERT_THAT(sdbus::ObjectPath{aPath}, Eq(aPath));
+}
+
+TEST(AnObjectPath, CanBeConstructedFromStdString)
+{
+    std::string aPath{"/some/path"};
+
+    ASSERT_THAT(sdbus::ObjectPath{aPath}, Eq(aPath));
+}
+
+TEST(ASignature, CanBeConstructedFromCString)
+{
+    const char* aSignature = "us";
+
+    ASSERT_THAT(sdbus::Signature{aSignature}, Eq(aSignature));
+}
+
+TEST(ASignature, CanBeConstructedFromStdString)
+{
+    std::string aSignature{"us"};
+
+    ASSERT_THAT(sdbus::Signature{aSignature}, Eq(aSignature));
+}
