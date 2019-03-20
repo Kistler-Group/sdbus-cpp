@@ -31,7 +31,7 @@
 
 #include <gmock/gmock.h>
 
-class SdBusMock : public ISdBus
+class SdBusMock : public sdbus::internal::ISdBus
 {
 public:
     MOCK_METHOD3(sd_bus_request_name, int(sd_bus *bus, const char *name, uint64_t flags));

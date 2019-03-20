@@ -359,7 +359,7 @@ std::unique_ptr<sdbus::IConnection> createConnection(const std::string& name)
 
 std::unique_ptr<sdbus::IConnection> createSystemBusConnection()
 {
-    auto interface = std::make_unique<SdBus>();
+    auto interface = std::make_unique<sdbus::internal::SdBus>();
     assert(interface != nullptr);
     return std::make_unique<sdbus::internal::Connection>(sdbus::internal::Connection::BusType::eSystem,
                                                          std::move(interface));
@@ -374,7 +374,7 @@ std::unique_ptr<sdbus::IConnection> createSystemBusConnection(const std::string&
 
 std::unique_ptr<sdbus::IConnection> createSessionBusConnection()
 {
-    auto interface = std::make_unique<SdBus>();
+    auto interface = std::make_unique<sdbus::internal::SdBus>();
     assert(interface != nullptr);
     return std::make_unique<sdbus::internal::Connection>(sdbus::internal::Connection::BusType::eSession,
                                                          std::move(interface));

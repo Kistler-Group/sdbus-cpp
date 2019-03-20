@@ -26,6 +26,8 @@
 
 #include "SdBus.h"
 
+namespace sdbus { namespace internal {
+
 int SdBus::sd_bus_request_name(sd_bus *bus, const char *name, uint64_t flags)
 {
     return ::sd_bus_request_name(bus, name, flags);
@@ -105,3 +107,5 @@ sd_bus* SdBus::sd_bus_flush_close_unref(sd_bus *bus)
 {
     return ::sd_bus_flush_close_unref(bus);
 }
+
+}}
