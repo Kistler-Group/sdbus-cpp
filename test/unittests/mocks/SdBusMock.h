@@ -34,21 +34,30 @@
 class SdBusMock : public sdbus::internal::ISdBus
 {
 public:
+    MOCK_METHOD1(sd_bus_message_ref, sd_bus_message*(sd_bus_message *m));
+    MOCK_METHOD1(sd_bus_message_unref, sd_bus_message*(sd_bus_message *m));
+
+    MOCK_METHOD3(sd_bus_send, int(sd_bus *bus, sd_bus_message *m, uint64_t *cookie));
+    MOCK_METHOD5(sd_bus_call, int(sd_bus *bus, sd_bus_message *m, uint64_t usec, sd_bus_error *ret_error, sd_bus_message **reply));
+    MOCK_METHOD6(sd_bus_call_async, int(sd_bus *bus, sd_bus_slot **slot, sd_bus_message *m, sd_bus_message_handler_t callback, void *userdata, uint64_t usec));
+
+    MOCK_METHOD6(sd_bus_message_new_method_call, int(sd_bus *bus, sd_bus_message **m, const char *destination, const char *path, const char *interface, const char *member));
+    MOCK_METHOD5(sd_bus_message_new_signal, int(sd_bus *bus, sd_bus_message **m, const char *path, const char *interface, const char *member));
+    MOCK_METHOD2(sd_bus_message_new_method_return, int(sd_bus_message *call, sd_bus_message **m));
+    MOCK_METHOD3(sd_bus_message_new_method_error, int(sd_bus_message *call, sd_bus_message **m, const sd_bus_error *e));
+
+    MOCK_METHOD1(sd_bus_open_user, int(sd_bus **ret));
+    MOCK_METHOD1(sd_bus_open_system, int(sd_bus **ret));
     MOCK_METHOD3(sd_bus_request_name, int(sd_bus *bus, const char *name, uint64_t flags));
     MOCK_METHOD2(sd_bus_release_name, int(sd_bus *bus, const char *name));
     MOCK_METHOD6(sd_bus_add_object_vtable, int(sd_bus *bus, sd_bus_slot **slot, const char *path, const char *interface, const sd_bus_vtable *vtable, void *userdata));
-    MOCK_METHOD1(sd_bus_slot_unref, sd_bus_slot*(sd_bus_slot *slot));
-    MOCK_METHOD6(sd_bus_message_new_method_call, int(sd_bus *bus, sd_bus_message **m, const char *destination, const char *path, const char *interface, const char *member));
-    MOCK_METHOD1(sd_bus_message_unref, sd_bus_message* (sd_bus_message *m));
-    MOCK_METHOD5(sd_bus_message_new_signal, int(sd_bus *bus, sd_bus_message **m, const char *path, const char *interface, const char *member));
     MOCK_METHOD5(sd_bus_add_match, int(sd_bus *bus, sd_bus_slot **slot, const char *match, sd_bus_message_handler_t callback, void *userdata));
-    MOCK_METHOD1(sd_bus_open_user, int(sd_bus **ret));
-    MOCK_METHOD1(sd_bus_open_system, int(sd_bus **ret));
-    MOCK_METHOD1(sd_bus_flush, int(sd_bus *bus));
+    MOCK_METHOD1(sd_bus_slot_unref, sd_bus_slot*(sd_bus_slot *slot));
+
     MOCK_METHOD2(sd_bus_process, int(sd_bus *bus, sd_bus_message **r));
-    MOCK_METHOD1(sd_bus_get_fd, int(sd_bus *bus));
-    MOCK_METHOD1(sd_bus_get_events, int(sd_bus *bus));
-    MOCK_METHOD2(sd_bus_get_timeout, int(sd_bus *bus, uint64_t *timeout_usec));
+    MOCK_METHOD2(sd_bus_get_poll_data, int(sd_bus *bus, PollData* data));
+
+    MOCK_METHOD1(sd_bus_flush, int(sd_bus *bus));
     MOCK_METHOD1(sd_bus_flush_close_unref, sd_bus *(sd_bus *bus));
 };
 

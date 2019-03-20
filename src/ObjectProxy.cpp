@@ -75,7 +75,7 @@ void ObjectProxy::callMethod(const AsyncMethodCall& message, async_reply_handler
 {
     auto callback = (void*)&ObjectProxy::sdbus_async_reply_handler;
     // Allocated userData gets deleted in the sdbus_async_reply_handler
-    auto userData = new async_reply_handler(std::move(asyncReplyCallback));
+    auto userData = new AsyncReplyUserData{*this, std::move(asyncReplyCallback)};
 
     connection_->callMethod(message, callback, userData);
 }
@@ -124,32 +124,34 @@ void ObjectProxy::registerSignalHandlers(sdbus::internal::IConnection& connectio
 
 int ObjectProxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError)
 {
-    MethodReply message(sdbusMessage);
-
     // We are assuming the ownership of the async reply handler pointer passed here
-    std::unique_ptr<async_reply_handler> asyncReplyCallback{static_cast<async_reply_handler*>(userData)};
-    assert(asyncReplyCallback != nullptr);
+    std::unique_ptr<AsyncReplyUserData> asyncReplyUserData{static_cast<AsyncReplyUserData*>(userData)};
+    assert(asyncReplyUserData != nullptr);
+    assert(asyncReplyUserData->callback);
+
+    MethodReply message{sdbusMessage, &asyncReplyUserData->proxy.connection_->getSdBusInterface()};
 
     const auto* error = sd_bus_message_get_error(sdbusMessage);
     if (error == nullptr)
     {
-        (*asyncReplyCallback)(message, nullptr);
+        asyncReplyUserData->callback(message, nullptr);
     }
     else
     {
         sdbus::Error exception(error->name, error->message);
-        (*asyncReplyCallback)(message, &exception);
+        asyncReplyUserData->callback(message, &exception);
     }
 }
 
 int ObjectProxy::sdbus_signal_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error */*retError*/)
 {
-    Signal message(sdbusMessage);
+    auto* proxy = static_cast<ObjectProxy*>(userData);
+    assert(proxy != nullptr);
 
-    auto* object = static_cast<ObjectProxy*>(userData);
-    assert(object != nullptr);
+    Signal message{sdbusMessage, &proxy->connection_->getSdBusInterface()};
+
     // Note: The lookup can be optimized by using sorted vectors instead of associative containers
-    auto& callback = object->interfaces_[message.getInterfaceName()].signals_[message.getMemberName()].callback_;
+    auto& callback = proxy->interfaces_[message.getInterfaceName()].signals_[message.getMemberName()].callback_;
     assert(callback);
 
     callback(message);

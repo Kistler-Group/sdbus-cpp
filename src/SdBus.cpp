@@ -28,6 +28,79 @@
 
 namespace sdbus { namespace internal {
 
+sd_bus_message* SdBus::sd_bus_message_ref(sd_bus_message *m)
+{
+    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
+
+    return ::sd_bus_message_ref(m);
+}
+
+sd_bus_message* SdBus::sd_bus_message_unref(sd_bus_message *m)
+{
+    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
+
+    return ::sd_bus_message_unref(m);
+}
+
+int SdBus::sd_bus_send(sd_bus *bus, sd_bus_message *m, uint64_t *cookie)
+{
+    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
+
+    return ::sd_bus_send(bus, m, cookie);
+}
+
+int SdBus::sd_bus_call(sd_bus *bus, sd_bus_message *m, uint64_t usec, sd_bus_error *ret_error, sd_bus_message **reply)
+{
+    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
+
+    return ::sd_bus_call(bus, m, usec, ret_error, reply);
+}
+
+int SdBus::sd_bus_call_async(sd_bus *bus, sd_bus_slot **slot, sd_bus_message *m, sd_bus_message_handler_t callback, void *userdata, uint64_t usec)
+{
+    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
+
+    return ::sd_bus_call_async(bus, slot, m, callback, userdata, usec);
+}
+
+int SdBus::sd_bus_message_new_method_call(sd_bus *bus, sd_bus_message **m, const char *destination, const char *path, const char *interface, const char *member)
+{
+    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
+
+    return ::sd_bus_message_new_method_call(bus, m, destination, path, interface, member);
+}
+
+int SdBus::sd_bus_message_new_signal(sd_bus *bus, sd_bus_message **m, const char *path, const char *interface, const char *member)
+{
+    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
+
+    return ::sd_bus_message_new_signal(bus, m, path, interface, member);
+}
+
+int SdBus::sd_bus_message_new_method_return(sd_bus_message *call, sd_bus_message **m)
+{
+    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
+
+    return ::sd_bus_message_new_method_return(call, m);
+}
+
+int SdBus::sd_bus_message_new_method_error(sd_bus_message *call, sd_bus_message **m, const sd_bus_error *e)
+{
+    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
+
+    return ::sd_bus_message_new_method_error(call, m, e);
+}
+
+int SdBus::sd_bus_open_user(sd_bus **ret)
+{
+    return ::sd_bus_open_user(ret);
+}
+
+int SdBus::sd_bus_open_system(sd_bus **ret)
+{
+    return ::sd_bus_open_system(ret);
+}
+
 int SdBus::sd_bus_request_name(sd_bus *bus, const char *name, uint64_t flags)
 {
     std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
@@ -49,41 +122,6 @@ int SdBus::sd_bus_add_object_vtable(sd_bus *bus, sd_bus_slot **slot, const char 
     return ::sd_bus_add_object_vtable(bus, slot, path, interface,  vtable, userdata);
 }
 
-sd_bus_slot* SdBus::sd_bus_slot_unref(sd_bus_slot *slot)
-{
-    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
-
-    return ::sd_bus_slot_unref(slot);
-}
-
-int SdBus::sd_bus_message_new_method_call(sd_bus *bus, sd_bus_message **m, const char *destination, const char *path, const char *interface, const char *member)
-{
-    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
-
-    return ::sd_bus_message_new_method_call(bus, m, destination, path, interface, member);
-}
-
-sd_bus_message* SdBus::sd_bus_message_ref(sd_bus_message *m)
-{
-    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
-
-    return ::sd_bus_message_ref(m);
-}
-
-sd_bus_message* SdBus::sd_bus_message_unref(sd_bus_message *m)
-{
-    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
-
-    return ::sd_bus_message_unref(m);
-}
-
-int SdBus::sd_bus_message_new_signal(sd_bus *bus, sd_bus_message **m, const char *path, const char *interface, const char *member)
-{
-    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
-
-    return ::sd_bus_message_new_signal(bus, m, path, interface, member);
-}
-
 int SdBus::sd_bus_add_match(sd_bus *bus, sd_bus_slot **slot, const char *match, sd_bus_message_handler_t callback, void *userdata)
 {
     std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
@@ -91,19 +129,11 @@ int SdBus::sd_bus_add_match(sd_bus *bus, sd_bus_slot **slot, const char *match, 
     return :: sd_bus_add_match(bus, slot, match, callback, userdata);
 }
 
-int SdBus::sd_bus_open_user(sd_bus **ret)
+sd_bus_slot* SdBus::sd_bus_slot_unref(sd_bus_slot *slot)
 {
-    return ::sd_bus_open_user(ret);
-}
+    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
 
-int SdBus::sd_bus_open_system(sd_bus **ret)
-{
-    return ::sd_bus_open_system(ret);
-}
-
-int SdBus::sd_bus_flush(sd_bus *bus)
-{
-    return ::sd_bus_flush(bus);
+    return ::sd_bus_slot_unref(slot);
 }
 
 int SdBus::sd_bus_process(sd_bus *bus, sd_bus_message **r)
@@ -113,19 +143,28 @@ int SdBus::sd_bus_process(sd_bus *bus, sd_bus_message **r)
     return ::sd_bus_process(bus, r);
 }
 
-int SdBus::sd_bus_get_fd(sd_bus *bus)
+int SdBus::sd_bus_get_poll_data(sd_bus *bus, PollData* data)
 {
-    return ::sd_bus_get_fd(bus);
+    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
+
+    auto r = ::sd_bus_get_fd(bus);
+    if (r < 0)
+        return r;
+    data->fd = r;
+
+    r = ::sd_bus_get_events(bus);
+    if (r < 0)
+        return r;
+    data->events = static_cast<short int>(r);
+
+    r = ::sd_bus_get_timeout(bus, &data->timeout_usec);
+
+    return r;
 }
 
-int SdBus::sd_bus_get_events(sd_bus *bus)
+int SdBus::sd_bus_flush(sd_bus *bus)
 {
-    return ::sd_bus_get_events(bus);
-}
-
-int SdBus::sd_bus_get_timeout(sd_bus *bus, uint64_t *timeout_usec)
-{
-    return ::sd_bus_get_timeout(bus, timeout_usec);
+    return ::sd_bus_flush(bus);
 }
 
 sd_bus* SdBus::sd_bus_flush_close_unref(sd_bus *bus)

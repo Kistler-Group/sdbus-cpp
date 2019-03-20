@@ -50,9 +50,17 @@ namespace sdbus {
     class MethodReply;
     class Signal;
     template <typename... _Results> class Result;
+
+    namespace internal {
+        class ISdBus;
+    }
 }
 
 namespace sdbus {
+
+    // Assume the caller has already obtained message ownership
+    struct adopt_message_t { explicit adopt_message_t() = default; };
+    inline constexpr adopt_message_t adopt_message{};
 
     /********************************************//**
      * @class Message
@@ -72,9 +80,9 @@ namespace sdbus {
     {
     public:
         Message() = default;
-        // TODO Consider creating adopt_message_t{} c-tor overload and remove
-        // all SCOPE_EXIT{ sd_bus_message_unref(sdbusMsg); }; from when Message takes over msg
-        Message(void *msg) noexcept;
+        Message(internal::ISdBus* sdbus) noexcept;
+        Message(void *msg, internal::ISdBus* sdbus) noexcept;
+        Message(void *msg, internal::ISdBus* sdbus, adopt_message_t) noexcept;
         Message(const Message&) noexcept;
         Message& operator=(const Message&) noexcept;
         Message(Message&& other) noexcept;
@@ -143,10 +151,8 @@ namespace sdbus {
         void rewind(bool complete);
 
     protected:
-        void* getMsg() const;
-
-    private:
         void* msg_{};
+        internal::ISdBus* sdbus_{};
         mutable bool ok_{true};
     };
 

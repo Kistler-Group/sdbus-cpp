@@ -62,6 +62,12 @@ namespace internal {
         void finishRegistration() override;
 
     private:
+        struct AsyncReplyUserData
+        {
+            ObjectProxy& proxy;
+            async_reply_handler callback;
+        };
+
         void registerSignalHandlers(sdbus::internal::IConnection& connection);
         static int sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
         static int sdbus_signal_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);

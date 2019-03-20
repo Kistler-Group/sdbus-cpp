@@ -36,6 +36,9 @@ namespace sdbus {
     class AsyncMethodCall;
     class MethodReply;
     class Signal;
+    namespace internal {
+        class ISdBus;
+    }
 }
 
 namespace sdbus {
@@ -44,6 +47,9 @@ namespace internal {
     class IConnection
     {
     public:
+        virtual const ISdBus& getSdBusInterface() const = 0;
+        virtual ISdBus& getSdBusInterface() = 0;
+
         virtual sd_bus_slot* addObjectVTable( const std::string& objectPath
                                             , const std::string& interfaceName
                                             , const sd_bus_vtable* vtable

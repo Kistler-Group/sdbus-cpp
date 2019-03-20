@@ -57,6 +57,9 @@ namespace sdbus { namespace internal {
         void enterProcessingLoopAsync() override;
         void leaveProcessingLoop() override;
 
+        const ISdBus& getSdBusInterface() const override;
+        ISdBus& getSdBusInterface() override;
+
         sd_bus_slot* addObjectVTable( const std::string& objectPath
                                     , const std::string& interfaceName
                                     , const sd_bus_vtable* vtable

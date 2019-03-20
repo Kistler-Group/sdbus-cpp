@@ -36,9 +36,11 @@
 namespace sdbus { namespace internal {
 
 Connection::Connection(Connection::BusType type, std::unique_ptr<ISdBus>&& interface)
-    : busType_(type)
-    , iface_(std::move(interface))
+    : iface_(std::move(interface))
+    , busType_(type)
 {
+    assert(iface_ != nullptr);
+
     auto bus = openBus(busType_);
     bus_.reset(bus);
 
@@ -91,6 +93,16 @@ void Connection::leaveProcessingLoop()
     joinWithProcessingLoop();
 }
 
+const ISdBus& Connection::getSdBusInterface() const
+{
+    return *iface_.get();
+}
+
+ISdBus& Connection::getSdBusInterface()
+{
+    return *iface_.get();
+}
+
 sd_bus_slot* Connection::addObjectVTable( const std::string& objectPath
                                         , const std::string& interfaceName
                                         , const sd_bus_vtable* vtable
@@ -122,9 +134,6 @@ MethodCall Connection::createMethodCall( const std::string& destination
 {
     sd_bus_message *sdbusMsg{};
 
-    // Returned message will become an owner of sdbusMsg
-    SCOPE_EXIT{ iface_->sd_bus_message_unref(sdbusMsg); };
-
     auto r = iface_->sd_bus_message_new_method_call( bus_.get()
                                                    , &sdbusMsg
                                                    , destination.c_str()
@@ -134,7 +143,7 @@ MethodCall Connection::createMethodCall( const std::string& destination
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create method call", -r);
 
-    return MethodCall(sdbusMsg);
+    return MethodCall{sdbusMsg, iface_.get(), adopt_message};
 }
 
 Signal Connection::createSignal( const std::string& objectPath
@@ -142,9 +151,6 @@ Signal Connection::createSignal( const std::string& objectPath
                                , const std::string& signalName ) const
 {
     sd_bus_message *sdbusSignal{};
-
-    // Returned message will become an owner of sdbusSignal
-    SCOPE_EXIT{ iface_->sd_bus_message_unref(sdbusSignal); };
 
     auto r = iface_->sd_bus_message_new_signal( bus_.get()
                                               , &sdbusSignal
@@ -154,7 +160,7 @@ Signal Connection::createSignal( const std::string& objectPath
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create signal", -r);
 
-    return Signal(sdbusSignal);
+    return Signal{sdbusSignal, iface_.get(), adopt_message};
 }
 
 sd_bus_slot* Connection::registerSignalHandler( const std::string& objectPath
@@ -180,28 +186,28 @@ void Connection::unregisterSignalHandler(sd_bus_slot* handlerCookie)
 
 MethodReply Connection::callMethod(const MethodCall& message)
 {
-    std::lock_guard<std::recursive_mutex> lock(busMutex_);
+    //std::lock_guard<std::recursive_mutex> lock(busMutex_);
 
     return message.send();
 }
 
 void Connection::callMethod(const AsyncMethodCall& message, void* callback, void* userData)
 {
-    std::lock_guard<std::recursive_mutex> lock(busMutex_);
+    //std::lock_guard<std::recursive_mutex> lock(busMutex_);
 
     message.send(callback, userData);
 }
 
 void Connection::sendMethodReply(const MethodReply& message)
 {
-    std::lock_guard<std::recursive_mutex> lock(busMutex_);
+    //std::lock_guard<std::recursive_mutex> lock(busMutex_);
 
     message.send();
 }
 
 void Connection::emitSignal(const Signal& message)
 {
-    std::lock_guard<std::recursive_mutex> lock(busMutex_);
+    //std::lock_guard<std::recursive_mutex> lock(busMutex_);
 
     message.send();
 }
@@ -292,21 +298,15 @@ bool Connection::waitForNextRequest()
     assert(bus != nullptr);
     assert(loopExitFd_ != 0);
 
-    auto r = iface_->sd_bus_get_fd(bus);
-    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus descriptor", -r);
-    auto sdbusFd = r;
+    ISdBus::PollData sdbusPollData;
+    auto r = iface_->sd_bus_get_poll_data(bus, &sdbusPollData);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus poll data", -r);
 
-    r = iface_->sd_bus_get_events(bus);
-    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus events", -r);
-    short int sdbusEvents = r;
-
-    uint64_t usec;
-    iface_->sd_bus_get_timeout(bus, &usec);
-
-    struct pollfd fds[] = {{sdbusFd, sdbusEvents, 0}, {loopExitFd_, POLLIN, 0}};
+    struct pollfd fds[] = {{sdbusPollData.fd, sdbusPollData.events, 0}, {loopExitFd_, POLLIN, 0}};
     auto fdsCount = sizeof(fds)/sizeof(fds[0]);
 
-    r = poll(fds, fdsCount, usec == (uint64_t) -1 ? -1 : (usec+999)/1000);
+    auto timeout = sdbusPollData.timeout_usec == (uint64_t) -1 ? (uint64_t)-1 : (sdbusPollData.timeout_usec+999)/1000;
+    r = poll(fds, fdsCount, timeout);
 
     if (r < 0 && errno == EINTR)
         return true; // Try again
