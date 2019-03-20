@@ -200,7 +200,7 @@ public:
     int32_t callMethodOnNonexistentInterface()
     {
         int32_t result;
-        object_.callMethod("someMethod").onInterface("interfaceThatDoesNotExist").storeResultsTo(result);
+        object_.callMethod("someMethod").onInterface("sdbuscpp.interface.that.does.not.exist").storeResultsTo(result);
         return result;
     }
 

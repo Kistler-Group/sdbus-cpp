@@ -68,6 +68,7 @@ Message& Message::operator=(const Message& other) noexcept
         sdbus_->sd_bus_message_unref((sd_bus_message*)msg_);
 
     msg_ = other.msg_;
+    sdbus_ = other.sdbus_;
     ok_ = other.ok_;
 
     sdbus_->sd_bus_message_ref((sd_bus_message*)msg_);
@@ -87,6 +88,8 @@ Message& Message::operator=(Message&& other) noexcept
 
     msg_ = other.msg_;
     other.msg_ = nullptr;
+    sdbus_ = other.sdbus_;
+    other.sdbus_ = nullptr;
     ok_ = other.ok_;
     other.ok_ = true;
 

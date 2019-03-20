@@ -66,7 +66,8 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 set(CMAKE_NO_SYSTEM_FROM_IMPORTED "1")
 
 add_executable(libsdbus-c++_unittests ${UNITTESTS_SRCS} $<TARGET_OBJECTS:sdbuscppobjects>)
-target_link_libraries(libsdbus-c++_unittests ${SYSTEMD_LIBRARIES} gmock gmock_main)
+#target_link_libraries(libsdbus-c++_unittests ${SYSTEMD_LIBRARIES} gmock gmock_main)
+target_link_libraries(libsdbus-c++_unittests -L/home/aeywalee/data/repos/systemd/.libs/ -lsystemd gmock gmock_main)
 
 add_executable(libsdbus-c++_integrationtests ${INTEGRATIONTESTS_SRCS})
 target_link_libraries(libsdbus-c++_integrationtests sdbus-c++ gmock gmock_main)
