@@ -29,6 +29,8 @@
 
 #include "ISdBus.h"
 
+namespace sdbus { namespace internal {
+
 class SdBus : public ISdBus
 {
 public:
@@ -49,5 +51,7 @@ public:
     int sd_bus_get_timeout(sd_bus *bus, uint64_t *timeout_usec) override;
     sd_bus *sd_bus_flush_close_unref(sd_bus *bus) override;
 };
+
+}}
 
 #endif //SDBUS_C_SDBUS_H
