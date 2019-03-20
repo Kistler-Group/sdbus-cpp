@@ -34,7 +34,6 @@
 #include <systemd/sd-bus.h>
 #include <memory>
 #include <thread>
-#include <mutex>
 
 namespace sdbus { namespace internal {
 
@@ -105,8 +104,6 @@ namespace sdbus { namespace internal {
                                                                                     return iface_->sd_bus_flush_close_unref(bus);
                                                                                 }};
         BusType busType_;
-        // TODO This will be moved to ISdBus
-        std::recursive_mutex busMutex_;
 
         std::thread asyncLoopThread_;
         int loopExitFd_{-1};

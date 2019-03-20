@@ -72,6 +72,8 @@ namespace sdbus {
     {
     public:
         Message() = default;
+        // TODO Consider creating adopt_message_t{} c-tor overload and remove
+        // all SCOPE_EXIT{ sd_bus_message_unref(sdbusMsg); }; from when Message takes over msg
         Message(void *msg) noexcept;
         Message(const Message&) noexcept;
         Message& operator=(const Message&) noexcept;

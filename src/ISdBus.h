@@ -37,6 +37,7 @@ public:
     virtual int sd_bus_add_object_vtable(sd_bus *bus, sd_bus_slot **slot, const char *path, const char *interface, const sd_bus_vtable *vtable, void *userdata) = 0;
     virtual sd_bus_slot* sd_bus_slot_unref(sd_bus_slot *slot) = 0;
     virtual int sd_bus_message_new_method_call(sd_bus *bus, sd_bus_message **m, const char *destination, const char *path, const char *interface, const char *member) = 0;
+    virtual sd_bus_message* sd_bus_message_ref(sd_bus_message *m) = 0;
     virtual sd_bus_message* sd_bus_message_unref(sd_bus_message *m) = 0;
     virtual int sd_bus_message_new_signal(sd_bus *bus, sd_bus_message **m, const char *path, const char *interface, const char *member) = 0;
     virtual int sd_bus_add_match(sd_bus *bus, sd_bus_slot **slot, const char *match, sd_bus_message_handler_t callback, void *userdata) = 0;

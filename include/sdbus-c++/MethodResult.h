@@ -51,6 +51,7 @@ namespace sdbus {
     {
     protected:
         friend sdbus::internal::Object;
+        // TODO: Remove object_ and make MethodResult move-only
         MethodResult() = default;
         MethodResult(const MethodCall& msg, sdbus::internal::Object& object);
 

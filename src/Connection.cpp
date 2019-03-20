@@ -67,16 +67,12 @@ void Connection::releaseName(const std::string& name)
 
 void Connection::enterProcessingLoop()
 {
-    std::unique_lock<std::recursive_mutex> lock(busMutex_);
-
     while (true)
     {
         auto processed = processPendingRequest();
         if (processed)
             continue; // Process next one
 
-        lock.unlock();
-        SCOPE_EXIT{ lock.lock(); };
         auto success = waitForNextRequest();
         if (!success)
             break; // Exit processing loop
@@ -124,8 +120,6 @@ MethodCall Connection::createMethodCall( const std::string& destination
                                        , const std::string& interfaceName
                                        , const std::string& methodName ) const
 {
-    // Note: It should be safe even without locking busMutex_ here. NOOOOO IT IS NOT!!!
-
     sd_bus_message *sdbusMsg{};
 
     // Returned message will become an owner of sdbusMsg
@@ -147,8 +141,6 @@ Signal Connection::createSignal( const std::string& objectPath
                                , const std::string& interfaceName
                                , const std::string& signalName ) const
 {
-    // Note: It should be safe even without locking busMutex_ here. NOOOOO IT IS NOT!!!
-
     sd_bus_message *sdbusSignal{};
 
     // Returned message will become an owner of sdbusSignal
@@ -171,8 +163,6 @@ sd_bus_slot* Connection::registerSignalHandler( const std::string& objectPath
                                               , sd_bus_message_handler_t callback
                                               , void* userData )
 {
-    std::lock_guard<std::recursive_mutex> lock(busMutex_);
-
     sd_bus_slot *slot{};
 
     auto filter = composeSignalMatchFilter(objectPath, interfaceName, signalName);
@@ -185,8 +175,6 @@ sd_bus_slot* Connection::registerSignalHandler( const std::string& objectPath
 
 void Connection::unregisterSignalHandler(sd_bus_slot* handlerCookie)
 {
-    std::lock_guard<std::recursive_mutex> lock(busMutex_);
-
     iface_->sd_bus_slot_unref(handlerCookie);
 }
 

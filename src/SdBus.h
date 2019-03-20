@@ -28,6 +28,7 @@
 #define SDBUS_CXX_SDBUS_H
 
 #include "ISdBus.h"
+#include <mutex>
 
 class SdBus : public ISdBus
 {
@@ -37,6 +38,7 @@ public:
     int sd_bus_add_object_vtable(sd_bus *bus, sd_bus_slot **slot, const char *path, const char *interface, const sd_bus_vtable *vtable, void *userdata) override;
     sd_bus_slot* sd_bus_slot_unref(sd_bus_slot *slot) override;
     int sd_bus_message_new_method_call(sd_bus *bus, sd_bus_message **m, const char *destination, const char *path, const char *interface, const char *member) override;
+    sd_bus_message* sd_bus_message_ref(sd_bus_message *m) override;
     sd_bus_message* sd_bus_message_unref(sd_bus_message *m) override;
     int sd_bus_message_new_signal(sd_bus *bus, sd_bus_message **m, const char *path, const char *interface, const char *member) override;
     int sd_bus_add_match(sd_bus *bus, sd_bus_slot **slot, const char *match, sd_bus_message_handler_t callback, void *userdata) override;
@@ -48,6 +50,9 @@ public:
     int sd_bus_get_events(sd_bus *bus) override;
     int sd_bus_get_timeout(sd_bus *bus, uint64_t *timeout_usec) override;
     sd_bus *sd_bus_flush_close_unref(sd_bus *bus) override;
+
+private:
+    std::recursive_mutex sdbusMutex_;
 };
 
 #endif //SDBUS_C_SDBUS_H
