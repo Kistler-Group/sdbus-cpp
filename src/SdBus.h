@@ -30,6 +30,8 @@
 #include "ISdBus.h"
 #include <mutex>
 
+namespace sdbus { namespace internal {
+
 class SdBus : public ISdBus
 {
 public:
@@ -54,5 +56,7 @@ public:
 private:
     std::recursive_mutex sdbusMutex_;
 };
+
+}}
 
 #endif //SDBUS_C_SDBUS_H
