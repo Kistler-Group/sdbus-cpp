@@ -46,3 +46,8 @@ v0.4.2
 - Improve documentation
 - Minor code improvements
 - Introduce sdbus-c++ performance tests with measurements
+
+v0.4.3
+- Add another abstraction layer for sd-bus to improve isolation for unit testing
+- Minor code improvements for consistency and clarity
+- Not-existing interface name and object path fixes in integration tests
