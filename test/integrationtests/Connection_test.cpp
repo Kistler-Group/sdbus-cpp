@@ -60,7 +60,7 @@ TEST(Connection, CanRequestRegisteredDbusName)
 TEST(Connection, CannotRequestNonregisteredDbusName)
 {
     auto connection = sdbus::createConnection();
-    ASSERT_THROW(connection->requestName("some_random_not_supported_dbus_name"), sdbus::Error);
+    ASSERT_THROW(connection->requestName("some.random.not.supported.dbus.name"), sdbus::Error);
 }
 
 TEST(Connection, CanReleasedRequestedName)
@@ -74,7 +74,7 @@ TEST(Connection, CanReleasedRequestedName)
 TEST(Connection, CannotReleaseNonrequestedName)
 {
     auto connection = sdbus::createConnection();
-    ASSERT_THROW(connection->releaseName("some_random_nonrequested_name"), sdbus::Error);
+    ASSERT_THROW(connection->releaseName("some.random.nonrequested.name"), sdbus::Error);
 }
 
 TEST(Connection, CanEnterAndLeaveProcessingLoop)

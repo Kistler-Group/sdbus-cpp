@@ -139,7 +139,7 @@ public:
 
     void emitSignalOnNonexistentInterface()
     {
-        object_.emitSignal("simpleSignal").onInterface("interfaceThatDoesNotExists");
+        object_.emitSignal("simpleSignal").onInterface("sdbuscpp.interface.that.does.not.exist");
     }
 
 private:
