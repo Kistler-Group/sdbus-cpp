@@ -68,7 +68,7 @@ AsyncMethodCall ObjectProxy::createAsyncMethodCall(const std::string& interfaceN
 
 MethodReply ObjectProxy::callMethod(const MethodCall& message)
 {
-    return connection_->callMethod(message);
+    return message.send();
 }
 
 void ObjectProxy::callMethod(const AsyncMethodCall& message, async_reply_handler asyncReplyCallback)
@@ -77,7 +77,7 @@ void ObjectProxy::callMethod(const AsyncMethodCall& message, async_reply_handler
     // Allocated userData gets deleted in the sdbus_async_reply_handler
     auto userData = new AsyncReplyUserData{*this, std::move(asyncReplyCallback)};
 
-    connection_->callMethod(message, callback, userData);
+    message.send(callback, userData);
 }
 
 void ObjectProxy::registerSignalHandler( const std::string& interfaceName

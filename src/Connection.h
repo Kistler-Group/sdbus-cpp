@@ -81,11 +81,6 @@ namespace sdbus { namespace internal {
                                           , void* userData ) override;
         void unregisterSignalHandler(sd_bus_slot* handlerCookie) override;
 
-        MethodReply callMethod(const MethodCall& message) override;
-        void callMethod(const AsyncMethodCall& message, void* callback, void* userData) override;
-        void sendMethodReply(const MethodReply& message) override;
-        void emitSignal(const Signal& message) override;
-
     private:
         sd_bus* openBus(Connection::BusType type);
         void finishHandshake(sd_bus* bus);

@@ -75,11 +75,6 @@ namespace internal {
         virtual void enterProcessingLoopAsync() = 0;
         virtual void leaveProcessingLoop() = 0;
 
-        virtual MethodReply callMethod(const MethodCall& message) = 0;
-        virtual void callMethod(const AsyncMethodCall& message, void* callback, void* userData) = 0;
-        virtual void sendMethodReply(const MethodReply& message) = 0;
-        virtual void emitSignal(const Signal& message) = 0;
-
         virtual ~IConnection() = default;
     };
 

@@ -184,34 +184,6 @@ void Connection::unregisterSignalHandler(sd_bus_slot* handlerCookie)
     iface_->sd_bus_slot_unref(handlerCookie);
 }
 
-MethodReply Connection::callMethod(const MethodCall& message)
-{
-    //std::lock_guard<std::recursive_mutex> lock(busMutex_);
-
-    return message.send();
-}
-
-void Connection::callMethod(const AsyncMethodCall& message, void* callback, void* userData)
-{
-    //std::lock_guard<std::recursive_mutex> lock(busMutex_);
-
-    message.send(callback, userData);
-}
-
-void Connection::sendMethodReply(const MethodReply& message)
-{
-    //std::lock_guard<std::recursive_mutex> lock(busMutex_);
-
-    message.send();
-}
-
-void Connection::emitSignal(const Signal& message)
-{
-    //std::lock_guard<std::recursive_mutex> lock(busMutex_);
-
-    message.send();
-}
-
 sd_bus* Connection::openBus(Connection::BusType type)
 {
     sd_bus* bus{};

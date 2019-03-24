@@ -156,12 +156,7 @@ sdbus::Signal Object::createSignal(const std::string& interfaceName, const std::
 
 void Object::emitSignal(const sdbus::Signal& message)
 {
-    connection_.emitSignal(message);
-}
-
-void Object::sendMethodReply(const MethodReply& reply)
-{
-    connection_.sendMethodReply(reply);
+    message.send();
 }
 
 const std::vector<sd_bus_vtable>& Object::createInterfaceVTable(InterfaceData& interfaceData)
