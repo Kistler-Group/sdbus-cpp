@@ -397,11 +397,6 @@ TEST_F(SdbusTestObject, EmitsSignalWithoutRegistrationSuccesfully)
     ASSERT_THAT(signature["platform"], Eq("av"));
 }
 
-TEST_F(SdbusTestObject, FailsEmittingSignalOnNonexistentInterface)
-{
-    ASSERT_THROW(m_adaptor->emitSignalOnNonexistentInterface(), sdbus::Error);
-}
-
 // Properties
 
 TEST_F(SdbusTestObject, ReadsReadPropertySuccesfully)
