@@ -349,13 +349,13 @@ TEST_F(SdbusTestObject, FailsCallingMethodOnNonexistentInterface)
 
 TEST_F(SdbusTestObject, FailsCallingMethodOnNonexistentDestination)
 {
-    TestingProxy proxy("wrongDestination", OBJECT_PATH);
+    TestingProxy proxy("sdbuscpp.destination.that.does.not.exist", OBJECT_PATH);
     ASSERT_THROW(proxy.getInt(), sdbus::Error);
 }
 
 TEST_F(SdbusTestObject, FailsCallingMethodOnNonexistentObject)
 {
-    TestingProxy proxy(INTERFACE_NAME, "/wrong/path");
+    TestingProxy proxy(INTERFACE_NAME, "/sdbuscpp/path/that/does/not/exist");
     ASSERT_THROW(proxy.getInt(), sdbus::Error);
 }
 
@@ -396,11 +396,6 @@ TEST_F(SdbusTestObject, EmitsSignalWithoutRegistrationSuccesfully)
 
     auto signature = m_proxy->getSignatureFromSignal();
     ASSERT_THAT(signature["platform"], Eq("av"));
-}
-
-TEST_F(SdbusTestObject, failsEmitingSignalOnNonexistentInterface)
-{
-    ASSERT_THROW(m_adaptor->emitSignalOnNonexistentInterface(), sdbus::Error);
 }
 
 // Properties
