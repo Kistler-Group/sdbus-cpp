@@ -104,7 +104,7 @@ std::tuple<unsigned, std::string> BaseGenerator::generateNamespaces(const std::s
 }
 
 
-std::tuple<std::string, std::string, std::string> BaseGenerator::argsToNamesAndTypes(const Nodes& args) const
+std::tuple<std::string, std::string, std::string> BaseGenerator::argsToNamesAndTypes(const Nodes& args, bool async) const
 {
     std::ostringstream argSS, argTypeSS, typeSS;
 
@@ -124,8 +124,16 @@ std::tuple<std::string, std::string, std::string> BaseGenerator::argsToNamesAndT
             argName = "arg" + std::to_string(i);
         }
         auto type = signature_to_type(arg->get("type"));
-        argSS << argName;
-        argTypeSS << "const " << type << "& " << argName;
+        if (!async)
+        {
+            argSS << argName;
+            argTypeSS << "const " << type << "& " << argName;
+        }
+        else
+        {
+            argSS << "std::move(" << argName << ")";
+            argTypeSS << type << " " << argName;
+        }
         typeSS << type;
     }
 

@@ -52,7 +52,7 @@ namespace sdbus {
 namespace sdbus {
 
     using method_callback = std::function<void(MethodCall& msg, MethodReply& reply)>;
-    using async_method_callback = std::function<void(MethodCall& msg, MethodResult result)>;
+    using async_method_callback = std::function<void(MethodCall msg, MethodResult&& result)>;
     using async_reply_handler = std::function<void(MethodReply& reply, const Error* error)>;
     using signal_handler = std::function<void(Signal& signal)>;
     using property_set_callback = std::function<void(Message& msg)>;
@@ -378,6 +378,13 @@ namespace sdbus {
 
     template <typename... _Args, typename... _Results>
     struct function_traits<void(Result<_Results...>, _Args...)>
+        : public function_traits_base<std::tuple<_Results...>, _Args...>
+    {
+        static constexpr bool is_async = true;
+    };
+
+    template <typename... _Args, typename... _Results>
+    struct function_traits<void(Result<_Results...>&&, _Args...)>
         : public function_traits_base<std::tuple<_Results...>, _Args...>
     {
         static constexpr bool is_async = true;

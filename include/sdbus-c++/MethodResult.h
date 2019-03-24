@@ -1,7 +1,7 @@
 /**
  * (C) 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
  *
- * @file ConvenienceClasses.h
+ * @file MethodResult.h
  *
  * Created on: Nov 8, 2016
  * Project: sdbus-c++
@@ -51,40 +51,22 @@ namespace sdbus {
     {
     protected:
         friend sdbus::internal::Object;
-        // TODO: Remove object_ and make MethodResult move-only
+
         MethodResult() = default;
-        MethodResult(const MethodCall& msg, sdbus::internal::Object& object);
+        MethodResult(MethodCall msg);
+
+        MethodResult(const MethodResult&) = delete;
+        MethodResult& operator=(const MethodResult&) = delete;
+
+        MethodResult(MethodResult&& other) = default;
+        MethodResult& operator=(MethodResult&& other) = default;
 
         template <typename... _Results> void returnResults(const _Results&... results) const;
         void returnError(const Error& error) const;
 
     private:
-        void send(const MethodReply& reply) const;
-
-    private:
         MethodCall call_;
-        sdbus::internal::Object* object_{};
     };
-
-    template <typename... _Results>
-    inline void MethodResult::returnResults(const _Results&... results) const
-    {
-        assert(call_.isValid());
-        auto reply = call_.createReply();
-#ifdef __cpp_fold_expressions
-        (reply << ... << results);
-#else
-        using _ = std::initializer_list<int>;
-        (void)_{(void(reply << results), 0)...};
-#endif
-        send(reply);
-    }
-
-    inline void MethodResult::returnError(const Error& error) const
-    {
-        auto reply = call_.createErrorReply(error);
-        send(reply);
-    }
 
     /********************************************//**
      * @class Result
@@ -99,29 +81,14 @@ namespace sdbus {
     {
     public:
         Result() = default;
-        Result(MethodResult result);
+        Result(MethodResult&& result);
+
         void returnResults(const _Results&... results) const;
         void returnError(const Error& error) const;
     };
 
-    template <typename... _Results>
-    inline Result<_Results...>::Result(MethodResult result)
-        : MethodResult(std::move(result))
-    {
-    }
-
-    template <typename... _Results>
-    inline void Result<_Results...>::returnResults(const _Results&... results) const
-    {
-        MethodResult::returnResults(results...);
-    }
-
-    template <typename... _Results>
-    inline void Result<_Results...>::returnError(const Error& error) const
-    {
-        MethodResult::returnError(error);
-    }
-
 }
+
+#include <sdbus-c++/MethodResult.inl>
 
 #endif /* SDBUS_CXX_METHODRESULT_H_ */

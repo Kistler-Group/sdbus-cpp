@@ -168,7 +168,7 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes&
             definitionSS << tab << tab << retType << " result;" << endl;
         }
 
-        definitionSS << tab << tab << "object_.callMethod(\"" << name << "\")"
+        definitionSS << tab << tab << "object_.callMethod" << (async ? "Async" : "") << "(\"" << name << "\")"
                         ".onInterface(interfaceName)";
 
         if (inArgs.size() > 0)

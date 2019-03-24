@@ -681,12 +681,16 @@ Message createPlainMessage()
     int r;
 
     sd_bus* bus{};
-    SCOPE_EXIT{ sd_bus_unref(bus); }; // sdbusMsg will hold reference to the bus
-    // TODO (!!) The bus might be opened and closed here upon every call. Investigate
-    // whether the bus could not stay in thread local storage after first opening.
-    // Otherwise this is quite a performance bottleneck. Beware that sdbusMsg also keeps 1 ref count to the bus.
+    SCOPE_EXIT{ sd_bus_unref(bus); };
     r = sd_bus_default_system(&bus);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get default system bus", -r);
+
+    thread_local struct BusReferenceKeeper
+    {
+        BusReferenceKeeper(sd_bus* bus) : bus_(bus) {}
+        ~BusReferenceKeeper() { sd_bus_unref(bus_); }
+        sd_bus* bus_{};
+    } busReferenceKeeper{bus};
 
     sd_bus_message* sdbusMsg{};
     r = sd_bus_message_new(bus, &sdbusMsg, _SD_BUS_MESSAGE_TYPE_INVALID);

@@ -13,9 +13,7 @@ include(GNUInstallDirs) # Installation directories for `install` command and pkg
 #-------------------------------
 
 find_package(PkgConfig REQUIRED)
-#pkg_check_modules(SYSTEMD REQUIRED libsystemd>=236)
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g")
+pkg_check_modules(SYSTEMD REQUIRED libsystemd>=236)
 
 #-------------------------------
 # SOURCE FILES CONFIGURATION
@@ -30,7 +28,6 @@ set(SDBUSCPP_CPP_SRCS
     ${SDBUSCPP_SOURCE_DIR}/ConvenienceClasses.cpp
     ${SDBUSCPP_SOURCE_DIR}/Error.cpp
     ${SDBUSCPP_SOURCE_DIR}/Message.cpp
-    ${SDBUSCPP_SOURCE_DIR}/MethodResult.cpp
     ${SDBUSCPP_SOURCE_DIR}/Object.cpp
     ${SDBUSCPP_SOURCE_DIR}/ObjectProxy.cpp
     ${SDBUSCPP_SOURCE_DIR}/Types.cpp
@@ -60,10 +57,11 @@ set(SDBUSCPP_PUBLIC_HDRS
     ${SDBUSCPP_INCLUDE_DIR}/IObjectProxy.h
     ${SDBUSCPP_INCLUDE_DIR}/Message.h
     ${SDBUSCPP_INCLUDE_DIR}/MethodResult.h
-    ${SDBUSCPP_INCLUDE_DIR}/sdbus-c++.h
+    ${SDBUSCPP_INCLUDE_DIR}/MethodResult.inl
     ${SDBUSCPP_INCLUDE_DIR}/Types.h
     ${SDBUSCPP_INCLUDE_DIR}/TypeTraits.h
-    ${SDBUSCPP_INCLUDE_DIR}/Flags.h)
+    ${SDBUSCPP_INCLUDE_DIR}/Flags.h
+    ${SDBUSCPP_INCLUDE_DIR}/sdbus-c++.h)
 
 set(SDBUSCPP_SRCS ${SDBUSCPP_CPP_SRCS} ${SDBUSCPP_HDR_SRCS} ${SDBUSCPP_PUBLIC_HDRS})
 
@@ -96,9 +94,8 @@ set_target_properties(sdbus-c++
     VERSION "${SDBUSCPP_VERSION}"
     SOVERSION "${SDBUSCPP_VERSION_MAJOR}"
     OUTPUT_NAME "sdbus-c++")
-# TODO: Remove
-target_link_libraries(sdbus-c++ -L/home/aeywalee/data/repos/systemd/.libs/ -lsystemd)
-#target_link_libraries(sdbus-c++ ${SYSTEMD_LIBRARIES})
+
+target_link_libraries(sdbus-c++ ${SYSTEMD_LIBRARIES})
 
 #----------------------------------
 # INSTALLATION
