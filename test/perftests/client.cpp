@@ -32,6 +32,7 @@
 #include <thread>
 #include <chrono>
 #include <cassert>
+#include <algorithm>
 
 using namespace std::chrono_literals;
 
