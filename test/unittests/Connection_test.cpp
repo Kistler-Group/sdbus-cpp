@@ -141,7 +141,7 @@ TEST_P(AConnectionNameRequest, ThrowsOnFail)
 {
     EXPECT_CALL(*mock_, sd_bus_request_name(_, _, _)).WillOnce(Return(-1));
 
-    auto conn_ = sdbus::internal::Connection(GetParam(), std::move(mock_)) ;
+    sdbus::internal::Connection conn_(GetParam(), std::move(mock_));
     ASSERT_THROW(conn_.requestName(""), sdbus::Error);
 }
 
