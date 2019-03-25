@@ -74,10 +74,10 @@ void Object::registerMethod( const std::string& interfaceName
 {
     SDBUS_THROW_ERROR_IF(!asyncMethodCallback, "Invalid method callback provided", EINVAL);
 
-    auto asyncCallback = [this, callback = std::move(asyncMethodCallback)](MethodCall& msg)
+    auto asyncCallback = [callback = std::move(asyncMethodCallback)](MethodCall& msg)
     {
-        MethodResult result{msg, *this};
-        callback(msg, result);
+        MethodResult result{msg};
+        callback(std::move(msg), std::move(result));
     };
 
     auto& interface = interfaces_[interfaceName];
@@ -156,15 +156,7 @@ sdbus::Signal Object::createSignal(const std::string& interfaceName, const std::
 
 void Object::emitSignal(const sdbus::Signal& message)
 {
-    // TODO: Make signal emitting asynchronous. Now signal can probably be emitted only from user code
-    // handled within the D-Bus processing loop thread, but not from any thread. In principle it will
-    // be the same as async replies.
     message.send();
-}
-
-void Object::sendReplyAsynchronously(const MethodReply& reply)
-{
-    connection_.sendReplyAsynchronously(reply);
 }
 
 const std::vector<sd_bus_vtable>& Object::createInterfaceVTable(InterfaceData& interfaceData)
@@ -242,9 +234,11 @@ void Object::activateInterfaceVTable( const std::string& interfaceName
 
 int Object::sdbus_method_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError)
 {
-    MethodCall message(sdbusMessage);
-
     auto* object = static_cast<Object*>(userData);
+    assert(object != nullptr);
+
+    MethodCall message{sdbusMessage, &object->connection_.getSdBusInterface()};
+
     // Note: The lookup can be optimized by using sorted vectors instead of associative containers
     auto& callback = object->interfaces_[message.getInterfaceName()].methods_[message.getMemberName()].callback_;
     assert(callback);
@@ -269,9 +263,9 @@ int Object::sdbus_property_get_callback( sd_bus */*bus*/
                                        , void *userData
                                        , sd_bus_error *retError )
 {
-    Message reply(sdbusReply);
-
     auto* object = static_cast<Object*>(userData);
+    assert(object != nullptr);
+
     // Note: The lookup can be optimized by using sorted vectors instead of associative containers
     auto& callback = object->interfaces_[interface].properties_[property].getCallback_;
     // Getter can be empty - the case of "write-only" property
@@ -280,6 +274,8 @@ int Object::sdbus_property_get_callback( sd_bus */*bus*/
         sd_bus_error_set(retError, "org.freedesktop.DBus.Error.Failed", "Cannot read property as it is write-only");
         return 1;
     }
+
+    Message reply{sdbusReply, &object->connection_.getSdBusInterface()};
 
     try
     {
@@ -301,12 +297,14 @@ int Object::sdbus_property_set_callback( sd_bus */*bus*/
                                        , void *userData
                                        , sd_bus_error *retError )
 {
-    Message value(sdbusValue);
-
     auto* object = static_cast<Object*>(userData);
+    assert(object != nullptr);
+
     // Note: The lookup can be optimized by using sorted vectors instead of associative containers
     auto& callback = object->interfaces_[interface].properties_[property].setCallback_;
     assert(callback);
+
+    Message value{sdbusValue, &object->connection_.getSdBusInterface()};
 
     try
     {

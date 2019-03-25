@@ -33,8 +33,12 @@
 // Forward declaration
 namespace sdbus {
     class MethodCall;
+    class AsyncMethodCall;
     class MethodReply;
     class Signal;
+    namespace internal {
+        class ISdBus;
+    }
 }
 
 namespace sdbus {
@@ -43,20 +47,23 @@ namespace internal {
     class IConnection
     {
     public:
+        virtual const ISdBus& getSdBusInterface() const = 0;
+        virtual ISdBus& getSdBusInterface() = 0;
+
         virtual sd_bus_slot* addObjectVTable( const std::string& objectPath
                                             , const std::string& interfaceName
                                             , const sd_bus_vtable* vtable
                                             , void* userData ) = 0;
         virtual void removeObjectVTable(sd_bus_slot* vtableHandle) = 0;
 
-        virtual sdbus::MethodCall createMethodCall( const std::string& destination
-                                                  , const std::string& objectPath
-                                                  , const std::string& interfaceName
-                                                  , const std::string& methodName ) const = 0;
+        virtual MethodCall createMethodCall( const std::string& destination
+                                           , const std::string& objectPath
+                                           , const std::string& interfaceName
+                                           , const std::string& methodName ) const = 0;
 
-        virtual sdbus::Signal createSignal( const std::string& objectPath
-                                          , const std::string& interfaceName
-                                          , const std::string& signalName ) const = 0;
+        virtual Signal createSignal( const std::string& objectPath
+                                   , const std::string& interfaceName
+                                   , const std::string& signalName ) const = 0;
 
         virtual sd_bus_slot* registerSignalHandler( const std::string& objectPath
                                                   , const std::string& interfaceName
@@ -67,10 +74,6 @@ namespace internal {
 
         virtual void enterProcessingLoopAsync() = 0;
         virtual void leaveProcessingLoop() = 0;
-
-        virtual void sendReplyAsynchronously(const sdbus::MethodReply& reply) = 0;
-
-        virtual std::unique_ptr<sdbus::internal::IConnection> clone() const = 0;
 
         virtual ~IConnection() = default;
     };

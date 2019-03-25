@@ -48,11 +48,11 @@ protected:
     {
         static unsigned int counter = 0;
         static std::chrono::time_point<std::chrono::steady_clock> startTime;
-        
+
         assert(data.size() == m_msgSize);
-        
+
         ++counter;
-        
+
         if (counter == 1)
             startTime = std::chrono::steady_clock::now();
         else if (counter == m_msgCount)
@@ -62,7 +62,7 @@ protected:
             counter = 0;
         }
     }
-    
+
 public:
     unsigned int m_msgSize{};
     unsigned int m_msgCount{};
@@ -95,68 +95,68 @@ int main(int /*argc*/, char */*argv*/[])
     const unsigned int repetitions{20};
     unsigned int msgCount = 1000;
     unsigned int msgSize{};
-    
+
     msgSize = 20;
     std::cout << "** Measuring signals of size " << msgSize << " bytes (" << repetitions << " repetitions)..." << std::endl << std::endl;
     client.m_msgCount = msgCount; client.m_msgSize = msgSize;
     for (unsigned int r = 0; r < repetitions; ++r)
     {
         client.sendDataSignals(msgCount, msgSize);
-        
+
         std::this_thread::sleep_for(1000ms);
     }
-    
+
     msgSize = 1000;
     std::cout << std::endl << "** Measuring signals of size " << msgSize << " bytes (" << repetitions << " repetitions)..." << std::endl << std::endl;
     client.m_msgCount = msgCount; client.m_msgSize = msgSize;
     for (unsigned int r = 0; r < repetitions; ++r)
     {
         client.sendDataSignals(msgCount, msgSize);
-        
+
         std::this_thread::sleep_for(1000ms);
     }
-    
+
     msgSize = 20;
     std::cout << std::endl << "** Measuring method calls of size " << msgSize << " bytes (" << repetitions << " repetitions)..." << std::endl << std::endl;
     for (unsigned int r = 0; r < repetitions; ++r)
     {
         auto str1 = createRandomString(msgSize/2);
         auto str2 = createRandomString(msgSize/2);
-        
+
         auto startTime = std::chrono::steady_clock::now();
         for (unsigned int i = 0; i < msgCount; i++)
         {
             auto result = client.concatenateTwoStrings(str1, str2);
-            
+
             assert(result.size() == str1.size() + str2.size());
             assert(result.size() == msgSize);
         }
         auto stopTime = std::chrono::steady_clock::now();
         std::cout << "Called " << msgCount << " methods in: " << std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count() << " ms" << std::endl;
-        
+
         std::this_thread::sleep_for(1000ms);
     }
-    
+
     msgSize = 1000;
     std::cout << std::endl << "** Measuring method calls of size " << msgSize << " bytes (" << repetitions << " repetitions)..." << std::endl << std::endl;
     for (unsigned int r = 0; r < repetitions; ++r)
     {
         auto str1 = createRandomString(msgSize/2);
         auto str2 = createRandomString(msgSize/2);
-        
+
         auto startTime = std::chrono::steady_clock::now();
         for (unsigned int i = 0; i < msgCount; i++)
         {
             auto result = client.concatenateTwoStrings(str1, str2);
-            
+
             assert(result.size() == str1.size() + str2.size());
             assert(result.size() == msgSize);
         }
         auto stopTime = std::chrono::steady_clock::now();
         std::cout << "Called " << msgCount << " methods in: " << std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count() << " ms" << std::endl;
-        
+
         std::this_thread::sleep_for(1000ms);
     }
-    
+
     return 0;
 }

@@ -50,9 +50,21 @@ namespace sdbus {
     class MethodReply;
     class Signal;
     template <typename... _Results> class Result;
+
+    namespace internal {
+        class ISdBus;
+    }
 }
 
 namespace sdbus {
+
+    // Assume the caller has already obtained message ownership
+    struct adopt_message_t { explicit adopt_message_t() = default; };
+#ifdef __cpp_inline_variables
+    inline constexpr adopt_message_t adopt_message{};
+#else
+    constexpr adopt_message_t adopt_message{};
+#endif
 
     /********************************************//**
      * @class Message
@@ -72,7 +84,9 @@ namespace sdbus {
     {
     public:
         Message() = default;
-        Message(void *msg) noexcept;
+        Message(internal::ISdBus* sdbus) noexcept;
+        Message(void *msg, internal::ISdBus* sdbus) noexcept;
+        Message(void *msg, internal::ISdBus* sdbus, adopt_message_t) noexcept;
         Message(const Message&) noexcept;
         Message& operator=(const Message&) noexcept;
         Message(Message&& other) noexcept;
@@ -141,10 +155,8 @@ namespace sdbus {
         void rewind(bool complete);
 
     protected:
-        void* getMsg() const;
-
-    private:
         void* msg_{};
+        internal::ISdBus* sdbus_{};
         mutable bool ok_{true};
     };
 
@@ -167,6 +179,7 @@ namespace sdbus {
     {
     public:
         using Message::Message;
+        AsyncMethodCall() = default; // Fixes gcc 6.3 error (default c-tor is not imported in above using declaration)
         AsyncMethodCall(MethodCall&& call) noexcept;
         void send(void* callback, void* userData) const;
     };

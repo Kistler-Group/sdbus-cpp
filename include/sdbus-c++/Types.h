@@ -139,20 +139,22 @@ namespace sdbus {
     {
     public:
         using std::string::string;
-        using std::string::operator=;
+        ObjectPath() = default; // Fixes gcc 6.3 error (default c-tor is not imported in above using declaration)
         ObjectPath(std::string path)
             : std::string(std::move(path))
         {}
+        using std::string::operator=;
     };
 
     class Signature : public std::string
     {
     public:
         using std::string::string;
-        using std::string::operator=;
+        Signature() = default; // Fixes gcc 6.3 error (default c-tor is not imported in above using declaration)
         Signature(std::string path)
             : std::string(std::move(path))
         {}
+        using std::string::operator=;
     };
 
 }

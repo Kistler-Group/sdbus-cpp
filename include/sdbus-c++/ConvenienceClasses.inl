@@ -113,7 +113,7 @@ namespace sdbus {
     {
         inputSignature_ = signature_of_function_input_arguments<_Function>::str();
         outputSignature_ = signature_of_function_output_arguments<_Function>::str();
-        asyncCallback_ = [callback = std::forward<_Function>(callback)](MethodCall& msg, MethodResult result)
+        asyncCallback_ = [callback = std::forward<_Function>(callback)](MethodCall msg, MethodResult&& result)
         {
             // Create a tuple of callback input arguments' types, which will be used
             // as a storage for the argument values deserialized from the message.
@@ -123,7 +123,7 @@ namespace sdbus {
             msg >> inputArgs;
 
             // Invoke callback with input arguments from the tuple.
-            sdbus::apply(callback, std::move(result), inputArgs); // TODO: Use std::apply when switching to full C++17 support
+            sdbus::apply(callback, std::move(result), std::move(inputArgs)); // TODO: Use std::apply when switching to full C++17 support
         };
 
         return *this;

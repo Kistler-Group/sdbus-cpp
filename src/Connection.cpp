@@ -36,21 +36,23 @@
 namespace sdbus { namespace internal {
 
 Connection::Connection(Connection::BusType type, std::unique_ptr<ISdBus>&& interface)
-    : busType_(type)
-    , iface_(std::move(interface))
+    : iface_(std::move(interface))
+    , busType_(type)
 {
+    assert(iface_ != nullptr);
+
     auto bus = openBus(busType_);
     bus_.reset(bus);
 
     finishHandshake(bus);
 
-    notificationFd_ = createLoopNotificationDescriptor();
+    loopExitFd_ = createProcessingLoopExitDescriptor();
 }
 
 Connection::~Connection()
 {
     leaveProcessingLoop();
-    closeLoopNotificationDescriptor(notificationFd_);
+    closeProcessingLoopExitDescriptor(loopExitFd_);
 }
 
 void Connection::requestName(const std::string& name)
@@ -76,20 +78,29 @@ void Connection::enterProcessingLoop()
         auto success = waitForNextRequest();
         if (!success)
             break; // Exit processing loop
-        if (success.asyncMsgsToProcess)
-            processAsynchronousMessages();
     }
 }
 
 void Connection::enterProcessingLoopAsync()
 {
-    asyncLoopThread_ = std::thread([this](){ enterProcessingLoop(); });
+    if (!asyncLoopThread_.joinable())
+        asyncLoopThread_ = std::thread([this](){ enterProcessingLoop(); });
 }
 
 void Connection::leaveProcessingLoop()
 {
     notifyProcessingLoopToExit();
     joinWithProcessingLoop();
+}
+
+const ISdBus& Connection::getSdBusInterface() const
+{
+    return *iface_.get();
+}
+
+ISdBus& Connection::getSdBusInterface()
+{
+    return *iface_.get();
 }
 
 sd_bus_slot* Connection::addObjectVTable( const std::string& objectPath
@@ -116,15 +127,12 @@ void Connection::removeObjectVTable(sd_bus_slot* vtableHandle)
     iface_->sd_bus_slot_unref(vtableHandle);
 }
 
-sdbus::MethodCall Connection::createMethodCall( const std::string& destination
-                                              , const std::string& objectPath
-                                              , const std::string& interfaceName
-                                              , const std::string& methodName ) const
+MethodCall Connection::createMethodCall( const std::string& destination
+                                       , const std::string& objectPath
+                                       , const std::string& interfaceName
+                                       , const std::string& methodName ) const
 {
     sd_bus_message *sdbusMsg{};
-
-    // Returned message will become an owner of sdbusMsg
-    SCOPE_EXIT{ iface_->sd_bus_message_unref(sdbusMsg); };
 
     auto r = iface_->sd_bus_message_new_method_call( bus_.get()
                                                    , &sdbusMsg
@@ -135,17 +143,14 @@ sdbus::MethodCall Connection::createMethodCall( const std::string& destination
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create method call", -r);
 
-    return MethodCall(sdbusMsg);
+    return MethodCall{sdbusMsg, iface_.get(), adopt_message};
 }
 
-sdbus::Signal Connection::createSignal( const std::string& objectPath
-                                      , const std::string& interfaceName
-                                      , const std::string& signalName ) const
+Signal Connection::createSignal( const std::string& objectPath
+                               , const std::string& interfaceName
+                               , const std::string& signalName ) const
 {
     sd_bus_message *sdbusSignal{};
-
-    // Returned message will become an owner of sdbusSignal
-    SCOPE_EXIT{ iface_->sd_bus_message_unref(sdbusSignal); };
 
     auto r = iface_->sd_bus_message_new_signal( bus_.get()
                                               , &sdbusSignal
@@ -155,7 +160,7 @@ sdbus::Signal Connection::createSignal( const std::string& objectPath
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create signal", -r);
 
-    return Signal(sdbusSignal);
+    return Signal{sdbusSignal, iface_.get(), adopt_message};
 }
 
 sd_bus_slot* Connection::registerSignalHandler( const std::string& objectPath
@@ -177,20 +182,6 @@ sd_bus_slot* Connection::registerSignalHandler( const std::string& objectPath
 void Connection::unregisterSignalHandler(sd_bus_slot* handlerCookie)
 {
     iface_->sd_bus_slot_unref(handlerCookie);
-}
-
-void Connection::sendReplyAsynchronously(const sdbus::MethodReply& reply)
-{
-    std::lock_guard<std::mutex> guard(mutex_);
-    asyncReplies_.push(reply);
-    notifyProcessingLoop();
-}
-
-std::unique_ptr<sdbus::internal::IConnection> Connection::clone() const
-{
-    auto interface = std::make_unique<SdBus>();
-    assert(interface != nullptr);
-    return std::make_unique<sdbus::internal::Connection>(busType_, std::move(interface));
 }
 
 sd_bus* Connection::openBus(Connection::BusType type)
@@ -223,7 +214,7 @@ void Connection::finishHandshake(sd_bus* bus)
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to flush bus on opening", -r);
 }
 
-int Connection::createLoopNotificationDescriptor()
+int Connection::createProcessingLoopExitDescriptor()
 {
     auto r = eventfd(0, EFD_SEMAPHORE | EFD_CLOEXEC | EFD_NONBLOCK);
 
@@ -232,26 +223,25 @@ int Connection::createLoopNotificationDescriptor()
     return r;
 }
 
-void Connection::closeLoopNotificationDescriptor(int fd)
+void Connection::closeProcessingLoopExitDescriptor(int fd)
 {
     close(fd);
 }
 
-void Connection::notifyProcessingLoop()
+void Connection::notifyProcessingLoopToExit()
 {
-    assert(notificationFd_ >= 0);
+    assert(loopExitFd_ >= 0);
 
     uint64_t value = 1;
-    auto r = write(notificationFd_, &value, sizeof(value));
-
+    auto r = write(loopExitFd_, &value, sizeof(value));
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to notify processing loop", -errno);
 }
 
-void Connection::notifyProcessingLoopToExit()
+void Connection::clearExitNotification()
 {
-    exitLoopThread_ = true;
-
-    notifyProcessingLoop();
+    uint64_t value{};
+    auto r = read(loopExitFd_, &value, sizeof(value));
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to read from the event descriptor", -errno);
 }
 
 void Connection::joinWithProcessingLoop()
@@ -273,60 +263,35 @@ bool Connection::processPendingRequest()
     return r > 0;
 }
 
-void Connection::processAsynchronousMessages()
-{
-    std::lock_guard<std::mutex> guard(mutex_);
-    while (!asyncReplies_.empty())
-    {
-        auto reply = asyncReplies_.front();
-        asyncReplies_.pop();
-        reply.send();
-    }
-}
-
-Connection::WaitResult Connection::waitForNextRequest()
+bool Connection::waitForNextRequest()
 {
     auto bus = bus_.get();
 
     assert(bus != nullptr);
-    assert(notificationFd_ != 0);
+    assert(loopExitFd_ != 0);
 
-    auto r = iface_->sd_bus_get_fd(bus);
-    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus descriptor", -r);
-    auto sdbusFd = r;
+    ISdBus::PollData sdbusPollData;
+    auto r = iface_->sd_bus_get_poll_data(bus, &sdbusPollData);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus poll data", -r);
 
-    r = iface_->sd_bus_get_events(bus);
-    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus events", -r);
-    short int sdbusEvents = r;
-
-    uint64_t usec;
-    iface_->sd_bus_get_timeout(bus, &usec);
-
-    struct pollfd fds[] = {{sdbusFd, sdbusEvents, 0}, {notificationFd_, POLLIN, 0}};
+    struct pollfd fds[] = {{sdbusPollData.fd, sdbusPollData.events, 0}, {loopExitFd_, POLLIN, 0}};
     auto fdsCount = sizeof(fds)/sizeof(fds[0]);
 
-    r = poll(fds, fdsCount, usec == (uint64_t) -1 ? -1 : (usec+999)/1000);
+    auto timeout = sdbusPollData.timeout_usec == (uint64_t) -1 ? (uint64_t)-1 : (sdbusPollData.timeout_usec+999)/1000;
+    r = poll(fds, fdsCount, timeout);
 
     if (r < 0 && errno == EINTR)
-        return {true, false}; // Try again
+        return true; // Try again
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to wait on the bus", -errno);
 
     if (fds[1].revents & POLLIN)
     {
-        if (exitLoopThread_)
-            return {false, false}; // Got exit notification
-
-        // Otherwise we have some async messages to process
-
-        uint64_t value{};
-        auto r = read(notificationFd_, &value, sizeof(value));
-        SDBUS_THROW_ERROR_IF(r < 0, "Failed to read from the event descriptor", -errno);
-
-        return {false, true};
+        clearExitNotification();
+        return false;
     }
 
-    return {true, false};
+    return true;
 }
 
 std::string Connection::composeSignalMatchFilter( const std::string& objectPath
@@ -361,8 +326,8 @@ std::unique_ptr<sdbus::IConnection> createSystemBusConnection()
 {
     auto interface = std::make_unique<sdbus::internal::SdBus>();
     assert(interface != nullptr);
-    return std::make_unique<sdbus::internal::Connection>(sdbus::internal::Connection::BusType::eSystem,
-                                                         std::move(interface));
+    return std::make_unique<sdbus::internal::Connection>( sdbus::internal::Connection::BusType::eSystem
+                                                        , std::move(interface));
 }
 
 std::unique_ptr<sdbus::IConnection> createSystemBusConnection(const std::string& name)
@@ -376,8 +341,8 @@ std::unique_ptr<sdbus::IConnection> createSessionBusConnection()
 {
     auto interface = std::make_unique<sdbus::internal::SdBus>();
     assert(interface != nullptr);
-    return std::make_unique<sdbus::internal::Connection>(sdbus::internal::Connection::BusType::eSession,
-                                                         std::move(interface));
+    return std::make_unique<sdbus::internal::Connection>( sdbus::internal::Connection::BusType::eSession
+                                                        , std::move(interface));
 }
 
 std::unique_ptr<sdbus::IConnection> createSessionBusConnection(const std::string& name)

@@ -50,7 +50,6 @@ namespace internal {
         ObjectProxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
                    , std::string destination
                    , std::string objectPath );
-        ~ObjectProxy() override;
 
         MethodCall createMethodCall(const std::string& interfaceName, const std::string& methodName) override;
         AsyncMethodCall createAsyncMethodCall(const std::string& interfaceName, const std::string& methodName) override;
@@ -63,7 +62,12 @@ namespace internal {
         void finishRegistration() override;
 
     private:
-        bool listensToSignals() const;
+        struct AsyncReplyUserData
+        {
+            ObjectProxy& proxy;
+            async_reply_handler callback;
+        };
+
         void registerSignalHandlers(sdbus::internal::IConnection& connection);
         static int sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
         static int sdbus_signal_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
@@ -72,8 +76,6 @@ namespace internal {
         std::unique_ptr< sdbus::internal::IConnection
                        , std::function<void(sdbus::internal::IConnection*)>
                        > connection_;
-        bool ownConnection_{};
-        std::unique_ptr<sdbus::internal::IConnection> signalConnection_;
         std::string destination_;
         std::string objectPath_;
 

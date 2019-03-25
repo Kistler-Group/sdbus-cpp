@@ -29,14 +29,11 @@
 #include <sdbus-c++/IConnection.h>
 #include <sdbus-c++/Message.h>
 #include "IConnection.h"
+#include "ScopeGuard.h"
 #include "ISdBus.h"
-
 #include <systemd/sd-bus.h>
 #include <memory>
 #include <thread>
-#include <atomic>
-#include <mutex>
-#include <queue>
 
 namespace sdbus { namespace internal {
 
@@ -60,19 +57,22 @@ namespace sdbus { namespace internal {
         void enterProcessingLoopAsync() override;
         void leaveProcessingLoop() override;
 
+        const ISdBus& getSdBusInterface() const override;
+        ISdBus& getSdBusInterface() override;
+
         sd_bus_slot* addObjectVTable( const std::string& objectPath
                                     , const std::string& interfaceName
                                     , const sd_bus_vtable* vtable
                                     , void* userData ) override;
         void removeObjectVTable(sd_bus_slot* vtableHandle) override;
 
-        sdbus::MethodCall createMethodCall( const std::string& destination
-                                          , const std::string& objectPath
-                                          , const std::string& interfaceName
-                                          , const std::string& methodName ) const override;
-        sdbus::Signal createSignal( const std::string& objectPath
-                                  , const std::string& interfaceName
-                                  , const std::string& signalName ) const override;
+        MethodCall createMethodCall( const std::string& destination
+                                   , const std::string& objectPath
+                                   , const std::string& interfaceName
+                                   , const std::string& methodName ) const override;
+        Signal createSignal( const std::string& objectPath
+                           , const std::string& interfaceName
+                           , const std::string& signalName ) const override;
 
         sd_bus_slot* registerSignalHandler( const std::string& objectPath
                                           , const std::string& interfaceName
@@ -81,32 +81,18 @@ namespace sdbus { namespace internal {
                                           , void* userData ) override;
         void unregisterSignalHandler(sd_bus_slot* handlerCookie) override;
 
-        void sendReplyAsynchronously(const sdbus::MethodReply& reply) override;
-
-        std::unique_ptr<sdbus::internal::IConnection> clone() const override;
-
     private:
-        struct WaitResult
-        {
-            bool msgsToProcess;
-            bool asyncMsgsToProcess;
-            operator bool()
-            {
-                return msgsToProcess || asyncMsgsToProcess;
-            }
-        };
         sd_bus* openBus(Connection::BusType type);
         void finishHandshake(sd_bus* bus);
-        static int createLoopNotificationDescriptor();
-        static void closeLoopNotificationDescriptor(int fd);
+        static int createProcessingLoopExitDescriptor();
+        static void closeProcessingLoopExitDescriptor(int fd);
         bool processPendingRequest();
-        void processAsynchronousMessages();
-        WaitResult waitForNextRequest();
+        bool waitForNextRequest();
         static std::string composeSignalMatchFilter( const std::string& objectPath
                                                    , const std::string& interfaceName
                                                    , const std::string& signalName );
-        void notifyProcessingLoop();
         void notifyProcessingLoopToExit();
+        void clearExitNotification();
         void joinWithProcessingLoop();
 
     private:
@@ -115,14 +101,10 @@ namespace sdbus { namespace internal {
                                                                                 {
                                                                                     return iface_->sd_bus_flush_close_unref(bus);
                                                                                 }};
-        std::thread asyncLoopThread_;
-        std::mutex mutex_;
-        std::queue<MethodReply> asyncReplies_;
-        std::atomic<bool> exitLoopThread_;
-        int notificationFd_{-1};
         BusType busType_;
 
-        static constexpr const uint64_t POLL_TIMEOUT_USEC = 500000;
+        std::thread asyncLoopThread_;
+        int loopExitFd_{-1};
     };
 
 }}

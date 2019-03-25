@@ -45,7 +45,7 @@ public:
 
 protected:
 
-    void noArgNoReturn() const { }
+    void noArgNoReturn() const {}
 
     int32_t getInt() const { return INT32_VALUE; }
 

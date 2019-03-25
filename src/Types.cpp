@@ -29,7 +29,7 @@
 #include <systemd/sd-bus.h>
 #include <cassert>
 
-namespace sdbus { /*namespace internal {*/
+namespace sdbus {
 
 Variant::Variant()
     : msg_(createPlainMessage())

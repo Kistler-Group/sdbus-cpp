@@ -90,7 +90,6 @@ public:
 };
 
 std::unique_ptr<sdbus::IConnection> AdaptorAndProxyFixture::s_connection = sdbus::createSystemBusConnection();
-
 }
 
 /*-------------------------------------*/

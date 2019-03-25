@@ -201,7 +201,7 @@ std::tuple<std::string, std::string> AdaptorGenerator::processMethods(const Node
         Nodes outArgs = args.select("direction" , "out");
 
         std::string argStr, argTypeStr;
-        std::tie(argStr, argTypeStr, std::ignore) = argsToNamesAndTypes(inArgs);
+        std::tie(argStr, argTypeStr, std::ignore) = argsToNamesAndTypes(inArgs, async);
         
         using namespace std::string_literals;
 
@@ -210,7 +210,7 @@ std::tuple<std::string, std::string> AdaptorGenerator::processMethods(const Node
                 << ".onInterface(interfaceName)"
                 << ".implementedAs("
                 << "[this]("
-                << (async ? "sdbus::Result<" + outArgsToType(outArgs, true) + "> result" + (argTypeStr.empty() ? "" : ", ") : "")
+                << (async ? "sdbus::Result<" + outArgsToType(outArgs, true) + ">&& result" + (argTypeStr.empty() ? "" : ", ") : "")
                 << argTypeStr
                 << "){ " << (async ? "" : "return ") << "this->" << methodName << "("
                 << (async ? "std::move(result)"s + (argTypeStr.empty() ? "" : ", ") : "")
@@ -222,7 +222,7 @@ std::tuple<std::string, std::string> AdaptorGenerator::processMethods(const Node
                 << (async ? "void" : outArgsToType(outArgs))
                 << " " << methodName
                 << "("
-                << (async ? "sdbus::Result<" + outArgsToType(outArgs, true) + "> result" + (argTypeStr.empty() ? "" : ", ") : "")
+                << (async ? "sdbus::Result<" + outArgsToType(outArgs, true) + ">&& result" + (argTypeStr.empty() ? "" : ", ") : "")
                 << argTypeStr
                 << ") = 0;" << endl;
     }

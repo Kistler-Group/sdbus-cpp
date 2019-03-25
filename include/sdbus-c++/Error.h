@@ -70,12 +70,12 @@ namespace sdbus {
     sdbus::Error createError(int errNo, const std::string& customMsg);
 }
 
-#define SDBUS_THROW_ERROR(_MSG, _ERRNO)            \
-    throw sdbus::createError((_ERRNO), (_MSG))     \
+#define SDBUS_THROW_ERROR(_MSG, _ERRNO)                         \
+    throw sdbus::createError((_ERRNO), (_MSG))                  \
     /**/
 
-#define SDBUS_THROW_ERROR_IF(_COND, _MSG, _ERRNO)  \
-    if (_COND) SDBUS_THROW_ERROR((_MSG), (_ERRNO)) \
+#define SDBUS_THROW_ERROR_IF(_COND, _MSG, _ERRNO)               \
+    if (!(_COND)) ; else SDBUS_THROW_ERROR((_MSG), (_ERRNO))    \
     /**/
 
 #endif /* SDBUS_CXX_ERROR_H_ */

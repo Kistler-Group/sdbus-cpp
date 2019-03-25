@@ -30,45 +30,40 @@
 #include "IConnection.h"
 #include <systemd/sd-bus.h>
 #include <cassert>
+#include <chrono>
+#include <thread>
 
 namespace sdbus { namespace internal {
 
 ObjectProxy::ObjectProxy(sdbus::internal::IConnection& connection, std::string destination, std::string objectPath)
     : connection_(&connection, [](sdbus::internal::IConnection *){ /* Intentionally left empty */ })
-    , ownConnection_(false)
     , destination_(std::move(destination))
     , objectPath_(std::move(objectPath))
 {
+    // The connection is not ours only, it is managed by the client and we just reference it here,
+    // so we expect the client to manage the event loop upon this connection themselves.
 }
 
 ObjectProxy::ObjectProxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
                         , std::string destination
                         , std::string objectPath )
     : connection_(std::move(connection))
-    , ownConnection_(true)
     , destination_(std::move(destination))
     , objectPath_(std::move(objectPath))
 {
-}
-
-ObjectProxy::~ObjectProxy()
-{
-    // If the dedicated connection for signals is used, we have to stop the processing loop
-    // upon this connection prior to unregistering signal slots in the interfaces_ container,
-    // otherwise we might have a race condition of two threads working upon one connection.
-    if (signalConnection_ != nullptr)
-        signalConnection_->leaveProcessingLoop();
+    // The connection is ours only, so we have to manage event loop upon this connection,
+    // so we get signals, async replies, and other messages from D-Bus.
+    connection_->enterProcessingLoopAsync();
 }
 
 MethodCall ObjectProxy::createMethodCall(const std::string& interfaceName, const std::string& methodName)
 {
-    // Tell, don't ask
     return connection_->createMethodCall(destination_, objectPath_, interfaceName, methodName);
 }
 
 AsyncMethodCall ObjectProxy::createAsyncMethodCall(const std::string& interfaceName, const std::string& methodName)
 {
-    return AsyncMethodCall{createMethodCall(interfaceName, methodName)};
+    return AsyncMethodCall{ObjectProxy::createMethodCall(interfaceName, methodName)};
 }
 
 MethodReply ObjectProxy::callMethod(const MethodCall& message)
@@ -78,8 +73,11 @@ MethodReply ObjectProxy::callMethod(const MethodCall& message)
 
 void ObjectProxy::callMethod(const AsyncMethodCall& message, async_reply_handler asyncReplyCallback)
 {
-    // The new-ed handler gets deleted in the sdbus_async_reply_handler
-    message.send((void*)&ObjectProxy::sdbus_async_reply_handler, new async_reply_handler(std::move(asyncReplyCallback)));
+    auto callback = (void*)&ObjectProxy::sdbus_async_reply_handler;
+    // Allocated userData gets deleted in the sdbus_async_reply_handler
+    auto userData = new AsyncReplyUserData{*this, std::move(asyncReplyCallback)};
+
+    message.send(callback, userData);
 }
 
 void ObjectProxy::registerSignalHandler( const std::string& interfaceName
@@ -99,30 +97,7 @@ void ObjectProxy::registerSignalHandler( const std::string& interfaceName
 
 void ObjectProxy::finishRegistration()
 {
-    bool hasSignals = listensToSignals();
-
-    if (hasSignals && ownConnection_)
-    {
-        // Let's use dedicated signalConnection_ for signals,
-        // which will then be used by the processing loop thread.
-        signalConnection_ = connection_->clone();
-        registerSignalHandlers(*signalConnection_);
-        signalConnection_->enterProcessingLoopAsync();
-    }
-    else if (hasSignals)
-    {
-        // Let's used connection provided from the outside.
-        registerSignalHandlers(*connection_);
-    }
-}
-
-bool ObjectProxy::listensToSignals() const
-{
-    for (auto& interfaceItem : interfaces_)
-        if (!interfaceItem.second.signals_.empty())
-            return true;
-
-    return false;
+    registerSignalHandlers(*connection_);
 }
 
 void ObjectProxy::registerSignalHandlers(sdbus::internal::IConnection& connection)
@@ -149,31 +124,34 @@ void ObjectProxy::registerSignalHandlers(sdbus::internal::IConnection& connectio
 
 int ObjectProxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError)
 {
-    MethodReply message(sdbusMessage);
-
     // We are assuming the ownership of the async reply handler pointer passed here
-    std::unique_ptr<async_reply_handler> asyncReplyCallback{static_cast<async_reply_handler*>(userData)};
-    assert(asyncReplyCallback != nullptr);
+    std::unique_ptr<AsyncReplyUserData> asyncReplyUserData{static_cast<AsyncReplyUserData*>(userData)};
+    assert(asyncReplyUserData != nullptr);
+    assert(asyncReplyUserData->callback);
 
-    if (!sd_bus_error_is_set(retError))
+    MethodReply message{sdbusMessage, &asyncReplyUserData->proxy.connection_->getSdBusInterface()};
+
+    const auto* error = sd_bus_message_get_error(sdbusMessage);
+    if (error == nullptr)
     {
-        (*asyncReplyCallback)(message, nullptr);
+        asyncReplyUserData->callback(message, nullptr);
     }
     else
     {
-        sdbus::Error error(retError->name, retError->message);
-        (*asyncReplyCallback)(message, &error);
+        sdbus::Error exception(error->name, error->message);
+        asyncReplyUserData->callback(message, &exception);
     }
 }
 
 int ObjectProxy::sdbus_signal_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error */*retError*/)
 {
-    Signal message(sdbusMessage);
+    auto* proxy = static_cast<ObjectProxy*>(userData);
+    assert(proxy != nullptr);
 
-    auto* object = static_cast<ObjectProxy*>(userData);
-    assert(object != nullptr);
+    Signal message{sdbusMessage, &proxy->connection_->getSdBusInterface()};
+
     // Note: The lookup can be optimized by using sorted vectors instead of associative containers
-    auto& callback = object->interfaces_[message.getInterfaceName()].signals_[message.getMemberName()].callback_;
+    auto& callback = proxy->interfaces_[message.getInterfaceName()].signals_[message.getMemberName()].callback_;
     assert(callback);
 
     callback(message);
