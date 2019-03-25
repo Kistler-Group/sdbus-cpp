@@ -46,12 +46,14 @@ namespace sdbus {
     class Signal;
     class MethodResult;
     template <typename... _Results> class Result;
+    class Error;
 }
 
 namespace sdbus {
 
     using method_callback = std::function<void(MethodCall& msg, MethodReply& reply)>;
     using async_method_callback = std::function<void(MethodCall& msg, MethodResult result)>;
+    using async_reply_handler = std::function<void(MethodReply& reply, const Error* error)>;
     using signal_handler = std::function<void(Signal& signal)>;
     using property_set_callback = std::function<void(Message& msg)>;
     using property_get_callback = std::function<void(Message& reply)>;
@@ -368,6 +370,12 @@ namespace sdbus {
         static constexpr bool is_async = false;
     };
 
+    template <typename... _Args>
+    struct function_traits<void(const Error*, _Args...)>
+        : public function_traits_base<void, _Args...>
+    {
+    };
+
     template <typename... _Args, typename... _Results>
     struct function_traits<void(Result<_Results...>, _Args...)>
         : public function_traits_base<std::tuple<_Results...>, _Args...>
@@ -498,6 +506,15 @@ namespace sdbus {
             return std::forward<_Function>(f)(std::move(r), std::get<_I>(std::forward<_Tuple>(t))...);
         }
 
+        template <class _Function, class _Tuple, std::size_t... _I>
+        constexpr decltype(auto) apply_impl( _Function&& f
+                                           , const Error* e
+                                           , _Tuple&& t
+                                           , std::index_sequence<_I...> )
+        {
+            return std::forward<_Function>(f)(e, std::get<_I>(std::forward<_Tuple>(t))...);
+        }
+
         // Version of apply_impl for functions returning non-void values.
         // In this case just forward function return value.
         template <class _Function, class _Tuple, std::size_t... _I>
@@ -539,6 +556,17 @@ namespace sdbus {
     {
         return detail::apply_impl( std::forward<_Function>(f)
                                  , std::move(r)
+                                 , std::forward<_Tuple>(t)
+                                 , std::make_index_sequence<std::tuple_size<std::decay_t<_Tuple>>::value>{} );
+    }
+
+    // Convert tuple `t' of values into a list of arguments
+    // and invoke function `f' with those arguments.
+    template <class _Function, class _Tuple>
+    constexpr decltype(auto) apply(_Function&& f, const Error* e, _Tuple&& t)
+    {
+        return detail::apply_impl( std::forward<_Function>(f)
+                                 , e
                                  , std::forward<_Tuple>(t)
                                  , std::make_index_sequence<std::tuple_size<std::decay_t<_Tuple>>::value>{} );
     }

@@ -34,6 +34,7 @@
 // Forward declarations
 namespace sdbus {
     class MethodCall;
+    class AsyncMethodCall;
     class MethodReply;
     class IConnection;
 }
@@ -58,7 +59,7 @@ namespace sdbus {
         *
         * @param[in] interfaceName Name of an interface that the method is defined under
         * @param[in] methodName Name of the method
-        * @return A method call message message
+        * @return A method call message
         *
         * Serialize method arguments into the returned message and invoke the method by passing
         * the message with serialized arguments to the @c callMethod function.
@@ -67,6 +68,21 @@ namespace sdbus {
         * @throws sdbus::Error in case of failure
         */
         virtual MethodCall createMethodCall(const std::string& interfaceName, const std::string& methodName) = 0;
+
+        /*!
+        * @brief Creates an asynchronous method call message
+        *
+        * @param[in] interfaceName Name of an interface that the method is defined under
+        * @param[in] methodName Name of the method
+        * @return A method call message
+        *
+        * Serialize method arguments into the returned message and invoke the method by passing
+        * the message with serialized arguments to the @c callMethod function.
+        * Alternatively, use higher-level API @c callMethodAsync(const std::string& methodName) defined below.
+        *
+        * @throws sdbus::Error in case of failure
+        */
+        virtual AsyncMethodCall createAsyncMethodCall(const std::string& interfaceName, const std::string& methodName) = 0;
 
         /*!
         * @brief Calls method on the proxied D-Bus object
@@ -85,7 +101,23 @@ namespace sdbus {
         *
         * @throws sdbus::Error in case of failure
         */
-        virtual MethodReply callMethod(const sdbus::MethodCall& message) = 0;
+        virtual MethodReply callMethod(const MethodCall& message) = 0;
+
+        /*!
+        * @brief Calls method on the proxied D-Bus object asynchronously
+        *
+        * @param[in] message Message representing an async method call
+        * @param[in] asyncReplyHandler Handler for the async reply
+        *
+        * The call is non-blocking. It doesn't wait for the reply. Once the reply arrives,
+        * the provided async reply handler will get invoked from the context of the connection
+        * event loop processing thread.
+        *
+        * Note: To avoid messing with messages, use higher-level API defined below.
+        *
+        * @throws sdbus::Error in case of failure
+        */
+        virtual void callMethod(const AsyncMethodCall& message, async_reply_handler asyncReplyCallback) = 0;
 
         /*!
         * @brief Registers a handler for the desired signal emitted by the proxied D-Bus object
@@ -130,6 +162,30 @@ namespace sdbus {
         * @throws sdbus::Error in case of failure
         */
         MethodInvoker callMethod(const std::string& methodName);
+
+        /*!
+        * @brief Calls method on the proxied D-Bus object asynchronously
+        *
+        * @param[in] methodName Name of the method
+        * @return A helper object for convenient asynchronous invocation of the method
+        *
+        * This is a high-level, convenience way of calling D-Bus methods that abstracts
+        * from the D-Bus message concept. Method arguments/return value are automatically (de)serialized
+        * in a message and D-Bus signatures automatically deduced from the provided native arguments
+        * and return values.
+        *
+        * Example of use:
+        * @code
+        * int a = ..., b = ...;
+        * object_.callMethodAsync("multiply").onInterface(INTERFACE_NAME).withArguments(a, b).uponReplyInvoke([](int result)
+        * {
+        *     std::cout << "Got result of multiplying " << a << " and " << b << ": " << result << std::endl;
+        * });
+        * @endcode
+        *
+        * @throws sdbus::Error in case of failure
+        */
+        AsyncMethodInvoker callMethodAsync(const std::string& methodName);
 
         /*!
         * @brief Registers signal handler for a given signal of the proxied D-Bus object
@@ -195,6 +251,11 @@ namespace sdbus {
     inline MethodInvoker IObjectProxy::callMethod(const std::string& methodName)
     {
         return MethodInvoker(*this, methodName);
+    }
+
+    inline AsyncMethodInvoker IObjectProxy::callMethodAsync(const std::string& methodName)
+    {
+        return AsyncMethodInvoker(*this, methodName);
     }
 
     inline SignalSubscriber IObjectProxy::uponSignal(const std::string& signalName)

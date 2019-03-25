@@ -37,6 +37,7 @@ namespace sdbus {
     class IObject;
     class IObjectProxy;
     class Variant;
+    class Error;
 }
 
 namespace sdbus {
@@ -165,6 +166,7 @@ namespace sdbus {
         MethodInvoker& onInterface(const std::string& interfaceName);
         template <typename... _Args> MethodInvoker& withArguments(_Args&&... args);
         template <typename... _Args> void storeResultsTo(_Args&... args);
+
         void dontExpectReply();
 
     private:
@@ -173,6 +175,21 @@ namespace sdbus {
         MethodCall method_;
         int exceptions_{}; // Number of active exceptions when MethodInvoker is constructed
         bool methodCalled_{};
+    };
+
+    class AsyncMethodInvoker
+    {
+    public:
+        AsyncMethodInvoker(IObjectProxy& objectProxy, const std::string& methodName);
+        AsyncMethodInvoker& onInterface(const std::string& interfaceName);
+        template <typename... _Args> AsyncMethodInvoker& withArguments(_Args&&... args);
+        //template <typename... _OutputArgs> void uponReplyInvoke(std::function<void(const Error*, _OutputArgs...)> callback);
+        template <typename _Function> void uponReplyInvoke(_Function&& callback);
+
+    private:
+        IObjectProxy& objectProxy_;
+        const std::string& methodName_;
+        AsyncMethodCall method_;
     };
 
     class SignalSubscriber

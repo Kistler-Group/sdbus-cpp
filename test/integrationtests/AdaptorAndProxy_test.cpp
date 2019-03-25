@@ -43,6 +43,7 @@
 #include <tuple>
 #include <chrono>
 #include <fstream>
+#include <future>
 
 using ::testing::Eq;
 using ::testing::Gt;
@@ -247,7 +248,7 @@ TEST_F(SdbusTestObject, CallsErrorThrowingMethodWithDontExpectReplySet)
     ASSERT_TRUE(m_adaptor->wasThrowErrorCalled());
 }
 
-TEST_F(SdbusTestObject, DoesServerSideAsynchoronousMethodInParallel)
+TEST_F(SdbusTestObject, RunsServerSideAsynchoronousMethodAsynchronously)
 {
     // Yeah, this is kinda timing-dependent test, but times should be safe...
     std::mutex mtx;
@@ -300,6 +301,40 @@ TEST_F(SdbusTestObject, HandlesCorrectlyABulkOfParallelServerSideAsyncMethods)
     std::for_each(std::begin(invocations), std::end(invocations), [](auto& t){ t.join(); });
 
     ASSERT_THAT(resultCount, Eq(1500));
+}
+
+TEST_F(SdbusTestObject, InvokesMethodAsynchronouslyOnClientSide)
+{
+    std::promise<uint32_t> promise;
+    auto future = promise.get_future();
+    m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t res, const sdbus::Error* err)
+    {
+        if (err == nullptr)
+            promise.set_value(res);
+        else
+            promise.set_exception(std::make_exception_ptr(*err));
+    });
+
+    m_proxy->doOperationClientSideAsync(100);
+
+    ASSERT_THAT(future.get(), Eq(100));
+}
+
+TEST_F(SdbusTestObject, InvokesErroneousMethodAsynchronouslyOnClientSide)
+{
+    std::promise<uint32_t> promise;
+    auto future = promise.get_future();
+    m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t res, const sdbus::Error* err)
+    {
+        if (err == nullptr)
+            promise.set_value(res);
+        else
+            promise.set_exception(std::make_exception_ptr(*err));
+    });
+
+    m_proxy->doErroneousOperationClientSideAsync();
+
+    ASSERT_THROW(future.get(), sdbus::Error);
 }
 
 TEST_F(SdbusTestObject, FailsCallingNonexistentMethod)

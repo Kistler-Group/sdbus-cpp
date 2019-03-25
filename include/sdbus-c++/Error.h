@@ -57,6 +57,11 @@ namespace sdbus {
             return message_;
         }
 
+        bool isValid() const
+        {
+            return !getName().empty();
+        }
+
     private:
         std::string name_;
         std::string message_;

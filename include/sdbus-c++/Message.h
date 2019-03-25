@@ -163,6 +163,14 @@ namespace sdbus {
         MethodReply sendWithNoReply() const;
     };
 
+    class AsyncMethodCall : public Message
+    {
+    public:
+        using Message::Message;
+        AsyncMethodCall(MethodCall&& call) noexcept;
+        void send(void* callback, void* userData) const;
+    };
+
     class MethodReply : public Message
     {
     public:

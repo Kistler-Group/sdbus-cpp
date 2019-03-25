@@ -56,9 +56,9 @@ private:
     /**
      * Generate method calls
      * @param methods
-     * @return source code
+     * @return tuple: definition of methods, declaration of virtual async reply handlers
      */
-    std::string processMethods(const sdbuscpp::xml::Nodes& methods) const;
+    std::tuple<std::string, std::string> processMethods(const sdbuscpp::xml::Nodes& methods) const;
 
     /**
      * Generate code for handling signals

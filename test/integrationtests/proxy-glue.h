@@ -50,6 +50,8 @@ protected:
     virtual void onSignalWithVariant(const sdbus::Variant& v) = 0;
     virtual void onSignalWithoutRegistration(const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& s) = 0;
 
+    virtual void onDoOperationReply(uint32_t returnValue, const sdbus::Error* error) = 0;
+
 public:
     void noArgNoReturn()
     {
@@ -124,10 +126,10 @@ public:
         return result;
     }
 
-    uint32_t doOperationSync(uint32_t param)
+    uint32_t doOperation(uint32_t param)
     {
         uint32_t result;
-        object_.callMethod("doOperationSync").onInterface(INTERFACE_NAME).withArguments(param).storeResultsTo(result);
+        object_.callMethod("doOperation").onInterface(INTERFACE_NAME).withArguments(param).storeResultsTo(result);
         return result;
     }
 
@@ -136,6 +138,25 @@ public:
         uint32_t result;
         object_.callMethod("doOperationAsync").onInterface(INTERFACE_NAME).withArguments(param).storeResultsTo(result);
         return result;
+    }
+
+    uint32_t doOperationClientSideAsync(uint32_t param)
+    {
+        object_.callMethodAsync("doOperation")
+               .onInterface(INTERFACE_NAME)
+               .withArguments(param)
+               .uponReplyInvoke([this](const sdbus::Error* error, uint32_t returnValue)
+        {
+            this->onDoOperationReply(returnValue, error);
+        });
+    }
+
+    uint32_t doErroneousOperationClientSideAsync()
+    {
+        object_.callMethodAsync("throwError").onInterface(INTERFACE_NAME).uponReplyInvoke([this](const sdbus::Error* error)
+        {
+            this->onDoOperationReply(0, error);
+        });
     }
 
     sdbus::Signature getSignature()

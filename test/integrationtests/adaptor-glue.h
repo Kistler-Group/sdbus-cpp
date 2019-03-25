@@ -85,9 +85,9 @@ protected:
             return this->sumVectorItems(a, b);
         });
 
-        object_.registerMethod("doOperationSync").onInterface(INTERFACE_NAME).implementedAs([this](uint32_t param)
+        object_.registerMethod("doOperation").onInterface(INTERFACE_NAME).implementedAs([this](uint32_t param)
         {
-            return this->doOperationSync(param);
+            return this->doOperation(param);
         });
 
         object_.registerMethod("doOperationAsync").onInterface(INTERFACE_NAME).implementedAs([this](sdbus::Result<uint32_t> result, uint32_t param)
@@ -158,7 +158,7 @@ protected:
     virtual sdbus::Struct<std::string, sdbus::Struct<std::map<int32_t, int32_t>>> getStructInStruct() const = 0;
     virtual int32_t sumStructItems(const sdbus::Struct<uint8_t, uint16_t>& a, const sdbus::Struct<int32_t, int64_t>& b) = 0;
     virtual uint32_t sumVectorItems(const std::vector<uint16_t>& a, const std::vector<uint64_t>& b) = 0;
-    virtual uint32_t doOperationSync(uint32_t param) = 0;
+    virtual uint32_t doOperation(uint32_t param) = 0;
     virtual void doOperationAsync(uint32_t param, sdbus::Result<uint32_t> result) = 0;
     virtual sdbus::Signature getSignature() const  = 0;
     virtual sdbus::ObjectPath getObjectPath() const = 0;
@@ -212,11 +212,11 @@ R"delimiter(<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspectio
  </interface>
  <interface name="com.kistler.testsdbuscpp">
   <annotation name="org.freedesktop.DBus.Deprecated" value="true"/>
-  <method name="doOperationAsync">
+  <method name="doOperation">
    <arg type="u" direction="in"/>
    <arg type="u" direction="out"/>
   </method>
-  <method name="doOperationSync">
+  <method name="doOperationAsync">
    <arg type="u" direction="in"/>
    <arg type="u" direction="out"/>
   </method>

@@ -38,6 +38,11 @@ public:
     double getVariantValue() const { return m_variantValue; }
     std::map<std::string, std::string> getSignatureFromSignal() const { return m_signature; }
 
+    void installDoOperationClientSideAsyncReplyHandler(std::function<void(uint32_t res, const sdbus::Error* err)> handler)
+    {
+        m_DoOperationClientSideAsyncReplyHandler = handler;
+    }
+
 protected:
     void onSimpleSignal() override { ++m_simpleCallCounter; }
 
@@ -53,12 +58,19 @@ protected:
         m_signature[std::get<0>(s)] = static_cast<std::string>(std::get<0>(std::get<1>(s)));
     }
 
+    void onDoOperationReply(uint32_t returnValue, const sdbus::Error* error) override
+    {
+        if (m_DoOperationClientSideAsyncReplyHandler)
+            m_DoOperationClientSideAsyncReplyHandler(returnValue, error);
+    }
+
 private:
     int m_simpleCallCounter{};
     std::map<int32_t, std::string> m_map;
     double m_variantValue;
     std::map<std::string, std::string> m_signature;
 
+    std::function<void(uint32_t res, const sdbus::Error* err)> m_DoOperationClientSideAsyncReplyHandler;
 };
 
 
