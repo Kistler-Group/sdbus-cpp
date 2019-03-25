@@ -183,7 +183,6 @@ namespace sdbus {
         AsyncMethodInvoker(IObjectProxy& objectProxy, const std::string& methodName);
         AsyncMethodInvoker& onInterface(const std::string& interfaceName);
         template <typename... _Args> AsyncMethodInvoker& withArguments(_Args&&... args);
-        //template <typename... _OutputArgs> void uponReplyInvoke(std::function<void(const Error*, _OutputArgs...)> callback);
         template <typename _Function> void uponReplyInvoke(_Function&& callback);
 
     private:

@@ -664,17 +664,6 @@ void AsyncMethodCall::send(void* callback, void* userData) const
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method asynchronously", -r);
 }
 
-AsyncMethodCall::AsyncMethodCall(MethodCall&& call) noexcept
-    : Message(call)
-{
-}
-
-void AsyncMethodCall::send(void* callback, void* userData) const
-{
-    auto r = sd_bus_call_async(nullptr, nullptr, (sd_bus_message*)getMsg(), (sd_bus_message_handler_t)callback, userData, 0);
-    SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method asynchronously", -r);
-}
-
 void MethodReply::send() const
 {
     auto r = sdbus_->sd_bus_send(nullptr, (sd_bus_message*)msg_, nullptr);

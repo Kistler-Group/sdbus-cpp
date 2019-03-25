@@ -60,7 +60,11 @@ namespace sdbus {
 
     // Assume the caller has already obtained message ownership
     struct adopt_message_t { explicit adopt_message_t() = default; };
+#ifdef __cpp_inline_variables
     inline constexpr adopt_message_t adopt_message{};
+#else
+    constexpr adopt_message_t adopt_message{};
+#endif
 
     /********************************************//**
      * @class Message
@@ -175,6 +179,7 @@ namespace sdbus {
     {
     public:
         using Message::Message;
+        AsyncMethodCall() = default; // Fixes gcc 6.3 error (default c-tor is not imported in above using declaration)
         AsyncMethodCall(MethodCall&& call) noexcept;
         void send(void* callback, void* userData) const;
     };
