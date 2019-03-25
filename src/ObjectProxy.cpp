@@ -66,6 +66,11 @@ AsyncMethodCall ObjectProxy::createAsyncMethodCall(const std::string& interfaceN
     return AsyncMethodCall{ObjectProxy::createMethodCall(interfaceName, methodName)};
 }
 
+AsyncMethodCall ObjectProxy::createAsyncMethodCall(const std::string& interfaceName, const std::string& methodName)
+{
+    return AsyncMethodCall{createMethodCall(interfaceName, methodName)};
+}
+
 MethodReply ObjectProxy::callMethod(const MethodCall& message)
 {
     return message.send();
