@@ -51,6 +51,22 @@ set(INTEGRATIONTESTS_SRCS
     ${INTEGRATIONTESTS_SOURCE_DIR}/TestingAdaptor.h
     ${INTEGRATIONTESTS_SOURCE_DIR}/TestingProxy.h)
 
+set(PERFTESTS_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/perftests)
+set(STRESSTESTS_CLIENT_SRCS
+    ${PERFTESTS_SOURCE_DIR}/client.cpp
+    ${PERFTESTS_SOURCE_DIR}/perftest-proxy.h)
+set(STRESSTESTS_SERVER_SRCS
+    ${PERFTESTS_SOURCE_DIR}/server.cpp
+    ${PERFTESTS_SOURCE_DIR}/perftest-adaptor.h)
+
+set(STRESSTESTS_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/stresstests)
+set(STRESSTESTS_SRCS
+    ${STRESSTESTS_SOURCE_DIR}/stresstests.cpp
+    ${STRESSTESTS_SOURCE_DIR}/fahrenheit-thermometer-adaptor.h
+    ${STRESSTESTS_SOURCE_DIR}/fahrenheit-thermometer-proxy.h
+    ${STRESSTESTS_SOURCE_DIR}/concatenator-adaptor.h
+    ${STRESSTESTS_SOURCE_DIR}/concatenator-proxy.h)
+
 #-------------------------------
 # GENERAL COMPILER CONFIGURATION
 #-------------------------------
@@ -74,10 +90,20 @@ target_link_libraries(libsdbus-c++_integrationtests sdbus-c++ gmock gmock_main)
 # Manual performance tests
 option(ENABLE_PERFTESTS "Build and install manual performance tests (default OFF)" OFF)
 if(ENABLE_PERFTESTS)
-    add_executable(libsdbus-c++_perftests_client perftests/client.cpp perftests/perftest-proxy.h)
+    add_executable(libsdbus-c++_perftests_client ${STRESSTESTS_CLIENT_SRCS})
     target_link_libraries(libsdbus-c++_perftests_client sdbus-c++)
-    add_executable(libsdbus-c++_perftests_server perftests/server.cpp perftests/perftest-adaptor.h)
+    add_executable(libsdbus-c++_perftests_server ${STRESSTESTS_SERVER_SRCS})
     target_link_libraries(libsdbus-c++_perftests_server sdbus-c++)
+endif()
+
+# Manual stress tests
+option(ENABLE_STRESSTESTS "Build and install manual stress tests (default OFF)" ON)
+if(ENABLE_STRESSTESTS)
+    set(THREADS_PREFER_PTHREAD_FLAG ON)
+    find_package(Threads REQUIRED)
+
+    add_executable(sdbus-c++-stress-tests ${STRESSTESTS_SRCS})
+    target_link_libraries(sdbus-c++-stress-tests sdbus-c++ Threads::Threads)
 endif()
 
 #----------------------------------
@@ -92,6 +118,11 @@ if(ENABLE_PERFTESTS)
     install(TARGETS libsdbus-c++_perftests_client DESTINATION /opt/test/bin)
     install(TARGETS libsdbus-c++_perftests_server DESTINATION /opt/test/bin)
     install(FILES perftests/files/org.sdbuscpp.perftest.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/dbus-1/system.d)
+endif()
+
+if(ENABLE_STRESSTESTS)
+    install(TARGETS sdbus-c++-stress-tests DESTINATION /opt/test/bin)
+    install(FILES perftests/files/org.sdbuscpp.stresstest.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/dbus-1/system.d)
 endif()
 
 #----------------------------------
