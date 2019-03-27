@@ -44,13 +44,7 @@ namespace sdbus {
     class ObjectPath;
     class Signature;
     template <typename... _ValueTypes> class Struct;
-
-    class Message;
-    class MethodCall;
     class MethodReply;
-    class Signal;
-    template <typename... _Results> class Result;
-
     namespace internal {
         class ISdBus;
     }
