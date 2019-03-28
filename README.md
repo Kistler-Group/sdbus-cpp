@@ -16,9 +16,27 @@ $ make
 $ sudo make install
 ```
 
-By default, the library builds its unit and integration tests. That incorporates downloading and building static libraries of Google Test. Use `-DENABLE_TESTS=OFF` configure flag if you want to disable building the tests.
+### CMake configuration flags
 
-By default, the library doesn't build the code generator for adaptor and proxy interfaces. Use `-DBUILD_CODE_GEN=ON` flag to also build the code generator.
+* `BUILD_CODE_GEN` [boolean]
+
+  Option for building the stub code generator `sdbus-c++-xml2cpp` for generating the adaptor and proxy interfaces out of the D-Bus IDL XML description. `OFF` by default. Use `-DBUILD_CODE_GEN=ON` flag to turn on building the code gen.
+
+* `BUILD_TESTS` [boolean]
+
+  Option for building sdbus-c++ unit and integration tests, invokable by `make test`. That incorporates downloading and building static libraries of Google Test. `OFF` by default. Use `-DBUILD_TESTS=ON` to enable building the tests. With this option turned on, you may also enable/disable the following options:
+
+    * `BUILD_PERF_TESTS` [boolean]
+
+      Option for building sdbus-c++ performance tests. `OFF` by default.
+
+    * `BUILD_STRESS_TESTS` [boolean]
+
+      Option for building sdbus-c++ stress tests. `OFF` by default.
+
+    * `TESTS_INSTALL_PATH` [string]
+
+      Path where the test binaries shall get installed. Set to `/opt/test/bin` by default.
 
 Dependencies
 ------------
