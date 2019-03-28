@@ -33,7 +33,7 @@ add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
 
 set(UNITTESTS_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/unittests)
 set(UNITTESTS_SRCS
-    ${UNITTESTS_SOURCE_DIR}/libsdbus-c++_unittests.cpp
+    ${UNITTESTS_SOURCE_DIR}/sdbus-c++-unit-tests.cpp
     ${UNITTESTS_SOURCE_DIR}/Message_test.cpp
     ${UNITTESTS_SOURCE_DIR}/Types_test.cpp
     ${UNITTESTS_SOURCE_DIR}/TypeTraits_test.cpp
@@ -44,7 +44,7 @@ set(INTEGRATIONTESTS_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/integrationtests)
 set(INTEGRATIONTESTS_SRCS
     ${INTEGRATIONTESTS_SOURCE_DIR}/AdaptorAndProxy_test.cpp
     ${INTEGRATIONTESTS_SOURCE_DIR}/Connection_test.cpp
-    ${INTEGRATIONTESTS_SOURCE_DIR}/libsdbus-c++_integrationtests.cpp
+    ${INTEGRATIONTESTS_SOURCE_DIR}/sdbus-c++-integration-tests.cpp
     ${INTEGRATIONTESTS_SOURCE_DIR}/adaptor-glue.h
     ${INTEGRATIONTESTS_SOURCE_DIR}/defs.h
     ${INTEGRATIONTESTS_SOURCE_DIR}/proxy-glue.h
@@ -61,7 +61,7 @@ set(STRESSTESTS_SERVER_SRCS
 
 set(STRESSTESTS_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/stresstests)
 set(STRESSTESTS_SRCS
-    ${STRESSTESTS_SOURCE_DIR}/stresstests.cpp
+    ${STRESSTESTS_SOURCE_DIR}/sdbus-c++-stress-tests.cpp
     ${STRESSTESTS_SOURCE_DIR}/fahrenheit-thermometer-adaptor.h
     ${STRESSTESTS_SOURCE_DIR}/fahrenheit-thermometer-proxy.h
     ${STRESSTESTS_SOURCE_DIR}/concatenator-adaptor.h
@@ -81,24 +81,24 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 # targets even when INTERFACE_INCLUDE_DIRECTORIES is used.
 set(CMAKE_NO_SYSTEM_FROM_IMPORTED "1")
 
-add_executable(libsdbus-c++_unittests ${UNITTESTS_SRCS} $<TARGET_OBJECTS:sdbuscppobjects>)
-target_link_libraries(libsdbus-c++_unittests ${SYSTEMD_LIBRARIES} gmock gmock_main)
+add_executable(sdbus-c++-unit-tests ${UNITTESTS_SRCS} $<TARGET_OBJECTS:sdbuscppobjects>)
+target_link_libraries(sdbus-c++-unit-tests ${SYSTEMD_LIBRARIES} gmock gmock_main)
 
-add_executable(libsdbus-c++_integrationtests ${INTEGRATIONTESTS_SRCS})
-target_link_libraries(libsdbus-c++_integrationtests sdbus-c++ gmock gmock_main)
+add_executable(sdbus-c++-integration-tests ${INTEGRATIONTESTS_SRCS})
+target_link_libraries(sdbus-c++-integration-tests sdbus-c++ gmock gmock_main)
 
 # Manual performance tests
-option(ENABLE_PERFTESTS "Build and install manual performance tests (default OFF)" OFF)
-if(ENABLE_PERFTESTS)
-    add_executable(libsdbus-c++_perftests_client ${STRESSTESTS_CLIENT_SRCS})
-    target_link_libraries(libsdbus-c++_perftests_client sdbus-c++)
-    add_executable(libsdbus-c++_perftests_server ${STRESSTESTS_SERVER_SRCS})
-    target_link_libraries(libsdbus-c++_perftests_server sdbus-c++)
+option(ENABLE_PERF_TESTS "Build and install manual performance tests (default OFF)" OFF)
+if(ENABLE_PERF_TESTS)
+    add_executable(sdbus-c++-perf-tests-client ${STRESSTESTS_CLIENT_SRCS})
+    target_link_libraries(sdbus-c++-perf-tests-client sdbus-c++)
+    add_executable(sdbus-c++-perf-tests-server ${STRESSTESTS_SERVER_SRCS})
+    target_link_libraries(sdbus-c++-perf-tests-server sdbus-c++)
 endif()
 
 # Manual stress tests
-option(ENABLE_STRESSTESTS "Build and install manual stress tests (default OFF)" ON)
-if(ENABLE_STRESSTESTS)
+option(ENABLE_STRESS_TESTS "Build and install manual stress tests (default OFF)" OFF)
+if(ENABLE_STRESS_TESTS)
     set(THREADS_PREFER_PTHREAD_FLAG ON)
     find_package(Threads REQUIRED)
 
@@ -110,19 +110,19 @@ endif()
 # INSTALLATION
 #----------------------------------
 
-install(TARGETS libsdbus-c++_unittests DESTINATION /opt/test/bin)
-install(TARGETS libsdbus-c++_integrationtests DESTINATION /opt/test/bin)
-install(FILES ${INTEGRATIONTESTS_SOURCE_DIR}/files/libsdbus-cpp-test.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/dbus-1/system.d)
+install(TARGETS sdbus-c++-unit-tests DESTINATION /opt/test/bin)
+install(TARGETS sdbus-c++-integration-tests DESTINATION /opt/test/bin)
+install(FILES ${INTEGRATIONTESTS_SOURCE_DIR}/files/org.sdbuscpp.integrationtests.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/dbus-1/system.d)
 
-if(ENABLE_PERFTESTS)
-    install(TARGETS libsdbus-c++_perftests_client DESTINATION /opt/test/bin)
-    install(TARGETS libsdbus-c++_perftests_server DESTINATION /opt/test/bin)
-    install(FILES perftests/files/org.sdbuscpp.perftest.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/dbus-1/system.d)
+if(ENABLE_PERF_TESTS)
+    install(TARGETS sdbus-c++-perf-tests-client DESTINATION /opt/test/bin)
+    install(TARGETS sdbus-c++-perf-tests-server DESTINATION /opt/test/bin)
+    install(FILES ${PERFTESTS_SOURCE_DIR}/files/org.sdbuscpp.perftests.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/dbus-1/system.d)
 endif()
 
-if(ENABLE_STRESSTESTS)
+if(ENABLE_STRESS_TESTS)
     install(TARGETS sdbus-c++-stress-tests DESTINATION /opt/test/bin)
-    install(FILES perftests/files/org.sdbuscpp.stresstest.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/dbus-1/system.d)
+    install(FILES ${STRESSTESTS_SOURCE_DIR}/files/org.sdbuscpp.stresstests.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/dbus-1/system.d)
 endif()
 
 #----------------------------------
@@ -140,9 +140,9 @@ if(CMAKE_CROSSCOMPILING)
     if(NOT (UNIT_TESTS_RUNNER AND TEST_DEVICE_IP))
         message(WARNING "UNIT_TESTS_RUNNER and TEST_DEVICE_IP variables must be defined to run tests remotely")
     endif()
-    add_test(NAME libsdbus-c++_unittests COMMAND ${UNIT_TESTS_RUNNER} --deviceip=${TEST_DEVICE_IP} --testbin=libsdbus-c++_unittests)
-    add_test(NAME libsdbus-c++_integrationtests COMMAND ${UNIT_TESTS_RUNNER} --deviceip=${TEST_DEVICE_IP} --testbin=libsdbus-c++_integrationtests)
+    add_test(NAME sdbus-c++-unit-tests COMMAND ${UNIT_TESTS_RUNNER} --deviceip=${TEST_DEVICE_IP} --testbin=sdbus-c++-unit-tests)
+    add_test(NAME sdbus-c++-integration-tests COMMAND ${UNIT_TESTS_RUNNER} --deviceip=${TEST_DEVICE_IP} --testbin=sdbus-c++-integration-tests)
 else()
-    add_test(NAME libsdbus-c++_unittests COMMAND libsdbus-c++_unittests)
-    add_test(NAME libsdbus-c++_integrationtests COMMAND libsdbus-c++_integrationtests)
+    add_test(NAME sdbus-c++_unit-tests COMMAND sdbus-c++-unit-tests)
+    add_test(NAME sdbus-c++_integration-tests COMMAND sdbus-c++-integration-tests)
 endif() 

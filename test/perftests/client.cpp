@@ -89,8 +89,8 @@ std::string createRandomString(size_t length)
 //-----------------------------------------
 int main(int /*argc*/, char */*argv*/[])
 {
-    const char* destinationName = "org.sdbuscpp.perftest";
-    const char* objectPath = "/org/sdbuscpp/perftest";
+    const char* destinationName = "org.sdbuscpp.perftests";
+    const char* objectPath = "/org/sdbuscpp/perftests";
     PerftestClient client(destinationName, objectPath);
 
     const unsigned int repetitions{20};

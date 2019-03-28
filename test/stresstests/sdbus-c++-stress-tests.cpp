@@ -1,7 +1,7 @@
 /**
  * (C) 2019 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
  *
- * @file stresstests.cpp
+ * @file sdbus-c++-stress-tests.cpp
  *
  * Created on: Jan 25, 2019
  * Project: sdbus-c++
@@ -46,11 +46,11 @@
 using namespace std::chrono_literals;
 using namespace std::string_literals;
 
-#define SERVICE_1_BUS_NAME "org.sdbuscpp.stresstest.service1"
-#define SERVICE_2_BUS_NAME "org.sdbuscpp.stresstest.service2"
-#define CELSIUS_THERMOMETER_OBJECT_PATH "/org/sdbuscpp/stresstest/celsius/thermometer"
-#define FAHRENHEIT_THERMOMETER_OBJECT_PATH "/org/sdbuscpp/stresstest/fahrenheit/thermometer"
-#define CONCATENATOR_OBJECT_PATH "/org/sdbuscpp/stresstest/concatenator"
+#define SERVICE_1_BUS_NAME "org.sdbuscpp.stresstests.service1"
+#define SERVICE_2_BUS_NAME "org.sdbuscpp.stresstests.service2"
+#define CELSIUS_THERMOMETER_OBJECT_PATH "/org/sdbuscpp/stresstests/celsius/thermometer"
+#define FAHRENHEIT_THERMOMETER_OBJECT_PATH "/org/sdbuscpp/stresstests/fahrenheit/thermometer"
+#define CONCATENATOR_OBJECT_PATH "/org/sdbuscpp/stresstests/concatenator"
 
 class CelsiusThermometerAdaptor : public sdbus::Interfaces<org::sdbuscpp::stresstest::celsius::thermometer_adaptor>
 {

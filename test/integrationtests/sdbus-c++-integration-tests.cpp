@@ -1,7 +1,7 @@
 /**
  * (C) 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
  *
- * @file libsdbus-c++_integrationtests.cpp
+ * @file sdbus-c++-integration-tests.cpp
  *
  * Created on: Jan 2, 2017
  * Project: sdbus-c++

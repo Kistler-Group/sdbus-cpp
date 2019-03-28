@@ -28,7 +28,7 @@
 
 #include "sdbus-c++/Types.h"
 
-const std::string INTERFACE_NAME{"com.kistler.testsdbuscpp"};
+const std::string INTERFACE_NAME{"org.sdbuscpp.integrationtests"};
 const std::string OBJECT_PATH{"/"};
 
 constexpr const uint8_t UINT8_VALUE{1};

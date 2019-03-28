@@ -210,7 +210,7 @@ R"delimiter(<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspectio
    <arg type="as" name="invalidated_properties"/>
   </signal>
  </interface>
- <interface name="com.kistler.testsdbuscpp">
+ <interface name="org.sdbuscpp.integrationtests">
   <annotation name="org.freedesktop.DBus.Deprecated" value="true"/>
   <method name="doOperation">
    <arg type="u" direction="in"/>

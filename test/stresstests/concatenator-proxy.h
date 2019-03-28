@@ -17,7 +17,7 @@ namespace stresstest {
 class concatenator_proxy
 {
 public:
-    static constexpr const char* interfaceName = "org.sdbuscpp.stresstest.concatenator";
+    static constexpr const char* interfaceName = "org.sdbuscpp.stresstests.concatenator";
 
 protected:
     concatenator_proxy(sdbus::IObjectProxy& object)

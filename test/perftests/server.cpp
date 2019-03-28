@@ -85,10 +85,10 @@ std::string createRandomString(size_t length)
 //-----------------------------------------
 int main(int /*argc*/, char */*argv*/[])
 {
-    const char* serviceName = "org.sdbuscpp.perftest";
+    const char* serviceName = "org.sdbuscpp.perftests";
     auto connection = sdbus::createSystemBusConnection(serviceName);
 
-    const char* objectPath = "/org/sdbuscpp/perftest";
+    const char* objectPath = "/org/sdbuscpp/perftests";
     PerftestServer server(*connection, objectPath);
 
     connection->enterProcessingLoop();

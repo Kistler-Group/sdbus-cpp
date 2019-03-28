@@ -16,7 +16,7 @@ namespace sdbuscpp {
 class perftest_adaptor
 {
 public:
-    static constexpr const char* interfaceName = "org.sdbuscpp.perftest";
+    static constexpr const char* interfaceName = "org.sdbuscpp.perftests";
 
 protected:
     perftest_adaptor(sdbus::IObject& object)

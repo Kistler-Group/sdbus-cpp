@@ -18,7 +18,7 @@ namespace celsius {
 class thermometer_proxy
 {
 public:
-    static constexpr const char* interfaceName = "org.sdbuscpp.stresstest.celsius.thermometer";
+    static constexpr const char* interfaceName = "org.sdbuscpp.stresstests.celsius.thermometer";
 
 protected:
     thermometer_proxy(sdbus::IObjectProxy& object)
