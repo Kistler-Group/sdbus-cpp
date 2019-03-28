@@ -51,3 +51,10 @@ v0.4.3
 - Add another abstraction layer for sd-bus to improve isolation for unit testing
 - Minor code improvements for consistency and clarity
 - Not-existing interface name and object path fixes in integration tests
+
+v0.5.0
+- Redesign of the Connection model for scalability, thread-safety, simplicity and clarity
+- Introduce support asynchronous invocation of D-Bus methods on client-side
+- Revise and extend sdbus-c++ tutorial
+- Introduce stress tests that involve a D-Bus server and client interacting in dense communication in both sync and async ways
+- Compilation error fixes for older gcc versions
