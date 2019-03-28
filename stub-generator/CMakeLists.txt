@@ -4,7 +4,7 @@
 
 cmake_minimum_required(VERSION 3.5)
 
-project(sdbuscpp-xml2cpp)
+project(sdbus-c++-xml2cpp)
 
 include(GNUInstallDirs)
 
