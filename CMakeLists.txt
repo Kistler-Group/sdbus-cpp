@@ -112,7 +112,7 @@ install(TARGETS sdbus-c++
 # TESTS
 #----------------------------------
 
-option(BUILD_TESTS "Build and install tests (default ON)" ON)
+option(BUILD_TESTS "Build and install tests (default OFF)" OFF)
 
 if(BUILD_TESTS)
     enable_testing()
