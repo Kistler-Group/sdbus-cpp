@@ -81,68 +81,59 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 # targets even when INTERFACE_INCLUDE_DIRECTORIES is used.
 set(CMAKE_NO_SYSTEM_FROM_IMPORTED "1")
 
-add_executable(sdbus-c++-unit-tests ${UNITTESTS_SRCS} $<TARGET_OBJECTS:sdbuscppobjects>)
+add_executable(sdbus-c++-unit-tests ${UNITTESTS_SRCS} $<TARGET_OBJECTS:sdbus-cpp>)
 target_link_libraries(sdbus-c++-unit-tests ${SYSTEMD_LIBRARIES} gmock gmock_main)
 
 add_executable(sdbus-c++-integration-tests ${INTEGRATIONTESTS_SRCS})
 target_link_libraries(sdbus-c++-integration-tests sdbus-c++ gmock gmock_main)
 
-# Manual performance tests
+# Manual performance and stress tests
 option(ENABLE_PERF_TESTS "Build and install manual performance tests (default OFF)" OFF)
-if(ENABLE_PERF_TESTS)
-    add_executable(sdbus-c++-perf-tests-client ${STRESSTESTS_CLIENT_SRCS})
-    target_link_libraries(sdbus-c++-perf-tests-client sdbus-c++)
-    add_executable(sdbus-c++-perf-tests-server ${STRESSTESTS_SERVER_SRCS})
-    target_link_libraries(sdbus-c++-perf-tests-server sdbus-c++)
-endif()
-
-# Manual stress tests
 option(ENABLE_STRESS_TESTS "Build and install manual stress tests (default OFF)" OFF)
-if(ENABLE_STRESS_TESTS)
+
+if(ENABLE_PERF_TESTS OR ENABLE_STRESS_TESTS)
     set(THREADS_PREFER_PTHREAD_FLAG ON)
     find_package(Threads REQUIRED)
 
-    add_executable(sdbus-c++-stress-tests ${STRESSTESTS_SRCS})
-    target_link_libraries(sdbus-c++-stress-tests sdbus-c++ Threads::Threads)
+    if(ENABLE_PERF_TESTS)
+        add_executable(sdbus-c++-perf-tests-client ${STRESSTESTS_CLIENT_SRCS})
+        target_link_libraries(sdbus-c++-perf-tests-client sdbus-c++ Threads::Threads)
+        add_executable(sdbus-c++-perf-tests-server ${STRESSTESTS_SERVER_SRCS})
+        target_link_libraries(sdbus-c++-perf-tests-server sdbus-c++ Threads::Threads)
+    endif()
+
+    if(ENABLE_STRESS_TESTS)
+        add_executable(sdbus-c++-stress-tests ${STRESSTESTS_SRCS})
+        target_link_libraries(sdbus-c++-stress-tests sdbus-c++ Threads::Threads)
+    endif()
 endif()
 
 #----------------------------------
 # INSTALLATION
 #----------------------------------
 
-install(TARGETS sdbus-c++-unit-tests DESTINATION /opt/test/bin)
-install(TARGETS sdbus-c++-integration-tests DESTINATION /opt/test/bin)
-install(FILES ${INTEGRATIONTESTS_SOURCE_DIR}/files/org.sdbuscpp.integrationtests.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/dbus-1/system.d)
+set(TESTS_INSTALL_PATH "/opt/test/bin" CACHE STRING "Specifies where the test binaries will be installed")
+
+install(TARGETS sdbus-c++-unit-tests DESTINATION ${TESTS_INSTALL_PATH})
+install(TARGETS sdbus-c++-integration-tests DESTINATION ${TESTS_INSTALL_PATH})
+install(FILES ${INTEGRATIONTESTS_SOURCE_DIR}/files/org.sdbuscpp.integrationtests.conf DESTINATION /etc/dbus-1/system.d)
 
 if(ENABLE_PERF_TESTS)
-    install(TARGETS sdbus-c++-perf-tests-client DESTINATION /opt/test/bin)
-    install(TARGETS sdbus-c++-perf-tests-server DESTINATION /opt/test/bin)
-    install(FILES ${PERFTESTS_SOURCE_DIR}/files/org.sdbuscpp.perftests.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/dbus-1/system.d)
+    install(TARGETS sdbus-c++-perf-tests-client DESTINATION ${TESTS_INSTALL_PATH})
+    install(TARGETS sdbus-c++-perf-tests-server DESTINATION ${TESTS_INSTALL_PATH})
+    install(FILES ${PERFTESTS_SOURCE_DIR}/files/org.sdbuscpp.perftests.conf DESTINATION /etc/dbus-1/system.d)
 endif()
 
 if(ENABLE_STRESS_TESTS)
-    install(TARGETS sdbus-c++-stress-tests DESTINATION /opt/test/bin)
-    install(FILES ${STRESSTESTS_SOURCE_DIR}/files/org.sdbuscpp.stresstests.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/dbus-1/system.d)
+    install(TARGETS sdbus-c++-stress-tests DESTINATION ${TESTS_INSTALL_PATH})
+    install(FILES ${STRESSTESTS_SOURCE_DIR}/files/org.sdbuscpp.stresstests.conf DESTINATION /etc/dbus-1/system.d)
 endif()
 
 #----------------------------------
 # RUNNING THE TESTS UPON BUILD
 #----------------------------------
 
-if(CMAKE_CROSSCOMPILING)
-    if(NOT DEFINED UNIT_TESTS_RUNNER)
-        set(UNIT_TESTS_RUNNER $ENV{UNIT_TESTS_RUNNER})
-    endif()
-    if(NOT DEFINED TEST_DEVICE_IP)
-        set(TEST_DEVICE_IP $ENV{TEST_DEVICE_IP})
-    endif()
-
-    if(NOT (UNIT_TESTS_RUNNER AND TEST_DEVICE_IP))
-        message(WARNING "UNIT_TESTS_RUNNER and TEST_DEVICE_IP variables must be defined to run tests remotely")
-    endif()
-    add_test(NAME sdbus-c++-unit-tests COMMAND ${UNIT_TESTS_RUNNER} --deviceip=${TEST_DEVICE_IP} --testbin=sdbus-c++-unit-tests)
-    add_test(NAME sdbus-c++-integration-tests COMMAND ${UNIT_TESTS_RUNNER} --deviceip=${TEST_DEVICE_IP} --testbin=sdbus-c++-integration-tests)
-else()
-    add_test(NAME sdbus-c++_unit-tests COMMAND sdbus-c++-unit-tests)
-    add_test(NAME sdbus-c++_integration-tests COMMAND sdbus-c++-integration-tests)
+if(NOT CMAKE_CROSSCOMPILING)
+    add_test(NAME sdbus-c++-unit-tests COMMAND sdbus-c++-unit-tests)
+    add_test(NAME sdbus-c++-integration-tests COMMAND sdbus-c++-integration-tests)
 endif() 

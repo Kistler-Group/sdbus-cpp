@@ -80,21 +80,22 @@ include_directories("${CMAKE_SOURCE_DIR}/src")
 set(SDBUSCPP_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
 set(SDBUSCPP_VERSION "${PROJECT_VERSION}")
 
-# We are building in two steps: first objects, then link them into a library,
-# and that's because we need object files since unit tests link against them.
-add_library(sdbuscppobjects OBJECT ${SDBUSCPP_SRCS})
-target_include_directories(sdbuscppobjects PUBLIC ${SYSTEMD_INCLUDE_DIRS})
-target_compile_definitions(sdbuscppobjects PRIVATE BUILDLIB=1)
-set_target_properties(sdbuscppobjects PROPERTIES POSITION_INDEPENDENT_CODE ON)
+option(BUILD_SHARED_LIBS "Build shared libraries (.so) instead of static ones (.a)" ON)
 
-add_library(sdbus-c++ SHARED $<TARGET_OBJECTS:sdbuscppobjects>)
+add_library(sdbus-cpp OBJECT ${SDBUSCPP_SRCS})
+target_include_directories(sdbus-cpp PUBLIC ${SYSTEMD_INCLUDE_DIRS})
+target_compile_definitions(sdbus-cpp PRIVATE BUILDLIB=1)
+if(BUILD_SHARED_LIBS)
+    set_target_properties(sdbus-cpp PROPERTIES POSITION_INDEPENDENT_CODE ON)
+endif()
+
+add_library(sdbus-c++ $<TARGET_OBJECTS:sdbus-cpp>)
 set_target_properties(sdbus-c++
     PROPERTIES
     PUBLIC_HEADER "${SDBUSCPP_PUBLIC_HDRS}"
     VERSION "${SDBUSCPP_VERSION}"
     SOVERSION "${SDBUSCPP_VERSION_MAJOR}"
     OUTPUT_NAME "sdbus-c++")
-
 target_link_libraries(sdbus-c++ ${SYSTEMD_LIBRARIES})
 
 #----------------------------------
@@ -111,9 +112,9 @@ install(TARGETS sdbus-c++
 # TESTS
 #----------------------------------
 
-option(ENABLE_TESTS "Build and install tests (default ON)" ON)
+option(BUILD_TESTS "Build and install tests (default ON)" ON)
 
-if(ENABLE_TESTS)
+if(BUILD_TESTS)
     enable_testing()
     add_subdirectory("${CMAKE_SOURCE_DIR}/test")
 endif()
