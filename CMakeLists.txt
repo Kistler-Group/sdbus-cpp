@@ -133,7 +133,11 @@ endif()
 # DOCUMENTATION
 #----------------------------------
 
-# TODO Build doxygen
+option(BUILD_DOC "Build documentation" ON)
+
+if(BUILD_DOC)
+    add_subdirectory("${CMAKE_SOURCE_DIR}/doc")
+endif()
 
 #----------------------------------
 # CMAKE CONFIG & PACKAGE CONFIG
