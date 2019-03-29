@@ -38,8 +38,8 @@ namespace sdbus {
      * An interface to D-Bus bus connection. Incorporates implementation
      * of both synchronous and asynchronous processing loop.
      *
-     * All methods throw @sdbus::Error in case of failure. The class is
-     * thread-aware, but not thread-safe.
+     * All methods throw sdbus::Error in case of failure. All methods in
+     * this class are thread-aware, but not thread-safe.
      *
      ***********************************************/
     class IConnection
@@ -67,7 +67,7 @@ namespace sdbus {
         * @brief Enters the D-Bus processing loop
         *
         * The incoming D-Bus messages are processed in the loop. The method
-        * blocks indefinitely, until unblocked via @leaveProcessingLoop.
+        * blocks indefinitely, until unblocked via leaveProcessingLoop.
         *
         * @throws sdbus::Error in case of failure
         */
@@ -76,7 +76,7 @@ namespace sdbus {
         /*!
         * @brief Enters the D-Bus processing loop in a separate thread
         *
-        * The same as @enterProcessingLoop, except that it doesn't block
+        * The same as enterProcessingLoop, except that it doesn't block
         * because it runs the loop in a separate thread managed internally.
         */
         virtual void enterProcessingLoopAsync() = 0;

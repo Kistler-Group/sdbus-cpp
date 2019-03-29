@@ -133,7 +133,7 @@ endif()
 # DOCUMENTATION
 #----------------------------------
 
-option(BUILD_DOC "Build documentation" ON)
+option(BUILD_DOC "Build doxygen documentation for sdbus-c++ API" ON)
 
 if(BUILD_DOC)
     add_subdirectory("${CMAKE_SOURCE_DIR}/doc")

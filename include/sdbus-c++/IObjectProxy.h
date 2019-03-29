@@ -47,8 +47,10 @@ namespace sdbus {
      * An interface to D-Bus object proxy. Provides API for calling
      * methods, getting/setting properties, and for registering to signals.
      *
-     * All methods throw @c sdbus::Error in case of failure. The class is
-     * thread-aware, but not thread-safe.
+     * All methods throw @c sdbus::Error in case of failure.
+     * In general, the class is thread-aware, but not thread-safe.
+     * However, the operation of creating and sending method calls
+     * (both synchronously and asynchronously) is thread-safe.
      *
      ***********************************************/
     class IObjectProxy
@@ -107,7 +109,7 @@ namespace sdbus {
         * @brief Calls method on the proxied D-Bus object asynchronously
         *
         * @param[in] message Message representing an async method call
-        * @param[in] asyncReplyHandler Handler for the async reply
+        * @param[in] asyncReplyCallback Handler for the async reply
         *
         * The call is non-blocking. It doesn't wait for the reply. Once the reply arrives,
         * the provided async reply handler will get invoked from the context of the connection
@@ -284,11 +286,10 @@ namespace sdbus {
     * @return Pointer to the object proxy instance
     *
     * The provided connection will be used by the proxy to issue calls against the object,
-    * and signals, if any, will be subscribed to on this connection. Since the caller still
-    * remains the owner of the connection (the proxy just keeps reference to it) after the call,
-    * the proxy will not start its own background processing loop for incoming signals (if any),
-    * as it will rely on the client as an owner of the connection to handle processing of
-    * incoming messages on that connection by themselves.
+    * and signals, if any, will be subscribed to on this connection. The caller still
+    * remains the owner of the connection (the proxy just keeps a reference to it), and
+    * should make sure that a processing loop is running on that connection, so the proxy
+    * may receive incoming signals and asynchronous method replies.
     *
     * Code example:
     * @code
@@ -308,11 +309,10 @@ namespace sdbus {
     * @return Pointer to the object proxy instance
     *
     * The provided connection will be used by the proxy to issue calls against the object,
-    * and signals, if any, will be subscribed to on this connection. Object proxy becomes
-    * an exclusive owner of this connection. The effect of this is that when there is at
-    * least one signal in proxy's interface, then the proxy will immediately start its own
-    * processing loop for this connection in a separate internal thread, causing incoming
-    * signals to be correctly received and processed in the context of that internal thread.
+    * and signals, if any, will be subscribed to on this connection. The Object proxy becomes
+    * an exclusive owner of this connection, and will automatically start a procesing loop
+    * upon that connection in a separate internal thread. Handlers for incoming signals and
+    * asynchronous method replies will be executed in the context of that thread.
     *
     * Code example:
     * @code
@@ -330,14 +330,14 @@ namespace sdbus {
     * @param[in] objectPath Path of the D-Bus object
     * @return Pointer to the object proxy instance
     *
-    * This factory overload creates a proxy that manages its own D-Bus connection(s).
-    * When there is at least one signal in proxy's interface, then the proxy will immediately
-    * start its own processing loop for this connection in its own separate thread, causing
-    * incoming signals to be correctly received and processed in the context of that thread.
+    * No D-Bus connection is provided here, so the object proxy will create and manage
+    * his own connection, and will automatically start a procesing loop upon that connection
+    * in a separate internal thread. Handlers for incoming signals and asynchronous
+    * method replies will be executed in the context of that thread.
     *
     * Code example:
     * @code
-    * auto proxy = sdbus::createObjectProxy(connection, "com.kistler.foo", "/com/kistler/foo");
+    * auto proxy = sdbus::createObjectProxy("com.kistler.foo", "/com/kistler/foo");
     * @endcode
     */
     std::unique_ptr<sdbus::IObjectProxy> createObjectProxy( std::string destination

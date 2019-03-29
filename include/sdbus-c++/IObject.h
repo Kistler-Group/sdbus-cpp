@@ -47,8 +47,11 @@ namespace sdbus {
      * An interface to D-Bus object. Provides API for registration
      * of methods, signals, properties, and for emitting signals.
      *
-     * All methods throw @c sdbus::Error in case of failure. The class is
-     * thread-aware, but not thread-safe.
+     * All methods throw @c sdbus::Error in case of failure.
+     * In general, the class is thread-aware, but not thread-safe.
+     * However, the operation of creating and sending asynchronous
+     * method replies, as well as creating and emitting
+     * signals, is thread-safe.
      *
      ***********************************************/
     class IObject
@@ -62,7 +65,7 @@ namespace sdbus {
         * @param[in] inputSignature D-Bus signature of method input parameters
         * @param[in] outputSignature D-Bus signature of method output parameters
         * @param[in] methodCallback Callback that implements the body of the method
-        * @param[in] noReply If true, the method isn't expected to send reply
+        * @param[in] flags D-Bus method flags (privileged, deprecated, or no reply)
         *
         * @throws sdbus::Error in case of failure
         */
@@ -81,7 +84,7 @@ namespace sdbus {
         * @param[in] inputSignature D-Bus signature of method input parameters
         * @param[in] outputSignature D-Bus signature of method output parameters
         * @param[in] asyncMethodCallback Callback that implements the body of the method
-        * @param[in] noReply If true, the method isn't expected to send reply
+        * @param[in] flags D-Bus method flags (privileged, deprecated, or no reply)
         *
         * This overload register a method callback that will have a freedom to execute
         * its body in asynchronous contexts, and send the results from those contexts.
@@ -103,6 +106,7 @@ namespace sdbus {
         * @param[in] interfaceName Name of an interface that the signal will fall under
         * @param[in] signalName Name of the signal
         * @param[in] signature D-Bus signature of signal parameters
+        * @param[in] flags D-Bus signal flags (deprecated)
         *
         * @throws sdbus::Error in case of failure
         */
@@ -118,6 +122,7 @@ namespace sdbus {
         * @param[in] propertyName Name of the property
         * @param[in] signature D-Bus signature of property parameters
         * @param[in] getCallback Callback that implements the body of the property getter
+        * @param[in] flags D-Bus property flags (deprecated, property update behavior)
         *
         * @throws sdbus::Error in case of failure
         */
@@ -135,6 +140,7 @@ namespace sdbus {
         * @param[in] signature D-Bus signature of property parameters
         * @param[in] getCallback Callback that implements the body of the property getter
         * @param[in] setCallback Callback that implements the body of the property setter
+        * @param[in] flags D-Bus property flags (deprecated, property update behavior)
         *
         * @throws sdbus::Error in case of failure
         */
@@ -326,6 +332,9 @@ namespace sdbus {
     *
     * The provided connection will be used by the object to export methods,
     * issue signals and provide properties.
+    *
+    * Creating a D-Bus object instance is (thread-)safe even upon the connection
+    * which is already running its processing loop.
     *
     * Code example:
     * @code

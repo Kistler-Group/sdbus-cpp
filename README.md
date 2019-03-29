@@ -20,23 +20,27 @@ $ sudo make install
 
 * `BUILD_CODE_GEN` [boolean]
 
-  Option for building the stub code generator `sdbus-c++-xml2cpp` for generating the adaptor and proxy interfaces out of the D-Bus IDL XML description. `OFF` by default. Use `-DBUILD_CODE_GEN=ON` flag to turn on building the code gen.
+  Option for building the stub code generator `sdbus-c++-xml2cpp` for generating the adaptor and proxy interfaces out of the D-Bus IDL XML description. Default value: `OFF`. Use `-DBUILD_CODE_GEN=ON` flag to turn on building the code gen.
+
+* `BUILD_DOC` [boolean]
+
+  Option for building Doxygen documentation of sdbus-c++ API. If `BUILD_DOC` is enabled, the documentation must still be built explicitly through `make doc`. Default value: `ON`. Use `-DBUILD_DOC=OFF` to disable searching for Doxygen and building Doxygen documentation of sdbus-c++ API.
 
 * `BUILD_TESTS` [boolean]
 
-  Option for building sdbus-c++ unit and integration tests, invokable by `make test`. That incorporates downloading and building static libraries of Google Test. `OFF` by default. Use `-DBUILD_TESTS=ON` to enable building the tests. With this option turned on, you may also enable/disable the following options:
+  Option for building sdbus-c++ unit and integration tests, invokable by `make test`. That incorporates downloading and building static libraries of Google Test. Default value: `OFF`. Use `-DBUILD_TESTS=ON` to enable building the tests. With this option turned on, you may also enable/disable the following options:
 
     * `BUILD_PERF_TESTS` [boolean]
 
-      Option for building sdbus-c++ performance tests. `OFF` by default.
+      Option for building sdbus-c++ performance tests. Default value: `OFF`.
 
     * `BUILD_STRESS_TESTS` [boolean]
 
-      Option for building sdbus-c++ stress tests. `OFF` by default.
+      Option for building sdbus-c++ stress tests. Default value: `OFF`.
 
     * `TESTS_INSTALL_PATH` [string]
 
-      Path where the test binaries shall get installed. Set to `/opt/test/bin` by default.
+      Path where the test binaries shall get installed. Default value: `/opt/test/bin`.
 
 Dependencies
 ------------
