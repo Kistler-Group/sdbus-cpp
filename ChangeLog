@@ -54,7 +54,14 @@ v0.4.3
 
 v0.5.0
 - Redesign of the Connection model for scalability, thread-safety, simplicity and clarity
-- Introduce support asynchronous invocation of D-Bus methods on client-side
+- [[Breaking ABI change]] Introduce support asynchronous invocation of D-Bus methods on client-side
 - Revise and extend sdbus-c++ tutorial
 - Introduce stress tests that involve a D-Bus server and client interacting in dense communication in both sync and async ways
 - Compilation error fixes for older gcc versions
+
+v0.5.1
+- Cleanups of CMakeLists.txt
+- Rename sdbus-c++ test executables for consistency
+- Rename sdbus-c++ stub code generator executable
+- Introduce generation of doxygen documentation
+- Improve documentation
