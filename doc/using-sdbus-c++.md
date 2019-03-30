@@ -714,7 +714,7 @@ So far in our tutorial, we have only considered simple server methods that are e
 Considering the Concatenator example based on lower-level API, if we wanted to write `concatenate` method in an asynchronous way, you only have to adapt method signature and its body (registering the method and all the other stuff stays the same):
 
 ```c++
-void concatenate(sdbus::MethodCall& call, sdbus::MethodResult result)
+void concatenate(sdbus::MethodCall call, sdbus::MethodResult&& result)
 {
     // Deserialize the collection of numbers from the message
     std::vector<int> numbers;
@@ -725,7 +725,7 @@ void concatenate(sdbus::MethodCall& call, sdbus::MethodResult result)
     call >> separator;
     
     // Launch a thread for async execution...
-    std::thread([numbers, separator, result = std::move(result)]()
+    std::thread([numbers = std::move(numbers), separator = std::move(separator), result = std::move(result)]()
     {
         // Return error if there are no numbers in the collection
         if (numbers.empty())
@@ -744,43 +744,43 @@ void concatenate(sdbus::MethodCall& call, sdbus::MethodResult result)
         // This will send the reply message back to the client
         result.returnResults(concatenatedStr);
         
-        // Note: emitting signals from other than D-Bus dispatcher thread is not supported yet...
-        /*
-        // Emit 'concatenated' signal
+        // Emit 'concatenated' signal (creating and emitting signals is thread-safe)
         const char* interfaceName = "org.sdbuscpp.Concatenator";
         auto signal = g_concatenator->createSignal(interfaceName, "concatenated");
         signal << result;
         g_concatenator->emitSignal(signal);
-        */
     }).detach();
 }
 ```
 
 Notice these differences as compared to the synchronous version:
 
-  * Instead of `MethodReply` message given by reference, there is `MethodResult` as a second parameter of the callback, which will hold method results and can be written to from any thread.
+  * `MethodCall` message is not given by reference, but it's `std::move`d in. Usually, we either deserialize D-Bus method input arguments synchronously (as in the example above) and then `std::move` them to the worker thread, or we `std::move` (or copy, but moving is faster and idiomatic) the `MethodCall` message to that thread directly and do both the deserialization of input arguments and the logic in that thread.
 
-  * You shall pass the result holder (`MethodResult` instance) by moving it to the thread of execution, and eventually write method results (or method error) to it via its `returnResults()` or `returnError()` method, respectively.
+  * Instead of `MethodReply` message given by reference, there is `MethodResult&&` as a second parameter of the callback. `MethodResult` class is move-only.
 
-  * Unlike in sync methods, reporting errors cannot be done by throwing sdbus::Error, since the execution takes place out of context of the D-Bus dispatcher thread. Instead, just pass the error name and message to the `returnError` method of the result holder.
+  * We shall `std::move` the `MethodResult` to the worker thread, and eventually write D-Bus method results (or method error, respectively) to it via its `returnResults()` method (or `returnError()` method, respectively).
+
+  * Unlike in sync methods, reporting errors cannot be done by throwing `Error`, since the execution takes place out of the context of the D-Bus dispatcher thread. Instead, just pass the error name and message to the `returnError` method of the result holder.
 
 That's all.
 
 ### Convenience API
 
-Method callbacks in convenience sdbus-c++ API also need to take the result object as a parameter. The requirements are:
+Callbacks of async methods in convenience sdbus-c++ API also need to take the result object as a parameter. The requirements are:
 
   * The result holder is of type `sdbus::Result<Types...>`, where `Types...` is a list of method output argument types.
   * The result object must be a first physical parameter of the callback taken by value.
   * The callback itself is physically a void-returning function.
+  * Method input arguments are taken by value rathern than by const ref, because we usually want to `std::move` them to the worker thread. Moving is usually a lot cheaper than copying, and it's idiomatic. For non-movable types, copying is a fallback.
 
-For example, we would have to change the concatenate callback signature from `std::string concatenate(const std::vector<int32_t>& numbers, const std::string& separator)` to `void concatenate(sdbus::Result<std::string> result, const std::vector<int32_t>& numbers, const std::string& separator)`.
+For example, we would have to change the concatenate callback signature from `std::string concatenate(const std::vector<int32_t>& numbers, const std::string& separator)` to `void concatenate(sdbus::Result<std::string>&& result, std::vector<int32_t> numbers, std::string separator)`.
 
-`sdbus::Result` class template has effectively the same API as `sdbus::MethodResult` class mentioned in the above example (it inherits from `MethodResult`), so you use it in the very same way to send the results or an error back to the client.
+The `Result` class template has effectively the same API as the `MethodResult` class mentioned in the above example (it inherits from `MethodResult`), so you use it in the very same way to send the results or an error back to the client.
 
 Nothing else has to be changed. The registration of the method callback (`implementedAs`) and all the mechanics around remains completely the same.
 
-Note: Async D-Bus method doesn't necessarily mean we always have to delegate the work to a different thread and immediately return. We can very well execute the work and return the results (via `returnResults()`) or an error (via `return Error()`) synchronously -- i.e. directly in this thread. dbus-c++ doesn't care, it supports both approaches. This has the benefit that we can decide at run-time, per each method call, whether we execute it synchronously or (in case of complex operation, for example) execute it asynchronously by moving the work to a worker thread.
+Note: Async D-Bus method doesn't necessarily mean we always have to delegate the work to a different thread and immediately return. We can very well execute the work and return the results (via `returnResults()`) or an error (via `return Error()`) synchronously -- i.e. directly in this thread. sdbus-c++ doesn't care, it supports both approaches. This has the benefit that we can decide at run-time, per each method call, whether we execute it synchronously or (in case of complex operation, for example) execute it asynchronously by moving the work to a worker thread.
 
 ### Marking server-side async methods in the IDL
 
@@ -803,6 +803,8 @@ sdbus-c++ stub generator can generate stub code for server-side async methods. W
     </interface>
 </node>
 ```
+
+For a real example of a server-side asynchronous D-Bus method, please look at sdbus-c++ [stress tests](/test/stresstests).
 
 Asynchronous client-side methods
 --------------------------------
@@ -918,6 +920,8 @@ sdbus-c++ stub generator can generate stub code for client-side async methods. W
 For each client-side async method, a corresponding `on<MethodName>Reply` pure virtual function, where <MethodName> is capitalized D-Bus method name, is generated in the generated proxy class. This function is the callback invoked when the D-Bus method reply arrives, and must be provided a body by overriding it in the implementation class.
     
 So in the specific example above, the stub generator will generate a `Concatenator_proxy` class similar to one shown in a [dedicated section above](#concatenator-client-glueh), with the difference that it will also generate an additional `virtual void onConcatenateReply(const sdbus::Error* error, const std::string& concatenatedString);` method, which we shall override in derived `ConcatenatorProxy`.
+
+For a real example of a client-side asynchronous D-Bus method, please look at sdbus-c++ [stress tests](/test/stresstests).
 
 Using D-Bus properties
 ----------------------
