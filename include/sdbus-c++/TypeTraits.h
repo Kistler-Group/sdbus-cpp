@@ -44,15 +44,13 @@ namespace sdbus {
     class MethodCall;
     class MethodReply;
     class Signal;
-    class MethodResult;
     template <typename... _Results> class Result;
     class Error;
 }
 
 namespace sdbus {
 
-    using method_callback = std::function<void(MethodCall& msg, MethodReply& reply)>;
-    using async_method_callback = std::function<void(MethodCall msg, MethodResult&& result)>;
+    using method_callback = std::function<void(MethodCall msg)>;
     using async_reply_handler = std::function<void(MethodReply& reply, const Error* error)>;
     using signal_handler = std::function<void(Signal& signal)>;
     using property_set_callback = std::function<void(Message& msg)>;
@@ -381,6 +379,7 @@ namespace sdbus {
         : public function_traits_base<std::tuple<_Results...>, _Args...>
     {
         static constexpr bool is_async = true;
+        using async_result_t = Result<_Results...>;
     };
 
     template <typename... _Args, typename... _Results>
@@ -388,6 +387,7 @@ namespace sdbus {
         : public function_traits_base<std::tuple<_Results...>, _Args...>
     {
         static constexpr bool is_async = true;
+        using async_result_t = Result<_Results...>;
     };
 
     template <typename _ReturnType, typename... _Args>
@@ -504,9 +504,9 @@ namespace sdbus {
 
     namespace detail
     {
-        template <class _Function, class _Tuple, std::size_t... _I>
+        template <class _Function, class _Tuple, typename... _Args, std::size_t... _I>
         constexpr decltype(auto) apply_impl( _Function&& f
-                                           , MethodResult&& r
+                                           , Result<_Args...>&& r
                                            , _Tuple&& t
                                            , std::index_sequence<_I...> )
         {
@@ -558,8 +558,8 @@ namespace sdbus {
 
     // Convert tuple `t' of values into a list of arguments
     // and invoke function `f' with those arguments.
-    template <class _Function, class _Tuple>
-    constexpr decltype(auto) apply(_Function&& f, MethodResult&& r, _Tuple&& t)
+    template <class _Function, class _Tuple, typename... _Args>
+    constexpr decltype(auto) apply(_Function&& f, Result<_Args...>&& r, _Tuple&& t)
     {
         return detail::apply_impl( std::forward<_Function>(f)
                                  , std::move(r)

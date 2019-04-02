@@ -51,37 +51,8 @@ void Object::registerMethod( const std::string& interfaceName
 {
     SDBUS_THROW_ERROR_IF(!methodCallback, "Invalid method callback provided", EINVAL);
 
-    auto syncCallback = [callback = std::move(methodCallback)](MethodCall& msg)
-    {
-        auto reply = msg.createReply();
-        callback(msg, reply);
-        reply.send();
-    };
-
     auto& interface = interfaces_[interfaceName];
-    InterfaceData::MethodData methodData{inputSignature, outputSignature, std::move(syncCallback), flags};
-    auto inserted = interface.methods_.emplace(methodName, std::move(methodData)).second;
-
-    SDBUS_THROW_ERROR_IF(!inserted, "Failed to register method: method already exists", EINVAL);
-}
-
-void Object::registerMethod( const std::string& interfaceName
-                           , const std::string& methodName
-                           , const std::string& inputSignature
-                           , const std::string& outputSignature
-                           , async_method_callback asyncMethodCallback
-                           , Flags flags )
-{
-    SDBUS_THROW_ERROR_IF(!asyncMethodCallback, "Invalid method callback provided", EINVAL);
-
-    auto asyncCallback = [callback = std::move(asyncMethodCallback)](MethodCall& msg)
-    {
-        MethodResult result{msg};
-        callback(std::move(msg), std::move(result));
-    };
-
-    auto& interface = interfaces_[interfaceName];
-    InterfaceData::MethodData methodData{inputSignature, outputSignature, std::move(asyncCallback), flags};
+    InterfaceData::MethodData methodData{inputSignature, outputSignature, std::move(methodCallback), flags};
     auto inserted = interface.methods_.emplace(methodName, std::move(methodData)).second;
 
     SDBUS_THROW_ERROR_IF(!inserted, "Failed to register method: method already exists", EINVAL);
@@ -245,7 +216,7 @@ int Object::sdbus_method_callback(sd_bus_message *sdbusMessage, void *userData, 
 
     try
     {
-        callback(message);
+        callback(std::move(message));
     }
     catch (const sdbus::Error& e)
     {

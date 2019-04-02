@@ -55,6 +55,7 @@ namespace sdbus {
             return;
 
         SDBUS_THROW_ERROR_IF(interfaceName_.empty(), "DBus interface not specified when registering a DBus method", EINVAL);
+        SDBUS_THROW_ERROR_IF(!methodCallback_, "Method handler not specified when registering a DBus method", EINVAL);
 
         // registerMethod() can throw. But as the MethodRegistrator shall always be used as an unnamed,
         // temporary object, i.e. not as a stack-allocated object, the double-exception situation
@@ -65,12 +66,7 @@ namespace sdbus {
         // Therefore, we can allow registerMethod() to throw even if we are in the destructor.
         // Bottomline is, to be on the safe side, the caller must take care of catching and reacting
         // to the exception thrown from here if the caller is a destructor itself.
-        if (syncCallback_)
-            object_.registerMethod(interfaceName_, methodName_, inputSignature_, outputSignature_, std::move(syncCallback_));
-        else if(asyncCallback_)
-            object_.registerMethod(interfaceName_, methodName_, inputSignature_, outputSignature_, std::move(asyncCallback_));
-        else
-            SDBUS_THROW_ERROR("Method handler not specified when registering a DBus method", EINVAL);
+        object_.registerMethod(interfaceName_, methodName_, inputSignature_, outputSignature_, std::move(methodCallback_), flags_);
     }
     */
 
@@ -86,14 +82,14 @@ namespace sdbus {
     {
         inputSignature_ = signature_of_function_input_arguments<_Function>::str();
         outputSignature_ = signature_of_function_output_arguments<_Function>::str();
-        syncCallback_ = [callback = std::forward<_Function>(callback)](MethodCall& msg, MethodReply& reply)
+        methodCallback_ = [callback = std::forward<_Function>(callback)](MethodCall call)
         {
             // Create a tuple of callback input arguments' types, which will be used
             // as a storage for the argument values deserialized from the message.
             tuple_of_function_input_arg_types_t<_Function> inputArgs;
 
             // Deserialize input arguments from the message into the tuple
-            msg >> inputArgs;
+            call >> inputArgs;
 
             // Invoke callback with input arguments from the tuple.
             // For callbacks returning a non-void value, `apply' also returns that value.
@@ -102,7 +98,9 @@ namespace sdbus {
 
             // The return value is stored to the reply message.
             // In case of void functions, ret is an empty tuple and thus nothing is stored.
+            auto reply = call.createReply();
             reply << ret;
+            reply.send();
         };
 
         return *this;
@@ -113,17 +111,17 @@ namespace sdbus {
     {
         inputSignature_ = signature_of_function_input_arguments<_Function>::str();
         outputSignature_ = signature_of_function_output_arguments<_Function>::str();
-        asyncCallback_ = [callback = std::forward<_Function>(callback)](MethodCall msg, MethodResult&& result)
+        methodCallback_ = [callback = std::forward<_Function>(callback)](MethodCall call)
         {
             // Create a tuple of callback input arguments' types, which will be used
             // as a storage for the argument values deserialized from the message.
             tuple_of_function_input_arg_types_t<_Function> inputArgs;
 
             // Deserialize input arguments from the message into the tuple.
-            msg >> inputArgs;
+            call >> inputArgs;
 
             // Invoke callback with input arguments from the tuple.
-            sdbus::apply(callback, std::move(result), std::move(inputArgs)); // TODO: Use std::apply when switching to full C++17 support
+            sdbus::apply(callback, typename function_traits<_Function>::async_result_t{std::move(call)}, std::move(inputArgs));
         };
 
         return *this;

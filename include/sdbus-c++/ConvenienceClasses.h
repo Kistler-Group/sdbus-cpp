@@ -65,8 +65,7 @@ namespace sdbus {
         std::string interfaceName_;
         std::string inputSignature_;
         std::string outputSignature_;
-        method_callback syncCallback_;
-        async_method_callback asyncCallback_;
+        method_callback methodCallback_;
         Flags flags_;
         int exceptions_{}; // Number of active exceptions when SignalRegistrator is constructed
     };

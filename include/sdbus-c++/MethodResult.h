@@ -31,42 +31,10 @@
 
 // Forward declaration
 namespace sdbus {
-    namespace internal {
-        class Object;
-    }
     class Error;
 }
 
 namespace sdbus {
-
-    /********************************************//**
-     * @class MethodResult
-     *
-     * Represents result of an asynchronous server-side method.
-     * An instance is provided to the method and shall be set
-     * by the method to either method return value or an error.
-     *
-     ***********************************************/
-    class MethodResult
-    {
-    protected:
-        friend sdbus::internal::Object;
-
-        MethodResult() = default;
-        MethodResult(MethodCall msg);
-
-        MethodResult(const MethodResult&) = delete;
-        MethodResult& operator=(const MethodResult&) = delete;
-
-        MethodResult(MethodResult&& other) = default;
-        MethodResult& operator=(MethodResult&& other) = default;
-
-        template <typename... _Results> void returnResults(const _Results&... results) const;
-        void returnError(const Error& error) const;
-
-    private:
-        MethodCall call_;
-    };
 
     /********************************************//**
      * @class Result
@@ -77,18 +45,52 @@ namespace sdbus {
      *
      ***********************************************/
     template <typename... _Results>
-    class Result : protected MethodResult
+    class Result
     {
     public:
         Result() = default;
-        Result(MethodResult&& result);
+        Result(MethodCall call);
+
+        Result(const Result&) = delete;
+        Result& operator=(const Result&) = delete;
+
+        Result(Result&& other) = default;
+        Result& operator=(Result&& other) = default;
 
         void returnResults(const _Results&... results) const;
         void returnError(const Error& error) const;
+
+    private:
+        MethodCall call_;
     };
 
-}
+    template <typename... _Results>
+    inline Result<_Results...>::Result(MethodCall call)
+        : call_(std::move(call))
+    {
+    }
 
-#include <sdbus-c++/MethodResult.inl>
+    template <typename... _Results>
+    inline void Result<_Results...>::returnResults(const _Results&... results) const
+    {
+        assert(call_.isValid());
+        auto reply = call_.createReply();
+#ifdef __cpp_fold_expressions
+        (reply << ... << results);
+#else
+        using _ = std::initializer_list<int>;
+        (void)_{(void(reply << results), 0)...};
+#endif
+        reply.send();
+    }
+
+    template <typename... _Results>
+    inline void Result<_Results...>::returnError(const Error& error) const
+    {
+        auto reply = call_.createErrorReply(error);
+        reply.send();
+    }
+
+}
 
 #endif /* SDBUS_CXX_METHODRESULT_H_ */

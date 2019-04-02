@@ -57,7 +57,6 @@ set(SDBUSCPP_PUBLIC_HDRS
     ${SDBUSCPP_INCLUDE_DIR}/IObjectProxy.h
     ${SDBUSCPP_INCLUDE_DIR}/Message.h
     ${SDBUSCPP_INCLUDE_DIR}/MethodResult.h
-    ${SDBUSCPP_INCLUDE_DIR}/MethodResult.inl
     ${SDBUSCPP_INCLUDE_DIR}/Types.h
     ${SDBUSCPP_INCLUDE_DIR}/TypeTraits.h
     ${SDBUSCPP_INCLUDE_DIR}/Flags.h

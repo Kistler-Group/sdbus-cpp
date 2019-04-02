@@ -39,12 +39,13 @@ MethodRegistrator::MethodRegistrator(IObject& object, const std::string& methodN
 }
 
 MethodRegistrator::~MethodRegistrator() noexcept(false) // since C++11, destructors must
-{                                                              // explicitly be allowed to throw
+{                                                       // explicitly be allowed to throw
     // Don't register the method if MethodRegistrator threw an exception in one of its methods
     if (std::uncaught_exceptions() != exceptions_)
         return;
 
     SDBUS_THROW_ERROR_IF(interfaceName_.empty(), "DBus interface not specified when registering a DBus method", EINVAL);
+    SDBUS_THROW_ERROR_IF(!methodCallback_, "Method handler not specified when registering a DBus method", EINVAL);
 
     // registerMethod() can throw. But as the MethodRegistrator shall always be used as an unnamed,
     // temporary object, i.e. not as a stack-allocated object, the double-exception situation
@@ -55,12 +56,7 @@ MethodRegistrator::~MethodRegistrator() noexcept(false) // since C++11, destruct
     // Therefore, we can allow registerMethod() to throw even if we are in the destructor.
     // Bottomline is, to be on the safe side, the caller must take care of catching and reacting
     // to the exception thrown from here if the caller is a destructor itself.
-    if (syncCallback_)
-        object_.registerMethod(interfaceName_, methodName_, inputSignature_, outputSignature_, std::move(syncCallback_), flags_);
-    else if(asyncCallback_)
-        object_.registerMethod(interfaceName_, methodName_, inputSignature_, outputSignature_, std::move(asyncCallback_), flags_);
-    else
-        SDBUS_THROW_ERROR("Method handler not specified when registering a DBus method", EINVAL);
+    object_.registerMethod(interfaceName_, methodName_, inputSignature_, outputSignature_, std::move(methodCallback_), flags_);
 }
 
 SignalRegistrator::SignalRegistrator(IObject& object, const std::string& signalName)
