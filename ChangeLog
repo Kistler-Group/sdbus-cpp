@@ -65,3 +65,6 @@ v0.5.1
 - Rename sdbus-c++ stub code generator executable
 - Introduce generation of doxygen documentation
 - Improve documentation
+
+v0.5.2
+- Simplify and unify basic API level callbacks for both sync and async methods
