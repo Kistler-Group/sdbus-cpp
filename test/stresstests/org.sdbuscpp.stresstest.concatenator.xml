@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<node name="/org/sdbuscpp/stresstest/concatenator">
-    <interface name="org.sdbuscpp.stresstest.concatenator">
+<node name="/org/sdbuscpp/stresstests/concatenator">
+    <interface name="org.sdbuscpp.stresstests.concatenator">
         <method name="concatenate">
             <arg type="a{sv}" name="params" direction="in" />
             <arg type="s" name="result" direction="out" />

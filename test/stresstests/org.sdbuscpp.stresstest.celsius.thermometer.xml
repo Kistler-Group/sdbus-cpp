@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<node name="/org/sdbuscpp/stresstest/celsius/thermometer">
-    <interface name="org.sdbuscpp.stresstest.celsius.thermometer">
+<node name="/org/sdbuscpp/stresstests/celsius/thermometer">
+    <interface name="org.sdbuscpp.stresstests.celsius.thermometer">
         <method name="getCurrentTemperature">
             <arg type="u" name="result" direction="out" />
         </method>

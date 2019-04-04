@@ -46,16 +46,16 @@
 using namespace std::chrono_literals;
 using namespace std::string_literals;
 
-#define SERVICE_1_BUS_NAME "org.sdbuscpp.stresstests.service1"
-#define SERVICE_2_BUS_NAME "org.sdbuscpp.stresstests.service2"
-#define CELSIUS_THERMOMETER_OBJECT_PATH "/org/sdbuscpp/stresstests/celsius/thermometer"
-#define FAHRENHEIT_THERMOMETER_OBJECT_PATH "/org/sdbuscpp/stresstests/fahrenheit/thermometer"
-#define CONCATENATOR_OBJECT_PATH "/org/sdbuscpp/stresstests/concatenator"
+#define SERVICE_1_BUS_NAME "org.sdbuscpp.stresstests.service1"s
+#define SERVICE_2_BUS_NAME "org.sdbuscpp.stresstests.service2"s
+#define CELSIUS_THERMOMETER_OBJECT_PATH "/org/sdbuscpp/stresstests/celsius/thermometer"s
+#define FAHRENHEIT_THERMOMETER_OBJECT_PATH "/org/sdbuscpp/stresstests/fahrenheit/thermometer"s
+#define CONCATENATOR_OBJECT_PATH "/org/sdbuscpp/stresstests/concatenator"s
 
-class CelsiusThermometerAdaptor : public sdbus::Interfaces<org::sdbuscpp::stresstest::celsius::thermometer_adaptor>
+class CelsiusThermometerAdaptor : public sdbus::Interfaces<org::sdbuscpp::stresstests::celsius::thermometer_adaptor>
 {
 public:
-    using sdbus::Interfaces<org::sdbuscpp::stresstest::celsius::thermometer_adaptor>::Interfaces;
+    using sdbus::Interfaces<org::sdbuscpp::stresstests::celsius::thermometer_adaptor>::Interfaces;
 
 protected:
     virtual uint32_t getCurrentTemperature() override
@@ -67,17 +67,19 @@ private:
     uint32_t m_currentTemperature{};
 };
 
-class CelsiusThermometerProxy : public sdbus::ProxyInterfaces<org::sdbuscpp::stresstest::celsius::thermometer_proxy>
+class CelsiusThermometerProxy : public sdbus::ProxyInterfaces<org::sdbuscpp::stresstests::celsius::thermometer_proxy>
 {
 public:
-    using sdbus::ProxyInterfaces<org::sdbuscpp::stresstest::celsius::thermometer_proxy>::ProxyInterfaces;
+    using sdbus::ProxyInterfaces<org::sdbuscpp::stresstests::celsius::thermometer_proxy>::ProxyInterfaces;
 };
 
-class FahrenheitThermometerAdaptor : public sdbus::Interfaces<org::sdbuscpp::stresstest::fahrenheit::thermometer_adaptor>
+class FahrenheitThermometerAdaptor : public sdbus::Interfaces< org::sdbuscpp::stresstests::fahrenheit::thermometer_adaptor
+                                                             , org::sdbuscpp::stresstests::fahrenheit::thermometer::factory_adaptor >
 {
 public:
     FahrenheitThermometerAdaptor(sdbus::IConnection& connection, std::string objectPath)
-        : sdbus::Interfaces<org::sdbuscpp::stresstest::fahrenheit::thermometer_adaptor>(connection, std::move(objectPath))
+        : sdbus::Interfaces< org::sdbuscpp::stresstests::fahrenheit::thermometer_adaptor
+                           , org::sdbuscpp::stresstests::fahrenheit::thermometer::factory_adaptor >(connection, std::move(objectPath))
         , celsiusProxy_(connection, SERVICE_2_BUS_NAME, CELSIUS_THERMOMETER_OBJECT_PATH)
     {
     }
@@ -89,21 +91,55 @@ protected:
         return static_cast<uint32_t>(celsiusProxy_.getCurrentTemperature() * 1.8 + 32.);
     }
 
+    virtual void createDelegateObject(sdbus::Result<sdbus::ObjectPath>&& result) override
+    {
+        static size_t objectCounter{};
+        objectCounter++;
+
+        std::thread([this, result = std::move(result), objectCounter = objectCounter]()
+        {
+            auto& connection = getObject().getConnection();
+            sdbus::ObjectPath newObjectPath = FAHRENHEIT_THERMOMETER_OBJECT_PATH + "/" + std::to_string(objectCounter);
+
+            // Here we are testing dynamic creation of a D-Bus object in an async way
+            auto adaptor = std::make_unique<FahrenheitThermometerAdaptor>(connection, newObjectPath);
+
+            std::lock_guard<std::mutex> lock{mutex_};
+            children_.emplace(newObjectPath, std::move(adaptor));
+
+            result.returnResults(newObjectPath);
+        }).detach();
+    }
+
+    virtual void destroyDelegateObject(sdbus::Result<>&& /*result*/, sdbus::ObjectPath delegate) override
+    {
+        std::thread([this, delegate = std::move(delegate)]()
+        {
+            // Here we are testing dynamic removal of a D-Bus object in an async way
+            std::lock_guard<std::mutex> lock{mutex_};
+            children_.erase(delegate);
+        }).detach();
+    }
+
 private:
     CelsiusThermometerProxy celsiusProxy_;
+    std::map<std::string, std::unique_ptr<FahrenheitThermometerAdaptor>> children_;
+    std::mutex mutex_;
 };
 
-class FahrenheitThermometerProxy : public sdbus::ProxyInterfaces<org::sdbuscpp::stresstest::fahrenheit::thermometer_proxy>
+class FahrenheitThermometerProxy : public sdbus::ProxyInterfaces< org::sdbuscpp::stresstests::fahrenheit::thermometer_proxy
+                                                                , org::sdbuscpp::stresstests::fahrenheit::thermometer::factory_proxy >
 {
 public:
-    using sdbus::ProxyInterfaces<org::sdbuscpp::stresstest::fahrenheit::thermometer_proxy>::ProxyInterfaces;
+    using sdbus::ProxyInterfaces< org::sdbuscpp::stresstests::fahrenheit::thermometer_proxy
+                                , org::sdbuscpp::stresstests::fahrenheit::thermometer::factory_proxy >::ProxyInterfaces;
 };
 
-class ConcatenatorAdaptor : public sdbus::Interfaces<org::sdbuscpp::stresstest::concatenator_adaptor>
+class ConcatenatorAdaptor : public sdbus::Interfaces<org::sdbuscpp::stresstests::concatenator_adaptor>
 {
 public:
     ConcatenatorAdaptor(sdbus::IConnection& connection, std::string objectPath)
-        : sdbus::Interfaces<org::sdbuscpp::stresstest::concatenator_adaptor>(connection, std::move(objectPath))
+        : sdbus::Interfaces<org::sdbuscpp::stresstests::concatenator_adaptor>(connection, std::move(objectPath))
     {
         unsigned int workers = std::thread::hardware_concurrency();
         if (workers < 4)
@@ -167,10 +203,10 @@ private:
     std::atomic<bool> exit_{};
 };
 
-class ConcatenatorProxy : public sdbus::ProxyInterfaces<org::sdbuscpp::stresstest::concatenator_proxy>
+class ConcatenatorProxy : public sdbus::ProxyInterfaces<org::sdbuscpp::stresstests::concatenator_proxy>
 {
 public:
-    using sdbus::ProxyInterfaces<org::sdbuscpp::stresstest::concatenator_proxy>::ProxyInterfaces;
+    using sdbus::ProxyInterfaces<org::sdbuscpp::stresstests::concatenator_proxy>::ProxyInterfaces;
 
 private:
     virtual void onConcatenateReply(const std::string& result, const sdbus::Error* error) override
@@ -204,8 +240,8 @@ private:
     }
 
 public:
-    std::atomic<uint32_t> repliesReceived_;
-    std::atomic<uint32_t> signalsReceived_;
+    std::atomic<uint32_t> repliesReceived_{};
+    std::atomic<uint32_t> signalsReceived_{};
 };
 
 //-----------------------------------------
@@ -258,8 +294,8 @@ int main(int /*argc*/, char */*argv*/[])
                     // Make sure the system is catching up with our async requests,
                     // otherwise sleep a bit to slow down flooding the server.
                     assert(localCounter >= concatenator.repliesReceived_);
-                    while ((localCounter - concatenator.repliesReceived_) > 20 && !stopClients)
-                        std::this_thread::sleep_for(2ms);
+                    while ((localCounter - concatenator.repliesReceived_) > 40 && !stopClients)
+                        std::this_thread::sleep_for(1ms);
 
                     // Update statistics
                     concatenationCallsMade = localCounter;
@@ -271,6 +307,11 @@ int main(int /*argc*/, char */*argv*/[])
 
         std::thread thermometerThread([&]()
         {
+            // Here we continuously remotely call getCurrentTemperature(). We have one proxy object,
+            // first we use it's factory interface to create another proxy object, call getCurrentTemperature()
+            // on that one, and then destroy that proxy object. All that continously in a loop.
+            // This tests dynamic creation and destruction of remote D-Bus objects and local object proxies.
+
             FahrenheitThermometerProxy thermometer(con, SERVICE_1_BUS_NAME, FAHRENHEIT_THERMOMETER_OBJECT_PATH);
             uint32_t localCounter{};
             uint32_t previousTemperature{};
@@ -278,13 +319,20 @@ int main(int /*argc*/, char */*argv*/[])
             while (!stopClients)
             {
                 localCounter++;
-                auto temperature = thermometer.getCurrentTemperature();
+
+                auto newObjectPath = thermometer.createDelegateObject();
+				FahrenheitThermometerProxy proxy{con, SERVICE_1_BUS_NAME, newObjectPath};
+
+                auto temperature = proxy.getCurrentTemperature();
                 assert(temperature >= previousTemperature); // The temperature shall rise continually
                 previousTemperature = temperature;
-                std::this_thread::sleep_for(5ms);
+                //std::this_thread::sleep_for(1ms);
 
                 if ((localCounter % 10) == 0)
                     thermometerCallsMade = localCounter;
+
+                proxy.~FahrenheitThermometerProxy();
+                thermometer.destroyDelegateObject(newObjectPath);
             }
         });
 

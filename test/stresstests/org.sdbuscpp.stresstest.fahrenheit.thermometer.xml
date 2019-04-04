@@ -1,9 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<node name="/org/sdbuscpp/stresstest/fahrenheit/thermometer">
-    <interface name="org.sdbuscpp.stresstest.fahrenheit.thermometer">
+<node name="/org/sdbuscpp/stresstests/fahrenheit/thermometer">
+    <interface name="org.sdbuscpp.stresstests.fahrenheit.thermometer">
         <method name="getCurrentTemperature">
             <arg type="u" name="result" direction="out" />
+        </method>
+    </interface>
+    <interface name="org.sdbuscpp.stresstests.fahrenheit.thermometer.factory">
+        <method name="createDelegateObject">
+            <arg type="o" name="delegate" direction="out" />
+            <annotation name="org.freedesktop.DBus.Method.Async" value="server" />
+        </method>
+        <method name="destroyDelegateObject">
+            <arg type="o" name="delegate" direction="in" />
+            <annotation name="org.freedesktop.DBus.Method.Async" value="server" />
+            <annotation name="org.freedesktop.DBus.Method.NoReply" value="true" />
         </method>
     </interface>
 </node>
