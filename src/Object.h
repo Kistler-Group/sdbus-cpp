@@ -77,6 +77,8 @@ namespace internal {
         sdbus::Signal createSignal(const std::string& interfaceName, const std::string& signalName) override;
         void emitSignal(const sdbus::Signal& message) override;
 
+        sdbus::IConnection& getConnection() const override;
+
     private:
         using InterfaceName = std::string;
         struct InterfaceData

@@ -74,7 +74,7 @@ namespace sdbus {
      ***********************************************/
     template <typename... _Interfaces>
     class Interfaces
-        : private ObjectHolder<IObject>
+        : protected ObjectHolder<IObject>
         , public _Interfaces...
     {
     public:
@@ -96,7 +96,7 @@ namespace sdbus {
      ***********************************************/
     template <typename... _Interfaces>
     class ProxyInterfaces
-        : private ObjectHolder<IObjectProxy>
+        : protected ObjectHolder<IObjectProxy>
         , public _Interfaces...
     {
     public:

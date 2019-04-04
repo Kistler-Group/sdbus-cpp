@@ -130,6 +130,11 @@ void Object::emitSignal(const sdbus::Signal& message)
     message.send();
 }
 
+sdbus::IConnection& Object::getConnection() const
+{
+    return dynamic_cast<sdbus::IConnection&>(connection_);
+}
+
 const std::vector<sd_bus_vtable>& Object::createInterfaceVTable(InterfaceData& interfaceData)
 {
     auto& vtable = interfaceData.vtable_;

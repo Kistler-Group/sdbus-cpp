@@ -174,6 +174,13 @@ namespace sdbus {
         virtual void emitSignal(const sdbus::Signal& message) = 0;
 
         /*!
+        * @brief Provides D-Bus connection used by the object
+        *
+        * @return Reference to the D-Bus connection
+        */
+        virtual sdbus::IConnection& getConnection() const = 0;
+
+        /*!
         * @brief Registers method that the object will provide on D-Bus
         *
         * @param[in] methodName Name of the method
