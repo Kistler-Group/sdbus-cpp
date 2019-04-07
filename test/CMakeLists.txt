@@ -64,6 +64,8 @@ set(STRESSTESTS_SRCS
     ${STRESSTESTS_SOURCE_DIR}/sdbus-c++-stress-tests.cpp
     ${STRESSTESTS_SOURCE_DIR}/fahrenheit-thermometer-adaptor.h
     ${STRESSTESTS_SOURCE_DIR}/fahrenheit-thermometer-proxy.h
+    ${STRESSTESTS_SOURCE_DIR}/celsius-thermometer-adaptor.h
+    ${STRESSTESTS_SOURCE_DIR}/celsius-thermometer-proxy.h
     ${STRESSTESTS_SOURCE_DIR}/concatenator-adaptor.h
     ${STRESSTESTS_SOURCE_DIR}/concatenator-proxy.h)
 
