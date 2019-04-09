@@ -34,7 +34,7 @@
 class testing_proxy
 {
 protected:
-    testing_proxy(sdbus::IObjectProxy& object) :
+    testing_proxy(sdbus::IProxy& object) :
         object_(object)
     {
         object_.uponSignal("simpleSignal").onInterface(INTERFACE_NAME).call([this](){ this->onSimpleSignal(); });
@@ -231,7 +231,7 @@ public:
 
 
 private:
-    sdbus::IObjectProxy& object_;
+    sdbus::IProxy& object_;
 
 };
 

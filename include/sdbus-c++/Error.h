@@ -1,7 +1,7 @@
 /**
  * (C) 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
  *
- * @file ConvenienceClasses.h
+ * @file Error.h
  *
  * Created on: Nov 8, 2016
  * Project: sdbus-c++

@@ -26,7 +26,7 @@
 #ifndef SDBUS_CXX_IOBJECT_H_
 #define SDBUS_CXX_IOBJECT_H_
 
-#include <sdbus-c++/ConvenienceClasses.h>
+#include <sdbus-c++/ConvenienceApiClasses.h>
 #include <sdbus-c++/TypeTraits.h>
 #include <sdbus-c++/Flags.h>
 #include <functional>
@@ -44,14 +44,14 @@ namespace sdbus {
     /********************************************//**
      * @class IObject
      *
-     * An interface to D-Bus object. Provides API for registration
-     * of methods, signals, properties, and for emitting signals.
+     * IObject class represents a D-Bus object instance identified by a specific object path.
+     * D-Bus object provides its interfaces, methods, signals and properties on a bus
+     * identified by a specific bus name.
      *
-     * All methods throw @c sdbus::Error in case of failure.
-     * In general, the class is thread-aware, but not thread-safe.
-     * However, the operation of creating and sending asynchronous
-     * method replies, as well as creating and emitting
-     * signals, is thread-safe.
+     * All IObject member methods throw @c sdbus::Error in case of D-Bus or sdbus-c++ error.
+     * The IObject class has been designed as thread-aware. However, the operation of
+     * creating and sending asynchronous method replies, as well as creating and emitting
+     * signals, is thread-safe by design.
      *
      ***********************************************/
     class IObject
@@ -328,6 +328,6 @@ namespace sdbus {
 
 }
 
-#include <sdbus-c++/ConvenienceClasses.inl>
+#include <sdbus-c++/ConvenienceApiClasses.inl>
 
 #endif /* SDBUS_CXX_IOBJECT_H_ */

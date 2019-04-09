@@ -25,8 +25,9 @@
 
 #include <sdbus-c++/IConnection.h>
 #include <sdbus-c++/IObject.h>
-#include <sdbus-c++/IObjectProxy.h>
-#include <sdbus-c++/Interfaces.h>
+#include <sdbus-c++/IProxy.h>
+#include <sdbus-c++/AdaptorInterfaces.h>
+#include <sdbus-c++/ProxyInterfaces.h>
 #include <sdbus-c++/Message.h>
 #include <sdbus-c++/MethodResult.h>
 #include <sdbus-c++/Types.h>

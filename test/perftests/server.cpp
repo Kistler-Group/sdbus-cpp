@@ -23,7 +23,7 @@
  * along with sdbus-c++. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "perftest-adaptor.h"
+#include "perftests-adaptor.h"
 #include <sdbus-c++/sdbus-c++.h>
 #include <vector>
 #include <string>
@@ -35,11 +35,11 @@ using namespace std::chrono_literals;
 
 std::string createRandomString(size_t length);
 
-class PerftestServer : public sdbus::Interfaces<org::sdbuscpp::perftest_adaptor>
+class PerftestServer : public sdbus::AdaptorInterfaces<org::sdbuscpp::perftests_adaptor>
 {
 public:
     PerftestServer(sdbus::IConnection& connection, std::string objectPath)
-        : sdbus::Interfaces<org::sdbuscpp::perftest_adaptor>(connection, std::move(objectPath))
+        : sdbus::AdaptorInterfaces<org::sdbuscpp::perftests_adaptor>(connection, std::move(objectPath))
     {
     }
 

@@ -23,7 +23,7 @@
  * along with sdbus-c++. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "perftest-proxy.h"
+#include "perftests-proxy.h"
 #include <sdbus-c++/sdbus-c++.h>
 #include <vector>
 #include <string>
@@ -36,11 +36,11 @@
 
 using namespace std::chrono_literals;
 
-class PerftestClient : public sdbus::ProxyInterfaces<org::sdbuscpp::perftest_proxy>
+class PerftestClient : public sdbus::ProxyInterfaces<org::sdbuscpp::perftests_proxy>
 {
 public:
     PerftestClient(std::string destination, std::string objectPath)
-        : sdbus::ProxyInterfaces<org::sdbuscpp::perftest_proxy>(std::move(destination), std::move(objectPath))
+        : sdbus::ProxyInterfaces<org::sdbuscpp::perftests_proxy>(std::move(destination), std::move(objectPath))
     {
     }
 

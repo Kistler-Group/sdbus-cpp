@@ -1,7 +1,7 @@
 /**
  * (C) 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
  *
- * @file ConvenienceClasses.cpp
+ * @file ConvenienceApiClasses.cpp
  *
  * Created on: Jan 19, 2017
  * Project: sdbus-c++
@@ -23,9 +23,9 @@
  * along with sdbus-c++. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <sdbus-c++/ConvenienceClasses.h>
-#include <sdbus-c++/IObject.h>
-#include <sdbus-c++/IObjectProxy.h>
+#include "sdbus-c++/ConvenienceApiClasses.h"
+#include "sdbus-c++/IObject.h"
+#include "sdbus-c++/IProxy.h"
 #include <string>
 #include <exception>
 
@@ -177,8 +177,8 @@ SignalEmitter::~SignalEmitter() noexcept(false) // since C++11, destructors must
 }
 
 
-MethodInvoker::MethodInvoker(IObjectProxy& objectProxy, const std::string& methodName)
-    : objectProxy_(objectProxy)
+MethodInvoker::MethodInvoker(IProxy& proxy, const std::string& methodName)
+    : proxy_(proxy)
     , methodName_(methodName)
     , exceptions_(std::uncaught_exceptions()) // Needs C++17
 {
@@ -202,7 +202,7 @@ MethodInvoker::~MethodInvoker() noexcept(false) // since C++11, destructors must
     // Therefore, we can allow callMethod() to throw even if we are in the destructor.
     // Bottomline is, to be on the safe side, the caller must take care of catching and reacting
     // to the exception thrown from here if the caller is a destructor itself.
-    objectProxy_.callMethod(method_);
+    proxy_.callMethod(method_);
 }
 
 }

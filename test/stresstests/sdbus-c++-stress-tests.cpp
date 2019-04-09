@@ -52,10 +52,10 @@ using namespace std::string_literals;
 #define FAHRENHEIT_THERMOMETER_OBJECT_PATH "/org/sdbuscpp/stresstests/fahrenheit/thermometer"s
 #define CONCATENATOR_OBJECT_PATH "/org/sdbuscpp/stresstests/concatenator"s
 
-class CelsiusThermometerAdaptor : public sdbus::Interfaces<org::sdbuscpp::stresstests::celsius::thermometer_adaptor>
+class CelsiusThermometerAdaptor : public sdbus::AdaptorInterfaces<org::sdbuscpp::stresstests::celsius::thermometer_adaptor>
 {
 public:
-    using sdbus::Interfaces<org::sdbuscpp::stresstests::celsius::thermometer_adaptor>::Interfaces;
+    using sdbus::AdaptorInterfaces<org::sdbuscpp::stresstests::celsius::thermometer_adaptor>::AdaptorInterfaces;
 
 protected:
     virtual uint32_t getCurrentTemperature() override
@@ -73,13 +73,13 @@ public:
     using sdbus::ProxyInterfaces<org::sdbuscpp::stresstests::celsius::thermometer_proxy>::ProxyInterfaces;
 };
 
-class FahrenheitThermometerAdaptor : public sdbus::Interfaces< org::sdbuscpp::stresstests::fahrenheit::thermometer_adaptor
-                                                             , org::sdbuscpp::stresstests::fahrenheit::thermometer::factory_adaptor >
+class FahrenheitThermometerAdaptor : public sdbus::AdaptorInterfaces< org::sdbuscpp::stresstests::fahrenheit::thermometer_adaptor
+                                                                    , org::sdbuscpp::stresstests::fahrenheit::thermometer::factory_adaptor >
 {
 public:
     FahrenheitThermometerAdaptor(sdbus::IConnection& connection, std::string objectPath)
-        : sdbus::Interfaces< org::sdbuscpp::stresstests::fahrenheit::thermometer_adaptor
-                           , org::sdbuscpp::stresstests::fahrenheit::thermometer::factory_adaptor >(connection, std::move(objectPath))
+        : sdbus::AdaptorInterfaces< org::sdbuscpp::stresstests::fahrenheit::thermometer_adaptor
+                                  , org::sdbuscpp::stresstests::fahrenheit::thermometer::factory_adaptor >(connection, std::move(objectPath))
         , celsiusProxy_(connection, SERVICE_2_BUS_NAME, CELSIUS_THERMOMETER_OBJECT_PATH)
     {
         unsigned int workers = std::thread::hardware_concurrency();
@@ -189,11 +189,11 @@ public:
                                 , org::sdbuscpp::stresstests::fahrenheit::thermometer::factory_proxy >::ProxyInterfaces;
 };
 
-class ConcatenatorAdaptor : public sdbus::Interfaces<org::sdbuscpp::stresstests::concatenator_adaptor>
+class ConcatenatorAdaptor : public sdbus::AdaptorInterfaces<org::sdbuscpp::stresstests::concatenator_adaptor>
 {
 public:
     ConcatenatorAdaptor(sdbus::IConnection& connection, std::string objectPath)
-        : sdbus::Interfaces<org::sdbuscpp::stresstests::concatenator_adaptor>(connection, std::move(objectPath))
+        : sdbus::AdaptorInterfaces<org::sdbuscpp::stresstests::concatenator_adaptor>(connection, std::move(objectPath))
     {
         unsigned int workers = std::thread::hardware_concurrency();
         if (workers < 4)

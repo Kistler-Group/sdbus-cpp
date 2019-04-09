@@ -1,7 +1,7 @@
 /**
  * (C) 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
  *
- * @file ConvenienceClasses.h
+ * @file ConvenienceApiClasses.h
  *
  * Created on: Jan 19, 2017
  * Project: sdbus-c++
@@ -23,8 +23,8 @@
  * along with sdbus-c++. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SDBUS_CXX_CONVENIENCECLASSES_H_
-#define SDBUS_CXX_CONVENIENCECLASSES_H_
+#ifndef SDBUS_CXX_CONVENIENCEAPICLASSES_H_
+#define SDBUS_CXX_CONVENIENCEAPICLASSES_H_
 
 #include <sdbus-c++/Message.h>
 #include <sdbus-c++/TypeTraits.h>
@@ -35,7 +35,7 @@
 // Forward declarations
 namespace sdbus {
     class IObject;
-    class IObjectProxy;
+    class IProxy;
     class Variant;
     class Error;
 }
@@ -157,7 +157,7 @@ namespace sdbus {
     class MethodInvoker
     {
     public:
-        MethodInvoker(IObjectProxy& objectProxy, const std::string& methodName);
+        MethodInvoker(IProxy& proxy, const std::string& methodName);
         MethodInvoker(MethodInvoker&& other) = default;
         MethodInvoker& operator=(MethodInvoker&& other) = default;
         ~MethodInvoker() noexcept(false);
@@ -169,7 +169,7 @@ namespace sdbus {
         void dontExpectReply();
 
     private:
-        IObjectProxy& objectProxy_;
+        IProxy& proxy_;
         const std::string& methodName_;
         MethodCall method_;
         int exceptions_{}; // Number of active exceptions when MethodInvoker is constructed
@@ -179,13 +179,13 @@ namespace sdbus {
     class AsyncMethodInvoker
     {
     public:
-        AsyncMethodInvoker(IObjectProxy& objectProxy, const std::string& methodName);
+        AsyncMethodInvoker(IProxy& proxy, const std::string& methodName);
         AsyncMethodInvoker& onInterface(const std::string& interfaceName);
         template <typename... _Args> AsyncMethodInvoker& withArguments(_Args&&... args);
         template <typename _Function> void uponReplyInvoke(_Function&& callback);
 
     private:
-        IObjectProxy& objectProxy_;
+        IProxy& proxy_;
         const std::string& methodName_;
         AsyncMethodCall method_;
     };
@@ -193,12 +193,12 @@ namespace sdbus {
     class SignalSubscriber
     {
     public:
-        SignalSubscriber(IObjectProxy& objectProxy, const std::string& signalName);
+        SignalSubscriber(IProxy& proxy, const std::string& signalName);
         SignalSubscriber& onInterface(const std::string& interfaceName);
         template <typename _Function> void call(_Function&& callback);
 
     private:
-        IObjectProxy& objectProxy_;
+        IProxy& proxy_;
         std::string signalName_;
         std::string interfaceName_;
     };
@@ -206,27 +206,27 @@ namespace sdbus {
     class PropertyGetter
     {
     public:
-        PropertyGetter(IObjectProxy& objectProxy, const std::string& propertyName);
+        PropertyGetter(IProxy& proxy, const std::string& propertyName);
         sdbus::Variant onInterface(const std::string& interfaceName);
 
     private:
-        IObjectProxy& objectProxy_;
+        IProxy& proxy_;
         std::string propertyName_;
     };
 
     class PropertySetter
     {
     public:
-        PropertySetter(IObjectProxy& objectProxy, const std::string& propertyName);
+        PropertySetter(IProxy& proxy, const std::string& propertyName);
         PropertySetter& onInterface(const std::string& interfaceName);
         template <typename _Value> void toValue(const _Value& value);
 
     private:
-        IObjectProxy& objectProxy_;
+        IProxy& proxy_;
         const std::string& propertyName_;
         std::string interfaceName_;
     };
 
 }
 
-#endif /* SDBUS_CXX_CONVENIENCECLASSES_H_ */
+#endif /* SDBUS_CXX_CONVENIENCEAPICLASSES_H_ */

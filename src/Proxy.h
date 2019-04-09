@@ -1,7 +1,7 @@
 /**
  * (C) 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
  *
- * @file ObjectProxy.h
+ * @file Proxy.h
  *
  * Created on: Nov 8, 2016
  * Project: sdbus-c++
@@ -23,10 +23,10 @@
  * along with sdbus-c++. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SDBUS_CXX_INTERNAL_OBJECTPROXY_H_
-#define SDBUS_CXX_INTERNAL_OBJECTPROXY_H_
+#ifndef SDBUS_CXX_INTERNAL_PROXY_H_
+#define SDBUS_CXX_INTERNAL_PROXY_H_
 
-#include <sdbus-c++/IObjectProxy.h>
+#include <sdbus-c++/IProxy.h>
 #include <systemd/sd-bus.h>
 #include <string>
 #include <memory>
@@ -40,16 +40,16 @@ namespace sdbus { namespace internal {
 namespace sdbus {
 namespace internal {
 
-    class ObjectProxy
-        : public IObjectProxy
+    class Proxy
+        : public IProxy
     {
     public:
-        ObjectProxy( sdbus::internal::IConnection& connection
-                   , std::string destination
-                   , std::string objectPath );
-        ObjectProxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
-                   , std::string destination
-                   , std::string objectPath );
+        Proxy( sdbus::internal::IConnection& connection
+             , std::string destination
+             , std::string objectPath );
+        Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
+             , std::string destination
+             , std::string objectPath );
 
         MethodCall createMethodCall(const std::string& interfaceName, const std::string& methodName) override;
         AsyncMethodCall createAsyncMethodCall(const std::string& interfaceName, const std::string& methodName) override;
@@ -64,7 +64,7 @@ namespace internal {
     private:
         struct AsyncReplyUserData
         {
-            ObjectProxy& proxy;
+            Proxy& proxy;
             async_reply_handler callback;
         };
 
@@ -95,4 +95,4 @@ namespace internal {
 
 }}
 
-#endif /* SDBUS_CXX_INTERNAL_OBJECTPROXY_H_ */
+#endif /* SDBUS_CXX_INTERNAL_PROXY_H_ */

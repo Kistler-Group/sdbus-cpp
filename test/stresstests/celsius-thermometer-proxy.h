@@ -21,8 +21,8 @@ public:
     static constexpr const char* interfaceName = "org.sdbuscpp.stresstests.celsius.thermometer";
 
 protected:
-    thermometer_proxy(sdbus::IObjectProxy& object)
-        : object_(object)
+    thermometer_proxy(sdbus::IProxy& proxy)
+        : proxy_(proxy)
     {
     }
 
@@ -30,12 +30,12 @@ public:
     uint32_t getCurrentTemperature()
     {
         uint32_t result;
-        object_.callMethod("getCurrentTemperature").onInterface(interfaceName).storeResultsTo(result);
+        proxy_.callMethod("getCurrentTemperature").onInterface(interfaceName).storeResultsTo(result);
         return result;
     }
 
 private:
-    sdbus::IObjectProxy& object_;
+    sdbus::IProxy& proxy_;
 };
 
 }}}} // namespaces

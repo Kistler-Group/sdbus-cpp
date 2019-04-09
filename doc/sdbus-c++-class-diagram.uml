@@ -12,9 +12,10 @@ interface IObject {
   +emitSignal()
 }
 
-interface IObjectProxy {
+interface IProxy {
   +callMethod()
   +subscribeToSignal()
+  +get/setProperty()
 }
 
 class Message {
@@ -39,21 +40,24 @@ class Object {
   string objectPath
   List interfaces
   List methods
+  List signals
+  List properties
 }
 
-class ObjectProxy {
+class Proxy {
   IConnectionInternal& connection
   string destination
   string objectPath
+  List signalHandlers
 }
 
 IConnection <|-- Connection
 IConnectionInternal  <|- Connection
 IObject <|-- Object
-IObjectProxy <|-- ObjectProxy
+IProxy <|-- Proxy
 Connection <-- Object : "use"
-Connection <-- ObjectProxy : "use"
+Connection <-- Proxy : "use"
 Message <.. Object : "send/receive"
-Message <.. ObjectProxy : "send/receive"
+Message <.. Proxy : "send/receive"
 
 @enduml

@@ -21,8 +21,8 @@ public:
     static constexpr const char* interfaceName = "org.sdbuscpp.stresstests.fahrenheit.thermometer";
 
 protected:
-    thermometer_proxy(sdbus::IObjectProxy& object)
-        : object_(object)
+    thermometer_proxy(sdbus::IProxy& proxy)
+        : proxy_(proxy)
     {
     }
 
@@ -30,12 +30,12 @@ public:
     uint32_t getCurrentTemperature()
     {
         uint32_t result;
-        object_.callMethod("getCurrentTemperature").onInterface(interfaceName).storeResultsTo(result);
+        proxy_.callMethod("getCurrentTemperature").onInterface(interfaceName).storeResultsTo(result);
         return result;
     }
 
 private:
-    sdbus::IObjectProxy& object_;
+    sdbus::IProxy& proxy_;
 };
 
 }}}} // namespaces
@@ -52,8 +52,8 @@ public:
     static constexpr const char* interfaceName = "org.sdbuscpp.stresstests.fahrenheit.thermometer.factory";
 
 protected:
-    factory_proxy(sdbus::IObjectProxy& object)
-        : object_(object)
+    factory_proxy(sdbus::IProxy& proxy)
+        : proxy_(proxy)
     {
     }
 
@@ -61,17 +61,17 @@ public:
     sdbus::ObjectPath createDelegateObject()
     {
         sdbus::ObjectPath result;
-        object_.callMethod("createDelegateObject").onInterface(interfaceName).storeResultsTo(result);
+        proxy_.callMethod("createDelegateObject").onInterface(interfaceName).storeResultsTo(result);
         return result;
     }
 
     void destroyDelegateObject(const sdbus::ObjectPath& delegate)
     {
-        object_.callMethod("destroyDelegateObject").onInterface(interfaceName).withArguments(delegate).dontExpectReply();
+        proxy_.callMethod("destroyDelegateObject").onInterface(interfaceName).withArguments(delegate).dontExpectReply();
     }
 
 private:
-    sdbus::IObjectProxy& object_;
+    sdbus::IProxy& proxy_;
 };
 
 }}}}} // namespaces

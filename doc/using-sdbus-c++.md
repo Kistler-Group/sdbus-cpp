@@ -52,7 +52,7 @@ All sdbus-c++ header files reside in the `sdbus-c++` subdirectory within the sta
 
 ```cpp
 #include <sdbus-c++/IConnection.h>
-#include <sdbus-c++/IObjectProxy.h>
+#include <sdbus-c++/IProxy.h>
 ```
 
 or just include the global header file that pulls in everything:
@@ -87,7 +87,7 @@ The following diagram illustrates the major entities in sdbus-c++.
   * registering (possibly multiple) interfaces and methods, signals, properties on those interfaces,
   * emitting signals.
 
-`IObjectProxy` represents the concept of the proxy, which is a view of the `Object` from the client side. Its responsibilities are:
+`IProxy` represents the concept of the proxy, which is a view of the `Object` from the client side. Its responsibilities are:
 
   * invoking remote methods of the corresponding object, in both synchronous and asynchronous way,
   * registering handlers for signals,
@@ -102,10 +102,10 @@ The following diagram illustrates the major entities in sdbus-c++.
 
 sdbus-c++ is thread-aware by design. But, in general, it's not thread-safe. At least not in all places. There are situations where sdbus-c++ provides and guarantees API-level thread safety by design. It is safe to do these operations from multiple threads at the same time:
 
-  * Making and destroying `Object`s and `ObjectProxy`s, even on a shared connection that is already running an event loop. Under *making* here is meant a complete atomic sequence of construction, registration of method/signal/property callbacks and export of the `Object`/`ObjectProxy` so it is ready to issue/receive messages. This sequence must be done in one thread.
+  * Making and destroying `Object`s and `Proxy`s, even on a shared connection that is already running an event loop. Under *making* here is meant a complete atomic sequence of construction, registration of method/signal/property callbacks and export of the `Object`/`Proxy` so it is ready to issue/receive messages. This sequence must be done in one thread.
   * Creating and sending asynchronous method replies on an `Object` instance.
   * Creating and emitting signals on an `Object` instance.
-  * Creating and sending method calls (both synchronously and asynchronously) on an `ObjectProxy` instance. (But it's generally better that our threads use their own exclusive instances of object proxy, to minimize shared state and contention.)
+  * Creating and sending method calls (both synchronously and asynchronously) on an `Proxy` instance. (But it's generally better that our threads use their own exclusive instances of proxy, to minimize shared state and contention.)
 
 Multiple layers of sdbus-c++ API
 -------------------------------
@@ -115,7 +115,7 @@ sdbus-c++ API comes in two layers:
   * [the basic layer](#implementing-the-concatenator-example-using-basic-sdbus-c-api-layer), which is a simple wrapper layer on top of sd-bus, using mechanisms that are native to C++ (e.g. serialization/deserialization of data from messages),
   * [the convenience layer](#implementing-the-concatenator-example-using-convenience-sdbus-c-api-layer), building on top of the basic layer, which aims at alleviating users from unnecessary details and enables them to write shorter, safer, and more expressive code.
 
-sdbus-c++ also ships with a stub generator tool that converts D-Bus IDL in XML format into stub code for the adaptor as well as proxy part. Hierarchically, these stubs provide yet another layer of convenience (the "stubs layer"), making it possible for D-Bus RPC calls to completely look like native C++ calls on a local object.
+sdbus-c++ also ships with a stub generator tool that converts D-Bus IDL in XML format into stub code for the adaptor as well as the proxy part. Hierarchically, these stubs provide yet another layer of convenience (the "stubs layer"), making it possible for D-Bus RPC calls to completely look like native C++ calls on a local object.
 
 An example: Number concatenator
 -------------------------------
@@ -130,7 +130,7 @@ In the following sections, we will elaborate on the ways of implementing such an
 Implementing the Concatenator example using basic sdbus-c++ API layer
 ---------------------------------------------------------------------
 
-In the basic API layer, we already have abstractions for D-Bus connections, objects and object proxies, with which we can interact via their interface classes (`IConnection`, `IObject`, `IObjectProxy`), but, analogously to the underlying sd-bus C library, we still work on the level of D-Bus messages. We need to
+In the basic API layer, we already have abstractions for D-Bus connections, objects and object proxies, with which we can interact via their interface classes (`IConnection`, `IObject`, `IProxy`), but, analogously to the underlying sd-bus C library, we still work on the level of D-Bus messages. We need to
 
   * create them,
   * serialize/deserialize arguments to/from them (thanks to many overloads of C++ insertion/extraction operators, this is very simple),
@@ -235,7 +235,7 @@ int main(int argc, char *argv[])
     // will create its own connection automatically, and it will be system bus connection.
     const char* destinationName = "org.sdbuscpp.concatenator";
     const char* objectPath = "/org/sdbuscpp/concatenator";
-    auto concatenatorProxy = sdbus::createObjectProxy(destinationName, objectPath);
+    auto concatenatorProxy = sdbus::createProxy(destinationName, objectPath);
     
     // Let's subscribe for the 'concatenated' signals
     const char* interfaceName = "org.sdbuscpp.Concatenator";
@@ -277,7 +277,7 @@ int main(int argc, char *argv[])
 }
 ```
 
-In simple cases, we don't need to create D-Bus connection explicitly for our proxies. Unless a connection is provided to an object proxy explicitly via factory parameter, the proxy will create a connection of his own, and it will be a system bus connection. This is the case in the example above. (This approach is not scalable and resource-saving if we have plenty of proxies; see section [Working with D-Bus connections](#working-with-d-bus-connections-in-sdbus-c) for elaboration.) So, in the example, we create a proxy for object `/org/sdbuscpp/concatenator` publicly available at bus `org.sdbuscpp.concatenator`. We register signal handlers, if any, and finish the registration, making the object proxy ready for use.
+In simple cases, we don't need to create D-Bus connection explicitly for our proxies. Unless a connection is provided to a proxy object explicitly via factory parameter, the proxy will create a connection of his own, and it will be a system bus connection. This is the case in the example above. (This approach is not scalable and resource-saving if we have plenty of proxies; see section [Working with D-Bus connections](#working-with-d-bus-connections-in-sdbus-c) for elaboration.) So, in the example, we create a proxy for object `/org/sdbuscpp/concatenator` publicly available at bus `org.sdbuscpp.concatenator`. We register signal handlers, if any, and finish the registration, making the proxy ready for use.
 
 The callback for a D-Bus signal handler on this level is any callable of signature `void(sdbus::Signal& signal)`. The one and only parameter `signal` is the incoming signal message. We need to deserialize arguments from it, and then we can do our business logic with it.
 
@@ -291,11 +291,11 @@ The design of D-Bus connections in sdbus-c++ allows for certain flexibility and 
 
 How shall we use connections in relation to D-Bus objects and object proxies?
 
-A D-Bus connection is represented by a `Connection` instance. Each connection needs an event loop being run upon it. So it needs a thread handling the event loop. This thread serves all incoming and outgoing messages and all communication towards D-Bus daemon.
+A D-Bus connection is represented by a `IConnection` instance. Each connection needs an event loop being run upon it. So it needs a thread handling the event loop. This thread serves all incoming and outgoing messages and all communication towards D-Bus daemon.
 
 One process can have multiple D-Bus connections, with assigned unique bus names or without, as long as those with assigned bus names do not share a common bus name.
 
-A D-Bus connection can be created for and used exclusively by one D-Bus object (represented by one `Object` instance) or D-Bus object proxy (represented by one `ObjectProxy` instance), but can very well be used by and shared across multiple objects, multiple proxies or even both multiple objects and proxies at the same time. When shared, one must bear in mind that the access to the connection is mutually exclusive and is serialized. This means, for example, that if an object's callback is going to be invoked for an incoming remote method call and in another thread we use a proxy to call remote method in another process, the threads are contending and only one can go on while the other must wait and can only proceed after the first one has finished, because both are using a shared resource -- the connection.
+A D-Bus connection can be created for and used exclusively by one D-Bus object (represented by one `IObject` instance) or one D-Bus proxy (represented by one `IProxy` instance), but can very well be used by and shared across multiple objects, multiple proxies or even both multiple objects and proxies at the same time. When shared, one must bear in mind that the access to the connection is mutually exclusive and is serialized. This means, for example, that if an object's callback is going to be invoked for an incoming remote method call and in another thread we use a proxy to call remote method in another process, the threads are contending and only one can go on while the other must wait and can only proceed after the first one has finished, because both are using a shared resource -- the connection.
 
 The former case (1:1) is one extreme; it's usually simple, has zero resource contention, but hurts scalability (for example, 50 proxies in our program need 50 D-Bus connections and 50 event loop threads upon them). The latter case (1:N) is the other extreme -- all D-Bus objects and proxies share one single connection. This is the most scalable solution (since, for example, 5 or 200 objects/proxies use always one single connection), but may increase contention and hurt concurrency (since only one of all those objects/proxies can work with the connection at a time). And then there are limitless options between the two (for example, we can use one connection for all objects, and another connection for all proxies in our service...). sdbus-c++ gives its users freedom to choose whatever approach is more suitable to them in their application at fine granularity.
 
@@ -303,13 +303,13 @@ How can we use connections from the server and the client perspective?
 
 * On the *server* side, we generally need to create D-Bus objects and publish their APIs. For that we first need a connection with a unique bus name. We need to create the D-Bus connection manually ourselves, request bus name on it, and manually launch its event loop (in a blocking way, through `enterProcessingLoop()`, or non-blocking async way, through `enterProcessingLoopAsync()`). At any time before or after running the event loop on the connection, we can create and "hook", as well as remove, objects and proxies upon that connection.
 
-* On the *client* side, for our D-Bus object proxies, we have more options (corresponding to three overloads of the `createObjectProxy()` factory):
+* On the *client* side, for our D-Bus object proxies, we have more options (corresponding to three overloads of the `createProxy()` factory):
 
     * We don't bother about any connection when creating a proxy. For each proxy instance sdbus-c++ also creates an internal connection instance to be used just by this proxy, and it will be a *system bus* connection. Additionally, an event loop thread for that connection is created and run internally.
 
       This hurts scalability (see discussion above), but our code is simpler, and since each proxy has its own connection, there is zero contention.
 
-    * We create a connection explicitly by ourselves and `std::move` it to the object proxy factory. The proxy becomes an owner of this connection, and will run the event loop on that connection. This is the same as in the above bullet point, but with a flexibility that we can choose the bus type (system, session bus).
+    * We create a connection explicitly by ourselves and `std::move` it to the proxy object factory. The proxy becomes an owner of this connection, and will run the event loop on that connection. This is the same as in the above bullet point, but with a flexibility that we can choose the bus type (system, session bus).
 
     * We are always full owners of the connection. We create the connection, and a proxy only takes and keeps a reference to it. We take care of the event loop upon that connection (and we must ensure the connection exists as long as all its users exist).
 
@@ -402,7 +402,7 @@ int main(int argc, char *argv[])
     // Create proxy object for the concatenator object on the server side
     const char* destinationName = "org.sdbuscpp.concatenator";
     const char* objectPath = "/org/sdbuscpp/concatenator";
-    auto concatenatorProxy = sdbus::createObjectProxy(destinationName, objectPath);
+    auto concatenatorProxy = sdbus::createProxy(destinationName, objectPath);
     
     // Let's subscribe for the 'concatenated' signals
     const char* interfaceName = "org.sdbuscpp.Concatenator";
@@ -446,15 +446,15 @@ sdbus-c++ users shall prefer the convenience API to the lower level, basic API. 
 Implementing the Concatenator example using sdbus-c++-generated stubs
 ---------------------------------------------------------------------
 
-sdbus-c++ ships with the native stub generator tool called `sdbus-c++-xml2cpp`. The tool is very similar to `dbusxx-xml2cpp` tool that comes from dbus-c++ project.
+sdbus-c++ ships with the native stub generator tool called `sdbus-c++-xml2cpp`. The tool is very similar to `dbusxx-xml2cpp` tool that comes with the dbus-c++ project.
 
-The generator tool takes D-Bus XML IDL description of D-Bus interfaces on its input, and can be instructed to generate one or both of these: an adaptor header file for use at server side, and a proxy header file for use at client side. Like this:
+The generator tool takes D-Bus XML IDL description of D-Bus interfaces on its input, and can be instructed to generate one or both of these: an adaptor header file for use on the server side, and a proxy header file for use on the client side. Like this:
 
 ```bash
 sdbus-c++-xml2cpp database-bindings.xml --adaptor=database-server-glue.h --proxy=database-client-glue.h
 ```
 
-The adaptor header file contains classes that can be used to implement described interfaces. The proxy header file contains classes that can be used to make calls to remote objects.
+The adaptor header file contains classes that can be used to implement described interfaces (these classes represent object interfaces). The proxy header file contains classes that can be used to make calls to remote objects (these classes represent remote object interfaces).
 
 ### XML description of the Concatenator interface
 
@@ -481,7 +481,7 @@ After running this through the stubs generator, we get the stub code that is des
 
 ### concatenator-server-glue.h
 
-There is specific class for each interface in the XML IDL file. The class is de facto an interface which shall be implemented by inheriting from it. The class' constructor takes care of registering all methods, signals and properties. For each D-Bus method there is a pure virtual member function. These pure virtual functions must be implemented in the child class. For each signal, there is a public function member that emits this signal.
+For each interface in the XML IDL file the generator creates one class that represents it. The class is de facto an interface which shall be implemented by inheriting from it. The class' constructor takes care of registering all methods, signals and properties. For each D-Bus method there is a pure virtual member function. These pure virtual functions must be implemented in the child class. For each signal, there is a public function member that emits this signal.
 
 ```cpp
 /*
@@ -531,7 +531,7 @@ private:
 
 ### concatenator-client-glue.h
 
-Analogously to the adaptor classes described above, there is specific class for each interface in the XML IDL file. The class is de facto a proxy to the concrete interface of a remote object. For each D-Bus signal there is a pure virtual member function whose body must be provided in a child class. For each method, there is a public function member that calls the method remotely.
+Analogously to the adaptor classes described above, there is one class generated for one interface in the XML IDL file. The class is de facto a proxy to the concrete single interface of a remote object. For each D-Bus signal there is a pure virtual member function whose body must be provided in a child class. For each method, there is a public function member that calls the method remotely.
 
 ```cpp
 /*
@@ -554,10 +554,10 @@ public:
     static constexpr const char* interfaceName = "org.sdbuscpp.Concatenator";
 
 protected:
-    Concatenator_proxy(sdbus::IObjectProxy& object)
-        : object_(object)
+    Concatenator_proxy(sdbus::IProxy& proxy)
+        : proxy_(proxy)
     {
-        object_.uponSignal("concatenated").onInterface(interfaceName).call([this](const std::string& concatenatedString){ this->onConcatenated(concatenatedString); });
+        proxy_.uponSignal("concatenated").onInterface(interfaceName).call([this](const std::string& concatenatedString){ this->onConcatenated(concatenatedString); });
     }
 
     virtual void onConcatenated(const std::string& concatenatedString) = 0;
@@ -566,12 +566,12 @@ public:
     std::string concatenate(const std::vector<int32_t>& numbers, const std::string& separator)
     {
         std::string result;
-        object_.callMethod("concatenate").onInterface(interfaceName).withArguments(numbers, separator).storeResultsTo(result);
+        proxy_.callMethod("concatenate").onInterface(interfaceName).withArguments(numbers, separator).storeResultsTo(result);
         return result;
     }
 
 private:
-    sdbus::IObjectProxy& object_;
+    sdbus::IProxy& object_;
 };
 
 }} // namespaces
@@ -581,17 +581,19 @@ private:
 
 ### Providing server implementation based on generated adaptors
 
-To implement a D-Bus object that implements all its D-Bus interfaces, we shall create a class representing the object that inherits from all corresponding `*_adaptor` classes and implements all pure virtual member functions. Specifically, the object class shall inherit from the `Interfaces` template class, the template arguments of which are individual adaptor classes. The `Interfaces` is just a convenience class that hides a few boiler-plate details. For example, in its constructor, it creates an `Object` instance, it takes care of proper initialization of all adaptor superclasses, and exports the object finally.
+To implement a D-Bus object that implements all its D-Bus interfaces, we now need to create a class representing the D-Bus object. This class must inherit from all corresponding `*_adaptor` classes (a-ka object interfaces, because these classes are as-if interfaces) and implement all pure virtual member functions.
+
+How do we do that technically? Simply, our object class just needs to inherit from `AdaptorInterfaces` variadic template class. We fill its template arguments with a list of all generated interface classes. The `AdaptorInterfaces` is a convenience class that hides a few boiler-plate details. For example, in its constructor, it creates an `Object` instance, and it takes care of proper initialization of all adaptor superclasses.
 
 ```cpp
 #include <sdbus-c++/sdbus-c++.h>
 #include "concatenator-server-glue.h"
 
-class Concatenator : public sdbus::Interfaces<org::sdbuscpp::Concatenator_adaptor /*, more adaptor classes if there are more interfaces*/>
+class Concatenator : public sdbus::AdaptorInterfaces<org::sdbuscpp::Concatenator_adaptor /*, more adaptor classes if there are more interfaces*/>
 {
 public:
     Concatenator(sdbus::IConnection& connection, std::string objectPath)
-        : sdbus::Interfaces<org::sdbuscpp::Concatenator_adaptor>(connection, std::move(objectPath))
+        : sdbus::AdaptorInterfaces<org::sdbuscpp::Concatenator_adaptor>(connection, std::move(objectPath))
     {
     }
 
@@ -638,11 +640,13 @@ int main(int argc, char *argv[])
 }
 ```
 
-It's that simple :)
+Now we have a service with a unique bus name and a D-Bus object available on it. Let's write a client.
 
 ### Providing client implementation based on generated proxies
 
-To implement a proxy for a remote D-Bus object, we shall create a class representing the object proxy that inherits from all corresponding `*_proxy` classes and -- if applicable -- implements all pure virtual member functions. Specifically, the object proxy class shall inherit from the `ProxyInterfaces` template class. As its template arguments we shall provide all proxy classes. The `ProxyInterfaces` is just a convenience class that hides a few boiler-plate details. For example, in its constructor, it creates an `ObjectProxy` instance, and it takes care of proper initialization of all proxy superclasses.
+To implement a proxy for a remote D-Bus object, we shall create a class representing the proxy object. This class must inherit from all corresponding `*_proxy` classes (a-ka remote object interfaces, because these classes are as-if interfaces) and -- if applicable -- implement all pure virtual member functions.
+
+How do we do that technically? Simply, our proxy class just needs to inherit from `ProxyInterfaces` variadic template class. We fill its template arguments with a list of all generated interface classes. The `ProxyInterfaces` is a convenience class that hides a few boiler-plate details. For example, in its constructor, it can create a `Proxy` instance for us, and it takes care of proper initialization of all generated interface superclasses.
 
 ```cpp
 #include <sdbus-c++/sdbus-c++.h>
@@ -664,9 +668,9 @@ protected:
 };
 ```
 
-In the above example, a proxy is created that creates and maintains its own system bus connection. However, there are `ProxyInterfaces` class template constructor overloads that also take the connection from the user as the first parameter, and pass that connection over to the underlying proxy. The connection instance is used for all D-Bus proxy interfaces listed in the `ProxyInterfaces` template parameter list.
+In the above example, a proxy is created that creates and maintains its own system bus connection. However, there are `ProxyInterfaces` class template constructor overloads that also take the connection from the user as the first parameter, and pass that connection over to the underlying proxy. The connection instance is used by all interfaces listed in the `ProxyInterfaces` template parameter list.
 
-Note however that there are multiple `ProxyInterfaces` constructor overloads, and they differ in how the proxy behaves towards the D-Bus connection. These overloads precisely map the `sdbus::createObjectProxy` overloads, as they are actually implemented on top of them. See [Proxy and D-Bus connection](#Proxy-and-D-Bus-connection) for more info.
+Note however that there are multiple `ProxyInterfaces` constructor overloads, and they differ in how the proxy behaves towards the D-Bus connection. These overloads precisely map the `sdbus::createProxy` overloads, as they are actually implemented on top of them. See [Proxy and D-Bus connection](#Proxy-and-D-Bus-connection) for more info. We can even create a `IProxy` instance on our own, and inject it into our proxy class -- there is a constructor overload for it in `ProxyInterfaces`. This can help if we need to provide mocked implementations in our unit tests.
 
 Now let's use this proxy to make remote calls and listen to signals in a real application.
 

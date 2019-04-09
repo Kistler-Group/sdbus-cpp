@@ -20,10 +20,10 @@ public:
     static constexpr const char* interfaceName = "org.sdbuscpp.stresstests.concatenator";
 
 protected:
-    concatenator_proxy(sdbus::IObjectProxy& object)
-        : object_(object)
+    concatenator_proxy(sdbus::IProxy& proxy)
+        : proxy_(proxy)
     {
-        object_.uponSignal("concatenatedSignal").onInterface(interfaceName).call([this](const std::string& concatenatedString){ this->onConcatenatedSignal(concatenatedString); });
+        proxy_.uponSignal("concatenatedSignal").onInterface(interfaceName).call([this](const std::string& concatenatedString){ this->onConcatenatedSignal(concatenatedString); });
     }
 
     virtual void onConcatenatedSignal(const std::string& concatenatedString) = 0;
@@ -33,11 +33,11 @@ protected:
 public:
     void concatenate(const std::map<std::string, sdbus::Variant>& params)
     {
-        object_.callMethodAsync("concatenate").onInterface(interfaceName).withArguments(params).uponReplyInvoke([this](const sdbus::Error* error, const std::string& result){ this->onConcatenateReply(result, error); });
+        proxy_.callMethodAsync("concatenate").onInterface(interfaceName).withArguments(params).uponReplyInvoke([this](const sdbus::Error* error, const std::string& result){ this->onConcatenateReply(result, error); });
     }
 
 private:
-    sdbus::IObjectProxy& object_;
+    sdbus::IProxy& proxy_;
 };
 
 }}} // namespaces

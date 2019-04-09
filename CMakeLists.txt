@@ -25,11 +25,11 @@ set(SDBUSCPP_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include/${SDBUSCPP_INCLUDE_SUBDIR})
 
 set(SDBUSCPP_CPP_SRCS
     ${SDBUSCPP_SOURCE_DIR}/Connection.cpp
-    ${SDBUSCPP_SOURCE_DIR}/ConvenienceClasses.cpp
+    ${SDBUSCPP_SOURCE_DIR}/ConvenienceApiClasses.cpp
     ${SDBUSCPP_SOURCE_DIR}/Error.cpp
     ${SDBUSCPP_SOURCE_DIR}/Message.cpp
     ${SDBUSCPP_SOURCE_DIR}/Object.cpp
-    ${SDBUSCPP_SOURCE_DIR}/ObjectProxy.cpp
+    ${SDBUSCPP_SOURCE_DIR}/Proxy.cpp
     ${SDBUSCPP_SOURCE_DIR}/Types.cpp
     ${SDBUSCPP_SOURCE_DIR}/Flags.cpp
     ${SDBUSCPP_SOURCE_DIR}/VTableUtils.c
@@ -40,21 +40,22 @@ set(SDBUSCPP_HDR_SRCS
     ${SDBUSCPP_SOURCE_DIR}/IConnection.h
     ${SDBUSCPP_SOURCE_DIR}/MessageUtils.h
     ${SDBUSCPP_SOURCE_DIR}/Object.h
-    ${SDBUSCPP_SOURCE_DIR}/ObjectProxy.h
+    ${SDBUSCPP_SOURCE_DIR}/Proxy.h
     ${SDBUSCPP_SOURCE_DIR}/ScopeGuard.h
     ${SDBUSCPP_SOURCE_DIR}/VTableUtils.h
     ${SDBUSCPP_SOURCE_DIR}/SdBus.h
     ${SDBUSCPP_SOURCE_DIR}/ISdBus.h)
 
 set(SDBUSCPP_PUBLIC_HDRS
-    ${SDBUSCPP_INCLUDE_DIR}/ConvenienceClasses.h
-    ${SDBUSCPP_INCLUDE_DIR}/ConvenienceClasses.inl
+    ${SDBUSCPP_INCLUDE_DIR}/ConvenienceApiClasses.h
+    ${SDBUSCPP_INCLUDE_DIR}/ConvenienceApiClasses.inl
     ${SDBUSCPP_INCLUDE_DIR}/Error.h
     ${SDBUSCPP_INCLUDE_DIR}/IConnection.h
-    ${SDBUSCPP_INCLUDE_DIR}/Interfaces.h
+    ${SDBUSCPP_INCLUDE_DIR}/AdaptorInterfaces.h
+    ${SDBUSCPP_INCLUDE_DIR}/ProxyInterfaces.h
     ${SDBUSCPP_INCLUDE_DIR}/Introspection.h
     ${SDBUSCPP_INCLUDE_DIR}/IObject.h
-    ${SDBUSCPP_INCLUDE_DIR}/IObjectProxy.h
+    ${SDBUSCPP_INCLUDE_DIR}/IProxy.h
     ${SDBUSCPP_INCLUDE_DIR}/Message.h
     ${SDBUSCPP_INCLUDE_DIR}/MethodResult.h
     ${SDBUSCPP_INCLUDE_DIR}/Types.h

@@ -1,7 +1,7 @@
 /**
  * (C) 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
  *
- * @file IObjectProxy.h
+ * @file IProxy.h
  *
  * Created on: Nov 8, 2016
  * Project: sdbus-c++
@@ -23,10 +23,10 @@
  * along with sdbus-c++. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SDBUS_CXX_IOBJECTPROXY_H_
-#define SDBUS_CXX_IOBJECTPROXY_H_
+#ifndef SDBUS_CXX_IPROXY_H_
+#define SDBUS_CXX_IPROXY_H_
 
-#include <sdbus-c++/ConvenienceClasses.h>
+#include <sdbus-c++/ConvenienceApiClasses.h>
 #include <string>
 #include <memory>
 #include <functional>
@@ -42,24 +42,26 @@ namespace sdbus {
 namespace sdbus {
 
     /********************************************//**
-     * @class IObjectProxy
+     * @class IProxy
      *
-     * An interface to D-Bus object proxy. Provides API for calling
-     * methods, getting/setting properties, and for registering to signals.
+     * IProxy class represents a proxy object, which is a convenient local object created
+     * to represent a remote D-Bus object in another process.
+     * The proxy enables calling methods on remote objects, receiving signals from remote
+     * objects, and getting/setting properties of remote objects.
      *
-     * All methods throw @c sdbus::Error in case of failure.
-     * In general, the class is thread-aware, but not thread-safe.
-     * However, the operation of creating and sending method calls
-     * (both synchronously and asynchronously) is thread-safe.
+     * All IProxy member methods throw @c sdbus::Error in case of D-Bus or sdbus-c++ error.
+     * The IProxy class has been designed as thread-aware. However, the operation of
+     * creating and sending method calls (both synchronously and asynchronously) is
+     * thread-safe by design.
      *
      ***********************************************/
-    class IObjectProxy
+    class IProxy
     {
     public:
         /*!
         * @brief Creates a method call message
         *
-        * @param[in] interfaceName Name of an interface that the method is defined under
+        * @param[in] interfaceName Name of an interface that provides a given method
         * @param[in] methodName Name of the method
         * @return A method call message
         *
@@ -74,7 +76,7 @@ namespace sdbus {
         /*!
         * @brief Creates an asynchronous method call message
         *
-        * @param[in] interfaceName Name of an interface that the method is defined under
+        * @param[in] interfaceName Name of an interface that provides a given method
         * @param[in] methodName Name of the method
         * @return A method call message
         *
@@ -247,43 +249,41 @@ namespace sdbus {
         */
         PropertySetter setProperty(const std::string& propertyName);
 
-        virtual ~IObjectProxy() = 0;
+        virtual ~IProxy() = default;
     };
 
-    inline MethodInvoker IObjectProxy::callMethod(const std::string& methodName)
+    inline MethodInvoker IProxy::callMethod(const std::string& methodName)
     {
         return MethodInvoker(*this, methodName);
     }
 
-    inline AsyncMethodInvoker IObjectProxy::callMethodAsync(const std::string& methodName)
+    inline AsyncMethodInvoker IProxy::callMethodAsync(const std::string& methodName)
     {
         return AsyncMethodInvoker(*this, methodName);
     }
 
-    inline SignalSubscriber IObjectProxy::uponSignal(const std::string& signalName)
+    inline SignalSubscriber IProxy::uponSignal(const std::string& signalName)
     {
         return SignalSubscriber(*this, signalName);
     }
 
-    inline PropertyGetter IObjectProxy::getProperty(const std::string& propertyName)
+    inline PropertyGetter IProxy::getProperty(const std::string& propertyName)
     {
         return PropertyGetter(*this, propertyName);
     }
 
-    inline PropertySetter IObjectProxy::setProperty(const std::string& propertyName)
+    inline PropertySetter IProxy::setProperty(const std::string& propertyName)
     {
         return PropertySetter(*this, propertyName);
     }
 
-    inline IObjectProxy::~IObjectProxy() {}
-
     /*!
-    * @brief Creates object proxy instance
+    * @brief Creates a proxy object for a specific remote D-Bus object
     *
     * @param[in] connection D-Bus connection to be used by the proxy object
-    * @param[in] destination Bus name that provides a D-Bus object
-    * @param[in] objectPath Path of the D-Bus object
-    * @return Pointer to the object proxy instance
+    * @param[in] destination Bus name that provides the remote D-Bus object
+    * @param[in] objectPath Path of the remote D-Bus object
+    * @return Pointer to the proxy object instance
     *
     * The provided connection will be used by the proxy to issue calls against the object,
     * and signals, if any, will be subscribed to on this connection. The caller still
@@ -293,19 +293,19 @@ namespace sdbus {
     *
     * Code example:
     * @code
-    * auto proxy = sdbus::createObjectProxy(connection, "com.kistler.foo", "/com/kistler/foo");
+    * auto proxy = sdbus::createProxy(connection, "com.kistler.foo", "/com/kistler/foo");
     * @endcode
     */
-    std::unique_ptr<sdbus::IObjectProxy> createObjectProxy( sdbus::IConnection& connection
-                                                          , std::string destination
-                                                          , std::string objectPath );
+    std::unique_ptr<sdbus::IProxy> createProxy( sdbus::IConnection& connection
+                                              , std::string destination
+                                              , std::string objectPath );
 
     /*!
-    * @brief Creates object proxy instance
+    * @brief Creates a proxy object for a specific remote D-Bus object
     *
     * @param[in] connection D-Bus connection to be used by the proxy object
-    * @param[in] destination Bus name that provides a D-Bus object
-    * @param[in] objectPath Path of the D-Bus object
+    * @param[in] destination Bus name that provides the remote D-Bus object
+    * @param[in] objectPath Path of the remote D-Bus object
     * @return Pointer to the object proxy instance
     *
     * The provided connection will be used by the proxy to issue calls against the object,
@@ -316,18 +316,18 @@ namespace sdbus {
     *
     * Code example:
     * @code
-    * auto proxy = sdbus::createObjectProxy(std::move(connection), "com.kistler.foo", "/com/kistler/foo");
+    * auto proxy = sdbus::createProxy(std::move(connection), "com.kistler.foo", "/com/kistler/foo");
     * @endcode
     */
-    std::unique_ptr<sdbus::IObjectProxy> createObjectProxy( std::unique_ptr<sdbus::IConnection>&& connection
-                                                          , std::string destination
-                                                          , std::string objectPath );
+    std::unique_ptr<sdbus::IProxy> createProxy( std::unique_ptr<sdbus::IConnection>&& connection
+                                              , std::string destination
+                                              , std::string objectPath );
 
     /*!
-    * @brief Creates object proxy instance that uses its own D-Bus connection
+    * @brief Creates a proxy object for a specific remote D-Bus object
     *
-    * @param[in] destination Bus name that provides a D-Bus object
-    * @param[in] objectPath Path of the D-Bus object
+    * @param[in] destination Bus name that provides the remote D-Bus object
+    * @param[in] objectPath Path of the remote D-Bus object
     * @return Pointer to the object proxy instance
     *
     * No D-Bus connection is provided here, so the object proxy will create and manage
@@ -337,14 +337,14 @@ namespace sdbus {
     *
     * Code example:
     * @code
-    * auto proxy = sdbus::createObjectProxy("com.kistler.foo", "/com/kistler/foo");
+    * auto proxy = sdbus::createProxy("com.kistler.foo", "/com/kistler/foo");
     * @endcode
     */
-    std::unique_ptr<sdbus::IObjectProxy> createObjectProxy( std::string destination
-                                                          , std::string objectPath );
+    std::unique_ptr<sdbus::IProxy> createProxy( std::string destination
+                                              , std::string objectPath );
 
 }
 
-#include <sdbus-c++/ConvenienceClasses.inl>
+#include <sdbus-c++/ConvenienceApiClasses.inl>
 
-#endif /* SDBUS_CXX_IOBJECTPROXY_H_ */
+#endif /* SDBUS_CXX_IPROXY_H_ */

@@ -71,7 +71,7 @@ namespace sdbus {
      * by D-Bus.
      *
      * You don't need to work with this class directly if you use high-level APIs
-     * of @c IObject and @c IObjectProxy.
+     * of @c IObject and @c IProxy.
      *
      ***********************************************/
     class Message

@@ -82,8 +82,8 @@ std::string ProxyGenerator::processInterface(Node& interface) const
             << "public:" << endl
             << tab << "static constexpr const char* interfaceName = \"" << ifaceName << "\";" << endl << endl
             << "protected:" << endl
-            << tab << className << "(sdbus::IObjectProxy& object)" << endl
-            << tab << tab << ": object_(object)" << endl;
+            << tab << className << "(sdbus::IProxy& proxy)" << endl
+            << tab << tab << ": proxy_(proxy)" << endl;
 
     Nodes methods = interface["method"];
     Nodes signals = interface["signal"];
@@ -118,7 +118,7 @@ std::string ProxyGenerator::processInterface(Node& interface) const
     }
 
     body << "private:" << endl
-            << tab << "sdbus::IObjectProxy& object_;" << endl
+            << tab << "sdbus::IProxy& proxy_;" << endl
             << "};" << endl << endl
             << std::string(namespacesCount, '}') << " // namespaces" << endl << endl;
 
@@ -168,7 +168,7 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes&
             definitionSS << tab << tab << retType << " result;" << endl;
         }
 
-        definitionSS << tab << tab << "object_.callMethod" << (async ? "Async" : "") << "(\"" << name << "\")"
+        definitionSS << tab << tab << "proxy_.callMethod" << (async ? "Async" : "") << "(\"" << name << "\")"
                         ".onInterface(interfaceName)";
 
         if (inArgs.size() > 0)
@@ -218,7 +218,7 @@ std::tuple<std::string, std::string> ProxyGenerator::processSignals(const Nodes&
         std::string argStr, argTypeStr;
         std::tie(argStr, argTypeStr, std::ignore) = argsToNamesAndTypes(args);
 
-        registrationSS << tab << tab << "object_"
+        registrationSS << tab << tab << "proxy_"
                 ".uponSignal(\"" << name << "\")"
                 ".onInterface(interfaceName)"
                 ".call([this](" << argTypeStr << ")"
@@ -247,7 +247,7 @@ std::string ProxyGenerator::processProperties(const Nodes& properties) const
         {
             propertySS << tab << propertyType << " " << propertyName << "()" << endl
                     << tab << "{" << endl;
-            propertySS << tab << tab << "return object_.getProperty(\"" << propertyName << "\")"
+            propertySS << tab << tab << "return proxy_.getProperty(\"" << propertyName << "\")"
                             ".onInterface(interfaceName)";
             propertySS << ";" << endl << tab << "}" << endl << endl;
         }
@@ -256,7 +256,7 @@ std::string ProxyGenerator::processProperties(const Nodes& properties) const
         {
             propertySS << tab << "void " << propertyName << "(" << propertyTypeArg << ")" << endl
                     << tab << "{" << endl;
-            propertySS << tab << tab << "object_.setProperty(\"" << propertyName << "\")"
+            propertySS << tab << tab << "proxy_.setProperty(\"" << propertyName << "\")"
                             ".onInterface(interfaceName)"
                             ".toValue(" << propertyArg << ")";
             propertySS << ";" << endl << tab << "}" << endl << endl;

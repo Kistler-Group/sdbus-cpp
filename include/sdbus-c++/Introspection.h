@@ -27,7 +27,7 @@
 #define SDBUS_CXX_INTROSPECTION_H_
 
 #include <sdbus-c++/IObject.h>
-#include <sdbus-c++/IObjectProxy.h>
+#include <sdbus-c++/IProxy.h>
 #include <string>
 
 namespace sdbus {
@@ -38,7 +38,7 @@ namespace sdbus {
         static constexpr const char* interfaceName = "org.freedesktop.DBus.Introspectable";
 
     protected:
-        introspectable_proxy(sdbus::IObjectProxy& object)
+        introspectable_proxy(sdbus::IProxy& object)
             : object_(object)
         {
         }
@@ -52,7 +52,7 @@ namespace sdbus {
         }
 
     private:
-        sdbus::IObjectProxy& object_;
+        sdbus::IProxy& object_;
     };
 
     // Adaptor is not necessary if we want to rely on sdbus-provided introspection

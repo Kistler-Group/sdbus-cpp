@@ -31,11 +31,11 @@
 #include <chrono>
 #include <atomic>
 
-class TestingAdaptor : public sdbus::Interfaces<testing_adaptor>
+class TestingAdaptor : public sdbus::AdaptorInterfaces<testing_adaptor>
 {
 public:
     TestingAdaptor(sdbus::IConnection& connection) :
-        sdbus::Interfaces<::testing_adaptor>(connection, OBJECT_PATH) { }
+        sdbus::AdaptorInterfaces<::testing_adaptor>(connection, OBJECT_PATH) { }
 
     virtual ~TestingAdaptor() { }
 

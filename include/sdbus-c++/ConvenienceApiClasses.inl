@@ -1,7 +1,7 @@
 /**
  * (C) 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
  *
- * @file ConvenienceClasses.inl
+ * @file ConvenienceApiClasses.inl
  *
  * Created on: Dec 19, 2016
  * Project: sdbus-c++
@@ -23,11 +23,11 @@
  * along with sdbus-c++. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SDBUS_CPP_CONVENIENCECLASSES_INL_
-#define SDBUS_CPP_CONVENIENCECLASSES_INL_
+#ifndef SDBUS_CPP_CONVENIENCEAPICLASSES_INL_
+#define SDBUS_CPP_CONVENIENCEAPICLASSES_INL_
 
 #include <sdbus-c++/IObject.h>
-#include <sdbus-c++/IObjectProxy.h>
+#include <sdbus-c++/IProxy.h>
 #include <sdbus-c++/Message.h>
 #include <sdbus-c++/MethodResult.h>
 #include <sdbus-c++/Types.h>
@@ -418,8 +418,8 @@ namespace sdbus {
 
     // Moved into the library to isolate from C++17 dependency
     /*
-    inline MethodInvoker::MethodInvoker(IObjectProxy& objectProxy, const std::string& methodName)
-        : objectProxy_(objectProxy)
+    inline MethodInvoker::MethodInvoker(IProxy& proxyObject, const std::string& methodName)
+        : proxy_(proxy)
         , methodName_(methodName)
         , exceptions_(std::uncaught_exceptions())
     {
@@ -444,13 +444,13 @@ namespace sdbus {
         // Therefore, we can allow callMethod() to throw even if we are in the destructor.
         // Bottomline is, to be on the safe side, the caller must take care of catching and reacting
         // to the exception thrown from here if the caller is a destructor itself.
-        objectProxy_.callMethod(method_);
+        proxy_.callMethod(method_);
     }
     */
 
     inline MethodInvoker& MethodInvoker::onInterface(const std::string& interfaceName)
     {
-        method_ = objectProxy_.createMethodCall(interfaceName, methodName_);
+        method_ = proxy_.createMethodCall(interfaceName, methodName_);
 
         return *this;
     }
@@ -470,7 +470,7 @@ namespace sdbus {
     {
         SDBUS_THROW_ERROR_IF(!method_.isValid(), "DBus interface not specified when calling a DBus method", EINVAL);
 
-        auto reply = objectProxy_.callMethod(method_);
+        auto reply = proxy_.callMethod(method_);
         methodCalled_ = true;
 
         detail::deserialize_pack(reply, args...);
@@ -484,15 +484,15 @@ namespace sdbus {
     }
 
 
-    inline AsyncMethodInvoker::AsyncMethodInvoker(IObjectProxy& objectProxy, const std::string& methodName)
-        : objectProxy_(objectProxy)
+    inline AsyncMethodInvoker::AsyncMethodInvoker(IProxy& proxy, const std::string& methodName)
+        : proxy_(proxy)
         , methodName_(methodName)
     {
     }
 
     inline AsyncMethodInvoker& AsyncMethodInvoker::onInterface(const std::string& interfaceName)
     {
-        method_ = objectProxy_.createAsyncMethodCall(interfaceName, methodName_);
+        method_ = proxy_.createAsyncMethodCall(interfaceName, methodName_);
 
         return *this;
     }
@@ -512,7 +512,7 @@ namespace sdbus {
     {
         SDBUS_THROW_ERROR_IF(!method_.isValid(), "DBus interface not specified when calling a DBus method", EINVAL);
 
-        objectProxy_.callMethod(method_, [callback = std::forward<_Function>(callback)](MethodReply& reply, const Error* error)
+        proxy_.callMethod(method_, [callback = std::forward<_Function>(callback)](MethodReply& reply, const Error* error)
         {
             // Create a tuple of callback input arguments' types, which will be used
             // as a storage for the argument values deserialized from the message.
@@ -528,8 +528,8 @@ namespace sdbus {
     }
 
 
-    inline SignalSubscriber::SignalSubscriber(IObjectProxy& objectProxy, const std::string& signalName)
-        : objectProxy_(objectProxy)
+    inline SignalSubscriber::SignalSubscriber(IProxy& proxy, const std::string& signalName)
+        : proxy_(proxy)
         , signalName_(signalName)
     {
     }
@@ -546,9 +546,9 @@ namespace sdbus {
     {
         SDBUS_THROW_ERROR_IF(interfaceName_.empty(), "DBus interface not specified when subscribing to a signal", EINVAL);
 
-        objectProxy_.registerSignalHandler( interfaceName_
-                                          , signalName_
-                                          , [callback = std::forward<_Function>(callback)](Signal& signal)
+        proxy_.registerSignalHandler( interfaceName_
+                                    , signalName_
+                                    , [callback = std::forward<_Function>(callback)](Signal& signal)
         {
             // Create a tuple of callback input arguments' types, which will be used
             // as a storage for the argument values deserialized from the signal message.
@@ -563,8 +563,8 @@ namespace sdbus {
     }
 
 
-    inline PropertyGetter::PropertyGetter(IObjectProxy& objectProxy, const std::string& propertyName)
-        : objectProxy_(objectProxy)
+    inline PropertyGetter::PropertyGetter(IProxy& proxy, const std::string& propertyName)
+        : proxy_(proxy)
         , propertyName_(propertyName)
     {
     }
@@ -572,7 +572,7 @@ namespace sdbus {
     inline sdbus::Variant PropertyGetter::onInterface(const std::string& interfaceName)
     {
         sdbus::Variant var;
-        objectProxy_
+        proxy_
             .callMethod("Get")
             .onInterface("org.freedesktop.DBus.Properties")
             .withArguments(interfaceName, propertyName_)
@@ -581,8 +581,8 @@ namespace sdbus {
     }
 
 
-    inline PropertySetter::PropertySetter(IObjectProxy& objectProxy, const std::string& propertyName)
-        : objectProxy_(objectProxy)
+    inline PropertySetter::PropertySetter(IProxy& proxy, const std::string& propertyName)
+        : proxy_(proxy)
         , propertyName_(propertyName)
     {
     }
@@ -599,7 +599,7 @@ namespace sdbus {
     {
         SDBUS_THROW_ERROR_IF(interfaceName_.empty(), "DBus interface not specified when setting a property", EINVAL);
 
-        objectProxy_
+        proxy_
             .callMethod("Set")
             .onInterface("org.freedesktop.DBus.Properties")
             .withArguments(interfaceName_, propertyName_, sdbus::Variant{value});
@@ -607,4 +607,4 @@ namespace sdbus {
 
 }
 
-#endif /* SDBUS_CPP_CONVENIENCECLASSES_INL_ */
+#endif /* SDBUS_CPP_CONVENIENCEAPICLASSES_INL_ */
