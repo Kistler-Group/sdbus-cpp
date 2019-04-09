@@ -68,3 +68,8 @@ v0.5.1
 
 v0.5.2
 - Simplify and unify basic API level callbacks for both sync and async methods
+
+v0.5.3
+- Extend stress tests with dynamic object and proxy creation and destruction from multiple threads
+- [[Breaking ABI change]] Add getConnection() method to IObject
+- A few minor fixes
