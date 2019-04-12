@@ -122,7 +122,7 @@ void Proxy::registerSignalHandlers(sdbus::internal::IConnection& connection)
     }
 }
 
-int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError)
+int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error */*retError*/)
 {
     // We are assuming the ownership of the async reply handler pointer passed here
     std::unique_ptr<AsyncReplyUserData> asyncReplyUserData{static_cast<AsyncReplyUserData*>(userData)};
@@ -141,6 +141,8 @@ int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userDat
         sdbus::Error exception(error->name, error->message);
         asyncReplyUserData->callback(message, &exception);
     }
+
+    return 1;
 }
 
 int Proxy::sdbus_signal_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error */*retError*/)

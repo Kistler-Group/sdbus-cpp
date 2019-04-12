@@ -140,23 +140,25 @@ public:
         return result;
     }
 
-    uint32_t doOperationClientSideAsync(uint32_t param)
+    void doOperationClientSideAsync(uint32_t param)
     {
         object_.callMethodAsync("doOperation")
                .onInterface(INTERFACE_NAME)
                .withArguments(param)
                .uponReplyInvoke([this](const sdbus::Error* error, uint32_t returnValue)
-        {
-            this->onDoOperationReply(returnValue, error);
-        });
+                                {
+                                    this->onDoOperationReply(returnValue, error);
+                                });
     }
 
-    uint32_t doErroneousOperationClientSideAsync()
+    void doErroneousOperationClientSideAsync()
     {
-        object_.callMethodAsync("throwError").onInterface(INTERFACE_NAME).uponReplyInvoke([this](const sdbus::Error* error)
-        {
-            this->onDoOperationReply(0, error);
-        });
+        object_.callMethodAsync("throwError")
+               .onInterface(INTERFACE_NAME)
+               .uponReplyInvoke([this](const sdbus::Error* error)
+                                {
+                                    this->onDoOperationReply(0, error);
+                                });
     }
 
     sdbus::Signature getSignature()
