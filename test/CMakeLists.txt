@@ -22,10 +22,15 @@ if(result)
 endif()
 
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+set(BUILD_GMOCK ON CACHE BOOL "" FORCE)
+set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
 
+set(BUILD_SHARED_LIBS_BAK ${BUILD_SHARED_LIBS})
+set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
-    ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
-    EXCLUDE_FROM_ALL)
+                    ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
+                    EXCLUDE_FROM_ALL)
+set(BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS_BAK})
 
 #-------------------------------
 # SOURCE FILES CONFIGURATION
@@ -78,10 +83,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 #----------------------------------
 # BUILD INFORMATION
 #----------------------------------
-
-# Turn off -isystem gcc option that CMake uses for imported
-# targets even when INTERFACE_INCLUDE_DIRECTORIES is used.
-set(CMAKE_NO_SYSTEM_FROM_IMPORTED "1")
 
 add_executable(sdbus-c++-unit-tests ${UNITTESTS_SRCS} $<TARGET_OBJECTS:sdbus-cpp>)
 target_link_libraries(sdbus-c++-unit-tests ${SYSTEMD_LIBRARIES} gmock gmock_main)
