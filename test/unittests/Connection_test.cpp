@@ -145,4 +145,6 @@ TEST_P(AConnectionNameRequest, ThrowsOnFail)
     ASSERT_THROW(conn_.requestName(""), sdbus::Error);
 }
 
-INSTANTIATE_TEST_SUITE_P(Request, AConnectionNameRequest, ::testing::Values(BusType::eSystem, BusType::eSession));
+// INSTANTIATE_TEST_SUITE_P is defined in googletest master, but not in googletest v1.8.1 that we are using now
+INSTANTIATE_TEST_CASE_P(Request, AConnectionNameRequest, ::testing::Values(BusType::eSystem, BusType::eSession));
+//INSTANTIATE_TEST_SUITE_P(Request, AConnectionNameRequest, ::testing::Values(BusType::eSystem, BusType::eSession))
