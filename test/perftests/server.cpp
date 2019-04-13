@@ -54,8 +54,7 @@ protected:
     virtual void sendDataSignals(const uint32_t& numberOfSignals, const uint32_t& signalMsgSize) override
     {
         auto data = createRandomString(signalMsgSize);
-        char digits[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
-        
+
         auto start_time = std::chrono::steady_clock::now();
         for (uint32_t i = 0; i < numberOfSignals; ++i)
         {
@@ -65,7 +64,7 @@ protected:
         auto stop_time = std::chrono::steady_clock::now();
         std::cout << "Server sent " << numberOfSignals << " signals in: " << std::chrono::duration_cast<std::chrono::milliseconds>(stop_time - start_time).count() << " ms" << std::endl;
     }
-    
+
     virtual std::string concatenateTwoStrings(const std::string& string1, const std::string& string2) override
     {
         return string1 + string2;
