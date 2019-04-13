@@ -147,6 +147,17 @@ namespace sdbus {
         virtual void finishRegistration() = 0;
 
         /*!
+        * @brief Unregisters proxy's signal handlers and stops receving replies to pending async calls
+        *
+        * Unregistration is done automatically also in proxy's destructor. This method makes
+        * sense if, in the process of proxy removal, we need to make sure that callbacks
+        * are unregistered explicitly before the final destruction of the proxy instance.
+        *
+        * @throws sdbus::Error in case of failure
+        */
+        virtual void unregister() = 0;
+
+        /*!
         * @brief Calls method on the proxied D-Bus object
         *
         * @param[in] methodName Name of the method

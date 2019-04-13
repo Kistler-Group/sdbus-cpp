@@ -33,15 +33,22 @@
 #include <chrono>
 #include <cassert>
 #include <algorithm>
+#include <iostream>
 
 using namespace std::chrono_literals;
 
-class PerftestClient : public sdbus::ProxyInterfaces<org::sdbuscpp::perftests_proxy>
+class PerftestProxy : public sdbus::ProxyInterfaces<org::sdbuscpp::perftests_proxy>
 {
 public:
-    PerftestClient(std::string destination, std::string objectPath)
-        : sdbus::ProxyInterfaces<org::sdbuscpp::perftests_proxy>(std::move(destination), std::move(objectPath))
+    PerftestProxy(std::string destination, std::string objectPath)
+        : ProxyInterfaces(std::move(destination), std::move(objectPath))
     {
+        registerProxy();
+    }
+
+    ~PerftestProxy()
+    {
+        unregisterProxy();
     }
 
 protected:
@@ -91,7 +98,7 @@ int main(int /*argc*/, char */*argv*/[])
 {
     const char* destinationName = "org.sdbuscpp.perftests";
     const char* objectPath = "/org/sdbuscpp/perftests";
-    PerftestClient client(destinationName, objectPath);
+    PerftestProxy client(destinationName, objectPath);
 
     const unsigned int repetitions{20};
     unsigned int msgCount = 1000;

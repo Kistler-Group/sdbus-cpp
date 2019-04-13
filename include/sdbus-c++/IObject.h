@@ -138,14 +138,26 @@ namespace sdbus {
         virtual void setInterfaceFlags(const std::string& interfaceName, Flags flags) = 0;
 
         /*!
-        * @brief Finishes the registration and exports object API on D-Bus
+        * @brief Finishes object API registration and publishes the object on the bus
         *
         * The method exports all up to now registered methods, signals and properties on D-Bus.
-        * Must be called only once, after all methods, signals and properties have been registered.
+        * Must be called after all methods, signals and properties have been registered.
         *
         * @throws sdbus::Error in case of failure
         */
         virtual void finishRegistration() = 0;
+
+        /*!
+        * @brief Unregisters object's API and removes object from the bus
+        *
+        * This method unregisters the object, its interfaces, methods, signals and properties
+        * from the bus. Unregistration is done automatically also in object's destructor. This
+        * method makes sense if, in the process of object removal, we need to make sure that
+        * callbacks are unregistered explicitly before the final destruction of the object instance.
+        *
+        * @throws sdbus::Error in case of failure
+        */
+        virtual void unregister() = 0;
 
         /*!
         * @brief Creates a signal message

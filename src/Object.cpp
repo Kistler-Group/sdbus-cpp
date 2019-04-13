@@ -120,6 +120,11 @@ void Object::finishRegistration()
     }
 }
 
+void Object::unregister()
+{
+    interfaces_.clear();
+}
+
 sdbus::Signal Object::createSignal(const std::string& interfaceName, const std::string& signalName)
 {
     return connection_.createSignal(objectPath_, interfaceName, signalName);

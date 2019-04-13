@@ -658,10 +658,14 @@ AsyncMethodCall::AsyncMethodCall(MethodCall&& call) noexcept
 {
 }
 
-void AsyncMethodCall::send(void* callback, void* userData) const
+AsyncMethodCall::Slot AsyncMethodCall::send(void* callback, void* userData) const
 {
-    auto r = sdbus_->sd_bus_call_async(nullptr, nullptr, (sd_bus_message*)msg_, (sd_bus_message_handler_t)callback, userData, 0);
+    sd_bus_slot* slot;
+
+    auto r = sdbus_->sd_bus_call_async(nullptr, &slot, (sd_bus_message*)msg_, (sd_bus_message_handler_t)callback, userData, 0);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method asynchronously", -r);
+
+    return Slot{slot, [sdbus_ = sdbus_](void *slot){ sdbus_->sd_bus_slot_unref((sd_bus_slot*)slot); }};
 }
 
 void MethodReply::send() const

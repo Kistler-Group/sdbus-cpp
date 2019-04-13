@@ -30,17 +30,24 @@
 #include <thread>
 #include <chrono>
 #include <algorithm>
+#include <iostream>
 
 using namespace std::chrono_literals;
 
 std::string createRandomString(size_t length);
 
-class PerftestServer : public sdbus::AdaptorInterfaces<org::sdbuscpp::perftests_adaptor>
+class PerftestAdaptor : public sdbus::AdaptorInterfaces<org::sdbuscpp::perftests_adaptor>
 {
 public:
-    PerftestServer(sdbus::IConnection& connection, std::string objectPath)
-        : sdbus::AdaptorInterfaces<org::sdbuscpp::perftests_adaptor>(connection, std::move(objectPath))
+    PerftestAdaptor(sdbus::IConnection& connection, std::string objectPath)
+        : AdaptorInterfaces(connection, std::move(objectPath))
     {
+        registerAdaptor();
+    }
+
+    ~PerftestAdaptor()
+    {
+        unregisterAdaptor();
     }
 
 protected:
@@ -89,7 +96,7 @@ int main(int /*argc*/, char */*argv*/[])
     auto connection = sdbus::createSystemBusConnection(serviceName);
 
     const char* objectPath = "/org/sdbuscpp/perftests";
-    PerftestServer server(*connection, objectPath);
+    PerftestAdaptor server(*connection, objectPath);
 
     connection->enterProcessingLoop();
 }

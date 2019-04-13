@@ -28,6 +28,7 @@
 #include "sdbus-c++/Message.h"
 #include "sdbus-c++/IConnection.h"
 #include "sdbus-c++/Error.h"
+#include "ScopeGuard.h"
 #include <systemd/sd-bus.h>
 #include <cassert>
 #include <chrono>
@@ -40,8 +41,8 @@ Proxy::Proxy(sdbus::internal::IConnection& connection, std::string destination, 
     , destination_(std::move(destination))
     , objectPath_(std::move(objectPath))
 {
-    // The connection is not ours only, it is managed by the client and we just reference it here,
-    // so we expect the client to manage the event loop upon this connection themselves.
+    // The connection is not ours only, it is owned and managed by the user and we just reference
+    // it here, so we expect the client to manage the event loop upon this connection themselves.
 }
 
 Proxy::Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
@@ -51,8 +52,8 @@ Proxy::Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
     , destination_(std::move(destination))
     , objectPath_(std::move(objectPath))
 {
-    // The connection is ours only, so we have to manage event loop upon this connection,
-    // so we get signals, async replies, and other messages from D-Bus.
+    // The connection is ours only, i.e. it's us who has to manage the event loop upon this connection,
+    // in order that we get and process signals, async call replies, and other messages from D-Bus.
     connection_->enterProcessingLoopAsync();
 }
 
@@ -74,10 +75,11 @@ MethodReply Proxy::callMethod(const MethodCall& message)
 void Proxy::callMethod(const AsyncMethodCall& message, async_reply_handler asyncReplyCallback)
 {
     auto callback = (void*)&Proxy::sdbus_async_reply_handler;
-    // Allocated userData gets deleted in the sdbus_async_reply_handler
-    auto userData = new AsyncReplyUserData{*this, std::move(asyncReplyCallback)};
+    auto callData = std::make_unique<AsyncCalls::CallData>(AsyncCalls::CallData{*this, std::move(asyncReplyCallback), {}});
 
-    message.send(callback, userData);
+    callData->slot = message.send(callback, callData.get());
+
+    pendingAsyncCalls_.addCall(callData->slot.get(), std::move(callData));
 }
 
 void Proxy::registerSignalHandler( const std::string& interfaceName
@@ -122,24 +124,32 @@ void Proxy::registerSignalHandlers(sdbus::internal::IConnection& connection)
     }
 }
 
+void Proxy::unregister()
+{
+    pendingAsyncCalls_.clear();
+    interfaces_.clear();
+}
+
 int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error */*retError*/)
 {
-    // We are assuming the ownership of the async reply handler pointer passed here
-    std::unique_ptr<AsyncReplyUserData> asyncReplyUserData{static_cast<AsyncReplyUserData*>(userData)};
-    assert(asyncReplyUserData != nullptr);
-    assert(asyncReplyUserData->callback);
+    auto* asyncCallData = static_cast<AsyncCalls::CallData*>(userData);
+    assert(asyncCallData != nullptr);
+    assert(asyncCallData->callback);
+    auto& proxy = asyncCallData->proxy;
 
-    MethodReply message{sdbusMessage, &asyncReplyUserData->proxy.connection_->getSdBusInterface()};
+    SCOPE_EXIT{ proxy.pendingAsyncCalls_.removeCall(asyncCallData->slot.get()); };
+
+    MethodReply message{sdbusMessage, &proxy.connection_->getSdBusInterface()};
 
     const auto* error = sd_bus_message_get_error(sdbusMessage);
     if (error == nullptr)
     {
-        asyncReplyUserData->callback(message, nullptr);
+        asyncCallData->callback(message, nullptr);
     }
     else
     {
         sdbus::Error exception(error->name, error->message);
-        asyncReplyUserData->callback(message, &exception);
+        asyncCallData->callback(message, &exception);
     }
 
     return 1;

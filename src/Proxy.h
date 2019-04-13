@@ -31,6 +31,8 @@
 #include <string>
 #include <memory>
 #include <map>
+#include <unordered_map>
+#include <mutex>
 
 // Forward declarations
 namespace sdbus { namespace internal {
@@ -60,14 +62,9 @@ namespace internal {
                                   , const std::string& signalName
                                   , signal_handler signalHandler ) override;
         void finishRegistration() override;
+        void unregister() override;
 
     private:
-        struct AsyncReplyUserData
-        {
-            Proxy& proxy;
-            async_reply_handler callback;
-        };
-
         void registerSignalHandlers(sdbus::internal::IConnection& connection);
         static int sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
         static int sdbus_signal_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
@@ -91,6 +88,51 @@ namespace internal {
             std::map<SignalName, SignalData> signals_;
         };
         std::map<InterfaceName, InterfaceData> interfaces_;
+
+        // We need to keep track of pending async calls. When the proxy is being destructed, we must
+        // remove all slots of these pending calls, otherwise in case when the connection outlives
+        // the proxy, we might get async reply handlers invoked for pending async calls after the proxy
+        // has been destroyed, which is a free ticket into the realm of undefined behavior.
+        class AsyncCalls
+        {
+        public:
+            struct CallData
+            {
+                Proxy& proxy;
+                async_reply_handler callback;
+                AsyncMethodCall::Slot slot;
+            };
+
+            ~AsyncCalls()
+            {
+                clear();
+            }
+
+            bool addCall(void* slot, std::unique_ptr<CallData>&& asyncCallData)
+            {
+                std::lock_guard<std::mutex> lock(mutex_);
+                return calls_.emplace(slot, std::move(asyncCallData)).second;
+            }
+
+            bool removeCall(void* slot)
+            {
+                std::lock_guard<std::mutex> lock(mutex_);
+                return calls_.erase(slot) > 0;
+            }
+
+            void clear()
+            {
+                std::unique_lock<std::mutex> lock(mutex_);
+                auto asyncCallSlots = std::move(calls_);
+                // Perform releasing of sd-bus slots outside of the calls_ critical section which avoids
+                // double mutex dead lock when the async reply handler is invoked at the same time.
+                lock.unlock();
+            }
+
+        private:
+            std::unordered_map<void*, std::unique_ptr<CallData>> calls_;
+            std::mutex mutex_;
+        } pendingAsyncCalls_;
     };
 
 }}

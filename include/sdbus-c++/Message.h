@@ -35,8 +35,7 @@
 #include <utility>
 #include <cstdint>
 #include <cassert>
-
-#include <iostream>
+#include <functional>
 
 // Forward declarations
 namespace sdbus {
@@ -172,10 +171,12 @@ namespace sdbus {
     class AsyncMethodCall : public Message
     {
     public:
+        using Slot = std::unique_ptr<void, std::function<void(void*)>>;
+
         using Message::Message;
         AsyncMethodCall() = default; // Fixes gcc 6.3 error (default c-tor is not imported in above using declaration)
         AsyncMethodCall(MethodCall&& call) noexcept;
-        void send(void* callback, void* userData) const;
+        Slot send(void* callback, void* userData) const;
     };
 
     class MethodReply : public Message

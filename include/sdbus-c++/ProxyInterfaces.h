@@ -53,6 +53,7 @@ namespace sdbus {
         ProxyObjectHolder(std::unique_ptr<IProxy>&& proxy)
             : proxy_(std::move(proxy))
         {
+            assert(proxy_ != nullptr);
         }
 
         const IProxy& getProxy() const
@@ -81,6 +82,10 @@ namespace sdbus {
      * methods. So the _Interfaces template parameter is a list of sdbus-c++-xml2cpp-generated
      * proxy-side interface classes representing interfaces of the corresponding remote D-Bus object.
      *
+     * In the final proxy class inherited from ProxyInterfaces, it is necessary to finish proxy
+     * registration in class constructor (`finishRegistration();`), and, conversely, unregister
+     * the proxy in class destructor (`unregister();`).
+     *
      ***********************************************/
     template <typename... _Interfaces>
     class ProxyInterfaces
@@ -89,57 +94,78 @@ namespace sdbus {
     {
     public:
         /*!
-        * @brief Creates fully working object proxy instance
+        * @brief Creates native-like proxy object instance
         *
         * @param[in] destination Bus name that provides a D-Bus object
         * @param[in] objectPath Path of the D-Bus object
         *
         * This constructor overload creates a proxy that manages its own D-Bus connection(s).
-        * For more information on its behavior, consult @ref createProxy(std::string, std::string)
+        * For more information on its behavior, consult @ref createProxy(std::string,std::string)
         */
         ProxyInterfaces(std::string destination, std::string objectPath)
             : ProxyObjectHolder(createProxy(std::move(destination), std::move(objectPath)))
             , _Interfaces(getProxy())...
         {
-            // TODO: Remove
-            getProxy().finishRegistration();
         }
 
         /*!
-        * @brief Creates fully working object proxy instance
+        * @brief Creates native-like proxy object instance
         *
         * @param[in] connection D-Bus connection to be used by the proxy object
         * @param[in] destination Bus name that provides a D-Bus object
         * @param[in] objectPath Path of the D-Bus object
         *
         * The proxy created this way just references a D-Bus connection owned and managed by the user.
-        * For more information on its behavior, consult @ref createProxy(IConnection&,std::string, std::string)
+        * For more information on its behavior, consult @ref createProxy(IConnection&,std::string,std::string)
         */
         ProxyInterfaces(IConnection& connection, std::string destination, std::string objectPath)
             : ProxyObjectHolder(createProxy(connection, std::move(destination), std::move(objectPath)))
             , _Interfaces(getProxy())...
         {
-            // TODO: Remove
-            getProxy().finishRegistration();
         }
 
         /*!
-        * @brief Creates fully working object proxy instance
+        * @brief Creates native-like proxy object instance
         *
         * @param[in] connection D-Bus connection to be used by the proxy object
         * @param[in] destination Bus name that provides a D-Bus object
         * @param[in] objectPath Path of the D-Bus object
         *
         * The proxy created this way becomes an owner of the connection.
-        * For more information on its behavior, consult @ref createProxy(std::unique_ptr<sdbus::IConnection>&&,std::string, std::string)
+        * For more information on its behavior, consult @ref createProxy(std::unique_ptr<sdbus::IConnection>&&,std::string,std::string)
         */
         ProxyInterfaces(std::unique_ptr<sdbus::IConnection>&& connection, std::string destination, std::string objectPath)
             : ProxyObjectHolder(createProxy(std::move(connection), std::move(destination), std::move(objectPath)))
             , _Interfaces(getProxy())...
         {
-            // TODO: Remove
+        }
+
+        /*!
+         * @brief Finishes proxy registration and makes the proxy ready for use
+         *
+         * This function must be called in the constructor of the final proxy class that implements ProxyInterfaces.
+         *
+         * For more information, see underlying @ref IProxy::finishRegistration()
+         */
+        void registerProxy()
+        {
             getProxy().finishRegistration();
         }
+
+        /*!
+         * @brief Unregisters the proxy so it no more receives signals and async call replies
+         *
+         * This function must be called in the destructor of the final proxy class that implements ProxyInterfaces.
+         *
+         * See underlying @ref IProxy::unregister()
+         */
+        void unregisterProxy()
+        {
+            getProxy().unregister();
+        }
+
+    protected:
+        using base_type = ProxyInterfaces;
     };
 
 }

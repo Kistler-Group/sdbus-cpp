@@ -81,6 +81,10 @@ namespace sdbus {
      * adaptor-side interface classes representing interfaces (with methods, signals and properties)
      * of the D-Bus object.
      *
+     * In the final adaptor class inherited from AdaptorInterfaces, it is necessary to finish
+     * adaptor registration in class constructor (finishRegistration();`), and, conversely,
+     * unregister the adaptor in class destructor (`unregister();`).
+     *
      ***********************************************/
     template <typename... _Interfaces>
     class AdaptorInterfaces
@@ -88,13 +92,46 @@ namespace sdbus {
         , public _Interfaces...
     {
     public:
+        /*!
+         * @brief Creates object instance
+         *
+         * @param[in] connection D-Bus connection where the object will publish itself
+         * @param[in] objectPath Path of the D-Bus object
+         *
+         * For more information, consult @ref createObject(sdbus::IConnection&,std::string)
+         */
         AdaptorInterfaces(IConnection& connection, std::string objectPath)
             : ObjectHolder(createObject(connection, std::move(objectPath)))
             , _Interfaces(getObject())...
         {
-            // TODO: Remove
+        }
+
+        /*!
+         * @brief Finishes adaptor API registration and publishes the adaptor on the bus
+         *
+         * This function must be called in the constructor of the final adaptor class that implements AdaptorInterfaces.
+         *
+         * For more information, see underlying @ref IObject::finishRegistration()
+         */
+        void registerAdaptor()
+        {
             getObject().finishRegistration();
         }
+
+        /*!
+         * @brief Unregisters adaptors's API and removes it from the bus
+         *
+         * This function must be called in the destructor of the final adaptor class that implements AdaptorInterfaces.
+         *
+         * For more information, see underlying @ref IObject::unregister()
+         */
+        void unregisterAdaptor()
+        {
+            getObject().unregister();
+        }
+
+    protected:
+        using base_type = AdaptorInterfaces;
     };
 
 }

@@ -454,7 +454,7 @@ The generator tool takes D-Bus XML IDL description of D-Bus interfaces on its in
 sdbus-c++-xml2cpp database-bindings.xml --adaptor=database-server-glue.h --proxy=database-client-glue.h
 ```
 
-The adaptor header file contains classes that can be used to implement described interfaces (these classes represent object interfaces). The proxy header file contains classes that can be used to make calls to remote objects (these classes represent remote object interfaces).
+The adaptor header file contains classes that can be used to implement interfaces described in the IDL (these classes represent object interfaces). The proxy header file contains classes that can be used to make calls to remote objects (these classes represent remote object interfaces).
 
 ### XML description of the Concatenator interface
 
@@ -571,7 +571,7 @@ public:
     }
 
 private:
-    sdbus::IProxy& object_;
+    sdbus::IProxy& proxy_;
 };
 
 }} // namespaces
@@ -585,6 +585,14 @@ To implement a D-Bus object that implements all its D-Bus interfaces, we now nee
 
 How do we do that technically? Simply, our object class just needs to inherit from `AdaptorInterfaces` variadic template class. We fill its template arguments with a list of all generated interface classes. The `AdaptorInterfaces` is a convenience class that hides a few boiler-plate details. For example, in its constructor, it creates an `Object` instance, and it takes care of proper initialization of all adaptor superclasses.
 
+In our object class we need to:
+
+  * Give an implementation to the D-Bus object's methods by overriding corresponding virtual functions,
+  * call `registerAdaptor()` in the constructor, which makes the adaptor (the D-Bus object underneath it) available for remote calls,
+  * call `unregisterAdaptor()`, which, conversely, unregisters the adaptor from the bus.
+
+Calling `registerAdaptor()` and `unregisterAdaptor()` was not necessary in previous sdbus-c++ versions, as it was handled by the parent class. This was convenient, but suffered from a potential pure virtual function call issue. Only the class that implements virtual functions can do the registration, hence this slight inconvenience on user's shoulders.
+
 ```cpp
 #include <sdbus-c++/sdbus-c++.h>
 #include "concatenator-server-glue.h"
@@ -593,8 +601,14 @@ class Concatenator : public sdbus::AdaptorInterfaces<org::sdbuscpp::Concatenator
 {
 public:
     Concatenator(sdbus::IConnection& connection, std::string objectPath)
-        : sdbus::AdaptorInterfaces<org::sdbuscpp::Concatenator_adaptor>(connection, std::move(objectPath))
+        : sdbus::AdaptorInterfaces(connection, std::move(objectPath))
     {
+        registerAdaptor();
+    }
+
+    ~Concatenator()
+    {
+        unregisterAdaptor();
     }
 
 protected:
@@ -648,6 +662,14 @@ To implement a proxy for a remote D-Bus object, we shall create a class represen
 
 How do we do that technically? Simply, our proxy class just needs to inherit from `ProxyInterfaces` variadic template class. We fill its template arguments with a list of all generated interface classes. The `ProxyInterfaces` is a convenience class that hides a few boiler-plate details. For example, in its constructor, it can create a `Proxy` instance for us, and it takes care of proper initialization of all generated interface superclasses.
 
+In our proxy class we need to:
+
+  * Give an implementation to signal handlers and asynchronous method reply handlers (if any) by overriding corresponding virtual functions,
+  * call `registerProxy()` in the constructor, which makes the proxy (the D-Bus proxy object underneath it) ready to receive signals and async call replies,
+  * call `unregisterProxy()`, which, conversely, unregisters the proxy from the bus.
+
+Calling `registerProxy()` and `unregisterProxy()` was not necessary in previous versions of sdbus-c++, as it was handled by the parent class. This was convenient, but suffered from a potential pure virtual function call issue. Only the class that implements virtual functions can do the registration, hence this slight inconvenience on user's shoulders.
+
 ```cpp
 #include <sdbus-c++/sdbus-c++.h>
 #include "concatenator-client-glue.h"
@@ -656,8 +678,14 @@ class ConcatenatorProxy : public sdbus::ProxyInterfaces<org::sdbuscpp::Concatena
 {
 public:
     ConcatenatorProxy(std::string destination, std::string objectPath)
-        : sdbus::ProxyInterfaces<org::sdbuscpp::Concatenator_proxy>(std::move(destination), std::move(objectPath))
+        : sdbus::ProxyInterfaces(std::move(destination), std::move(objectPath))
     {
+        registerProxy();
+    }
+
+    ~Concatenator()
+    {
+        unregisterProxy();
     }
 
 protected:

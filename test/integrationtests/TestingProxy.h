@@ -31,7 +31,16 @@
 class TestingProxy : public sdbus::ProxyInterfaces<::testing_proxy, sdbus::introspectable_proxy>
 {
 public:
-    using sdbus::ProxyInterfaces<::testing_proxy, sdbus::introspectable_proxy>::ProxyInterfaces;
+    TestingProxy(std::string destination, std::string objectPath)
+        : ProxyInterfaces(std::move(destination), std::move(objectPath))
+    {
+        registerProxy();
+    }
+
+    ~TestingProxy()
+    {
+        unregisterProxy();
+    }
 
     int getSimpleCallCount() const { return m_simpleCallCounter; }
     std::map<int32_t, std::string> getMap() const { return m_map; }

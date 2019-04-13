@@ -35,9 +35,15 @@ class TestingAdaptor : public sdbus::AdaptorInterfaces<testing_adaptor>
 {
 public:
     TestingAdaptor(sdbus::IConnection& connection) :
-        sdbus::AdaptorInterfaces<::testing_adaptor>(connection, OBJECT_PATH) { }
+        AdaptorInterfaces(connection, OBJECT_PATH)
+    {
+        registerAdaptor();
+    }
 
-    virtual ~TestingAdaptor() { }
+    ~TestingAdaptor()
+    {
+        unregisterAdaptor();
+    }
 
     bool wasMultiplyCalled() const { return m_multiplyCalled; }
     double getMultiplyResult() const { return m_multiplyResult; }

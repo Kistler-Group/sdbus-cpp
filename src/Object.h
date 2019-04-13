@@ -73,6 +73,7 @@ namespace internal {
         void setInterfaceFlags(const std::string& interfaceName, Flags flags) override;
 
         void finishRegistration() override;
+        void unregister() override;
 
         sdbus::Signal createSignal(const std::string& interfaceName, const std::string& signalName) override;
         void emitSignal(const sdbus::Signal& message) override;
