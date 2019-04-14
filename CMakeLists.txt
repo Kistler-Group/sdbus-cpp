@@ -70,6 +70,7 @@ set(SDBUSCPP_SRCS ${SDBUSCPP_CPP_SRCS} ${SDBUSCPP_HDR_SRCS} ${SDBUSCPP_PUBLIC_HD
 #-------------------------------
 
 set(CMAKE_CXX_STANDARD 17)
+add_compile_options(-W -Wextra -Wall -pedantic)
 include_directories("${CMAKE_SOURCE_DIR}/include")
 include_directories("${CMAKE_SOURCE_DIR}/src")
 
