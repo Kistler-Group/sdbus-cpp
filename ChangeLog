@@ -74,8 +74,8 @@ v0.5.3
 - [[Breaking ABI change]] Add getConnection() method to IObject
 - A few minor fixes
 
-v0.x.y
-- This release comes with a number of API and ABI breaking changes, sorry, but that hopefully and finally leads to a more mature and stable API for near future:
+v0.6.0
+- This release comes with a number of API and ABI breaking changes (that hopefully lead to a more mature and stable API for near future):
   - Some constructs have been renamed (see below for details), you'll have to adapt your sources whether you're using the basic or the convenience sdbus-c++ API.
   - You'll also have to re-generate adaptor/proxy stubs with the new stub code generator if you're using them.
   - And you'll have to take care of manual registeration/deregistration in the constructors/destructors of your final adaptor and proxy classes. See updated using sdbus-c++ tutorial.
