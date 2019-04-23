@@ -47,7 +47,7 @@ $ sudo make install
 Dependencies
 ------------
 
-* `C++17` - the library uses C++17 `std::uncaught_exceptions()` feature. When building sdbus-c++ manually, make sure you use a compiler that supports that feature.
+* `C++17` - the library uses C++17 `std::uncaught_exceptions()` feature. When building sdbus-c++ manually, make sure you use a compiler that supports that feature (gcc >= 6, clang >= 3.7)
 * `libsystemd` - systemd library containing sd-bus implementation. This library is part of systemd. Systemd at least v236 is needed. (Non-systemd environments are also supported, see the [tutorial](doc/using-sdbus-c++.md#solving-libsystemd-dependency) for more information.)
 * `googletest` - google unit testing framework, only necessary when building tests, will be downloaded and built automatically.
 
