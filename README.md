@@ -48,10 +48,8 @@ Dependencies
 ------------
 
 * `C++17` - the library uses C++17 `std::uncaught_exceptions()` feature. When building sdbus-c++ manually, make sure you use a compiler that supports that feature.
-* `libsystemd` - systemd library containing sd-bus implementation. This library is part of systemd. Systemd v236 at least is needed.
+* `libsystemd` - systemd library containing sd-bus implementation. This library is part of systemd. Systemd at least v236 is needed. (Non-systemd environments are also supported, see the [tutorial](doc/using-sdbus-c++.md#solving-libsystemd-dependency) for more information.)
 * `googletest` - google unit testing framework, only necessary when building tests, will be downloaded and built automatically.
-
-You can use sdbus-c++ on non-systemd Linux distributions as well -- sdbus-c++ doesn't need the entire systemd ecosystem. It only needs libsystemd, a self-contained library that can be built and used without dependencies on other systemd components.
 
 Licensing
 ---------
