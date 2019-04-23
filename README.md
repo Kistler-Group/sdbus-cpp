@@ -1,7 +1,9 @@
 sdbus-c++
 =========
 
-sdbus-c++ is a C++ API library for D-Bus IPC, based on sd-bus implementation.
+sdbus-c++ is a C++ D-Bus library meant to provide high-level, expressive, easy-to-use interfaces in modern C++. It adds another layer of abstraction on top of sd-bus, a nice, fresh C D-Bus implementation by systemd.
+
+sdbus-c++ has been written primarily as a replacement of dbus-c++, which currently suffers from a number of (unsolved) bugs, concurrency issues and inherent design limitations. sdbus-c++ has learned from dbus-c++ and tries to come up with a simple design that is flexible and friendly to the user and inherently free of those bugs.
 
 Building and installing the library
 -----------------------------------
@@ -46,7 +48,7 @@ Dependencies
 ------------
 
 * `C++17` - the library uses C++17 `std::uncaught_exceptions()` feature. When building sdbus-c++ manually, make sure you use a compiler that supports that feature.
-* `libsystemd` - systemd library containing sd-bus implementation. Systemd v236 at least is needed for sdbus-c++ to compile.
+* `libsystemd` - systemd library containing sd-bus implementation. Systemd v236 at least is needed for sdbus-c++ to compile. (But you don't the entire systemd infrastructure to be able to build and use sdbus-c++; libsystemd is sufficient and it is a pretty self-contained library that can be built and used without dependencies on other systemd components.)
 * `googletest` - google unit testing framework, only necessary when building tests, will be downloaded and built automatically
 
 Licensing
