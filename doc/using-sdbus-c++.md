@@ -5,18 +5,19 @@ Using sdbus-c++ library
 
 1. [Introduction](#introduction)
 2. [Integrating sdbus-c++ into your project](#integrating-sdbus-c-into-your-project)
-3. [Header files and namespaces](#header-files-and-namespaces)
-4. [Error signalling and propagation](#error-signalling-and-propagation)
-5. [Design of sdbus-c++](#design-of-sdbus-c)
-6. [Multiple layers of sdbus-c++ API](#multiple-layers-of-sdbus-c-api)
-7. [An example: Number concatenator](#an-example-number-concatenator)
-8. [Implementing the Concatenator example using basic sdbus-c++ API layer](#implementing-the-concatenator-example-using-basic-sdbus-c-api-layer)
-9. [Implementing the Concatenator example using convenience sdbus-c++ API layer](#implementing-the-concatenator-example-using-convenience-sdbus-c-api-layer)
-10. [Implementing the Concatenator example using sdbus-c++-generated stubs](#implementing-the-concatenator-example-using-sdbus-c-generated-stubs)
-11. [Asynchronous server-side methods](#asynchronous-server-side-methods)
-12. [Asynchronous client-side methods](#asynchronous-client-side-methods)
-13. [Using D-Bus properties](#using-d-bus-properties)
-14. [Conclusion](#conclusion)
+3. [Solving libsystemd dependency](#solving-libsystemd-dependency)
+4. [Header files and namespaces](#header-files-and-namespaces)
+5. [Error signalling and propagation](#error-signalling-and-propagation)
+6. [Design of sdbus-c++](#design-of-sdbus-c)
+7. [Multiple layers of sdbus-c++ API](#multiple-layers-of-sdbus-c-api)
+8. [An example: Number concatenator](#an-example-number-concatenator)
+9. [Implementing the Concatenator example using basic sdbus-c++ API layer](#implementing-the-concatenator-example-using-basic-sdbus-c-api-layer)
+10. [Implementing the Concatenator example using convenience sdbus-c++ API layer](#implementing-the-concatenator-example-using-convenience-sdbus-c-api-layer)
+11. [Implementing the Concatenator example using sdbus-c++-generated stubs](#implementing-the-concatenator-example-using-sdbus-c-generated-stubs)
+12. [Asynchronous server-side methods](#asynchronous-server-side-methods)
+13. [Asynchronous client-side methods](#asynchronous-client-side-methods)
+14. [Using D-Bus properties](#using-d-bus-properties)
+15. [Conclusion](#conclusion)
 
 Introduction
 ------------
@@ -44,6 +45,27 @@ PKG_CHECK_MODULES(SDBUSCPP, [sdbus-c++ >= 0.4],,
 ```
 
 Note: sdbus-c++ library depends on C++17, since it uses C++17 `std::uncaught_exceptions()` feature. When building sdbus-c++ manually, make sure you use a compiler that supports that feature. To use the library, make sure you have a C++ standard library that supports the feature. The feature is supported by e.g. gcc >= 6, and clang >= 3.7.
+
+Solving libsystemd dependency
+-----------------------------
+
+sdbus-c++ depends on libsystemd, a C library that is part of [systemd](https://github.com/systemd/systemd) and that contains underlying sd-bus implementation.
+
+Minimum required libsystemd shared library version is 0.20.0 (which corresponds to minimum systemd version 236).
+
+If your target Linux distribution is already based on systemd ecosystem of version 236 and higher, then there is no additional effort, just make sure you have corresponding systemd header files installed, and you should build sdbus-c++ seamlessly.
+
+sdbus-c++ can also be used in non-systemd environments. Fortunately, libsystemd is rather self-contained and can be built and used independently of the rest of systemd ecosystem. To build libsystemd shared library for sdbus-c++:
+
+```shell
+$ git clone https://github.com/systemd/systemd
+$ cd systemd
+$ git checkout v242  # or any other recent stable version
+$ meson build/  # solve systemd dependencies if any pop up, e.g. libmount-dev...
+$ ninja -C build version.h
+$ ninja -C build libsystemd.so.0.26.0  # or another version number depending which systemd version you have
+# finally, manually install the library, header files and libsystemd.pc pkgconfig file
+```
 
 Header files and namespaces
 ---------------------------
