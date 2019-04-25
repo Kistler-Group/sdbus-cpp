@@ -7,9 +7,9 @@ build/
 .deps/
 .dirstamp
 .libs/
-test/libsdbus-c++_unittests
-test/libsdbus-c++_integrationtests
-test/run-test-on-device.sh
+tests/libsdbus-c++_unittests
+tests/libsdbus-c++_integrationtests
+tests/run-test-on-device.sh
 
 #eclipse
 .cproject

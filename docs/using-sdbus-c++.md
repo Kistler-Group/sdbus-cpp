@@ -882,7 +882,7 @@ sdbus-c++ stub generator can generate stub code for server-side async methods. W
 </node>
 ```
 
-For a real example of a server-side asynchronous D-Bus method, please look at sdbus-c++ [stress tests](/test/stresstests).
+For a real example of a server-side asynchronous D-Bus method, please look at sdbus-c++ [stress tests](/tests/stresstests).
 
 Asynchronous client-side methods
 --------------------------------
@@ -999,7 +999,7 @@ For each client-side async method, a corresponding `on<MethodName>Reply` pure vi
     
 So in the specific example above, the stub generator will generate a `Concatenator_proxy` class similar to one shown in a [dedicated section above](#concatenator-client-glueh), with the difference that it will also generate an additional `virtual void onConcatenateReply(const sdbus::Error* error, const std::string& concatenatedString);` method, which we shall override in derived `ConcatenatorProxy`.
 
-For a real example of a client-side asynchronous D-Bus method, please look at sdbus-c++ [stress tests](/test/stresstests).
+For a real example of a client-side asynchronous D-Bus method, please look at sdbus-c++ [stress tests](/tests/stresstests).
 
 Using D-Bus properties
 ----------------------
