@@ -2,9 +2,9 @@
 # PROJECT INFORMATION
 #-------------------------------
 
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.7)
 
-project(sdbus-c++ VERSION 0.6.0 LANGUAGES C CXX)
+project(sdbus-c++ VERSION 0.5.2 LANGUAGES C CXX)
 
 include(GNUInstallDirs) # Installation directories for `install` command and pkgconfig file
 
@@ -69,8 +69,8 @@ set(SDBUSCPP_SRCS ${SDBUSCPP_CPP_SRCS} ${SDBUSCPP_HDR_SRCS} ${SDBUSCPP_PUBLIC_HD
 # GENERAL COMPILER CONFIGURATION
 #-------------------------------
 
-set(CMAKE_CXX_STANDARD 17)
-add_compile_options(-W -Wextra -Wall -pedantic)
+#set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 include_directories("${CMAKE_SOURCE_DIR}/include")
 include_directories("${CMAKE_SOURCE_DIR}/src")
 
@@ -138,6 +138,7 @@ option(BUILD_DOC "Build doxygen documentation for sdbus-c++ API" ON)
 
 if(BUILD_DOC)
     add_subdirectory("${CMAKE_SOURCE_DIR}/doc")
+    install(FILES README README.md NEWS COPYING ChangeLog AUTHORS DESTINATION ${CMAKE_INSTALL_DOCDIR})
 endif()
 
 #----------------------------------

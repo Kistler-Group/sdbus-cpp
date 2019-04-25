@@ -15,3 +15,9 @@ if(DOXYGEN_FOUND)
 else()
     message(WARNING "Documentation enabled, but Doxygen cannot be found")
 endif()
+
+install(FILES sdbus-c++-class-diagram.png
+              sdbus-c++-class-diagram.uml
+              systemd-dbus-config.md
+              using-sdbus-c++.md
+        DESTINATION ${CMAKE_INSTALL_DOCDIR})
