@@ -26,7 +26,11 @@ $ sudo make install
 
 * `BUILD_DOC` [boolean]
 
-  Option for building Doxygen documentation of sdbus-c++ API. If `BUILD_DOC` is enabled, the documentation must still be built explicitly through `make doc`. Default value: `ON`. Use `-DBUILD_DOC=OFF` to disable searching for Doxygen and building Doxygen documentation of sdbus-c++ API.
+  Option for including sdbus-c++ documentation files and tutorials. Default value: `ON`. With this option turned on, you may also enable/disable the following option:
+
+    * `BUILD_DOXYGEN_DOC` [boolean]
+
+      Option for building Doxygen documentation of sdbus-c++ API. If enabled, the documentation must still be built explicitly through `make doc`. Default value: `OFF`. Use `-DBUILD_DOXYGEN_DOC=OFF` to disable searching for Doxygen and building Doxygen documentation of sdbus-c++ API.
 
 * `BUILD_TESTS` [boolean]
 
