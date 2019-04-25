@@ -131,7 +131,7 @@ endif()
 option(BUILD_CODE_GEN "Build and install interface stub code generator (default OFF)" OFF)
 
 if(BUILD_CODE_GEN)
-    add_subdirectory("${CMAKE_SOURCE_DIR}/stub-generator")
+    add_subdirectory("${CMAKE_SOURCE_DIR}/tools")
 endif()
 
 #----------------------------------
