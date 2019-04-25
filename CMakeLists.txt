@@ -142,7 +142,7 @@ option(BUILD_DOC "Build documentation for sdbus-c++" ON)
 option(BUILD_DOXYGEN_DOC "Build doxygen documentation for sdbus-c++ API" OFF)
 
 if(BUILD_DOC)
-    add_subdirectory("${CMAKE_SOURCE_DIR}/doc")
+    add_subdirectory("${CMAKE_SOURCE_DIR}/docs")
     install(FILES README README.md NEWS COPYING ChangeLog AUTHORS DESTINATION ${CMAKE_INSTALL_DOCDIR})
 endif()
 
