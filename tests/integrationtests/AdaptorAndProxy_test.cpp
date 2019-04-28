@@ -24,9 +24,6 @@
  */
 
 // Own
-#include "Connection.h"
-#include "SdBus.h"
-
 #include "TestingAdaptor.h"
 #include "TestingProxy.h"
 
