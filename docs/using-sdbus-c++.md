@@ -71,9 +71,9 @@ $ ninja -C build libsystemd.so.0.26.0  # or another version number depending whi
 # finally, manually install the library, header files and libsystemd.pc pkgconfig file
 ```
 
-### Building libsystemd as part of sdbus-c++
+### Building and distributing libsystemd as part of sdbus-c++
 
-sdbus-c++ provides `BUILD_LIBSYSTEMD` configuration option. When turned on, sdbus-c++ will automatically download, build and integrate libsystemd as a static library into sdbus-c++ for you. This is the most convenient and effective approach to build, distribute and use sdbus-c++ as a self-contained, systemd-independent library in non-systemd enviroments. Just make sure your build machine has all dependencies needed by libsystemd build process. That includes `meson`, `ninja`, `git` programs and mainly libraries `libmount`, `libcap` and `librt` (part of glibc).
+sdbus-c++ provides `BUILD_LIBSYSTEMD` configuration option. When turned on, sdbus-c++ will automatically download, build and integrate libsystemd as a static library into sdbus-c++ for you. This is the most convenient and effective approach to build, distribute and use sdbus-c++ as a self-contained, systemd-independent library in non-systemd enviroments. Just make sure your build machine has all dependencies needed by libsystemd build process. That includes `meson`, `ninja`, `git` programs and mainly libraries and headers for `libmount`, `libcap` and `librt` (part of glibc). Also when distributing, make sure these dependency libraries are installed on the production machine. (Contributors willing to help with bringing sdbus-c++ to popular package systems are welcome.)
 
 You may additionally use `LIBSYSTEMD_VERSION` configuration flag to fine-tune the version of systemd to be used.
 
