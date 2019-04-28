@@ -9,11 +9,23 @@ project(sdbus-c++ VERSION 0.6.1 LANGUAGES C CXX)
 include(GNUInstallDirs) # Installation directories for `install` command and pkgconfig file
 
 #-------------------------------
-# PERFORMING CHECKS
+# PERFORMING CHECKS & PREPARING THE DEPENDENCIES
 #-------------------------------
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(SYSTEMD REQUIRED libsystemd>=236)
+option(BUILD_LIBSYSTEMD "Build libsystemd static library and incorporate it into libsdbus-c++" OFF)
+
+if(NOT BUILD_LIBSYSTEMD)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(SYSTEMD libsystemd>=236)
+    if(NOT SYSTEMD_FOUND)
+        message(FATAL_ERROR "libsystemd of version at least 236 is required, but was not found "
+                            "(you may turn BUILD_LIBSYSTEMD on for sdbus-c++ to try downloading "
+                            "and building libsystemd in as part of sdbus-c++ during configuration)")
+    endif()
+else()
+    # Build static libsystemd library as an external project
+    include(cmake/LibsystemdExternalProject.cmake)
+endif()
 
 #-------------------------------
 # SOURCE FILES CONFIGURATION
@@ -93,6 +105,9 @@ target_compile_definitions(sdbus-cpp PRIVATE BUILDLIB=1)
 if(BUILD_SHARED_LIBS)
     set_target_properties(sdbus-cpp PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
+if(BUILD_LIBSYSTEMD)
+    add_dependencies(sdbus-cpp LibsystemdBuildProject)
+endif()
 
 add_library(sdbus-c++ $<TARGET_OBJECTS:sdbus-cpp>)
 set_target_properties(sdbus-c++
@@ -139,9 +154,9 @@ endif()
 #----------------------------------
 
 option(BUILD_DOC "Build documentation for sdbus-c++" ON)
-option(BUILD_DOXYGEN_DOC "Build doxygen documentation for sdbus-c++ API" OFF)
 
 if(BUILD_DOC)
+    option(BUILD_DOXYGEN_DOC "Build doxygen documentation for sdbus-c++ API" OFF)
     add_subdirectory("${CMAKE_SOURCE_DIR}/docs")
     install(FILES README README.md NEWS COPYING ChangeLog AUTHORS DESTINATION ${CMAKE_INSTALL_DOCDIR})
 endif()

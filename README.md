@@ -1,9 +1,11 @@
 sdbus-c++
 =========
 
-sdbus-c++ is a C++ D-Bus library meant to provide high-level, expressive, easy-to-use interfaces in modern C++. It adds another layer of abstraction on top of sd-bus, a nice, fresh C D-Bus implementation by systemd.
+sdbus-c++ is a high-level C++ D-Bus library for Linux designed to provide expressive, easy-to-use API in modern C++. It adds another layer of abstraction on top of sd-bus, a nice, fresh C D-Bus implementation by systemd.
 
-sdbus-c++ has been written primarily as a replacement of dbus-c++, which currently suffers from a number of (unsolved) bugs, concurrency issues and inherent design limitations. sdbus-c++ has learned from dbus-c++ and tries to come up with a simple design that is flexible and friendly to the user and inherently free of those bugs.
+sdbus-c++ has been written primarily as a replacement of dbus-c++, which currently suffers from a number of (unresolved) bugs, concurrency issues and inherent design complexities and limitations. sdbus-c++ has learned from dbus-c++ and has chosen a different path, a path of simple yet powerful design that is intuitive and friendly to the user and inherently free of those bugs.
+
+Even though sdbus-c++ uses sd-bus library, it is not necessarily constrained to systemd and can perfectly be used in non-systemd environments as well.
 
 Building and installing the library
 -----------------------------------
@@ -13,12 +15,12 @@ The library is built using CMake:
 ```bash
 $ mkdir build
 $ cd build
-$ cmake .. ${CONFIGURE_FLAGS_IF_NECESSARY}
+$ cmake .. -DCMAKE_BUILD_TYPE=Release ${OTHER_CONFIG_FLAGS}
 $ make
 $ sudo make install
 ```
 
-### CMake configuration flags
+### CMake configuration flags for sdbus-c++
 
 * `BUILD_CODE_GEN` [boolean]
 
@@ -48,11 +50,23 @@ $ sudo make install
 
       Path where the test binaries shall get installed. Default value: `/opt/test/bin`.
 
+* `BUILD_LIBSYSTEMD` [boolean]
+
+  Option for building libsystemd dependency library automatically when sdbus-c++ is built, and making libsystemd an integral part of sdbus-c++ library. Default value: `OFF`. Might be very helpful in non-systemd environments where libsystemd shared library is unavailable (see [Solving libsystemd dependency](docs/using-sdbus-c++.md#solving-libsystemd-dependency) for more information). With this option turned on, you may also provide the following configuration flag:
+
+    * `LIBSYSTEMD_VERSION` [string]
+
+      Defines version of systemd to be downloaded, built and integrated into sdbus-c++. Default value: `v239`.
+
+* `CMAKE_BUILD_TYPE` [string]
+
+  This is a CMake-builtin option. Set to `Release` to build sdbus-c++ for production use. Set to `Debug` if you want to help further develop (and debug) the library :)
+
 Dependencies
 ------------
 
 * `C++17` - the library uses C++17 `std::uncaught_exceptions()` feature. When building sdbus-c++ manually, make sure you use a compiler that supports that feature (gcc >= 6, clang >= 3.7)
-* `libsystemd` - systemd library containing sd-bus implementation. This library is part of systemd. Systemd at least v236 is needed. (Non-systemd environments are also supported, see the [tutorial](docs/using-sdbus-c++.md#solving-libsystemd-dependency) for more information.)
+* `libsystemd` - systemd library containing sd-bus implementation. This library is part of systemd. Systemd at least v236 is needed. (In case you have a non-systemd environment, don't worry, see [Solving libsystemd dependency](docs/using-sdbus-c++.md#solving-libsystemd-dependency) for more information.)
 * `googletest` - google unit testing framework, only necessary when building tests, will be downloaded and built automatically.
 
 Licensing

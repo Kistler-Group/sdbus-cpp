@@ -53,19 +53,29 @@ sdbus-c++ depends on libsystemd, a C library that is part of [systemd](https://g
 
 Minimum required libsystemd shared library version is 0.20.0 (which corresponds to minimum systemd version 236).
 
-If your target Linux distribution is already based on systemd ecosystem of version 236 and higher, then there is no additional effort, just make sure you have corresponding systemd header files installed, and you should build sdbus-c++ seamlessly.
+If your target Linux distribution is already based on systemd ecosystem of version 236 and higher, then there is no additional effort, just make sure you have corresponding systemd header files available (provided by `libsystemd-dev` package on Debian/Ubuntu, for example), and you may go on building sdbus-c++ seamlessly.
 
-sdbus-c++ can also be used in non-systemd environments. Fortunately, libsystemd is rather self-contained and can be built and used independently of the rest of systemd ecosystem. To build libsystemd shared library for sdbus-c++:
+sdbus-c++ can perfectly be used in non-systemd environments as well. There are two ways to approach this:
+
+### Building and distributing libsystemd as a shared library yourself
+
+Fortunately, libsystemd is rather self-contained and can be built and used independently of the rest of systemd ecosystem. To build libsystemd shared library for sdbus-c++:
 
 ```shell
 $ git clone https://github.com/systemd/systemd
 $ cd systemd
 $ git checkout v242  # or any other recent stable version
-$ meson build/  # solve systemd dependencies if any pop up, e.g. libmount-dev...
+$ meson build/  # solve systemd dependencies if any pop up, e.g. libmount-dev, libcap, librt...
 $ ninja -C build version.h
 $ ninja -C build libsystemd.so.0.26.0  # or another version number depending which systemd version you have
 # finally, manually install the library, header files and libsystemd.pc pkgconfig file
 ```
+
+### Building libsystemd as part of sdbus-c++
+
+sdbus-c++ provides `BUILD_LIBSYSTEMD` configuration option. When turned on, sdbus-c++ will automatically download, build and integrate libsystemd as a static library into sdbus-c++ for you. This is the most convenient and effective approach to build, distribute and use sdbus-c++ as a self-contained, systemd-independent library in non-systemd enviroments. Just make sure your build machine has all dependencies needed by libsystemd build process. That includes `meson`, `ninja`, `git` programs and mainly libraries `libmount`, `libcap` and `librt` (part of glibc).
+
+You may additionally use `LIBSYSTEMD_VERSION` configuration flag to fine-tune the version of systemd to be used.
 
 Header files and namespaces
 ---------------------------
