@@ -298,17 +298,17 @@ namespace sdbus {
 
     inline SignalRegistrator IObject::registerSignal(const std::string& signalName)
     {
-        return SignalRegistrator(*this, std::move(signalName));
+        return SignalRegistrator(*this, signalName);
     }
 
     inline PropertyRegistrator IObject::registerProperty(const std::string& propertyName)
     {
-        return PropertyRegistrator(*this, std::move(propertyName));
+        return PropertyRegistrator(*this, propertyName);
     }
 
     inline InterfaceFlagsSetter IObject::setInterfaceFlags(const std::string& interfaceName)
     {
-        return InterfaceFlagsSetter(*this, std::move(interfaceName));
+        return InterfaceFlagsSetter(*this, interfaceName);
     }
 
     inline SignalEmitter IObject::emitSignal(const std::string& signalName)
