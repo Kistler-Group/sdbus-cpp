@@ -74,7 +74,7 @@ namespace sdbus {
                                    , const std::string& inputSignature
                                    , const std::string& outputSignature
                                    , method_callback methodCallback
-                                   , Flags flags = {} ) = 0;
+                                   , Flags flags  ) = 0;
 
         /*!
         * @brief Registers signal that the object will emit on D-Bus
@@ -89,7 +89,7 @@ namespace sdbus {
         virtual void registerSignal( const std::string& interfaceName
                                    , const std::string& signalName
                                    , const std::string& signature
-                                   , Flags flags = {} ) = 0;
+                                   , Flags flags  ) = 0;
 
         /*!
         * @brief Registers read-only property that the object will provide on D-Bus
@@ -106,7 +106,7 @@ namespace sdbus {
                                      , const std::string& propertyName
                                      , const std::string& signature
                                      , property_get_callback getCallback
-                                     , Flags flags = {} ) = 0;
+                                     , Flags flags ) = 0;
 
         /*!
         * @brief Registers read/write property that the object will provide on D-Bus
@@ -125,7 +125,7 @@ namespace sdbus {
                                      , const std::string& signature
                                      , property_get_callback getCallback
                                      , property_set_callback setCallback
-                                     , Flags flags = {} ) = 0;
+                                     , Flags flags ) = 0;
 
         /*!
         * @brief Sets flags for a given interface
