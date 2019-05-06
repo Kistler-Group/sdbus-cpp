@@ -84,7 +84,7 @@ namespace sdbus {
         Message& operator=(const Message&) noexcept;
         Message(Message&& other) noexcept;
         Message& operator=(Message&& other) noexcept;
-        ~Message();
+        virtual ~Message();
 
         Message& operator<<(bool item);
         Message& operator<<(int16_t item);
