@@ -75,7 +75,13 @@ namespace internal {
         virtual void enterProcessingLoopAsync() = 0;
         virtual void leaveProcessingLoop() = 0;
 
+        IConnection() = default;
         virtual ~IConnection() = default;
+        IConnection(const IConnection& other) = delete;
+        IConnection(IConnection&& other) = delete;
+        IConnection& operator=(const IConnection& rhs) = delete;
+        IConnection& operator=(IConnection&& rhs) = delete;
+
     };
 
 }
