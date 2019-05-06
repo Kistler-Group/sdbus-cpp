@@ -260,7 +260,12 @@ namespace sdbus {
         */
         PropertySetter setProperty(const std::string& propertyName);
 
+        IProxy() = default;
         virtual ~IProxy() = default;
+        IProxy(const IProxy& other) = delete;
+        IProxy(IProxy&& other) = delete;
+        IProxy& operator=(const IProxy& rhs) = delete;
+        IProxy& operator=(IProxy&& rhs) = delete;
     };
 
     inline MethodInvoker IProxy::callMethod(const std::string& methodName)
