@@ -77,7 +77,7 @@ namespace sdbus {
     {
     public:
         Message() = default;
-        Message(internal::ISdBus* sdbus) noexcept;
+        explicit Message(internal::ISdBus* sdbus) noexcept;
         Message(void *msg, internal::ISdBus* sdbus) noexcept;
         Message(void *msg, internal::ISdBus* sdbus, adopt_message_t) noexcept;
         Message(const Message&) noexcept;
@@ -134,7 +134,7 @@ namespace sdbus {
         Message& enterStruct(const std::string& signature);
         Message& exitStruct();
 
-        operator bool() const;
+        explicit operator bool() const;
         void clearFlags();
 
         std::string getInterfaceName() const;
@@ -175,7 +175,7 @@ namespace sdbus {
 
         using Message::Message;
         AsyncMethodCall() = default; // Fixes gcc 6.3 error (default c-tor is not imported in above using declaration)
-        AsyncMethodCall(MethodCall&& call) noexcept;
+        explicit AsyncMethodCall(MethodCall&& call) noexcept;
         Slot send(void* callback, void* userData) const;
     };
 
