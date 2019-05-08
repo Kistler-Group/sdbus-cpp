@@ -65,9 +65,11 @@ Fortunately, libsystemd is rather self-contained and can be built and used indep
 $ git clone https://github.com/systemd/systemd
 $ cd systemd
 $ git checkout v242  # or any other recent stable version
-$ meson build/  # solve systemd dependencies if any pop up, e.g. libmount-dev, libcap, librt...
-$ ninja -C build version.h
-$ ninja -C build libsystemd.so.0.26.0  # or another version number depending which systemd version you have
+$ mkdir build
+$ cd build
+$ meson --buildtype=release .. # solve systemd dependencies if any pop up, e.g. libmount-dev, libcap, librt...
+$ ninja version.h # building version.h target is only necessary in systemd version >= 241
+$ ninja libsystemd.so.0.26.0  # or another version number depending which systemd version you have
 # finally, manually install the library, header files and libsystemd.pc pkgconfig file
 ```
 
