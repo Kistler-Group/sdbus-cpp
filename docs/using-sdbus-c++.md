@@ -22,7 +22,7 @@ Using sdbus-c++ library
 Introduction
 ------------
 
-sdbus-c++ is a C++ wrapper library built on top of [sd-bus](http://0pointer.net/blog/the-new-sd-bus-api-of-systemd.html), a lightweight D-Bus client library implemented within systemd project. It provides D-Bus functionality on a higher level of abstraction, trying to employ C++ type system to shift as much work as possible from the developer to the compiler.
+sdbus-c++ is a C++ D-Bus library built on top of [sd-bus](http://0pointer.net/blog/the-new-sd-bus-api-of-systemd.html), a lightweight D-Bus client library implemented within [systemd](https://github.com/systemd/systemd) project. It provides D-Bus functionality on a higher level of abstraction, trying to employ C++ type system to shift as much work as possible from the developer to the compiler.
 
 sdbus-c++ does not cover the entire sd-bus API, but provides tools for implementing the most common functionality - RPC method calls, signals and properties. There is room for additions and improvements, as needed and when needed.
 
@@ -38,8 +38,8 @@ find_package(sdbus-c++ REQUIRED)
 The library also supports `pkg-config`, so it easily be integrated into e.g. an Autotools project:
 
 ```bash
-PKG_CHECK_MODULES(SDBUSCPP, [sdbus-c++ >= 0.4],,
-    AC_MSG_ERROR([You need the sdbus-c++ library (version 0.4 or newer)]
+PKG_CHECK_MODULES(SDBUSCPP, [sdbus-c++ >= 0.6],,
+    AC_MSG_ERROR([You need the sdbus-c++ library (version 0.6 or newer)]
     [http://www.kistler.com/])
 )
 ```
@@ -55,7 +55,7 @@ Minimum required libsystemd shared library version is 0.20.0 (which corresponds 
 
 If your target Linux distribution is already based on systemd ecosystem of version 236 and higher, then there is no additional effort, just make sure you have corresponding systemd header files available (provided by `libsystemd-dev` package on Debian/Ubuntu, for example), and you may go on building sdbus-c++ seamlessly.
 
-sdbus-c++ can perfectly be used in non-systemd environments as well. There are two ways to approach this:
+However, sdbus-c++ can perfectly be used in non-systemd environments as well. There are two ways to approach this:
 
 ### Building and distributing libsystemd as a shared library yourself
 
@@ -75,7 +75,7 @@ $ ninja -C build libsystemd.so.0.26.0  # or another version number depending whi
 
 sdbus-c++ provides `BUILD_LIBSYSTEMD` configuration option. When turned on, sdbus-c++ will automatically download, build and integrate libsystemd as a static library into sdbus-c++ for you. This is the most convenient and effective approach to build, distribute and use sdbus-c++ as a self-contained, systemd-independent library in non-systemd enviroments. Just make sure your build machine has all dependencies needed by libsystemd build process. That includes `meson`, `ninja`, `git` programs and mainly libraries and headers for `libmount`, `libcap` and `librt` (part of glibc). Also when distributing, make sure these dependency libraries are installed on the production machine. (Contributors willing to help with bringing sdbus-c++ to popular package systems are welcome.)
 
-You may additionally use `LIBSYSTEMD_VERSION` configuration flag to fine-tune the version of systemd to be used.
+You may additionally use `LIBSYSTEMD_VERSION` configuration flag to fine-tune the version of systemd to be taken in.
 
 Header files and namespaces
 ---------------------------
@@ -129,6 +129,17 @@ The following diagram illustrates the major entities in sdbus-c++.
   * `MethodCall` (with serialized parameters),
   * `MethodReply` (with serialized return values),
   * or a `Signal` (with serialized parameters).
+
+### Standard D-Bus interfaces
+
+Every D-Bus object will automatically get these four standard interfaces:
+
+  * `org.freedesktop.DBus.Properties`
+  * `org.freedesktop.DBus.Introspectable`
+  * `org.freedesktop.DBus.Peer`
+  * `org.freedesktop.DBus.ObjectManager`
+
+The implementation of these interfaces is provided by the underlying sd-bus library. So there is no need to implement them manually by users.
 
 ### Thread safety in sdbus-c++
 
