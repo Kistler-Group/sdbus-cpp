@@ -52,7 +52,7 @@ public:
     virtual int sd_bus_request_name(sd_bus *bus, const char *name, uint64_t flags) override;
     virtual int sd_bus_release_name(sd_bus *bus, const char *name) override;
     virtual int sd_bus_add_object_vtable(sd_bus *bus, sd_bus_slot **slot, const char *path, const char *interface, const sd_bus_vtable *vtable, void *userdata) override;
-    virtual int sd_bus_add_object_manager(sd_bus *bus, sd_bus_slot **slot, const char *path);
+    virtual int sd_bus_add_object_manager(sd_bus *bus, sd_bus_slot **slot, const char *path) override;
     virtual int sd_bus_add_match(sd_bus *bus, sd_bus_slot **slot, const char *match, sd_bus_message_handler_t callback, void *userdata) override;
     virtual sd_bus_slot* sd_bus_slot_unref(sd_bus_slot *slot) override;
 
