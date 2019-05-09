@@ -122,6 +122,13 @@ int SdBus::sd_bus_add_object_vtable(sd_bus *bus, sd_bus_slot **slot, const char 
     return ::sd_bus_add_object_vtable(bus, slot, path, interface,  vtable, userdata);
 }
 
+int SdBus::sd_bus_add_object_manager(sd_bus *bus, sd_bus_slot **slot, const char *path)
+{
+    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
+
+    return ::sd_bus_add_object_manager(bus, slot, path);
+}
+
 int SdBus::sd_bus_add_match(sd_bus *bus, sd_bus_slot **slot, const char *match, sd_bus_message_handler_t callback, void *userdata)
 {
     std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);

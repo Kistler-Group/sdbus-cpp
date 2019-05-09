@@ -90,6 +90,17 @@ namespace sdbus {
         */
         virtual void leaveProcessingLoop() = 0;
 
+        /*!
+        * @brief Add an ObjectManager at the specified D-Bus object path
+        *
+        * Creates an ObjectManager interface at the specified object path on
+        * the connection. This is a convenient way to interrogate a connection
+        * to see what objects it has.
+        *
+        * @throws sdbus::Error in case of failure
+        */
+        virtual void addObjectManager( const std::string& objectPath ) = 0;
+
         inline virtual ~IConnection() = 0;
     };
 
