@@ -21,9 +21,9 @@ if(result)
     message(FATAL_ERROR "Build step for googletest failed: ${result}")
 endif()
 
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-set(BUILD_GMOCK ON CACHE BOOL "" FORCE)
-set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+set(gtest_force_shared_crt ON CACHE INTERNAL "" FORCE)
+set(BUILD_GMOCK ON CACHE INTERNAL "" FORCE)
+set(INSTALL_GTEST OFF CACHE INTERNAL "" FORCE)
 
 set(BUILD_SHARED_LIBS_BAK ${BUILD_SHARED_LIBS})
 set(BUILD_SHARED_LIBS OFF)
