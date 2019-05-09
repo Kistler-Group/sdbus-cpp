@@ -56,7 +56,7 @@ $ sudo make install
 
     * `LIBSYSTEMD_VERSION` [string]
 
-      Defines version of systemd to be downloaded, built and integrated into sdbus-c++. Default value: `v239`.
+      Defines version of systemd to be downloaded, built and integrated into sdbus-c++. Default value: `242`.
 
 * `CMAKE_BUILD_TYPE` [string]
 

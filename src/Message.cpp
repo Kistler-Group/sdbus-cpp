@@ -684,6 +684,17 @@ Message createPlainMessage()
 {
     int r;
 
+    // All references to the bus (like created messages) must not outlive this thread (because messages refer to sdbus
+    // which is thread-local, and because BusReferenceKeeper below destroys the bus at thread exit).
+    // A more flexible solution would be that the caller would already provide an ISdBus reference as a parameter.
+    // Variant is one of the callers. This means Variant could no more be created in a stand-alone way, but
+    // through a factory of some existing facility (Object, Proxy, Connection...).
+    // TODO: Consider this alternative of creating Variant, it may live next to the current one. This function would
+    // get IConnection* parameter and IConnection would provide createPlainMessage factory (just like it already
+    // provides e.g. createMethodCall). If this parameter were null, the current mechanism would be used.
+
+    thread_local internal::SdBus sdbus;
+
     sd_bus* bus{};
     SCOPE_EXIT{ sd_bus_unref(bus); };
     r = sd_bus_default_system(&bus);
@@ -691,16 +702,36 @@ Message createPlainMessage()
 
     thread_local struct BusReferenceKeeper
     {
-        BusReferenceKeeper(sd_bus* bus) : bus_(bus) {}
-        ~BusReferenceKeeper() { sd_bus_unref(bus_); }
+        BusReferenceKeeper(sd_bus* bus) : bus_(sd_bus_ref(bus))
+        {
+            // Try to finish all the handshake, receive HELLO msg reply and set the bus to running state
+            sd_bus_flush(bus_);
+        }
+
+        ~BusReferenceKeeper()
+        {
+            // Yeah, this is kind of defensive, one sd_bus_unref should normally suffice, but I'm not sure whether
+            // all pending references to the bus have been resolved by now (like internal sd-bus HELLO messages,
+            // even though I use sd_bus_flush above), and sd-bus of systemd v242 has slightly different ref counting
+            // behavior here... So I better be more defensive rather than cause memory leaks in some special cases...
+            // And anyway, there should be no user's messages with reference to this bus hanging around at this point
+            // (see comment above), so it's safe to go all the way down to zero ref count and free the bus.
+            while (sd_bus_default_system(nullptr))
+                sd_bus_unref(bus_);
+        }
+
         sd_bus* bus_{};
     } busReferenceKeeper{bus};
+
+    // Shelved here as handy thing for potential future tracing purposes:
+    //#include <unistd.h>
+    //#include <sys/syscall.h>
+    //#define gettid() syscall(SYS_gettid)
+    //printf("createPlainMessage: sd_bus*=[%p], n_ref=[%d], TID=[%d]\n", bus, *(unsigned*)bus, gettid());
 
     sd_bus_message* sdbusMsg{};
     r = sd_bus_message_new(bus, &sdbusMsg, _SD_BUS_MESSAGE_TYPE_INVALID);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create a new message", -r);
-
-    thread_local internal::SdBus sdbus;
 
     return Message{sdbusMsg, &sdbus, adopt_message};
 }
