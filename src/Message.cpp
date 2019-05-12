@@ -702,24 +702,8 @@ Message createPlainMessage()
 
     thread_local struct BusReferenceKeeper
     {
-        BusReferenceKeeper(sd_bus* bus) : bus_(sd_bus_ref(bus))
-        {
-            // Try to finish all the handshake, receive HELLO msg reply and set the bus to running state
-            sd_bus_flush(bus_);
-        }
-
-        ~BusReferenceKeeper()
-        {
-            // Yeah, this is kind of defensive, one sd_bus_unref should normally suffice, but I'm not sure whether
-            // all pending references to the bus have been resolved by now (like internal sd-bus HELLO messages,
-            // even though I use sd_bus_flush above), and sd-bus of systemd v242 has slightly different ref counting
-            // behavior here... So I better be more defensive rather than cause memory leaks in some special cases...
-            // And anyway, there should be no user's messages with reference to this bus hanging around at this point
-            // (see comment above), so it's safe to go all the way down to zero ref count and free the bus.
-            while (sd_bus_default_system(nullptr))
-                sd_bus_unref(bus_);
-        }
-
+        BusReferenceKeeper(sd_bus* bus) : bus_(sd_bus_ref(bus)) { sd_bus_flush(bus_); }
+        ~BusReferenceKeeper() { sd_bus_flush_close_unref(bus_); }
         sd_bus* bus_{};
     } busReferenceKeeper{bus};
 
