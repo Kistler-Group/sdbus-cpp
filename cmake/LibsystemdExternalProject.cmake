@@ -32,14 +32,15 @@ endif()
 include(ExternalProject)
 ExternalProject_Add(LibsystemdBuildProject
                     PREFIX libsystemd-v${LIBSYSTEMD_VERSION}
-                    GIT_REPOSITORY https://github.com/systemd/systemd.git
-                    GIT_TAG        v${LIBSYSTEMD_VERSION}
-                    UPDATE_COMMAND ""
+                    GIT_REPOSITORY    https://github.com/systemd/systemd.git
+                    GIT_TAG           v${LIBSYSTEMD_VERSION}
+                    GIT_SHALLOW       1
+                    UPDATE_COMMAND    ""
                     CONFIGURE_COMMAND ${CMAKE_COMMAND} -E remove <BINARY_DIR>/*
                               COMMAND ${MESON} --buildtype=${LIBSYSTEMD_BUILD_TYPE} -Dstatic-libsystemd=pic <SOURCE_DIR> <BINARY_DIR>
-                    BUILD_COMMAND ${BUILD_VERSION_H}
-                          COMMAND ${NINJA} -C <BINARY_DIR> libsystemd.a
-                    INSTALL_COMMAND ""
+                    BUILD_COMMAND     ${BUILD_VERSION_H}
+                          COMMAND     ${NINJA} -C <BINARY_DIR> libsystemd.a
+                    INSTALL_COMMAND   ""
                     LOG_DOWNLOAD 1 LOG_UPDATE 1 LOG_CONFIGURE 1 LOG_BUILD 1)
 
 ExternalProject_Get_property(LibsystemdBuildProject SOURCE_DIR)
