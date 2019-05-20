@@ -7,6 +7,7 @@ endif()
 
 find_library(GLIBC_RT_LIBRARY rt)
 find_package(PkgConfig REQUIRED)
+pkg_check_modules(MOUNT mount)
 pkg_check_modules(CAP REQUIRED libcap)
 if (NOT CAP_FOUND)
     find_library(CAP_LIBRARIES cap) # Compat with Ubuntu 14.04 which ships libcap w/o .pc file
@@ -50,4 +51,4 @@ set(SYSTEMD_LIBRARY_DIRS ${BINARY_DIR})
 
 add_library(libsystemd-static STATIC IMPORTED)
 set_target_properties(libsystemd-static PROPERTIES IMPORTED_LOCATION ${SYSTEMD_LIBRARY_DIRS}/libsystemd.a)
-set(SYSTEMD_LIBRARIES libsystemd-static ${CAP_LIBRARIES} ${GLIBC_RT_LIBRARY})
+set(SYSTEMD_LIBRARIES libsystemd-static ${CAP_LIBRARIES} ${GLIBC_RT_LIBRARY} ${MOUNT_LIBRARIES})
