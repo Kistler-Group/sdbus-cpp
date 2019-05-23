@@ -29,10 +29,15 @@ sdbus-c++ does not cover the entire sd-bus API, but provides tools for implement
 Integrating sdbus-c++ into your project
 ---------------------------------------
 
-The library build system is based on CMake. The library provides a config file, so integrating it into your CMake project is rather straight-forward:
+The library build system is based on CMake. The library provides a config and an export file, so integrating it into your CMake project is sooo simple:
 
-```bash
+```cmake
+# First, find sdbus-c++
 find_package(sdbus-c++ REQUIRED)
+
+# Use the sdbus-c++ target in SDBusCpp namespace
+add_executable(exe exe.cpp)
+target_link_libraries(exe PRIVATE SDBusCpp::sdbus-c++)
 ```
 
 The library also supports `pkg-config`, so it easily be integrated into e.g. an Autotools project:
