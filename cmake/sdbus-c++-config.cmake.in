@@ -1,0 +1,11 @@
+@PACKAGE_INIT@
+
+include("${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@-targets.cmake")
+check_required_components("@PROJECT_NAME@")
+
+# This is here for backwards-compatibility. Please use more modern target-based approach.
+set(SDBUSCPP_VERSION "@SDBUSCPP_VERSION@")
+set(SDBUSCPP_FOUND "TRUE")
+set_and_check(SDBUSCPP_INCLUDE_DIRS "@CMAKE_INSTALL_FULL_INCLUDEDIR@")
+set_and_check(SDBUSCPP_LIBRARY_DIR "@CMAKE_INSTALL_FULL_LIBDIR@")
+set(SDBUSCPP_LIBRARIES sdbus-c++)
