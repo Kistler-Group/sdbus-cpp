@@ -12,6 +12,7 @@ ExternalProject_Add(googletest
     GIT_SHALLOW       1
     SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/googletest-src"
     BINARY_DIR        "${CMAKE_CURRENT_BINARY_DIR}/googletest-build"
+    UPDATE_COMMAND    ""
     CONFIGURE_COMMAND ""
     BUILD_COMMAND     ""
     INSTALL_COMMAND   ""
