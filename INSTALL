@@ -1,7 +1,7 @@
 Building:
   $ mkdir build
   $ cd build
-  $ cmake .. ${CONFIGURE_FLAGS_IF_NECESSARY}
+  $ cmake .. -DCMAKE_BUILD_TYPE=Release ${OTHER_CONFIG_FLAGS}
   $ make
 
 Installing:
