@@ -103,6 +103,15 @@ ISdBus& Connection::getSdBusInterface()
     return *iface_.get();
 }
 
+void Connection::addObjectManager( const std::string& objectPath )
+{
+    auto r = iface_->sd_bus_add_object_manager( bus_.get()
+                                              , NULL
+                                              , objectPath.c_str() );
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to add object manager", -r);
+}
+
 sd_bus_slot* Connection::addObjectVTable( const std::string& objectPath
                                         , const std::string& interfaceName
                                         , const sd_bus_vtable* vtable

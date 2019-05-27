@@ -58,6 +58,7 @@ namespace sdbus { namespace internal {
         virtual int sd_bus_request_name(sd_bus *bus, const char *name, uint64_t flags) = 0;
         virtual int sd_bus_release_name(sd_bus *bus, const char *name) = 0;
         virtual int sd_bus_add_object_vtable(sd_bus *bus, sd_bus_slot **slot, const char *path, const char *interface, const sd_bus_vtable *vtable, void *userdata) = 0;
+        virtual int sd_bus_add_object_manager(sd_bus *bus, sd_bus_slot **slot, const char *path) = 0;
         virtual int sd_bus_add_match(sd_bus *bus, sd_bus_slot **slot, const char *match, sd_bus_message_handler_t callback, void *userdata) = 0;
         virtual sd_bus_slot* sd_bus_slot_unref(sd_bus_slot *slot) = 0;
 
