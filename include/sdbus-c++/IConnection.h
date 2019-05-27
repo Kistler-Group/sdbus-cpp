@@ -99,7 +99,7 @@ namespace sdbus {
         *
         * @throws sdbus::Error in case of failure
         */
-        virtual void addObjectManager( const std::string& objectPath ) = 0;
+        virtual void addObjectManager(const std::string& objectPath) = 0;
 
         inline virtual ~IConnection() = 0;
     };
