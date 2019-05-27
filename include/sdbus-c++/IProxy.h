@@ -58,6 +58,8 @@ namespace sdbus {
     class IProxy
     {
     public:
+        virtual ~IProxy() = default;
+
         /*!
         * @brief Creates a method call message
         *
@@ -259,8 +261,6 @@ namespace sdbus {
         * @throws sdbus::Error in case of failure
         */
         PropertySetter setProperty(const std::string& propertyName);
-
-        virtual ~IProxy() = default;
     };
 
     inline MethodInvoker IProxy::callMethod(const std::string& methodName)

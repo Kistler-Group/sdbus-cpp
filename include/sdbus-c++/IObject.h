@@ -57,6 +57,8 @@ namespace sdbus {
     class IObject
     {
     public:
+        virtual ~IObject() = default;
+
         /*!
         * @brief Registers method that the object will provide on D-Bus
         *
@@ -287,8 +289,6 @@ namespace sdbus {
         * @throws sdbus::Error in case of failure
         */
         SignalEmitter emitSignal(const std::string& signalName);
-
-        virtual ~IObject() = 0;
     };
 
     inline MethodRegistrator IObject::registerMethod(const std::string& methodName)
@@ -315,8 +315,6 @@ namespace sdbus {
     {
         return SignalEmitter(*this, signalName);
     }
-
-    inline IObject::~IObject() {}
 
     /*!
     * @brief Creates instance representing a D-Bus object
