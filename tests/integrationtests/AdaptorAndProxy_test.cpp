@@ -423,3 +423,15 @@ TEST_F(SdbusTestObject, AnswersXmlApiDescriptionOnIntrospection)
 {
     ASSERT_THAT(m_proxy->Introspect(), Eq(m_adaptor->getExpectedXmlApiDescription()));
 }
+
+// TODO: Add more tests on standard D-Bus interfaces
+
+TEST_F(SdbusTestObject, PingsOnPeerInterface)
+{
+    ASSERT_NO_THROW(m_proxy->Ping());
+}
+
+TEST_F(SdbusTestObject, AnswersMachineUuidOnPeerInterface)
+{
+    ASSERT_NO_THROW(m_proxy->GetMachineId());
+}

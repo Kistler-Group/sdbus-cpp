@@ -597,12 +597,17 @@ namespace sdbus {
     template <typename _Value>
     inline void PropertySetter::toValue(const _Value& value)
     {
+        PropertySetter::toValue(sdbus::Variant{value});
+    }
+
+    inline void PropertySetter::toValue(const sdbus::Variant& value)
+    {
         SDBUS_THROW_ERROR_IF(interfaceName_.empty(), "DBus interface not specified when setting a property", EINVAL);
 
         proxy_
             .callMethod("Set")
             .onInterface("org.freedesktop.DBus.Properties")
-            .withArguments(interfaceName_, propertyName_, sdbus::Variant{value});
+            .withArguments(interfaceName_, propertyName_, value);
     }
 
 }

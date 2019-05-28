@@ -28,9 +28,10 @@
 #include <sdbus-c++/IProxy.h>
 #include <sdbus-c++/AdaptorInterfaces.h>
 #include <sdbus-c++/ProxyInterfaces.h>
+#include <sdbus-c++/StandardInterfaces.h>
 #include <sdbus-c++/Message.h>
 #include <sdbus-c++/MethodResult.h>
 #include <sdbus-c++/Types.h>
 #include <sdbus-c++/TypeTraits.h>
-#include <sdbus-c++/Introspection.h>
 #include <sdbus-c++/Error.h>
+#include <sdbus-c++/Flags.h>

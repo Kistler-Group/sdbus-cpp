@@ -220,6 +220,7 @@ namespace sdbus {
         PropertySetter(IProxy& proxy, const std::string& propertyName);
         PropertySetter& onInterface(const std::string& interfaceName);
         template <typename _Value> void toValue(const _Value& value);
+        void toValue(const sdbus::Variant& value);
 
     private:
         IProxy& proxy_;

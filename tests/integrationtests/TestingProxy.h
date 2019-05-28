@@ -28,7 +28,11 @@
 
 #include "proxy-glue.h"
 
-class TestingProxy : public sdbus::ProxyInterfaces<::testing_proxy, sdbus::introspectable_proxy>
+class TestingProxy : public sdbus::ProxyInterfaces< ::testing_proxy
+                                                  , sdbus::Peer_proxy
+                                                  , sdbus::Introspectable_proxy
+                                                  , sdbus::Properties_proxy
+                                                  , sdbus::ObjectManager_proxy >
 {
 public:
     TestingProxy(std::string destination, std::string objectPath)
@@ -71,6 +75,26 @@ protected:
     {
         if (m_DoOperationClientSideAsyncReplyHandler)
             m_DoOperationClientSideAsyncReplyHandler(returnValue, error);
+    }
+
+    // Signals of standard D-Bus interfaces
+
+    void onPropertiesChanged( const std::string& interfaceName
+                            , const std::map<std::string, sdbus::Variant>& changedProperties
+                            , const std::vector<std::string>& invalidatedProperties ) override
+    {
+        // TODO: Implement
+    }
+
+    void onInterfacesAdded( const sdbus::ObjectPath& /*objectPath*/
+                          , const std::map<std::string, std::map<std::string, sdbus::Variant>>& /*interfacesAndProperties*/) override
+    {
+        // Intentionally left empty
+    }
+    void onInterfacesRemoved( const sdbus::ObjectPath& /*objectPath*/
+                            , const std::vector<std::string>& /*interfaces*/) override
+    {
+        // Intentionally left empty
     }
 
 private:

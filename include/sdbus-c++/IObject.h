@@ -195,7 +195,7 @@ namespace sdbus {
         virtual sdbus::IConnection& getConnection() const = 0;
 
         /*!
-        * @brief Adds an ObjectManager at the specified D-Bus object path
+        * @brief Adds an ObjectManager interface at the path of this D-Bus object
         *
         * Creates an ObjectManager interface at the specified object path on
         * the connection. This is a convenient way to interrogate a connection
@@ -206,11 +206,17 @@ namespace sdbus {
         virtual void addObjectManager() = 0;
 
         /*!
-        * @brief Removes an ObjectManager from the specified D-Bus object path
+        * @brief Removes an ObjectManager interface from the path of this D-Bus object
         *
         * @throws sdbus::Error in case of failure
         */
         virtual void removeObjectManager() = 0;
+
+        /*!
+         * @brief Tests whether ObjectManager interface is added at the path of this D-Bus object
+         * @return True if ObjectManager interface is there, false otherwise
+         */
+        virtual bool hasObjectManager() const = 0;
 
         /*!
         * @brief Registers method that the object will provide on D-Bus

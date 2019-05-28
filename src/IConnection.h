@@ -29,6 +29,7 @@
 #include <systemd/sd-bus.h>
 #include <string>
 #include <memory>
+#include <functional>
 
 // Forward declaration
 namespace sdbus {
@@ -44,6 +45,8 @@ namespace sdbus {
 namespace sdbus {
 namespace internal {
 
+    using SlotPtr = std::unique_ptr<void, std::function<void(void*)>>;
+
     class IConnection
     {
     public:
@@ -52,11 +55,10 @@ namespace internal {
         virtual const ISdBus& getSdBusInterface() const = 0;
         virtual ISdBus& getSdBusInterface() = 0;
 
-        virtual sd_bus_slot* addObjectVTable( const std::string& objectPath
-                                            , const std::string& interfaceName
-                                            , const sd_bus_vtable* vtable
-                                            , void* userData ) = 0;
-        virtual void removeObjectVTable(sd_bus_slot* vtableHandle) = 0;
+        virtual SlotPtr addObjectVTable( const std::string& objectPath
+                                       , const std::string& interfaceName
+                                       , const sd_bus_vtable* vtable
+                                       , void* userData ) = 0;
 
         virtual MethodCall createMethodCall( const std::string& destination
                                            , const std::string& objectPath
@@ -67,18 +69,16 @@ namespace internal {
                                    , const std::string& interfaceName
                                    , const std::string& signalName ) const = 0;
 
-        virtual sd_bus_slot* registerSignalHandler( const std::string& objectPath
-                                                  , const std::string& interfaceName
-                                                  , const std::string& signalName
-                                                  , sd_bus_message_handler_t callback
-                                                  , void* userData ) = 0;
-        virtual void unregisterSignalHandler(sd_bus_slot* handlerCookie) = 0;
+        virtual SlotPtr registerSignalHandler( const std::string& objectPath
+                                             , const std::string& interfaceName
+                                             , const std::string& signalName
+                                             , sd_bus_message_handler_t callback
+                                             , void* userData ) = 0;
 
         virtual void enterProcessingLoopAsync() = 0;
         virtual void leaveProcessingLoop() = 0;
 
-        virtual void addObjectManager(const std::string& objectPath, sd_bus_slot** handle) = 0;
-        virtual void removeObjectManager(sd_bus_slot* handle) = 0;
+        virtual SlotPtr addObjectManager(const std::string& objectPath, void* /*dummy*/ = nullptr) = 0;
     };
 
 }

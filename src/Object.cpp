@@ -142,12 +142,17 @@ sdbus::IConnection& Object::getConnection() const
 
 void Object::addObjectManager()
 {
-    //TODO Continue;
+    objectManagerSlot_ = connection_.addObjectManager(objectPath_);
 }
 
 void Object::removeObjectManager()
 {
-    //TODO Continue;
+    objectManagerSlot_.reset();
+}
+
+bool Object::hasObjectManager() const
+{
+    return objectManagerSlot_ != nullptr;
 }
 
 const std::vector<sd_bus_vtable>& Object::createInterfaceVTable(InterfaceData& interfaceData)
@@ -217,10 +222,7 @@ void Object::activateInterfaceVTable( const std::string& interfaceName
                                     , InterfaceData& interfaceData
                                     , const std::vector<sd_bus_vtable>& vtable )
 {
-    // Tell, don't ask
-    auto slot = connection_.addObjectVTable(objectPath_, interfaceName, &vtable[0], this);
-    interfaceData.slot_.reset(slot);
-    interfaceData.slot_.get_deleter() = [this](sd_bus_slot *slot){ connection_.removeObjectVTable(slot); };
+    interfaceData.slot_ = connection_.addObjectVTable(objectPath_, interfaceName, &vtable[0], this);
 }
 
 int Object::sdbus_method_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError)
