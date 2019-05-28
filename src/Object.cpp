@@ -140,6 +140,16 @@ sdbus::IConnection& Object::getConnection() const
     return dynamic_cast<sdbus::IConnection&>(connection_);
 }
 
+void Object::addObjectManager()
+{
+    //TODO Continue;
+}
+
+void Object::removeObjectManager()
+{
+    //TODO Continue;
+}
+
 const std::vector<sd_bus_vtable>& Object::createInterfaceVTable(InterfaceData& interfaceData)
 {
     auto& vtable = interfaceData.vtable_;

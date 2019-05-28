@@ -56,7 +56,10 @@ namespace sdbus { namespace internal {
         void enterProcessingLoop() override;
         void enterProcessingLoopAsync() override;
         void leaveProcessingLoop() override;
+
         void addObjectManager(const std::string& objectPath) override;
+        void addObjectManager(const std::string& objectPath, sd_bus_slot** handle) override;
+        void removeObjectManager(sd_bus_slot* handle) override;
 
         const ISdBus& getSdBusInterface() const override;
         ISdBus& getSdBusInterface() override;

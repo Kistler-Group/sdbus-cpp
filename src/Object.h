@@ -80,6 +80,9 @@ namespace internal {
 
         sdbus::IConnection& getConnection() const override;
 
+        void addObjectManager() override;
+        void removeObjectManager() override;
+
     private:
         using InterfaceName = std::string;
         struct InterfaceData

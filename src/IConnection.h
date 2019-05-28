@@ -47,6 +47,8 @@ namespace internal {
     class IConnection
     {
     public:
+        virtual ~IConnection() = default;
+
         virtual const ISdBus& getSdBusInterface() const = 0;
         virtual ISdBus& getSdBusInterface() = 0;
 
@@ -75,7 +77,8 @@ namespace internal {
         virtual void enterProcessingLoopAsync() = 0;
         virtual void leaveProcessingLoop() = 0;
 
-        virtual ~IConnection() = default;
+        virtual void addObjectManager(const std::string& objectPath, sd_bus_slot** handle) = 0;
+        virtual void removeObjectManager(sd_bus_slot* handle) = 0;
     };
 
 }
