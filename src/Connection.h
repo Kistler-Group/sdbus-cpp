@@ -56,31 +56,32 @@ namespace sdbus { namespace internal {
         void enterProcessingLoop() override;
         void enterProcessingLoopAsync() override;
         void leaveProcessingLoop() override;
-        void addObjectManager( const std::string& objectPath ) override;
+
+        void addObjectManager(const std::string& objectPath) override;
+        SlotPtr addObjectManager(const std::string& objectPath, void* /*dummy*/) override;
 
         const ISdBus& getSdBusInterface() const override;
         ISdBus& getSdBusInterface() override;
 
-        sd_bus_slot* addObjectVTable( const std::string& objectPath
-                                    , const std::string& interfaceName
-                                    , const sd_bus_vtable* vtable
-                                    , void* userData ) override;
-        void removeObjectVTable(sd_bus_slot* vtableHandle) override;
+        SlotPtr addObjectVTable( const std::string& objectPath
+                               , const std::string& interfaceName
+                               , const sd_bus_vtable* vtable
+                               , void* userData ) override;
 
         MethodCall createMethodCall( const std::string& destination
                                    , const std::string& objectPath
                                    , const std::string& interfaceName
                                    , const std::string& methodName ) const override;
+
         Signal createSignal( const std::string& objectPath
                            , const std::string& interfaceName
                            , const std::string& signalName ) const override;
 
-        sd_bus_slot* registerSignalHandler( const std::string& objectPath
-                                          , const std::string& interfaceName
-                                          , const std::string& signalName
-                                          , sd_bus_message_handler_t callback
-                                          , void* userData ) override;
-        void unregisterSignalHandler(sd_bus_slot* handlerCookie) override;
+        SlotPtr registerSignalHandler( const std::string& objectPath
+                                     , const std::string& interfaceName
+                                     , const std::string& signalName
+                                     , sd_bus_message_handler_t callback
+                                     , void* userData ) override;
 
     private:
         sd_bus* openBus(Connection::BusType type);

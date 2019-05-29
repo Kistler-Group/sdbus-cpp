@@ -45,6 +45,8 @@ namespace sdbus {
     class IConnection
     {
     public:
+        virtual ~IConnection() = default;
+
         /*!
         * @brief Requests D-Bus name on the connection
         *
@@ -91,7 +93,7 @@ namespace sdbus {
         virtual void leaveProcessingLoop() = 0;
 
         /*!
-        * @brief Add an ObjectManager at the specified D-Bus object path
+        * @brief Adds an ObjectManager at the specified D-Bus object path
         *
         * Creates an ObjectManager interface at the specified object path on
         * the connection. This is a convenient way to interrogate a connection
@@ -99,12 +101,8 @@ namespace sdbus {
         *
         * @throws sdbus::Error in case of failure
         */
-        virtual void addObjectManager( const std::string& objectPath ) = 0;
-
-        inline virtual ~IConnection() = 0;
+        virtual void addObjectManager(const std::string& objectPath) = 0;
     };
-
-    IConnection::~IConnection() {}
 
     /*!
     * @brief Creates/opens D-Bus system connection

@@ -103,19 +103,28 @@ ISdBus& Connection::getSdBusInterface()
     return *iface_.get();
 }
 
-void Connection::addObjectManager( const std::string& objectPath )
+void Connection::addObjectManager(const std::string& objectPath)
 {
+    Connection::addObjectManager(objectPath, nullptr);
+}
+
+SlotPtr Connection::addObjectManager(const std::string& objectPath, void* /*dummy*/)
+{
+    sd_bus_slot *slot{};
+
     auto r = iface_->sd_bus_add_object_manager( bus_.get()
-                                              , NULL
+                                              , &slot
                                               , objectPath.c_str() );
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to add object manager", -r);
+
+    return {slot, [this](void *slot){ iface_->sd_bus_slot_unref((sd_bus_slot*)slot); }};
 }
 
-sd_bus_slot* Connection::addObjectVTable( const std::string& objectPath
-                                        , const std::string& interfaceName
-                                        , const sd_bus_vtable* vtable
-                                        , void* userData )
+SlotPtr Connection::addObjectVTable( const std::string& objectPath
+                                   , const std::string& interfaceName
+                                   , const sd_bus_vtable* vtable
+                                   , void* userData )
 {
     sd_bus_slot *slot{};
 
@@ -128,12 +137,7 @@ sd_bus_slot* Connection::addObjectVTable( const std::string& objectPath
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to register object vtable", -r);
 
-    return slot;
-}
-
-void Connection::removeObjectVTable(sd_bus_slot* vtableHandle)
-{
-    iface_->sd_bus_slot_unref(vtableHandle);
+    return {slot, [this](void *slot){ iface_->sd_bus_slot_unref((sd_bus_slot*)slot); }};
 }
 
 MethodCall Connection::createMethodCall( const std::string& destination
@@ -172,11 +176,11 @@ Signal Connection::createSignal( const std::string& objectPath
     return Signal{sdbusSignal, iface_.get(), adopt_message};
 }
 
-sd_bus_slot* Connection::registerSignalHandler( const std::string& objectPath
-                                              , const std::string& interfaceName
-                                              , const std::string& signalName
-                                              , sd_bus_message_handler_t callback
-                                              , void* userData )
+SlotPtr Connection::registerSignalHandler( const std::string& objectPath
+                                         , const std::string& interfaceName
+                                         , const std::string& signalName
+                                         , sd_bus_message_handler_t callback
+                                         , void* userData )
 {
     sd_bus_slot *slot{};
 
@@ -185,12 +189,7 @@ sd_bus_slot* Connection::registerSignalHandler( const std::string& objectPath
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to register signal handler", -r);
 
-    return slot;
-}
-
-void Connection::unregisterSignalHandler(sd_bus_slot* handlerCookie)
-{
-    iface_->sd_bus_slot_unref(handlerCookie);
+    return {slot, [this](void *slot){ iface_->sd_bus_slot_unref((sd_bus_slot*)slot); }};
 }
 
 sd_bus* Connection::openBus(Connection::BusType type)

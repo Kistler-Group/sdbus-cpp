@@ -57,6 +57,8 @@ namespace sdbus {
     class IObject
     {
     public:
+        virtual ~IObject() = default;
+
         /*!
         * @brief Registers method that the object will provide on D-Bus
         *
@@ -193,6 +195,30 @@ namespace sdbus {
         virtual sdbus::IConnection& getConnection() const = 0;
 
         /*!
+        * @brief Adds an ObjectManager interface at the path of this D-Bus object
+        *
+        * Creates an ObjectManager interface at the specified object path on
+        * the connection. This is a convenient way to interrogate a connection
+        * to see what objects it has.
+        *
+        * @throws sdbus::Error in case of failure
+        */
+        virtual void addObjectManager() = 0;
+
+        /*!
+        * @brief Removes an ObjectManager interface from the path of this D-Bus object
+        *
+        * @throws sdbus::Error in case of failure
+        */
+        virtual void removeObjectManager() = 0;
+
+        /*!
+         * @brief Tests whether ObjectManager interface is added at the path of this D-Bus object
+         * @return True if ObjectManager interface is there, false otherwise
+         */
+        virtual bool hasObjectManager() const = 0;
+
+        /*!
         * @brief Registers method that the object will provide on D-Bus
         *
         * @param[in] methodName Name of the method
@@ -287,8 +313,6 @@ namespace sdbus {
         * @throws sdbus::Error in case of failure
         */
         SignalEmitter emitSignal(const std::string& signalName);
-
-        virtual ~IObject() = 0;
     };
 
     inline MethodRegistrator IObject::registerMethod(const std::string& methodName)
@@ -315,8 +339,6 @@ namespace sdbus {
     {
         return SignalEmitter(*this, signalName);
     }
-
-    inline IObject::~IObject() {}
 
     /*!
     * @brief Creates instance representing a D-Bus object

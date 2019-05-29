@@ -65,7 +65,7 @@ set(SDBUSCPP_PUBLIC_HDRS
     ${SDBUSCPP_INCLUDE_DIR}/IConnection.h
     ${SDBUSCPP_INCLUDE_DIR}/AdaptorInterfaces.h
     ${SDBUSCPP_INCLUDE_DIR}/ProxyInterfaces.h
-    ${SDBUSCPP_INCLUDE_DIR}/Introspection.h
+    ${SDBUSCPP_INCLUDE_DIR}/StandardInterfaces.h
     ${SDBUSCPP_INCLUDE_DIR}/IObject.h
     ${SDBUSCPP_INCLUDE_DIR}/IProxy.h
     ${SDBUSCPP_INCLUDE_DIR}/Message.h

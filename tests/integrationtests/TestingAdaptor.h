@@ -177,15 +177,16 @@ protected:
         throw sdbus::createError(1, "A test error occurred");
     }
 
-    std::string state() { return STRING_VALUE; }
+    std::string state() { return m_state; }
     uint32_t action() { return m_action; }
     void action(const uint32_t& value) { m_action = value; }
     bool blocking() { return m_blocking; }
     void blocking(const bool& value) { m_blocking = value; }
 
 private:
-    uint32_t m_action;
-    bool m_blocking;
+    const std::string m_state{DEFAULT_STATE_VALUE};
+    uint32_t m_action{DEFAULT_ACTION_VALUE};
+    bool m_blocking{DEFAULT_BLOCKING_VALUE};
 
     // For dont-expect-reply method call verifications
     mutable std::atomic<bool> m_multiplyCalled{};

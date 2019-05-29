@@ -45,6 +45,7 @@
 using ::testing::Eq;
 using ::testing::Gt;
 using ::testing::ElementsAre;
+using ::testing::SizeIs;
 using namespace std::chrono_literals;
 
 namespace
@@ -63,6 +64,18 @@ public:
     {
         s_connection->leaveProcessingLoop();
         s_connection->releaseName(INTERFACE_NAME);
+    }
+
+    static void waitUntil(std::atomic<bool>& flag, std::chrono::milliseconds timeout = 1s)
+    {
+        std::chrono::milliseconds elapsed{};
+        std::chrono::milliseconds step{5ms};
+        do {
+            std::this_thread::sleep_for(step);
+            elapsed += step;
+            if (elapsed > timeout)
+                throw std::runtime_error("Waiting timed out");
+        } while (!flag);
     }
 
 private:
@@ -396,30 +409,117 @@ TEST_F(SdbusTestObject, EmitsSignalWithoutRegistrationSuccesfully)
 
 // Properties
 
-TEST_F(SdbusTestObject, ReadsReadPropertySuccesfully)
+TEST_F(SdbusTestObject, ReadsReadOnlyPropertySuccesfully)
 {
-    ASSERT_THAT(m_proxy->state(), Eq(STRING_VALUE));
+    ASSERT_THAT(m_proxy->state(), Eq(DEFAULT_STATE_VALUE));
+}
+
+TEST_F(SdbusTestObject, FailsWritingToReadOnlyProperty)
+{
+    ASSERT_THROW(m_proxy->state("new_value"), sdbus::Error);
 }
 
 TEST_F(SdbusTestObject, WritesAndReadsReadWritePropertySuccesfully)
 {
-    uint32_t x = 42;
-    ASSERT_NO_THROW(m_proxy->action(x));
-    ASSERT_THAT(m_proxy->action(), Eq(x));
+    uint32_t newActionValue = 5678;
+
+    m_proxy->action(newActionValue);
+
+    ASSERT_THAT(m_proxy->action(), Eq(newActionValue));
 }
 
-TEST_F(SdbusTestObject, WritesToWritePropertySuccesfully)
+// Standard D-Bus interfaces
+
+TEST_F(SdbusTestObject, PingsViaPeerInterface)
 {
-    auto x = true;
-    ASSERT_NO_THROW(m_proxy->blocking(x));
+    ASSERT_NO_THROW(m_proxy->Ping());
 }
 
-TEST_F(SdbusTestObject, CannotReadFromWriteProperty)
+TEST_F(SdbusTestObject, AnswersMachineUuidViaPeerInterface)
 {
-    ASSERT_THROW(m_proxy->blocking(), sdbus::Error);
+    ASSERT_NO_THROW(m_proxy->GetMachineId());
 }
 
-TEST_F(SdbusTestObject, AnswersXmlApiDescriptionOnIntrospection)
+TEST_F(SdbusTestObject, AnswersXmlApiDescriptionViaIntrospectableInterface)
 {
     ASSERT_THAT(m_proxy->Introspect(), Eq(m_adaptor->getExpectedXmlApiDescription()));
+}
+
+TEST_F(SdbusTestObject, GetsPropertyViaPropertiesInterface)
+{
+    ASSERT_THAT(m_proxy->Get(INTERFACE_NAME, "state").get<std::string>(), Eq(DEFAULT_STATE_VALUE));
+}
+
+TEST_F(SdbusTestObject, SetsPropertyViaPropertiesInterface)
+{
+    uint32_t newActionValue = 2345;
+
+    m_proxy->Set(INTERFACE_NAME, "action", newActionValue);
+
+    ASSERT_THAT(m_proxy->action(), Eq(newActionValue));
+}
+
+TEST_F(SdbusTestObject, GetsAllPropertiesViaPropertiesInterface)
+{
+    const auto properties = m_proxy->GetAll(INTERFACE_NAME);
+
+    ASSERT_THAT(properties, SizeIs(3));
+    EXPECT_THAT(properties.at("state").get<std::string>(), Eq(DEFAULT_STATE_VALUE));
+    EXPECT_THAT(properties.at("action").get<uint32_t>(), Eq(DEFAULT_ACTION_VALUE));
+    EXPECT_THAT(properties.at("blocking").get<bool>(), Eq(DEFAULT_BLOCKING_VALUE));
+}
+
+// TODO: Uncomment once we have support for PropertiesChanged signals
+//TEST_F(SdbusTestObject, GetsSignalOnChangedPropertiesViaPropertiesInterface)
+//{
+//    std::atomic<bool> signalReceived{false};
+//    m_proxy->m_onPropertiesChangedHandler = [&signalReceived](const std::string& interfaceName, const std::map<std::string, sdbus::Variant>& changedProperties, const std::vector<std::string>& invalidatedProperties)
+//    {
+//        EXPECT_THAT(interfaceName, Eq(INTERFACE_NAME));
+//        EXPECT_THAT(changedProperties, SizeIs(2));
+//        EXPECT_THAT(changedProperties.at("blocking").get<bool>(), Eq(false));
+//        EXPECT_THAT(invalidatedProperties, SizeIs(0));
+//        signalReceived = true;
+//    };
+//
+//    m_proxy->blocking(!DEFAULT_BLOCKING_VALUE);
+//    waitUntil(signalReceived);
+//}
+
+TEST_F(SdbusTestObject, DoesNotProvideObjectManagerInterfaceByDefault)
+{
+    ASSERT_THROW(m_proxy->GetManagedObjects(), sdbus::Error);
+}
+
+TEST_F(SdbusTestObject, ProvidesObjectManagerInterfaceWhenExplicitlyAdded)
+{
+    m_adaptor->addObjectManager();
+
+    ASSERT_NO_THROW(m_proxy->GetManagedObjects());
+}
+
+TEST_F(SdbusTestObject, GetsZeroManagedObjectsIfHasNoSubPathObjects)
+{
+    m_adaptor->addObjectManager();
+
+    const auto objectsInterfacesAndProperties = m_proxy->GetManagedObjects();
+
+    ASSERT_THAT(objectsInterfacesAndProperties, SizeIs(0));
+}
+
+TEST_F(SdbusTestObject, GetsManagedObjectsSuccessfully)
+{
+    m_adaptor->addObjectManager();
+    auto subObject1 = sdbus::createObject(*s_connection, "/sub/path1");
+    subObject1->registerProperty("aProperty1").onInterface("org.sdbuscpp.integrationtests.iface1").withGetter([]{return uint8_t{123};});
+    subObject1->finishRegistration();
+    auto subObject2 = sdbus::createObject(*s_connection, "/sub/path2");
+    subObject2->registerProperty("aProperty2").onInterface("org.sdbuscpp.integrationtests.iface2").withGetter([]{return "hi";});
+    subObject2->finishRegistration();
+
+    const auto objectsInterfacesAndProperties = m_proxy->GetManagedObjects();
+
+    ASSERT_THAT(objectsInterfacesAndProperties, SizeIs(2));
+    EXPECT_THAT(objectsInterfacesAndProperties.at("/sub/path1").at("org.sdbuscpp.integrationtests.iface1").at("aProperty1").get<uint8_t>(), Eq(123));
+    EXPECT_THAT(objectsInterfacesAndProperties.at("/sub/path2").at("org.sdbuscpp.integrationtests.iface2").at("aProperty2").get<std::string>(), Eq("hi"));
 }

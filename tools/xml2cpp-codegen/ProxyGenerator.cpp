@@ -80,7 +80,7 @@ std::string ProxyGenerator::processInterface(Node& interface) const
     body << "class " << className << endl
             << "{" << endl
             << "public:" << endl
-            << tab << "static constexpr const char* interfaceName = \"" << ifaceName << "\";" << endl << endl
+            << tab << "static constexpr const char* INTERFACE_NAME = \"" << ifaceName << "\";" << endl << endl
             << "protected:" << endl
             << tab << className << "(sdbus::IProxy& proxy)" << endl
             << tab << tab << ": proxy_(proxy)" << endl;
@@ -169,7 +169,7 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes&
         }
 
         definitionSS << tab << tab << "proxy_.callMethod" << (async ? "Async" : "") << "(\"" << name << "\")"
-                        ".onInterface(interfaceName)";
+                        ".onInterface(INTERFACE_NAME)";
 
         if (inArgs.size() > 0)
         {
@@ -220,7 +220,7 @@ std::tuple<std::string, std::string> ProxyGenerator::processSignals(const Nodes&
 
         registrationSS << tab << tab << "proxy_"
                 ".uponSignal(\"" << name << "\")"
-                ".onInterface(interfaceName)"
+                ".onInterface(INTERFACE_NAME)"
                 ".call([this](" << argTypeStr << ")"
                 "{ this->on" << nameBigFirst << "(" << argStr << "); });" << endl;
 
@@ -248,7 +248,7 @@ std::string ProxyGenerator::processProperties(const Nodes& properties) const
             propertySS << tab << propertyType << " " << propertyName << "()" << endl
                     << tab << "{" << endl;
             propertySS << tab << tab << "return proxy_.getProperty(\"" << propertyName << "\")"
-                            ".onInterface(interfaceName)";
+                            ".onInterface(INTERFACE_NAME)";
             propertySS << ";" << endl << tab << "}" << endl << endl;
         }
 
@@ -257,7 +257,7 @@ std::string ProxyGenerator::processProperties(const Nodes& properties) const
             propertySS << tab << "void " << propertyName << "(" << propertyTypeArg << ")" << endl
                     << tab << "{" << endl;
             propertySS << tab << tab << "proxy_.setProperty(\"" << propertyName << "\")"
-                            ".onInterface(interfaceName)"
+                            ".onInterface(INTERFACE_NAME)"
                             ".toValue(" << propertyArg << ")";
             propertySS << ";" << endl << tab << "}" << endl << endl;
         }

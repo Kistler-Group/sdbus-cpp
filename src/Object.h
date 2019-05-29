@@ -80,6 +80,10 @@ namespace internal {
 
         sdbus::IConnection& getConnection() const override;
 
+        void addObjectManager() override;
+        void removeObjectManager() override;
+        bool hasObjectManager() const override;
+
     private:
         using InterfaceName = std::string;
         struct InterfaceData
@@ -112,7 +116,7 @@ namespace internal {
             std::vector<sd_bus_vtable> vtable_;
             Flags flags_;
 
-            std::unique_ptr<sd_bus_slot, std::function<void(sd_bus_slot*)>> slot_;
+            SlotPtr slot_;
         };
 
         static const std::vector<sd_bus_vtable>& createInterfaceVTable(InterfaceData& interfaceData);
@@ -143,6 +147,7 @@ namespace internal {
         sdbus::internal::IConnection& connection_;
         std::string objectPath_;
         std::map<InterfaceName, InterfaceData> interfaces_;
+        SlotPtr objectManagerSlot_;
     };
 
 }

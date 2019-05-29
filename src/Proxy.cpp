@@ -113,13 +113,11 @@ void Proxy::registerSignalHandlers(sdbus::internal::IConnection& connection)
         {
             const auto& signalName = signalItem.first;
             auto& slot = signalItem.second.slot_;
-            auto* rawSlotPtr = connection.registerSignalHandler( objectPath_
-                                                               , interfaceName
-                                                               , signalName
-                                                               , &Proxy::sdbus_signal_callback
-                                                               , this );
-            slot.reset(rawSlotPtr);
-            slot.get_deleter() = [&connection](sd_bus_slot *slot){ connection.unregisterSignalHandler(slot); };
+            slot = connection.registerSignalHandler( objectPath_
+                                                   , interfaceName
+                                                   , signalName
+                                                   , &Proxy::sdbus_signal_callback
+                                                   , this );
         }
     }
 }

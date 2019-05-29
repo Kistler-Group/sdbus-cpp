@@ -111,8 +111,9 @@ protected:
         object_.registerSignal("signalWithVariant").onInterface(INTERFACE_NAME).withParameters<sdbus::Variant>();
 
         object_.registerProperty("state").onInterface(INTERFACE_NAME).withGetter([this](){ return this->state(); }).markAsDeprecated().withUpdateBehavior(sdbus::Flags::CONST_PROPERTY_VALUE);
-        object_.registerProperty("action").onInterface(INTERFACE_NAME).withGetter([this](){ return this->action(); }).withSetter([this](const uint32_t& value){ this->action(value); }).withUpdateBehavior(sdbus::Flags::EMITS_NO_SIGNAL);
-        object_.registerProperty("blocking").onInterface(INTERFACE_NAME)./*withGetter([this](){ return this->blocking(); }).*/withSetter([this](const bool& value){ this->blocking(value); });
+        object_.registerProperty("action").onInterface(INTERFACE_NAME).withGetter([this](){ return this->action(); }).withSetter([this](const uint32_t& value){ this->action(value); }).withUpdateBehavior(sdbus::Flags::EMITS_INVALIDATION_SIGNAL);
+        //object_.registerProperty("blocking").onInterface(INTERFACE_NAME)./*withGetter([this](){ return this->blocking(); }).*/withSetter([this](const bool& value){ this->blocking(value); });
+        object_.registerProperty("blocking").onInterface(INTERFACE_NAME).withGetter([this](){ return this->blocking(); }).withSetter([this](const bool& value){ this->blocking(value); });
 
     }
 
@@ -294,7 +295,7 @@ R"delimiter(<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspectio
    <annotation name="org.freedesktop.DBus.Deprecated" value="true"/>
   </signal>
   <property name="action" type="u" access="readwrite">
-   <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="false"/>
+   <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="invalidates"/>
   </property>
   <property name="blocking" type="b" access="readwrite">
   </property>

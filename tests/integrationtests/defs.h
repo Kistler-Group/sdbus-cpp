@@ -41,6 +41,10 @@ const std::string STRING_VALUE{"sdbus-c++-testing"};
 const sdbus::Signature SIGNATURE_VALUE{"a{is}"};
 const sdbus::ObjectPath OBJECT_PATH_VALUE{"/"};
 
+const std::string DEFAULT_STATE_VALUE{"default-state-value"};
+const uint32_t DEFAULT_ACTION_VALUE{999};
+const bool DEFAULT_BLOCKING_VALUE{true};
+
 constexpr const double DOUBLE_VALUE{3.24L};
 
 #endif /* SDBUS_CPP_INTEGRATIONTESTS_DEFS_H_ */

@@ -28,7 +28,11 @@
 
 #include "proxy-glue.h"
 
-class TestingProxy : public sdbus::ProxyInterfaces<::testing_proxy, sdbus::introspectable_proxy>
+class TestingProxy : public sdbus::ProxyInterfaces< ::testing_proxy
+                                                  , sdbus::Peer_proxy
+                                                  , sdbus::Introspectable_proxy
+                                                  , sdbus::Properties_proxy
+                                                  , sdbus::ObjectManager_proxy >
 {
 public:
     TestingProxy(std::string destination, std::string objectPath)
@@ -73,13 +77,36 @@ protected:
             m_DoOperationClientSideAsyncReplyHandler(returnValue, error);
     }
 
-private:
+    // Signals of standard D-Bus interfaces
+
+    void onPropertiesChanged( const std::string& interfaceName
+                            , const std::map<std::string, sdbus::Variant>& changedProperties
+                            , const std::vector<std::string>& invalidatedProperties ) override
+    {
+        if (m_onPropertiesChangedHandler)
+            m_onPropertiesChangedHandler(interfaceName, changedProperties, invalidatedProperties);
+    }
+
+    void onInterfacesAdded( const sdbus::ObjectPath& /*objectPath*/
+                          , const std::map<std::string, std::map<std::string, sdbus::Variant>>& /*interfacesAndProperties*/) override
+    {
+        // Intentionally left empty
+    }
+    void onInterfacesRemoved( const sdbus::ObjectPath& /*objectPath*/
+                            , const std::vector<std::string>& /*interfaces*/) override
+    {
+        // Intentionally left empty
+    }
+
+//private:
+public:
     int m_simpleCallCounter{};
     std::map<int32_t, std::string> m_map;
     double m_variantValue;
     std::map<std::string, std::string> m_signature;
 
     std::function<void(uint32_t res, const sdbus::Error* err)> m_DoOperationClientSideAsyncReplyHandler;
+    std::function<void(const std::string& interfaceName, const std::map<std::string, sdbus::Variant>& changedProperties, const std::vector<std::string>& invalidatedProperties)> m_onPropertiesChangedHandler;
 };
 
 
