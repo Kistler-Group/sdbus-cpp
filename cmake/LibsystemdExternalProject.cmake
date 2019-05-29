@@ -41,6 +41,7 @@ ExternalProject_Add(LibsystemdBuildProject
                               COMMAND ${MESON} --buildtype=${LIBSYSTEMD_BUILD_TYPE} -Dstatic-libsystemd=pic <SOURCE_DIR> <BINARY_DIR>
                     BUILD_COMMAND     ${BUILD_VERSION_H}
                           COMMAND     ${NINJA} -C <BINARY_DIR> libsystemd.a
+                    BUILD_ALWAYS 1
                     INSTALL_COMMAND   ""
                     LOG_DOWNLOAD 1 LOG_UPDATE 1 LOG_CONFIGURE 1 LOG_BUILD 1)
 

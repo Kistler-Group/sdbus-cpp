@@ -18,13 +18,13 @@ namespace celsius {
 class thermometer_adaptor
 {
 public:
-    static constexpr const char* interfaceName = "org.sdbuscpp.stresstests.celsius.thermometer";
+    static constexpr const char* INTERFACE_NAME = "org.sdbuscpp.stresstests.celsius.thermometer";
 
 protected:
     thermometer_adaptor(sdbus::IObject& object)
         : object_(object)
     {
-        object_.registerMethod("getCurrentTemperature").onInterface(interfaceName).implementedAs([this](){ return this->getCurrentTemperature(); });
+        object_.registerMethod("getCurrentTemperature").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->getCurrentTemperature(); });
     }
 
 private:

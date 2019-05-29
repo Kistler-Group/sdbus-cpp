@@ -18,7 +18,7 @@ namespace fahrenheit {
 class thermometer_proxy
 {
 public:
-    static constexpr const char* interfaceName = "org.sdbuscpp.stresstests.fahrenheit.thermometer";
+    static constexpr const char* INTERFACE_NAME = "org.sdbuscpp.stresstests.fahrenheit.thermometer";
 
 protected:
     thermometer_proxy(sdbus::IProxy& proxy)
@@ -30,7 +30,7 @@ public:
     uint32_t getCurrentTemperature()
     {
         uint32_t result;
-        proxy_.callMethod("getCurrentTemperature").onInterface(interfaceName).storeResultsTo(result);
+        proxy_.callMethod("getCurrentTemperature").onInterface(INTERFACE_NAME).storeResultsTo(result);
         return result;
     }
 
@@ -49,7 +49,7 @@ namespace thermometer {
 class factory_proxy
 {
 public:
-    static constexpr const char* interfaceName = "org.sdbuscpp.stresstests.fahrenheit.thermometer.factory";
+    static constexpr const char* INTERFACE_NAME = "org.sdbuscpp.stresstests.fahrenheit.thermometer.factory";
 
 protected:
     factory_proxy(sdbus::IProxy& proxy)
@@ -61,13 +61,13 @@ public:
     sdbus::ObjectPath createDelegateObject()
     {
         sdbus::ObjectPath result;
-        proxy_.callMethod("createDelegateObject").onInterface(interfaceName).storeResultsTo(result);
+        proxy_.callMethod("createDelegateObject").onInterface(INTERFACE_NAME).storeResultsTo(result);
         return result;
     }
 
     void destroyDelegateObject(const sdbus::ObjectPath& delegate)
     {
-        proxy_.callMethod("destroyDelegateObject").onInterface(interfaceName).withArguments(delegate).dontExpectReply();
+        proxy_.callMethod("destroyDelegateObject").onInterface(INTERFACE_NAME).withArguments(delegate).dontExpectReply();
     }
 
 private:

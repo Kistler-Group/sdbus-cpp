@@ -211,6 +211,11 @@ public:
         return object_.getProperty("state").onInterface(INTERFACE_NAME);
     }
 
+    void state(const std::string& value)
+    {
+        object_.setProperty("state").onInterface(INTERFACE_NAME).toValue(value);
+    }
+
     uint32_t action()
     {
         return object_.getProperty("action").onInterface(INTERFACE_NAME);

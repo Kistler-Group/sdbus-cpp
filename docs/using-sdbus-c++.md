@@ -551,20 +551,20 @@ namespace sdbuscpp {
 class Concatenator_adaptor
 {
 public:
-    static constexpr const char* interfaceName = "org.sdbuscpp.Concatenator";
+    static constexpr const char* INTERFACE_NAME = "org.sdbuscpp.Concatenator";
 
 protected:
     Concatenator_adaptor(sdbus::IObject& object)
         : object_(object)
     {
-        object_.registerMethod("concatenate").onInterface(interfaceName).implementedAs([this](const std::vector<int32_t>& numbers, const std::string& separator){ return this->concatenate(numbers, separator); });
-        object_.registerSignal("concatenated").onInterface(interfaceName).withParameters<std::string>();
+        object_.registerMethod("concatenate").onInterface(INTERFACE_NAME).implementedAs([this](const std::vector<int32_t>& numbers, const std::string& separator){ return this->concatenate(numbers, separator); });
+        object_.registerSignal("concatenated").onInterface(INTERFACE_NAME).withParameters<std::string>();
     }
 
 public:
     void concatenated(const std::string& concatenatedString)
     {
-        object_.emitSignal("concatenated").onInterface(interfaceName).withArguments(concatenatedString);
+        object_.emitSignal("concatenated").onInterface(INTERFACE_NAME).withArguments(concatenatedString);
     }
 
 private:
@@ -601,13 +601,13 @@ namespace sdbuscpp {
 class Concatenator_proxy
 {
 public:
-    static constexpr const char* interfaceName = "org.sdbuscpp.Concatenator";
+    static constexpr const char* INTERFACE_NAME = "org.sdbuscpp.Concatenator";
 
 protected:
     Concatenator_proxy(sdbus::IProxy& proxy)
         : proxy_(proxy)
     {
-        proxy_.uponSignal("concatenated").onInterface(interfaceName).call([this](const std::string& concatenatedString){ this->onConcatenated(concatenatedString); });
+        proxy_.uponSignal("concatenated").onInterface(INTERFACE_NAME).call([this](const std::string& concatenatedString){ this->onConcatenated(concatenatedString); });
     }
 
     virtual void onConcatenated(const std::string& concatenatedString) = 0;
@@ -616,7 +616,7 @@ public:
     std::string concatenate(const std::vector<int32_t>& numbers, const std::string& separator)
     {
         std::string result;
-        proxy_.callMethod("concatenate").onInterface(interfaceName).withArguments(numbers, separator).storeResultsTo(result);
+        proxy_.callMethod("concatenate").onInterface(INTERFACE_NAME).withArguments(numbers, separator).storeResultsTo(result);
         return result;
     }
 

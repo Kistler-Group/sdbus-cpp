@@ -80,7 +80,7 @@ std::string AdaptorGenerator::processInterface(Node& interface) const
     body << "class " << className << endl
             << "{" << endl
             << "public:" << endl
-            << tab << "static constexpr const char* interfaceName = \"" << ifaceName << "\";" << endl << endl
+            << tab << "static constexpr const char* INTERFACE_NAME = \"" << ifaceName << "\";" << endl << endl
             << "protected:" << endl
             << tab << className << "(sdbus::IObject& object)" << endl
             << tab << tab << ": object_(object)" << endl;
@@ -109,7 +109,7 @@ std::string AdaptorGenerator::processInterface(Node& interface) const
     if(!annotationRegistration.empty())
     {
         std::stringstream str;
-        str << tab << tab << "object_.setInterfaceFlags(interfaceName)" << annotationRegistration << ";" << endl;
+        str << tab << tab << "object_.setInterfaceFlags(INTERFACE_NAME)" << annotationRegistration << ";" << endl;
         annotationRegistration = str.str();
     }
 
@@ -207,7 +207,7 @@ std::tuple<std::string, std::string> AdaptorGenerator::processMethods(const Node
 
         registrationSS << tab << tab << "object_.registerMethod(\""
                 << methodName << "\")"
-                << ".onInterface(interfaceName)"
+                << ".onInterface(INTERFACE_NAME)"
                 << ".implementedAs("
                 << "[this]("
                 << (async ? "sdbus::Result<" + outArgsToType(outArgs, true) + ">&& result" + (argTypeStr.empty() ? "" : ", ") : "")
@@ -260,7 +260,7 @@ std::tuple<std::string, std::string> AdaptorGenerator::processSignals(const Node
 
         signalRegistrationSS << tab << tab
                 << "object_.registerSignal(\"" << name << "\")"
-                        ".onInterface(interfaceName)";
+                        ".onInterface(INTERFACE_NAME)";
 
         if (args.size() > 0)
         {
@@ -273,7 +273,7 @@ std::tuple<std::string, std::string> AdaptorGenerator::processSignals(const Node
         signalMethodSS << tab << "void " << name << "(" << argTypeStr << ")" << endl
                 << tab << "{" << endl
                 << tab << tab << "object_.emitSignal(\"" << name << "\")"
-                        ".onInterface(interfaceName)";
+                        ".onInterface(INTERFACE_NAME)";
 
         if (!argStr.empty())
         {
@@ -322,7 +322,7 @@ std::tuple<std::string, std::string> AdaptorGenerator::processProperties(const N
 
         registrationSS << tab << tab << "object_.registerProperty(\""
                 << propertyName << "\")"
-                << ".onInterface(interfaceName)";
+                << ".onInterface(INTERFACE_NAME)";
 
         if (propertyAccess == "read" || propertyAccess == "readwrite")
         {
