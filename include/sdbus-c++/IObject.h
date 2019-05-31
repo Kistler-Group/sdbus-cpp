@@ -188,6 +188,16 @@ namespace sdbus {
         virtual void emitSignal(const sdbus::Signal& message) = 0;
 
         /*!
+        * @brief Emits PropertyChanged signal on "org.freedesktop.DBus.Properties" D-Bus interface of the object
+        *
+        * @param[in] interfaceName Name of an interface that properties belong to
+        * @param[in] properties Names of properties that will be included in the PropertiesChanged signal
+        *
+        * @throws sdbus::Error in case of failure
+        */
+        virtual void emitPropertiesChangedSignal(const std::string& interfaceName, const std::vector<std::string>& properties) = 0;
+
+        /*!
         * @brief Provides D-Bus connection used by the object
         *
         * @return Reference to the D-Bus connection

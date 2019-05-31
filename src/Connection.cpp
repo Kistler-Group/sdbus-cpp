@@ -33,6 +33,18 @@
 #include <poll.h>
 #include <sys/eventfd.h>
 
+namespace {
+
+std::vector</*const */char*> to_strv(const std::vector<std::string>& strings)
+{
+    std::vector</*const */char*> strv;
+    for (auto& str : strings)
+        strv.push_back(const_cast<char*>(str.c_str()));
+    return strv;
+}
+
+}
+
 namespace sdbus { namespace internal {
 
 Connection::Connection(Connection::BusType type, std::unique_ptr<ISdBus>&& interface)
@@ -174,6 +186,20 @@ Signal Connection::createSignal( const std::string& objectPath
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create signal", -r);
 
     return Signal{sdbusSignal, iface_.get(), adopt_message};
+}
+
+void Connection::emitPropertiesChangedSignal( const std::string& objectPath
+                                            , const std::string& interfaceName
+                                            , const std::vector<std::string>& properties )
+{
+    auto props = to_strv(properties);
+
+    auto r = iface_->sd_bus_emit_properties_changed_strv( bus_.get()
+                                                        , objectPath.c_str()
+                                                        , interfaceName.c_str()
+                                                        , props.empty() ? nullptr : &props[0] );
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit PropertiesChanged signal", -r);
 }
 
 SlotPtr Connection::registerSignalHandler( const std::string& objectPath

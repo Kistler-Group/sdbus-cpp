@@ -46,6 +46,8 @@ public:
     MOCK_METHOD2(sd_bus_message_new_method_return, int(sd_bus_message *call, sd_bus_message **m));
     MOCK_METHOD3(sd_bus_message_new_method_error, int(sd_bus_message *call, sd_bus_message **m, const sd_bus_error *e));
 
+    MOCK_METHOD4(sd_bus_emit_properties_changed_strv, int(sd_bus *bus, const char *path, const char *interface, char **names));
+
     MOCK_METHOD1(sd_bus_open_user, int(sd_bus **ret));
     MOCK_METHOD1(sd_bus_open_system, int(sd_bus **ret));
     MOCK_METHOD3(sd_bus_request_name, int(sd_bus *bus, const char *name, uint64_t flags));

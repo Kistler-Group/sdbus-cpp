@@ -135,6 +135,11 @@ void Object::emitSignal(const sdbus::Signal& message)
     message.send();
 }
 
+void Object::emitPropertiesChangedSignal(const std::string& interfaceName, const std::vector<std::string>& properties)
+{
+    connection_.emitPropertiesChangedSignal(objectPath_, interfaceName, properties);
+}
+
 sdbus::IConnection& Object::getConnection() const
 {
     return dynamic_cast<sdbus::IConnection&>(connection_);

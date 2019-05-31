@@ -68,6 +68,9 @@ namespace internal {
         virtual Signal createSignal( const std::string& objectPath
                                    , const std::string& interfaceName
                                    , const std::string& signalName ) const = 0;
+        virtual void emitPropertiesChangedSignal( const std::string& objectPath
+                                                , const std::string& interfaceName
+                                                , const std::vector<std::string>& properties ) = 0;
 
         virtual SlotPtr registerSignalHandler( const std::string& objectPath
                                              , const std::string& interfaceName
