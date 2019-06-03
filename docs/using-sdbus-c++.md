@@ -138,17 +138,6 @@ The following diagram illustrates the major entities in sdbus-c++.
   * `MethodReply` (with serialized return values),
   * or a `Signal` (with serialized parameters).
 
-### Standard D-Bus interfaces
-
-Every D-Bus object will automatically get these four standard interfaces:
-
-  * `org.freedesktop.DBus.Properties`
-  * `org.freedesktop.DBus.Introspectable`
-  * `org.freedesktop.DBus.Peer`
-  * `org.freedesktop.DBus.ObjectManager`
-
-The implementation of these interfaces is provided by the underlying sd-bus library. So there is no need to implement them manually by users.
-
 ### Thread safety in sdbus-c++
 
 sdbus-c++ is thread-aware by design. But, in general, it's not thread-safe. At least not in all places. There are situations where sdbus-c++ provides and guarantees API-level thread safety by design. It is safe to do these operations from multiple threads at the same time:
