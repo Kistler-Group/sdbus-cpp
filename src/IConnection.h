@@ -30,6 +30,7 @@
 #include <string>
 #include <memory>
 #include <functional>
+#include <vector>
 
 // Forward declaration
 namespace sdbus {
@@ -68,9 +69,18 @@ namespace internal {
         virtual Signal createSignal( const std::string& objectPath
                                    , const std::string& interfaceName
                                    , const std::string& signalName ) const = 0;
+
         virtual void emitPropertiesChangedSignal( const std::string& objectPath
                                                 , const std::string& interfaceName
                                                 , const std::vector<std::string>& propNames ) = 0;
+        virtual void emitInterfacesAddedSignal(const std::string& objectPath) = 0;
+        virtual void emitInterfacesAddedSignal( const std::string& objectPath
+                                              , const std::vector<std::string>& interfaces ) = 0;
+        virtual void emitInterfacesRemovedSignal(const std::string& objectPath) = 0;
+        virtual void emitInterfacesRemovedSignal( const std::string& objectPath
+                                                , const std::vector<std::string>& interfaces ) = 0;
+
+        virtual SlotPtr addObjectManager(const std::string& objectPath, void* /*dummy*/ = nullptr) = 0;
 
         virtual SlotPtr registerSignalHandler( const std::string& objectPath
                                              , const std::string& interfaceName
@@ -80,8 +90,6 @@ namespace internal {
 
         virtual void enterProcessingLoopAsync() = 0;
         virtual void leaveProcessingLoop() = 0;
-
-        virtual SlotPtr addObjectManager(const std::string& objectPath, void* /*dummy*/ = nullptr) = 0;
     };
 
 }

@@ -145,9 +145,24 @@ void Object::emitPropertiesChangedSignal(const std::string& interfaceName)
     Object::emitPropertiesChangedSignal(interfaceName, {});
 }
 
-sdbus::IConnection& Object::getConnection() const
+void Object::emitInterfacesAddedSignal()
 {
-    return dynamic_cast<sdbus::IConnection&>(connection_);
+    connection_.emitInterfacesAddedSignal(objectPath_);
+}
+
+void Object::emitInterfacesAddedSignal(const std::vector<std::string>& interfaces)
+{
+    connection_.emitInterfacesAddedSignal(objectPath_, interfaces);
+}
+
+void Object::emitInterfacesRemovedSignal()
+{
+    connection_.emitInterfacesRemovedSignal(objectPath_);
+}
+
+void Object::emitInterfacesRemovedSignal(const std::vector<std::string>& interfaces)
+{
+    connection_.emitInterfacesRemovedSignal(objectPath_, interfaces);
 }
 
 void Object::addObjectManager()
@@ -163,6 +178,11 @@ void Object::removeObjectManager()
 bool Object::hasObjectManager() const
 {
     return objectManagerSlot_ != nullptr;
+}
+
+sdbus::IConnection& Object::getConnection() const
+{
+    return dynamic_cast<sdbus::IConnection&>(connection_);
 }
 
 const std::vector<sd_bus_vtable>& Object::createInterfaceVTable(InterfaceData& interfaceData)

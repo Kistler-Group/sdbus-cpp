@@ -32,7 +32,8 @@
 #include <atomic>
 
 class TestingAdaptor : public sdbus::AdaptorInterfaces< testing_adaptor
-                                                      , sdbus::Properties_adaptor >
+                                                      , sdbus::Properties_adaptor
+                                                      , sdbus::ObjectManager_adaptor >
 {
 public:
     TestingAdaptor(sdbus::IConnection& connection) :

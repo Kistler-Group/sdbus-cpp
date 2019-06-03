@@ -32,6 +32,7 @@
 #include <functional>
 #include <string>
 #include <memory>
+#include <vector>
 
 // Forward declarations
 namespace sdbus {
@@ -177,7 +178,7 @@ namespace sdbus {
         virtual Signal createSignal(const std::string& interfaceName, const std::string& signalName) = 0;
 
         /*!
-        * @brief Emits signal on D-Bus
+        * @brief Emits signal for this object path
         *
         * @param[in] message Signal message to be sent out
         *
@@ -188,7 +189,7 @@ namespace sdbus {
         virtual void emitSignal(const sdbus::Signal& message) = 0;
 
         /*!
-        * @brief Emits PropertyChanged signal for specified properties under a given interface
+        * @brief Emits PropertyChanged signal for specified properties under a given interface of this object path
         *
         * @param[in] interfaceName Name of an interface that properties belong to
         * @param[in] propNames Names of properties that will be included in the PropertiesChanged signal
@@ -198,7 +199,7 @@ namespace sdbus {
         virtual void emitPropertiesChangedSignal(const std::string& interfaceName, const std::vector<std::string>& propNames) = 0;
 
         /*!
-        * @brief Emits PropertyChanged signal for all properties of a given interface
+        * @brief Emits PropertyChanged signal for all properties on a given interface of this object path
         *
         * @param[in] interfaceName Name of an interface
         *
@@ -207,11 +208,55 @@ namespace sdbus {
         virtual void emitPropertiesChangedSignal(const std::string& interfaceName) = 0;
 
         /*!
-        * @brief Provides D-Bus connection used by the object
-        *
-        * @return Reference to the D-Bus connection
-        */
-        virtual sdbus::IConnection& getConnection() const = 0;
+         * @brief Emits InterfacesAdded signal on this object path
+         *
+         * This emits an InterfacesAdded signal on this object path, by iterating all registered
+         * interfaces on the path. All properties are queried and included in the signal.
+         * This call is equivalent to emitInterfacesAddedSignal() with an explicit list of
+         * registered interfaces. However, unlike emitInterfacesAddedSignal(interfaces), this
+         * call can figure out the list of supported interfaces itself. Furthermore, it properly
+         * adds the builtin org.freedesktop.DBus.* interfaces.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual void emitInterfacesAddedSignal() = 0;
+
+        /*!
+         * @brief Emits InterfacesAdded signal on this object path
+         *
+         * This emits an InterfacesAdded signal on this object path with explicitly provided list
+         * of registered interfaces. As sdbus-c++ does currently not supported adding/removing
+         * interfaces of an existing object at run time (an object has a fixed set of interfaces
+         * registered by the time of invoking finishRegistration()), emitInterfacesAddedSignal(void)
+         * is probably what you are looking for.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual void emitInterfacesAddedSignal(const std::vector<std::string>& interfaces) = 0;
+
+        /*!
+         * @brief Emits InterfacesRemoved signal on this object path
+         *
+         * This is like sd_bus_emit_object_added(), but emits an InterfacesRemoved signal on this
+         * object path. This only includes any registered interfaces but skips the properties.
+         * This function shall be called (just) before destroying the object.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual void emitInterfacesRemovedSignal() = 0;
+
+        /*!
+         * @brief Emits InterfacesRemoved signal on this object path
+         *
+         * This emits an InterfacesRemoved signal on the given path with explicitly provided list
+         * of registered interfaces. As sdbus-c++ does currently not supported adding/removing
+         * interfaces of an existing object at run time (an object has a fixed set of interfaces
+         * registered by the time of invoking finishRegistration()), emitInterfacesRemovedSignal(void)
+         * is probably what you are looking for.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual void emitInterfacesRemovedSignal(const std::vector<std::string>& interfaces) = 0;
 
         /*!
         * @brief Adds an ObjectManager interface at the path of this D-Bus object
@@ -236,6 +281,13 @@ namespace sdbus {
          * @return True if ObjectManager interface is there, false otherwise
          */
         virtual bool hasObjectManager() const = 0;
+
+        /*!
+        * @brief Provides D-Bus connection used by the object
+        *
+        * @return Reference to the D-Bus connection
+        */
+        virtual sdbus::IConnection& getConnection() const = 0;
 
         /*!
         * @brief Registers method that the object will provide on D-Bus

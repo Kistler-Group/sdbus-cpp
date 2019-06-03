@@ -181,6 +181,7 @@ namespace sdbus {
     // is provided by underlying libsystemd implementation. The exception is Properties_adaptor and
     // ObjectManager_adaptor, which provide convenience functionality to emit signals.
 
+    // Adaptor for properties
     class Properties_adaptor
     {
         static constexpr const char* INTERFACE_NAME = "org.freedesktop.DBus.Properties";
@@ -200,6 +201,42 @@ namespace sdbus {
         void emitPropertiesChangedSignal(const std::string& interfaceName)
         {
             object_.emitPropertiesChangedSignal(interfaceName);
+        }
+
+    private:
+        sdbus::IObject& object_;
+    };
+
+    // Adaptor for object manager
+    class ObjectManager_adaptor
+    {
+        static constexpr const char* INTERFACE_NAME = "org.freedesktop.DBus.ObjectManager";
+
+    protected:
+        ObjectManager_adaptor(sdbus::IObject& object)
+            : object_(object)
+        {
+        }
+
+    public:
+        void emitInterfacesAddedSignal()
+        {
+            object_.emitInterfacesAddedSignal();
+        }
+
+        void emitInterfacesAddedSignal(const std::vector<std::string>& interfaces)
+        {
+            object_.emitInterfacesAddedSignal(interfaces);
+        }
+
+        void emitInterfacesRemovedSignal()
+        {
+            object_.emitInterfacesRemovedSignal();
+        }
+
+        void emitInterfacesRemovedSignal(const std::vector<std::string>& interfaces)
+        {
+            object_.emitInterfacesRemovedSignal(interfaces);
         }
 
     private:

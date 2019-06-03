@@ -98,6 +98,34 @@ int SdBus::sd_bus_emit_properties_changed_strv(sd_bus *bus, const char *path, co
     return ::sd_bus_emit_properties_changed_strv(bus, path, interface, names);
 }
 
+int SdBus::sd_bus_emit_object_added(sd_bus *bus, const char *path)
+{
+    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
+
+    return ::sd_bus_emit_object_added(bus, path);
+}
+
+int SdBus::sd_bus_emit_object_removed(sd_bus *bus, const char *path)
+{
+    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
+
+    return ::sd_bus_emit_object_removed(bus, path);
+}
+
+int SdBus::sd_bus_emit_interfaces_added_strv(sd_bus *bus, const char *path, char **interfaces)
+{
+    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
+
+    return ::sd_bus_emit_interfaces_added_strv(bus, path, interfaces);
+}
+
+int SdBus::sd_bus_emit_interfaces_removed_strv(sd_bus *bus, const char *path, char **interfaces)
+{
+    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
+
+    return ::sd_bus_emit_interfaces_removed_strv(bus, path, interfaces);
+}
+
 int SdBus::sd_bus_open_user(sd_bus **ret)
 {
     return ::sd_bus_open_user(ret);

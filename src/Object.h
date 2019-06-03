@@ -79,12 +79,16 @@ namespace internal {
         void emitSignal(const sdbus::Signal& message) override;
         void emitPropertiesChangedSignal(const std::string& interfaceName, const std::vector<std::string>& propNames) override;
         void emitPropertiesChangedSignal(const std::string& interfaceName) override;
-
-        sdbus::IConnection& getConnection() const override;
+        void emitInterfacesAddedSignal() override;
+        void emitInterfacesAddedSignal(const std::vector<std::string>& interfaces) override;
+        void emitInterfacesRemovedSignal() override;
+        void emitInterfacesRemovedSignal(const std::vector<std::string>& interfaces) override;
 
         void addObjectManager() override;
         void removeObjectManager() override;
         bool hasObjectManager() const override;
+
+        sdbus::IConnection& getConnection() const override;
 
     private:
         using InterfaceName = std::string;

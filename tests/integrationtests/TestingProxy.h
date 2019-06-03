@@ -87,15 +87,17 @@ protected:
             m_onPropertiesChangedHandler(interfaceName, changedProperties, invalidatedProperties);
     }
 
-    void onInterfacesAdded( const sdbus::ObjectPath& /*objectPath*/
-                          , const std::map<std::string, std::map<std::string, sdbus::Variant>>& /*interfacesAndProperties*/) override
+    void onInterfacesAdded( const sdbus::ObjectPath& objectPath
+                          , const std::map<std::string, std::map<std::string, sdbus::Variant>>& interfacesAndProperties) override
     {
-        // Intentionally left empty
+        if (m_onInterfacesAddedHandler)
+            m_onInterfacesAddedHandler(objectPath, interfacesAndProperties);
     }
-    void onInterfacesRemoved( const sdbus::ObjectPath& /*objectPath*/
-                            , const std::vector<std::string>& /*interfaces*/) override
+    void onInterfacesRemoved( const sdbus::ObjectPath& objectPath
+                            , const std::vector<std::string>& interfaces) override
     {
-        // Intentionally left empty
+        if (m_onInterfacesRemovedHandler)
+            m_onInterfacesRemovedHandler(objectPath, interfaces);
     }
 
 //private:
@@ -106,7 +108,9 @@ public:
     std::map<std::string, std::string> m_signature;
 
     std::function<void(uint32_t res, const sdbus::Error* err)> m_DoOperationClientSideAsyncReplyHandler;
-    std::function<void(const std::string& interfaceName, const std::map<std::string, sdbus::Variant>& changedProperties, const std::vector<std::string>& invalidatedProperties)> m_onPropertiesChangedHandler;
+    std::function<void(const std::string&, const std::map<std::string, sdbus::Variant>&, const std::vector<std::string>&)> m_onPropertiesChangedHandler;
+    std::function<void(const sdbus::ObjectPath&, const std::map<std::string, std::map<std::string, sdbus::Variant>>&)> m_onInterfacesAddedHandler;
+    std::function<void(const sdbus::ObjectPath&, const std::vector<std::string>&)> m_onInterfacesRemovedHandler;
 };
 
 

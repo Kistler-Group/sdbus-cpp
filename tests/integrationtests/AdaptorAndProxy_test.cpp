@@ -472,7 +472,9 @@ TEST_F(SdbusTestObject, GetsAllPropertiesViaPropertiesInterface)
 TEST_F(SdbusTestObject, EmitsPropertyChangedSignalForSelectedProperties)
 {
     std::atomic<bool> signalReceived{false};
-    m_proxy->m_onPropertiesChangedHandler = [&signalReceived](const std::string& interfaceName, const std::map<std::string, sdbus::Variant>& changedProperties, const std::vector<std::string>& invalidatedProperties)
+    m_proxy->m_onPropertiesChangedHandler = [&signalReceived]( const std::string& interfaceName
+                                                             , const std::map<std::string, sdbus::Variant>& changedProperties
+                                                             , const std::vector<std::string>& invalidatedProperties )
     {
         EXPECT_THAT(interfaceName, Eq(INTERFACE_NAME));
         EXPECT_THAT(changedProperties, SizeIs(1));
@@ -483,13 +485,16 @@ TEST_F(SdbusTestObject, EmitsPropertyChangedSignalForSelectedProperties)
     m_proxy->blocking(!DEFAULT_BLOCKING_VALUE);
     m_proxy->action(DEFAULT_ACTION_VALUE*2);
     m_adaptor->emitPropertiesChangedSignal(INTERFACE_NAME, {"blocking"});
+
     waitUntil(signalReceived);
 }
 
 TEST_F(SdbusTestObject, EmitsPropertyChangedSignalForAllProperties)
 {
     std::atomic<bool> signalReceived{false};
-    m_proxy->m_onPropertiesChangedHandler = [&signalReceived](const std::string& interfaceName, const std::map<std::string, sdbus::Variant>& changedProperties, const std::vector<std::string>& invalidatedProperties)
+    m_proxy->m_onPropertiesChangedHandler = [&signalReceived]( const std::string& interfaceName
+                                                             , const std::map<std::string, sdbus::Variant>& changedProperties
+                                                             , const std::vector<std::string>& invalidatedProperties )
     {
         EXPECT_THAT(interfaceName, Eq(INTERFACE_NAME));
         EXPECT_THAT(changedProperties, SizeIs(1));
@@ -500,6 +505,7 @@ TEST_F(SdbusTestObject, EmitsPropertyChangedSignalForAllProperties)
     };
 
     m_adaptor->emitPropertiesChangedSignal(INTERFACE_NAME);
+
     waitUntil(signalReceived);
 }
 
@@ -539,4 +545,76 @@ TEST_F(SdbusTestObject, GetsManagedObjectsSuccessfully)
     ASSERT_THAT(objectsInterfacesAndProperties, SizeIs(2));
     EXPECT_THAT(objectsInterfacesAndProperties.at("/sub/path1").at("org.sdbuscpp.integrationtests.iface1").at("aProperty1").get<uint8_t>(), Eq(123));
     EXPECT_THAT(objectsInterfacesAndProperties.at("/sub/path2").at("org.sdbuscpp.integrationtests.iface2").at("aProperty2").get<std::string>(), Eq("hi"));
+}
+
+TEST_F(SdbusTestObject, EmitsInterfacesAddedSignalForSelectedObjectInterfaces)
+{
+    std::atomic<bool> signalReceived{false};
+    m_proxy->m_onInterfacesAddedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
+                                                           , const std::map<std::string, std::map<std::string, sdbus::Variant>>& interfacesAndProperties )
+    {
+        EXPECT_THAT(objectPath, Eq(OBJECT_PATH));
+        EXPECT_THAT(interfacesAndProperties, SizeIs(1));
+        EXPECT_THAT(interfacesAndProperties.count(INTERFACE_NAME), Eq(1));
+        EXPECT_THAT(interfacesAndProperties.at(INTERFACE_NAME), SizeIs(3));
+        signalReceived = true;
+    };
+    m_adaptor->addObjectManager(); // ObjectManager interface needs to be activated explicitly
+
+    m_adaptor->emitInterfacesAddedSignal({INTERFACE_NAME});
+
+    waitUntil(signalReceived);
+}
+
+TEST_F(SdbusTestObject, EmitsInterfacesAddedSignalForAllObjectInterfaces)
+{
+    std::atomic<bool> signalReceived{false};
+    m_proxy->m_onInterfacesAddedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
+                                                           , const std::map<std::string, std::map<std::string, sdbus::Variant>>& interfacesAndProperties )
+    {
+        EXPECT_THAT(objectPath, Eq(OBJECT_PATH));
+        EXPECT_THAT(interfacesAndProperties, SizeIs(5)); // INTERFACE_NAME + 4 standard interfaces
+        EXPECT_THAT(interfacesAndProperties.at(INTERFACE_NAME), SizeIs(3)); // 3 properties under INTERFACE_NAME
+        signalReceived = true;
+    };
+    m_adaptor->addObjectManager(); // ObjectManager interface needs to be activated explicitly
+
+    m_adaptor->emitInterfacesAddedSignal();
+
+    waitUntil(signalReceived);
+}
+
+TEST_F(SdbusTestObject, EmitsInterfacesRemovedSignalForSelectedObjectInterfaces)
+{
+    std::atomic<bool> signalReceived{false};
+    m_proxy->m_onInterfacesRemovedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
+                                                             , const std::vector<std::string>& interfaces )
+    {
+        EXPECT_THAT(objectPath, Eq(OBJECT_PATH));
+        ASSERT_THAT(interfaces, SizeIs(1));
+        EXPECT_THAT(interfaces[0], Eq(INTERFACE_NAME));
+        signalReceived = true;
+    };
+    m_adaptor->addObjectManager(); // ObjectManager interface needs to be activated explicitly
+
+    m_adaptor->emitInterfacesRemovedSignal({INTERFACE_NAME});
+
+    waitUntil(signalReceived);
+}
+
+TEST_F(SdbusTestObject, EmitsInterfacesRemovedSignalForAllObjectInterfaces)
+{
+    std::atomic<bool> signalReceived{false};
+    m_proxy->m_onInterfacesRemovedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
+                                                             , const std::vector<std::string>& interfaces )
+    {
+        EXPECT_THAT(objectPath, Eq(OBJECT_PATH));
+        ASSERT_THAT(interfaces, SizeIs(5)); // INTERFACE_NAME + 4 standard interfaces
+        signalReceived = true;
+    };
+    m_adaptor->addObjectManager(); // ObjectManager interface needs to be activated explicitly
+
+    m_adaptor->emitInterfacesRemovedSignal();
+
+    waitUntil(signalReceived);
 }

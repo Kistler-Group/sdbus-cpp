@@ -203,6 +203,44 @@ void Connection::emitPropertiesChangedSignal( const std::string& objectPath
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit PropertiesChanged signal", -r);
 }
 
+void Connection::emitInterfacesAddedSignal(const std::string& objectPath)
+{
+    auto r = iface_->sd_bus_emit_object_added(bus_.get(), objectPath.c_str());
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit InterfacesAdded signal for all registered interfaces", -r);
+}
+
+void Connection::emitInterfacesAddedSignal( const std::string& objectPath
+                                          , const std::vector<std::string>& interfaces )
+{
+    auto names = to_strv(interfaces);
+
+    auto r = iface_->sd_bus_emit_interfaces_added_strv( bus_.get()
+                                                      , objectPath.c_str()
+                                                      , interfaces.empty() ? nullptr : &names[0] );
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit InterfacesAdded signal", -r);
+}
+
+void Connection::emitInterfacesRemovedSignal(const std::string& objectPath)
+{
+    auto r = iface_->sd_bus_emit_object_removed(bus_.get(), objectPath.c_str());
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit InterfacesRemoved signal for all registered interfaces", -r);
+}
+
+void Connection::emitInterfacesRemovedSignal( const std::string& objectPath
+                                            , const std::vector<std::string>& interfaces )
+{
+    auto names = to_strv(interfaces);
+
+    auto r = iface_->sd_bus_emit_interfaces_removed_strv( bus_.get()
+                                                        , objectPath.c_str()
+                                                        , interfaces.empty() ? nullptr : &names[0] );
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit InterfacesRemoved signal", -r);
+}
+
 SlotPtr Connection::registerSignalHandler( const std::string& objectPath
                                          , const std::string& interfaceName
                                          , const std::string& signalName
