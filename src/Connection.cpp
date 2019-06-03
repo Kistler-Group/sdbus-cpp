@@ -40,6 +40,7 @@ std::vector</*const */char*> to_strv(const std::vector<std::string>& strings)
     std::vector</*const */char*> strv;
     for (auto& str : strings)
         strv.push_back(const_cast<char*>(str.c_str()));
+    strv.push_back(nullptr);
     return strv;
 }
 
@@ -197,7 +198,7 @@ void Connection::emitPropertiesChangedSignal( const std::string& objectPath
     auto r = iface_->sd_bus_emit_properties_changed_strv( bus_.get()
                                                         , objectPath.c_str()
                                                         , interfaceName.c_str()
-                                                        , names.empty() ? nullptr : &names[0] );
+                                                        , propNames.empty() ? nullptr : &names[0] );
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit PropertiesChanged signal", -r);
 }
