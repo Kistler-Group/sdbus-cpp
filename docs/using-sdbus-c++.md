@@ -17,7 +17,8 @@ Using sdbus-c++ library
 12. [Asynchronous server-side methods](#asynchronous-server-side-methods)
 13. [Asynchronous client-side methods](#asynchronous-client-side-methods)
 14. [Using D-Bus properties](#using-d-bus-properties)
-15. [Conclusion](#conclusion)
+15. [Standard D-Bus interfaces](#standard-d-bus-interfaces)
+16. [Conclusion](#conclusion)
 
 Introduction
 ------------
@@ -1104,6 +1105,11 @@ public:
 ```
 
 When implementing the adaptor, we simply need to provide the body for `status` getter and setter method by overriding them. Then in the proxy, we just call them.
+
+Standard D-Bus interfaces
+-------------------------
+
+sdbus-c++ provides pre-generated proxy and adaptor classes for standard D-Bus interfaces (which are `org.freedesktop.DBus.Peer`, `org.freedesktop.DBus.Introspectable`, `org.freedesktop.DBus.Properties`, `org.freedesktop.DBus.ObjectManager`). They can be found in `sdbus/StandardInterfaces.h`. Note that adaptor-side implementations of methods of these interfaces are provided already by the library, we don't need to implement them ourselves. Also note that `org.freedesktop.DBus.ObjectManager` interface needs to be activated explicitly -- by calling `addObjectManager()` on an object/adaptor.
 
 Conclusion
 ----------
