@@ -78,7 +78,7 @@ namespace sdbus { namespace internal {
                            , const std::string& signalName ) const override;
         void emitPropertiesChangedSignal( const std::string& objectPath
                                         , const std::string& interfaceName
-                                        , const std::vector<std::string>& properties ) override;
+                                        , const std::vector<std::string>& propNames ) override;
 
         SlotPtr registerSignalHandler( const std::string& objectPath
                                      , const std::string& interfaceName

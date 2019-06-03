@@ -135,9 +135,14 @@ void Object::emitSignal(const sdbus::Signal& message)
     message.send();
 }
 
-void Object::emitPropertiesChangedSignal(const std::string& interfaceName, const std::vector<std::string>& properties)
+void Object::emitPropertiesChangedSignal(const std::string& interfaceName, const std::vector<std::string>& propNames)
 {
-    connection_.emitPropertiesChangedSignal(objectPath_, interfaceName, properties);
+    connection_.emitPropertiesChangedSignal(objectPath_, interfaceName, propNames);
+}
+
+void Object::emitPropertiesChangedSignal(const std::string& interfaceName)
+{
+    Object::emitPropertiesChangedSignal(interfaceName, {});
 }
 
 sdbus::IConnection& Object::getConnection() const

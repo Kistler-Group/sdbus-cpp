@@ -190,14 +190,14 @@ Signal Connection::createSignal( const std::string& objectPath
 
 void Connection::emitPropertiesChangedSignal( const std::string& objectPath
                                             , const std::string& interfaceName
-                                            , const std::vector<std::string>& properties )
+                                            , const std::vector<std::string>& propNames )
 {
-    auto props = to_strv(properties);
+    auto names = to_strv(propNames);
 
     auto r = iface_->sd_bus_emit_properties_changed_strv( bus_.get()
                                                         , objectPath.c_str()
                                                         , interfaceName.c_str()
-                                                        , props.empty() ? nullptr : &props[0] );
+                                                        , names.empty() ? nullptr : &names[0] );
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit PropertiesChanged signal", -r);
 }
