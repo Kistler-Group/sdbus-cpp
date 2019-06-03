@@ -469,22 +469,39 @@ TEST_F(SdbusTestObject, GetsAllPropertiesViaPropertiesInterface)
     EXPECT_THAT(properties.at("blocking").get<bool>(), Eq(DEFAULT_BLOCKING_VALUE));
 }
 
-// TODO: Uncomment once we have support for PropertiesChanged signals
-//TEST_F(SdbusTestObject, GetsSignalOnChangedPropertiesViaPropertiesInterface)
-//{
-//    std::atomic<bool> signalReceived{false};
-//    m_proxy->m_onPropertiesChangedHandler = [&signalReceived](const std::string& interfaceName, const std::map<std::string, sdbus::Variant>& changedProperties, const std::vector<std::string>& invalidatedProperties)
-//    {
-//        EXPECT_THAT(interfaceName, Eq(INTERFACE_NAME));
-//        EXPECT_THAT(changedProperties, SizeIs(2));
-//        EXPECT_THAT(changedProperties.at("blocking").get<bool>(), Eq(false));
-//        EXPECT_THAT(invalidatedProperties, SizeIs(0));
-//        signalReceived = true;
-//    };
-//
-//    m_proxy->blocking(!DEFAULT_BLOCKING_VALUE);
-//    waitUntil(signalReceived);
-//}
+TEST_F(SdbusTestObject, EmitsPropertyChangedSignalForSelectedProperties)
+{
+    std::atomic<bool> signalReceived{false};
+    m_proxy->m_onPropertiesChangedHandler = [&signalReceived](const std::string& interfaceName, const std::map<std::string, sdbus::Variant>& changedProperties, const std::vector<std::string>& invalidatedProperties)
+    {
+        EXPECT_THAT(interfaceName, Eq(INTERFACE_NAME));
+        EXPECT_THAT(changedProperties, SizeIs(1));
+        EXPECT_THAT(changedProperties.at("blocking").get<bool>(), Eq(!DEFAULT_BLOCKING_VALUE));
+        signalReceived = true;
+    };
+
+    m_proxy->blocking(!DEFAULT_BLOCKING_VALUE);
+    m_proxy->action(DEFAULT_ACTION_VALUE*2);
+    m_adaptor->emitPropertiesChangedSignal(INTERFACE_NAME, {"blocking"});
+    waitUntil(signalReceived);
+}
+
+TEST_F(SdbusTestObject, EmitsPropertyChangedSignalForAllProperties)
+{
+    std::atomic<bool> signalReceived{false};
+    m_proxy->m_onPropertiesChangedHandler = [&signalReceived](const std::string& interfaceName, const std::map<std::string, sdbus::Variant>& changedProperties, const std::vector<std::string>& invalidatedProperties)
+    {
+        EXPECT_THAT(interfaceName, Eq(INTERFACE_NAME));
+        EXPECT_THAT(changedProperties, SizeIs(1));
+        EXPECT_THAT(changedProperties.at("blocking").get<bool>(), Eq(DEFAULT_BLOCKING_VALUE));
+        ASSERT_THAT(invalidatedProperties, SizeIs(1));
+        EXPECT_THAT(invalidatedProperties[0], Eq("action"));
+        signalReceived = true;
+    };
+
+    m_adaptor->emitPropertiesChangedSignal(INTERFACE_NAME);
+    waitUntil(signalReceived);
+}
 
 TEST_F(SdbusTestObject, DoesNotProvideObjectManagerInterfaceByDefault)
 {

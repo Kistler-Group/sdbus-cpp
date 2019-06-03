@@ -178,8 +178,34 @@ namespace sdbus {
     };
 
     // Adaptors for the above-listed standard D-Bus interfaces are not necessary because the functionality
-    // is provided automatically for each D-Bus object by underlying libsystemd (with the exception of
-    // object manager which is provided but needs to be added explicitly, see IObject::addObjectManager).
+    // is provided by underlying libsystemd implementation. The exception is Properties_adaptor and
+    // ObjectManager_adaptor, which provide convenience functionality to emit signals.
+
+    class Properties_adaptor
+    {
+        static constexpr const char* INTERFACE_NAME = "org.freedesktop.DBus.Properties";
+
+    protected:
+        Properties_adaptor(sdbus::IObject& object)
+            : object_(object)
+        {
+        }
+
+    public:
+        void emitPropertiesChangedSignal(const std::string& interfaceName, const std::vector<std::string>& properties)
+        {
+            object_.emitPropertiesChangedSignal(interfaceName, properties);
+        }
+
+        void emitPropertiesChangedSignal(const std::string& interfaceName)
+        {
+            object_.emitPropertiesChangedSignal(interfaceName);
+        }
+
+    private:
+        sdbus::IObject& object_;
+    };
+
 }
 
 #endif /* SDBUS_CXX_STANDARDINTERFACES_H_ */

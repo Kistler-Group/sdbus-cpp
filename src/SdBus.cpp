@@ -91,6 +91,13 @@ int SdBus::sd_bus_message_new_method_error(sd_bus_message *call, sd_bus_message 
     return ::sd_bus_message_new_method_error(call, m, e);
 }
 
+int SdBus::sd_bus_emit_properties_changed_strv(sd_bus *bus, const char *path, const char *interface, char **names)
+{
+    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
+
+    return ::sd_bus_emit_properties_changed_strv(bus, path, interface, names);
+}
+
 int SdBus::sd_bus_open_user(sd_bus **ret)
 {
     return ::sd_bus_open_user(ret);

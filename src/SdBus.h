@@ -47,6 +47,8 @@ public:
     virtual int sd_bus_message_new_method_return(sd_bus_message *call, sd_bus_message **m) override;
     virtual int sd_bus_message_new_method_error(sd_bus_message *call, sd_bus_message **m, const sd_bus_error *e) override;
 
+    virtual int sd_bus_emit_properties_changed_strv(sd_bus *bus, const char *path, const char *interface, char **names) override;
+
     virtual int sd_bus_open_user(sd_bus **ret) override;
     virtual int sd_bus_open_system(sd_bus **ret) override;
     virtual int sd_bus_request_name(sd_bus *bus, const char *name, uint64_t flags) override;
