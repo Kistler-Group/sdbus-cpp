@@ -224,9 +224,9 @@ private:
 
 public: // for tests
     // For dont-expect-reply method call verifications
-    mutable std::atomic<bool> m_wasMultiplyCalled{};
+    mutable std::atomic<bool> m_wasMultiplyCalled{false};
     mutable double m_multiplyResult{};
-    mutable std::atomic<bool> m_wasThrowErrorCalled{};
+    mutable std::atomic<bool> m_wasThrowErrorCalled{false};
 };
 
 

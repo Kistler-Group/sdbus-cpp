@@ -107,12 +107,12 @@ protected:
 
 //private:
 public: // for tests
-    std::atomic<bool> m_gotSimpleSignal;
-    std::atomic<bool> m_gotSignalWithMap;
+    std::atomic<bool> m_gotSimpleSignal{false};
+    std::atomic<bool> m_gotSignalWithMap{false};
     std::map<int32_t, std::string> m_mapFromSignal;
-    std::atomic<bool> m_gotSignalWithVariant;
+    std::atomic<bool> m_gotSignalWithVariant{false};
     double m_variantFromSignal;
-    std::atomic<bool> m_gotSignalWithSignature;
+    std::atomic<bool> m_gotSignalWithSignature{false};
     std::map<std::string, std::string> m_signatureFromSignal;
 
     std::function<void(uint32_t res, const sdbus::Error* err)> m_DoOperationClientSideAsyncReplyHandler;

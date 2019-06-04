@@ -43,6 +43,7 @@
 #include <future>
 
 using ::testing::Eq;
+using ::testing::DoubleEq;
 using ::testing::Gt;
 using ::testing::ElementsAre;
 using ::testing::SizeIs;
@@ -382,7 +383,7 @@ TEST_F(SdbusTestObject, EmitsSignalWithVariantSuccesfully)
     m_adaptor->emitSignalWithVariant(d);
 
     ASSERT_TRUE(waitUntil(m_proxy->m_gotSignalWithVariant));
-    ASSERT_THAT(m_proxy->m_variantFromSignal, d);
+    ASSERT_THAT(m_proxy->m_variantFromSignal, DoubleEq(d));
 }
 
 TEST_F(SdbusTestObject, EmitsSignalWithoutRegistrationSuccesfully)
