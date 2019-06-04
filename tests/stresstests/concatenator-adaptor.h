@@ -28,7 +28,7 @@ protected:
     }
 
 public:
-    void concatenatedSignal(const std::string& concatenatedString)
+    void emitConcatenatedSignal(const std::string& concatenatedString)
     {
         object_.emitSignal("concatenatedSignal").onInterface(INTERFACE_NAME).withArguments(concatenatedString);
     }

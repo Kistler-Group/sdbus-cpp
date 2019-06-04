@@ -28,7 +28,7 @@ protected:
     }
 
 public:
-    void dataSignal(const std::string& data)
+    void emitDataSignal(const std::string& data)
     {
         object_.emitSignal("dataSignal").onInterface(INTERFACE_NAME).withArguments(data);
     }

@@ -33,6 +33,7 @@
 #include <cstdlib>
 #include <algorithm>
 #include <iterator>
+#include <cctype>
 
 using std::endl;
 
@@ -202,7 +203,7 @@ std::tuple<std::string, std::string> AdaptorGenerator::processMethods(const Node
 
         std::string argStr, argTypeStr;
         std::tie(argStr, argTypeStr, std::ignore) = argsToNamesAndTypes(inArgs, async);
-        
+
         using namespace std::string_literals;
 
         registrationSS << tab << tab << "object_.registerMethod(\""
@@ -270,7 +271,10 @@ std::tuple<std::string, std::string> AdaptorGenerator::processSignals(const Node
         signalRegistrationSS << annotationRegistration;
         signalRegistrationSS << ";" << endl;
 
-        signalMethodSS << tab << "void " << name << "(" << argTypeStr << ")" << endl
+        auto nameWithCapFirstLetter = name;
+        nameWithCapFirstLetter[0] = std::toupper(nameWithCapFirstLetter[0]);
+
+        signalMethodSS << tab << "void emit" << nameWithCapFirstLetter << "(" << argTypeStr << ")" << endl
                 << tab << "{" << endl
                 << tab << tab << "object_.emitSignal(\"" << name << "\")"
                         ".onInterface(INTERFACE_NAME)";
