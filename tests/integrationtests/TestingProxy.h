@@ -27,6 +27,7 @@
 #define SDBUS_CPP_INTEGRATIONTESTS_TESTINGPROXY_H_
 
 #include "proxy-glue.h"
+#include <atomic>
 
 class TestingProxy : public sdbus::ProxyInterfaces< ::testing_proxy
                                                   , sdbus::Peer_proxy
@@ -46,29 +47,33 @@ public:
         unregisterProxy();
     }
 
-    int getSimpleCallCount() const { return m_simpleCallCounter; }
-    std::map<int32_t, std::string> getMap() const { return m_map; }
-    double getVariantValue() const { return m_variantValue; }
-    std::map<std::string, std::string> getSignatureFromSignal() const { return m_signature; }
-
     void installDoOperationClientSideAsyncReplyHandler(std::function<void(uint32_t res, const sdbus::Error* err)> handler)
     {
         m_DoOperationClientSideAsyncReplyHandler = handler;
     }
 
 protected:
-    void onSimpleSignal() override { ++m_simpleCallCounter; }
+    void onSimpleSignal() override
+    {
+        m_gotSimpleSignal = true;
+    }
 
-    void onSignalWithMap(const std::map<int32_t, std::string>& m) override { m_map = m; }
+    void onSignalWithMap(const std::map<int32_t, std::string>& m) override
+    {
+        m_mapFromSignal = m;
+        m_gotSignalWithMap = true;
+    }
 
     void onSignalWithVariant(const sdbus::Variant& v) override
     {
-        m_variantValue = v.get<double>();
+        m_variantFromSignal = v.get<double>();
+        m_gotSignalWithVariant = true;
     }
 
     void onSignalWithoutRegistration(const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& s) override
     {
-        m_signature[std::get<0>(s)] = static_cast<std::string>(std::get<0>(std::get<1>(s)));
+        m_signatureFromSignal[std::get<0>(s)] = static_cast<std::string>(std::get<0>(std::get<1>(s)));
+        m_gotSignalWithSignature = true;
     }
 
     void onDoOperationReply(uint32_t returnValue, const sdbus::Error* error) override
@@ -101,11 +106,14 @@ protected:
     }
 
 //private:
-public:
-    int m_simpleCallCounter{};
-    std::map<int32_t, std::string> m_map;
-    double m_variantValue;
-    std::map<std::string, std::string> m_signature;
+public: // for tests
+    std::atomic<bool> m_gotSimpleSignal;
+    std::atomic<bool> m_gotSignalWithMap;
+    std::map<int32_t, std::string> m_mapFromSignal;
+    std::atomic<bool> m_gotSignalWithVariant;
+    double m_variantFromSignal;
+    std::atomic<bool> m_gotSignalWithSignature;
+    std::map<std::string, std::string> m_signatureFromSignal;
 
     std::function<void(uint32_t res, const sdbus::Error* err)> m_DoOperationClientSideAsyncReplyHandler;
     std::function<void(const std::string&, const std::map<std::string, sdbus::Variant>&, const std::vector<std::string>&)> m_onPropertiesChangedHandler;

@@ -118,22 +118,22 @@ protected:
     }
 
 public:
-    void simpleSignal()
+    void emitSimpleSignal()
     {
         object_.emitSignal("simpleSignal").onInterface(INTERFACE_NAME);
     }
 
-    void signalWithMap(const std::map<int32_t, std::string>& map)
+    void emitSignalWithMap(const std::map<int32_t, std::string>& map)
     {
         object_.emitSignal("signalWithMap").onInterface(INTERFACE_NAME).withArguments(map);
     }
 
-    void signalWithVariant(const sdbus::Variant& v)
+    void emitSignalWithVariant(const sdbus::Variant& v)
     {
         object_.emitSignal("signalWithVariant").onInterface(INTERFACE_NAME).withArguments(v);
     }
 
-    void signalWithoutRegistration(const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& s)
+    void emitSignalWithoutRegistration(const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& s)
     {
         object_.emitSignal("signalWithoutRegistration").onInterface(INTERFACE_NAME).withArguments(s);
     }

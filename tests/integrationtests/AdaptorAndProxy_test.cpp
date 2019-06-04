@@ -66,7 +66,7 @@ public:
         s_connection->releaseName(INTERFACE_NAME);
     }
 
-    static void waitUntil(std::atomic<bool>& flag, std::chrono::milliseconds timeout = 1s)
+    static bool waitUntil(std::atomic<bool>& flag, std::chrono::milliseconds timeout = 5s)
     {
         std::chrono::milliseconds elapsed{};
         std::chrono::milliseconds step{5ms};
@@ -74,8 +74,10 @@ public:
             std::this_thread::sleep_for(step);
             elapsed += step;
             if (elapsed > timeout)
-                throw std::runtime_error("Waiting timed out");
+                return false;
         } while (!flag);
+
+        return true;
     }
 
 private:
@@ -216,14 +218,8 @@ TEST_F(SdbusTestObject, CallsMultiplyMethodWithNoReplyFlag)
 {
     m_proxy->multiplyWithNoReply(INT64_VALUE, DOUBLE_VALUE);
 
-    for (auto i = 0; i < 100; ++i)
-    {
-        if (m_adaptor->wasMultiplyCalled())
-            break;
-        std::this_thread::sleep_for(10ms);
-    }
-    ASSERT_TRUE(m_adaptor->wasMultiplyCalled());
-    ASSERT_THAT(m_adaptor->getMultiplyResult(), Eq(INT64_VALUE * DOUBLE_VALUE));
+    ASSERT_TRUE(waitUntil(m_adaptor->m_wasMultiplyCalled));
+    ASSERT_THAT(m_adaptor->m_multiplyResult, Eq(INT64_VALUE * DOUBLE_VALUE));
 }
 
 TEST_F(SdbusTestObject, CallsMethodThatThrowsError)
@@ -248,13 +244,7 @@ TEST_F(SdbusTestObject, CallsErrorThrowingMethodWithDontExpectReplySet)
 {
     ASSERT_NO_THROW(m_proxy->throwErrorWithNoReply());
 
-    for (auto i = 0; i < 100; ++i)
-    {
-        if (m_adaptor->wasThrowErrorCalled())
-            break;
-        std::this_thread::sleep_for(10ms);
-    }
-    ASSERT_TRUE(m_adaptor->wasThrowErrorCalled());
+    ASSERT_TRUE(waitUntil(m_adaptor->m_wasThrowErrorCalled));
 }
 
 TEST_F(SdbusTestObject, RunsServerSideAsynchoronousMethodAsynchronously)
@@ -372,39 +362,35 @@ TEST_F(SdbusTestObject, FailsCallingMethodOnNonexistentObject)
 
 TEST_F(SdbusTestObject, EmitsSimpleSignalSuccesfully)
 {
-    auto count = m_proxy->getSimpleCallCount();
-    m_adaptor->simpleSignal();
-    usleep(10000);
+    m_adaptor->emitSimpleSignal();
 
-    ASSERT_THAT(m_proxy->getSimpleCallCount(), Eq(count + 1));
+    ASSERT_TRUE(waitUntil(m_proxy->m_gotSimpleSignal));
 }
 
 TEST_F(SdbusTestObject, EmitsSignalWithMapSuccesfully)
 {
-    m_adaptor->signalWithMap({{0, "zero"}, {1, "one"}});
-    usleep(10000);
+    m_adaptor->emitSignalWithMap({{0, "zero"}, {1, "one"}});
 
-    auto map = m_proxy->getMap();
-    ASSERT_THAT(map[0], Eq("zero"));
-    ASSERT_THAT(map[1], Eq("one"));
+    ASSERT_TRUE(waitUntil(m_proxy->m_gotSignalWithMap));
+    ASSERT_THAT(m_proxy->m_mapFromSignal[0], Eq("zero"));
+    ASSERT_THAT(m_proxy->m_mapFromSignal[1], Eq("one"));
 }
 
 TEST_F(SdbusTestObject, EmitsSignalWithVariantSuccesfully)
 {
     double d = 3.14;
-    m_adaptor->signalWithVariant(3.14);
-    usleep(10000);
+    m_adaptor->emitSignalWithVariant(d);
 
-    ASSERT_THAT(m_proxy->getVariantValue(), d);
+    ASSERT_TRUE(waitUntil(m_proxy->m_gotSignalWithVariant));
+    ASSERT_THAT(m_proxy->m_variantFromSignal, d);
 }
 
 TEST_F(SdbusTestObject, EmitsSignalWithoutRegistrationSuccesfully)
 {
-    m_adaptor->signalWithoutRegistration({"platform", {"av"}});
-    usleep(10000);
+    m_adaptor->emitSignalWithoutRegistration({"platform", {"av"}});
 
-    auto signature = m_proxy->getSignatureFromSignal();
-    ASSERT_THAT(signature["platform"], Eq("av"));
+    ASSERT_TRUE(waitUntil(m_proxy->m_gotSignalWithSignature));
+    ASSERT_THAT(m_proxy->m_signatureFromSignal["platform"], Eq("av"));
 }
 
 // Properties
@@ -486,7 +472,7 @@ TEST_F(SdbusTestObject, EmitsPropertyChangedSignalForSelectedProperties)
     m_proxy->action(DEFAULT_ACTION_VALUE*2);
     m_adaptor->emitPropertiesChangedSignal(INTERFACE_NAME, {"blocking"});
 
-    waitUntil(signalReceived);
+    ASSERT_TRUE(waitUntil(signalReceived));
 }
 
 TEST_F(SdbusTestObject, EmitsPropertyChangedSignalForAllProperties)
@@ -506,7 +492,7 @@ TEST_F(SdbusTestObject, EmitsPropertyChangedSignalForAllProperties)
 
     m_adaptor->emitPropertiesChangedSignal(INTERFACE_NAME);
 
-    waitUntil(signalReceived);
+    ASSERT_TRUE(waitUntil(signalReceived));
 }
 
 TEST_F(SdbusTestObject, DoesNotProvideObjectManagerInterfaceByDefault)
@@ -563,7 +549,7 @@ TEST_F(SdbusTestObject, EmitsInterfacesAddedSignalForSelectedObjectInterfaces)
 
     m_adaptor->emitInterfacesAddedSignal({INTERFACE_NAME});
 
-    waitUntil(signalReceived);
+    ASSERT_TRUE(waitUntil(signalReceived));
 }
 
 TEST_F(SdbusTestObject, EmitsInterfacesAddedSignalForAllObjectInterfaces)
@@ -581,7 +567,7 @@ TEST_F(SdbusTestObject, EmitsInterfacesAddedSignalForAllObjectInterfaces)
 
     m_adaptor->emitInterfacesAddedSignal();
 
-    waitUntil(signalReceived);
+    ASSERT_TRUE(waitUntil(signalReceived));
 }
 
 TEST_F(SdbusTestObject, EmitsInterfacesRemovedSignalForSelectedObjectInterfaces)
@@ -599,7 +585,7 @@ TEST_F(SdbusTestObject, EmitsInterfacesRemovedSignalForSelectedObjectInterfaces)
 
     m_adaptor->emitInterfacesRemovedSignal({INTERFACE_NAME});
 
-    waitUntil(signalReceived);
+    ASSERT_TRUE(waitUntil(signalReceived));
 }
 
 TEST_F(SdbusTestObject, EmitsInterfacesRemovedSignalForAllObjectInterfaces)
@@ -616,5 +602,5 @@ TEST_F(SdbusTestObject, EmitsInterfacesRemovedSignalForAllObjectInterfaces)
 
     m_adaptor->emitInterfacesRemovedSignal();
 
-    waitUntil(signalReceived);
+    ASSERT_TRUE(waitUntil(signalReceived));
 }
