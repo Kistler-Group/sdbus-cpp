@@ -90,7 +90,7 @@ v0.6.0
 - Fix gcc warnings
 - Use release v1.8.1 of googletest for tests
 
-vX.Y.Z
+v0.7.0
 - [[Breaking ABI change]] Added full support for ObjectManager, Properties and other standard D-Bus interfaces (Reordering virtual functions in interface classes)
 - sdbus-c++ now can automatically download, build and incorporate libsystemd static library, which makes things pretty easy in non-systemd environments
 - Minor changes in generated proxy/adaptor code:
