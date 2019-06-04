@@ -59,7 +59,7 @@ protected:
         for (uint32_t i = 0; i < numberOfSignals; ++i)
         {
             // Emit signal
-            dataSignal(data);
+            emitDataSignal(data);
         }
         auto stop_time = std::chrono::steady_clock::now();
         std::cout << "Server sent " << numberOfSignals << " signals in: " << std::chrono::duration_cast<std::chrono::milliseconds>(stop_time - start_time).count() << " ms" << std::endl;

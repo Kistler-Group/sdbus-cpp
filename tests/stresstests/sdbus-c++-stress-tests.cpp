@@ -255,7 +255,7 @@ public:
 
                     request.result.returnResults(resultString);
 
-                    concatenatedSignal(resultString);
+                    emitConcatenatedSignal(resultString);
                 }
             });
 

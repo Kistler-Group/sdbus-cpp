@@ -552,7 +552,7 @@ protected:
     }
 
 public:
-    void concatenated(const std::string& concatenatedString)
+    void emitConcatenated(const std::string& concatenatedString)
     {
         object_.emitSignal("concatenated").onInterface(INTERFACE_NAME).withArguments(concatenatedString);
     }
@@ -666,7 +666,7 @@ protected:
         }
         
         // Emit the 'concatenated' signal with the resulting string
-        concatenated(result);
+        emitConcatenated(result);
         
         // Return the resulting string
         return result;
@@ -869,7 +869,7 @@ void concatenate(sdbus::Result<std::string>&& result, std::vector<int32_t> numbe
         methodResult.returnReply(result);
         
         // Emit the 'concatenated' signal with the resulting string
-        this->concatenated(result);
+        this->emitConcatenated(result);
     }).detach();
 }
 ```
