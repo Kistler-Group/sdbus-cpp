@@ -1098,7 +1098,20 @@ When implementing the adaptor, we simply need to provide the body for `status` g
 Standard D-Bus interfaces
 -------------------------
 
-sdbus-c++ provides pre-generated proxy and adaptor classes for standard D-Bus interfaces (which are `org.freedesktop.DBus.Peer`, `org.freedesktop.DBus.Introspectable`, `org.freedesktop.DBus.Properties`, `org.freedesktop.DBus.ObjectManager`). They can be found in `sdbus/StandardInterfaces.h`. Note that adaptor-side implementations of methods of these interfaces are provided already by the library, we don't need to implement them ourselves. Also note that `org.freedesktop.DBus.ObjectManager` interface needs to be activated explicitly -- by calling `addObjectManager()` on an object/adaptor.
+sdbus-c++ provides support for standard D-Bus interfaces. These are:
+
+* `org.freedesktop.DBus.Peer`
+* `org.freedesktop.DBus.Introspectable`
+* `org.freedesktop.DBus.Properties`
+* `org.freedesktop.DBus.ObjectManager`
+
+The implementation of methods that these interfaces define is provided by the library. `Peer`, `Introspectable` and `Properties` are automatically part of interfaces of every D-Bus object. `ObjectManager` is not automatically present and has to be enabled by the client when using `IObject` API. When using generated `ObjectManager_adaptor`, `ObjectManager` is enabled automatically in its constructor.
+
+Pre-generated `*_proxy` and `*_adaptor` convenience classes for these standard interfaces are located in `sdbus-c++/StandardInterfaces.h`. We add them simply as additional parameters of `sdbus::ProxyInterfaces` or `sdbus::AdaptorInterfaces` class template, and our proxy or adaptor class inherits convenience functions from those interface classes.
+
+For example, to conveniently emit a `PropertyChanged` signal under `org.freedesktop.DBus.Properties` interface, we just issue `emitPropertiesChangedSignal` function of our adaptor object.
+
+Note that signals of afore-mentioned standard D-Bus interfaces are not emitted by the library automatically. It's clients who are supposed to emit them.
 
 Conclusion
 ----------
