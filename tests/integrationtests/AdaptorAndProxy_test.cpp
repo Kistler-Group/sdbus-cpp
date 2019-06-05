@@ -496,22 +496,8 @@ TEST_F(SdbusTestObject, EmitsPropertyChangedSignalForAllProperties)
     ASSERT_TRUE(waitUntil(signalReceived));
 }
 
-TEST_F(SdbusTestObject, DoesNotProvideObjectManagerInterfaceByDefault)
-{
-    ASSERT_THROW(m_proxy->GetManagedObjects(), sdbus::Error);
-}
-
-TEST_F(SdbusTestObject, ProvidesObjectManagerInterfaceWhenExplicitlyAdded)
-{
-    m_adaptor->addObjectManager();
-
-    ASSERT_NO_THROW(m_proxy->GetManagedObjects());
-}
-
 TEST_F(SdbusTestObject, GetsZeroManagedObjectsIfHasNoSubPathObjects)
 {
-    m_adaptor->addObjectManager();
-
     const auto objectsInterfacesAndProperties = m_proxy->GetManagedObjects();
 
     ASSERT_THAT(objectsInterfacesAndProperties, SizeIs(0));
@@ -519,7 +505,6 @@ TEST_F(SdbusTestObject, GetsZeroManagedObjectsIfHasNoSubPathObjects)
 
 TEST_F(SdbusTestObject, GetsManagedObjectsSuccessfully)
 {
-    m_adaptor->addObjectManager();
     auto subObject1 = sdbus::createObject(*s_connection, "/sub/path1");
     subObject1->registerProperty("aProperty1").onInterface("org.sdbuscpp.integrationtests.iface1").withGetter([]{return uint8_t{123};});
     subObject1->finishRegistration();
@@ -546,7 +531,6 @@ TEST_F(SdbusTestObject, EmitsInterfacesAddedSignalForSelectedObjectInterfaces)
         EXPECT_THAT(interfacesAndProperties.at(INTERFACE_NAME), SizeIs(3));
         signalReceived = true;
     };
-    m_adaptor->addObjectManager(); // ObjectManager interface needs to be activated explicitly
 
     m_adaptor->emitInterfacesAddedSignal({INTERFACE_NAME});
 
@@ -564,7 +548,6 @@ TEST_F(SdbusTestObject, EmitsInterfacesAddedSignalForAllObjectInterfaces)
         EXPECT_THAT(interfacesAndProperties.at(INTERFACE_NAME), SizeIs(3)); // 3 properties under INTERFACE_NAME
         signalReceived = true;
     };
-    m_adaptor->addObjectManager(); // ObjectManager interface needs to be activated explicitly
 
     m_adaptor->emitInterfacesAddedSignal();
 
@@ -582,7 +565,6 @@ TEST_F(SdbusTestObject, EmitsInterfacesRemovedSignalForSelectedObjectInterfaces)
         EXPECT_THAT(interfaces[0], Eq(INTERFACE_NAME));
         signalReceived = true;
     };
-    m_adaptor->addObjectManager(); // ObjectManager interface needs to be activated explicitly
 
     m_adaptor->emitInterfacesRemovedSignal({INTERFACE_NAME});
 
@@ -599,7 +581,6 @@ TEST_F(SdbusTestObject, EmitsInterfacesRemovedSignalForAllObjectInterfaces)
         ASSERT_THAT(interfaces, SizeIs(5)); // INTERFACE_NAME + 4 standard interfaces
         signalReceived = true;
     };
-    m_adaptor->addObjectManager(); // ObjectManager interface needs to be activated explicitly
 
     m_adaptor->emitInterfacesRemovedSignal();
 

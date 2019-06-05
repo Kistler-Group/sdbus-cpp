@@ -216,6 +216,7 @@ namespace sdbus {
         ObjectManager_adaptor(sdbus::IObject& object)
             : object_(object)
         {
+            object_.addObjectManager();
         }
 
     public:

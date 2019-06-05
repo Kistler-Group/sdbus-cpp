@@ -211,6 +211,19 @@ R"delimiter(<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspectio
    <arg type="as" name="invalidated_properties"/>
   </signal>
  </interface>
+ <interface name="org.freedesktop.DBus.ObjectManager">
+  <method name="GetManagedObjects">
+   <arg type="a{oa{sa{sv}}}" name="object_paths_interfaces_and_properties" direction="out"/>
+  </method>
+  <signal name="InterfacesAdded">
+   <arg type="o" name="object_path"/>
+   <arg type="a{sa{sv}}" name="interfaces_and_properties"/>
+  </signal>
+  <signal name="InterfacesRemoved">
+   <arg type="o" name="object_path"/>
+   <arg type="as" name="interfaces"/>
+  </signal>
+ </interface>
  <interface name="org.sdbuscpp.integrationtests">
   <annotation name="org.freedesktop.DBus.Deprecated" value="true"/>
   <method name="doOperation">

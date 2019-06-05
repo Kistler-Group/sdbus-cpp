@@ -130,30 +130,6 @@ namespace sdbus {
             getObject().unregister();
         }
 
-        /*!
-         * @brief Adds an ObjectManager interface at the path of this D-Bus object
-         *
-         * Creates an ObjectManager interface at the specified object path on
-         * the connection. This is a convenient way to interrogate a connection
-         * to see what objects it has.
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        void addObjectManager()
-        {
-            getObject().addObjectManager();
-        }
-
-        /*!
-         * @brief Removes an ObjectManager interface from the path of this D-Bus object
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        void removeObjectManager()
-        {
-            getObject().removeObjectManager();
-        }
-
     protected:
         using base_type = AdaptorInterfaces;
     };
