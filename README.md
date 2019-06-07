@@ -56,7 +56,7 @@ $ sudo make install
 
     * `LIBSYSTEMD_VERSION` [string]
 
-      Defines version of systemd to be downloaded, built and integrated into sdbus-c++. Default value: `v239`.
+      Defines version of systemd to be downloaded, built and integrated into sdbus-c++. Default value: `242`.
 
 * `CMAKE_BUILD_TYPE` [string]
 
@@ -68,6 +68,7 @@ Dependencies
 * `C++17` - the library uses C++17 `std::uncaught_exceptions()` feature. When building sdbus-c++ manually, make sure you use a compiler that supports that feature (gcc >= 6, clang >= 3.7)
 * `libsystemd` - systemd library containing sd-bus implementation. This library is part of systemd. Systemd at least v236 is needed. (In case you have a non-systemd environment, don't worry, see [Solving libsystemd dependency](docs/using-sdbus-c++.md#solving-libsystemd-dependency) for more information.)
 * `googletest` - google unit testing framework, only necessary when building tests, will be downloaded and built automatically.
+* `pkgconfig` - required for sdbus-c++ to be able to find some dependency packages.
 
 Licensing
 ---------
@@ -77,10 +78,10 @@ The library is distributed under LGPLv2.1 license.
 References/documentation
 ------------------------
 
+* [Using sdbus-c++](docs/using-sdbus-c++.md) - *the* main, comprehensive tutorial on sdbus-c++
+* [Systemd and dbus configuration](docs/systemd-dbus-config.md)
 * [D-Bus Specification](https://dbus.freedesktop.org/docs/dbus-specification.html)
 * [sd-bus Overview](http://0pointer.net/blog/the-new-sd-bus-api-of-systemd.html)
-* [Tutorial: Using sdbus-c++](docs/using-sdbus-c++.md)
-* [Systemd and dbus configuration](docs/systemd-dbus-config.md)
 
 Contributing
 ------------

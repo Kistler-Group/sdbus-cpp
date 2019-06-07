@@ -18,13 +18,13 @@ namespace fahrenheit {
 class thermometer_adaptor
 {
 public:
-    static constexpr const char* interfaceName = "org.sdbuscpp.stresstests.fahrenheit.thermometer";
+    static constexpr const char* INTERFACE_NAME = "org.sdbuscpp.stresstests.fahrenheit.thermometer";
 
 protected:
     thermometer_adaptor(sdbus::IObject& object)
         : object_(object)
     {
-        object_.registerMethod("getCurrentTemperature").onInterface(interfaceName).implementedAs([this](){ return this->getCurrentTemperature(); });
+        object_.registerMethod("getCurrentTemperature").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->getCurrentTemperature(); });
     }
 
 private:
@@ -45,14 +45,14 @@ namespace thermometer {
 class factory_adaptor
 {
 public:
-    static constexpr const char* interfaceName = "org.sdbuscpp.stresstests.fahrenheit.thermometer.factory";
+    static constexpr const char* INTERFACE_NAME = "org.sdbuscpp.stresstests.fahrenheit.thermometer.factory";
 
 protected:
     factory_adaptor(sdbus::IObject& object)
         : object_(object)
     {
-        object_.registerMethod("createDelegateObject").onInterface(interfaceName).implementedAs([this](sdbus::Result<sdbus::ObjectPath>&& result){ this->createDelegateObject(std::move(result)); });
-        object_.registerMethod("destroyDelegateObject").onInterface(interfaceName).implementedAs([this](sdbus::Result<>&& result, sdbus::ObjectPath delegate){ this->destroyDelegateObject(std::move(result), std::move(delegate)); }).withNoReply();
+        object_.registerMethod("createDelegateObject").onInterface(INTERFACE_NAME).implementedAs([this](sdbus::Result<sdbus::ObjectPath>&& result){ this->createDelegateObject(std::move(result)); });
+        object_.registerMethod("destroyDelegateObject").onInterface(INTERFACE_NAME).implementedAs([this](sdbus::Result<>&& result, sdbus::ObjectPath delegate){ this->destroyDelegateObject(std::move(result), std::move(delegate)); }).withNoReply();
     }
 
 private:

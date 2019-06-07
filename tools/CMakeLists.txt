@@ -4,7 +4,7 @@
 
 cmake_minimum_required(VERSION 3.5)
 
-project(sdbus-c++-xml2cpp)
+project(sdbus-c++-tools)
 
 include(GNUInstallDirs)
 
@@ -41,12 +41,11 @@ set(CMAKE_CXX_STANDARD 14)
 # EXECUTABLE BUILD INFORMATION
 #----------------------------------
 
-add_executable(${PROJECT_NAME} ${SDBUSCPP_XML2CPP_SRCS})
-
-target_link_libraries (${PROJECT_NAME} ${EXPAT_LIBRARIES})
+add_executable(sdbus-c++-xml2cpp ${SDBUSCPP_XML2CPP_SRCS})
+target_link_libraries (sdbus-c++-xml2cpp ${EXPAT_LIBRARIES})
 
 #----------------------------------
 # INSTALLATION
 #----------------------------------
 
-install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS sdbus-c++-xml2cpp EXPORT sdbus-c++-xml2cpp DESTINATION ${CMAKE_INSTALL_BINDIR})

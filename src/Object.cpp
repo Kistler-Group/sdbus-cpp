@@ -135,6 +135,51 @@ void Object::emitSignal(const sdbus::Signal& message)
     message.send();
 }
 
+void Object::emitPropertiesChangedSignal(const std::string& interfaceName, const std::vector<std::string>& propNames)
+{
+    connection_.emitPropertiesChangedSignal(objectPath_, interfaceName, propNames);
+}
+
+void Object::emitPropertiesChangedSignal(const std::string& interfaceName)
+{
+    Object::emitPropertiesChangedSignal(interfaceName, {});
+}
+
+void Object::emitInterfacesAddedSignal()
+{
+    connection_.emitInterfacesAddedSignal(objectPath_);
+}
+
+void Object::emitInterfacesAddedSignal(const std::vector<std::string>& interfaces)
+{
+    connection_.emitInterfacesAddedSignal(objectPath_, interfaces);
+}
+
+void Object::emitInterfacesRemovedSignal()
+{
+    connection_.emitInterfacesRemovedSignal(objectPath_);
+}
+
+void Object::emitInterfacesRemovedSignal(const std::vector<std::string>& interfaces)
+{
+    connection_.emitInterfacesRemovedSignal(objectPath_, interfaces);
+}
+
+void Object::addObjectManager()
+{
+    objectManagerSlot_ = connection_.addObjectManager(objectPath_);
+}
+
+void Object::removeObjectManager()
+{
+    objectManagerSlot_.reset();
+}
+
+bool Object::hasObjectManager() const
+{
+    return objectManagerSlot_ != nullptr;
+}
+
 sdbus::IConnection& Object::getConnection() const
 {
     return dynamic_cast<sdbus::IConnection&>(connection_);
@@ -207,10 +252,7 @@ void Object::activateInterfaceVTable( const std::string& interfaceName
                                     , InterfaceData& interfaceData
                                     , const std::vector<sd_bus_vtable>& vtable )
 {
-    // Tell, don't ask
-    auto slot = connection_.addObjectVTable(objectPath_, interfaceName, &vtable[0], this);
-    interfaceData.slot_.reset(slot);
-    interfaceData.slot_.get_deleter() = [this](sd_bus_slot *slot){ connection_.removeObjectVTable(slot); };
+    interfaceData.slot_ = connection_.addObjectVTable(objectPath_, interfaceName, &vtable[0], this);
 }
 
 int Object::sdbus_method_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError)

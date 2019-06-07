@@ -31,7 +31,9 @@
 #include <chrono>
 #include <atomic>
 
-class TestingAdaptor : public sdbus::AdaptorInterfaces<testing_adaptor>
+class TestingAdaptor : public sdbus::AdaptorInterfaces< testing_adaptor
+                                                      , sdbus::Properties_adaptor
+                                                      , sdbus::ObjectManager_adaptor >
 {
 public:
     TestingAdaptor(sdbus::IConnection& connection) :
@@ -45,24 +47,31 @@ public:
         unregisterAdaptor();
     }
 
-    bool wasMultiplyCalled() const { return m_multiplyCalled; }
-    double getMultiplyResult() const { return m_multiplyResult; }
-    bool wasThrowErrorCalled() const { return m_throwErrorCalled; }
-
 protected:
 
-    void noArgNoReturn() const {}
+    void noArgNoReturn() const
+    {
+    }
 
-    int32_t getInt() const { return INT32_VALUE; }
+    int32_t getInt() const
+    {
+        return INT32_VALUE;
+    }
 
-    std::tuple<uint32_t, std::string> getTuple() const { return std::make_tuple(UINT32_VALUE, STRING_VALUE); }
+    std::tuple<uint32_t, std::string> getTuple() const
+    {
+        return std::make_tuple(UINT32_VALUE, STRING_VALUE);
+    }
 
-    double multiply(const int64_t& a, const double& b) const { return a * b; }
+    double multiply(const int64_t& a, const double& b) const
+    {
+        return a * b;
+    }
 
     void multiplyWithNoReply(const int64_t& a, const double& b) const
     {
         m_multiplyResult = a * b;
-        m_multiplyCalled = true;
+        m_wasMultiplyCalled = true;
     }
 
     std::vector<int16_t> getInts16FromStruct(const sdbus::Struct<uint8_t, int16_t, double, std::string, std::vector<int16_t>>& x) const
@@ -140,8 +149,14 @@ protected:
         }
     }
 
-    sdbus::Signature getSignature() const { return SIGNATURE_VALUE; }
-    sdbus::ObjectPath getObjectPath() const { return OBJECT_PATH_VALUE; }
+    sdbus::Signature getSignature() const
+    {
+        return SIGNATURE_VALUE;
+    }
+    sdbus::ObjectPath getObjectPath() const
+    {
+        return OBJECT_PATH_VALUE;
+    }
 
     ComplexType getComplex() const
     {
@@ -173,24 +188,45 @@ protected:
 
     void throwError() const
     {
-        m_throwErrorCalled = true;
+        m_wasThrowErrorCalled = true;
         throw sdbus::createError(1, "A test error occurred");
     }
 
-    std::string state() { return STRING_VALUE; }
-    uint32_t action() { return m_action; }
-    void action(const uint32_t& value) { m_action = value; }
-    bool blocking() { return m_blocking; }
-    void blocking(const bool& value) { m_blocking = value; }
+    std::string state()
+    {
+        return m_state;
+    }
+
+    uint32_t action()
+    {
+        return m_action;
+    }
+
+    void action(const uint32_t& value)
+    {
+        m_action = value;
+    }
+
+    bool blocking()
+    {
+        return m_blocking;
+    }
+
+    void blocking(const bool& value)
+    {
+        m_blocking = value;
+    }
 
 private:
-    uint32_t m_action;
-    bool m_blocking;
+    const std::string m_state{DEFAULT_STATE_VALUE};
+    uint32_t m_action{DEFAULT_ACTION_VALUE};
+    bool m_blocking{DEFAULT_BLOCKING_VALUE};
 
+public: // for tests
     // For dont-expect-reply method call verifications
-    mutable std::atomic<bool> m_multiplyCalled{};
+    mutable std::atomic<bool> m_wasMultiplyCalled{false};
     mutable double m_multiplyResult{};
-    mutable std::atomic<bool> m_throwErrorCalled{};
+    mutable std::atomic<bool> m_wasThrowErrorCalled{false};
 };
 
 

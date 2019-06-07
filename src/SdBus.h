@@ -47,11 +47,18 @@ public:
     virtual int sd_bus_message_new_method_return(sd_bus_message *call, sd_bus_message **m) override;
     virtual int sd_bus_message_new_method_error(sd_bus_message *call, sd_bus_message **m, const sd_bus_error *e) override;
 
+    virtual int sd_bus_emit_properties_changed_strv(sd_bus *bus, const char *path, const char *interface, char **names) override;
+    virtual int sd_bus_emit_object_added(sd_bus *bus, const char *path) override;
+    virtual int sd_bus_emit_object_removed(sd_bus *bus, const char *path) override;
+    virtual int sd_bus_emit_interfaces_added_strv(sd_bus *bus, const char *path, char **interfaces) override;
+    virtual int sd_bus_emit_interfaces_removed_strv(sd_bus *bus, const char *path, char **interfaces) override;
+
     virtual int sd_bus_open_user(sd_bus **ret) override;
     virtual int sd_bus_open_system(sd_bus **ret) override;
     virtual int sd_bus_request_name(sd_bus *bus, const char *name, uint64_t flags) override;
     virtual int sd_bus_release_name(sd_bus *bus, const char *name) override;
     virtual int sd_bus_add_object_vtable(sd_bus *bus, sd_bus_slot **slot, const char *path, const char *interface, const sd_bus_vtable *vtable, void *userdata) override;
+    virtual int sd_bus_add_object_manager(sd_bus *bus, sd_bus_slot **slot, const char *path) override;
     virtual int sd_bus_add_match(sd_bus *bus, sd_bus_slot **slot, const char *match, sd_bus_message_handler_t callback, void *userdata) override;
     virtual sd_bus_slot* sd_bus_slot_unref(sd_bus_slot *slot) override;
 

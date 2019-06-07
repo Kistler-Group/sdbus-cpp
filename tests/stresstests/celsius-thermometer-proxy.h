@@ -18,7 +18,7 @@ namespace celsius {
 class thermometer_proxy
 {
 public:
-    static constexpr const char* interfaceName = "org.sdbuscpp.stresstests.celsius.thermometer";
+    static constexpr const char* INTERFACE_NAME = "org.sdbuscpp.stresstests.celsius.thermometer";
 
 protected:
     thermometer_proxy(sdbus::IProxy& proxy)
@@ -30,7 +30,7 @@ public:
     uint32_t getCurrentTemperature()
     {
         uint32_t result;
-        proxy_.callMethod("getCurrentTemperature").onInterface(interfaceName).storeResultsTo(result);
+        proxy_.callMethod("getCurrentTemperature").onInterface(INTERFACE_NAME).storeResultsTo(result);
         return result;
     }
 

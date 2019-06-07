@@ -27,17 +27,13 @@
 #define SDBUS_CXX_INTERNAL_PROXY_H_
 
 #include <sdbus-c++/IProxy.h>
+#include "IConnection.h"
 #include <systemd/sd-bus.h>
 #include <string>
 #include <memory>
 #include <map>
 #include <unordered_map>
 #include <mutex>
-
-// Forward declarations
-namespace sdbus { namespace internal {
-    class IConnection;
-}}
 
 namespace sdbus {
 namespace internal {
@@ -83,7 +79,7 @@ namespace internal {
             struct SignalData
             {
                 signal_handler callback_;
-                std::unique_ptr<sd_bus_slot, std::function<void(sd_bus_slot*)>> slot_;
+                SlotPtr slot_;
             };
             std::map<SignalName, SignalData> signals_;
         };

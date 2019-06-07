@@ -43,8 +43,10 @@
 #include <future>
 
 using ::testing::Eq;
+using ::testing::DoubleEq;
 using ::testing::Gt;
 using ::testing::ElementsAre;
+using ::testing::SizeIs;
 using namespace std::chrono_literals;
 
 namespace
@@ -63,6 +65,20 @@ public:
     {
         s_connection->leaveProcessingLoop();
         s_connection->releaseName(INTERFACE_NAME);
+    }
+
+    static bool waitUntil(std::atomic<bool>& flag, std::chrono::milliseconds timeout = 5s)
+    {
+        std::chrono::milliseconds elapsed{};
+        std::chrono::milliseconds step{5ms};
+        do {
+            std::this_thread::sleep_for(step);
+            elapsed += step;
+            if (elapsed > timeout)
+                return false;
+        } while (!flag);
+
+        return true;
     }
 
 private:
@@ -203,14 +219,8 @@ TEST_F(SdbusTestObject, CallsMultiplyMethodWithNoReplyFlag)
 {
     m_proxy->multiplyWithNoReply(INT64_VALUE, DOUBLE_VALUE);
 
-    for (auto i = 0; i < 100; ++i)
-    {
-        if (m_adaptor->wasMultiplyCalled())
-            break;
-        std::this_thread::sleep_for(10ms);
-    }
-    ASSERT_TRUE(m_adaptor->wasMultiplyCalled());
-    ASSERT_THAT(m_adaptor->getMultiplyResult(), Eq(INT64_VALUE * DOUBLE_VALUE));
+    ASSERT_TRUE(waitUntil(m_adaptor->m_wasMultiplyCalled));
+    ASSERT_THAT(m_adaptor->m_multiplyResult, Eq(INT64_VALUE * DOUBLE_VALUE));
 }
 
 TEST_F(SdbusTestObject, CallsMethodThatThrowsError)
@@ -235,13 +245,7 @@ TEST_F(SdbusTestObject, CallsErrorThrowingMethodWithDontExpectReplySet)
 {
     ASSERT_NO_THROW(m_proxy->throwErrorWithNoReply());
 
-    for (auto i = 0; i < 100; ++i)
-    {
-        if (m_adaptor->wasThrowErrorCalled())
-            break;
-        std::this_thread::sleep_for(10ms);
-    }
-    ASSERT_TRUE(m_adaptor->wasThrowErrorCalled());
+    ASSERT_TRUE(waitUntil(m_adaptor->m_wasThrowErrorCalled));
 }
 
 TEST_F(SdbusTestObject, RunsServerSideAsynchoronousMethodAsynchronously)
@@ -359,67 +363,226 @@ TEST_F(SdbusTestObject, FailsCallingMethodOnNonexistentObject)
 
 TEST_F(SdbusTestObject, EmitsSimpleSignalSuccesfully)
 {
-    auto count = m_proxy->getSimpleCallCount();
-    m_adaptor->simpleSignal();
-    usleep(10000);
+    m_adaptor->emitSimpleSignal();
 
-    ASSERT_THAT(m_proxy->getSimpleCallCount(), Eq(count + 1));
+    ASSERT_TRUE(waitUntil(m_proxy->m_gotSimpleSignal));
 }
 
 TEST_F(SdbusTestObject, EmitsSignalWithMapSuccesfully)
 {
-    m_adaptor->signalWithMap({{0, "zero"}, {1, "one"}});
-    usleep(10000);
+    m_adaptor->emitSignalWithMap({{0, "zero"}, {1, "one"}});
 
-    auto map = m_proxy->getMap();
-    ASSERT_THAT(map[0], Eq("zero"));
-    ASSERT_THAT(map[1], Eq("one"));
+    ASSERT_TRUE(waitUntil(m_proxy->m_gotSignalWithMap));
+    ASSERT_THAT(m_proxy->m_mapFromSignal[0], Eq("zero"));
+    ASSERT_THAT(m_proxy->m_mapFromSignal[1], Eq("one"));
 }
 
 TEST_F(SdbusTestObject, EmitsSignalWithVariantSuccesfully)
 {
     double d = 3.14;
-    m_adaptor->signalWithVariant(3.14);
-    usleep(10000);
+    m_adaptor->emitSignalWithVariant(d);
 
-    ASSERT_THAT(m_proxy->getVariantValue(), d);
+    ASSERT_TRUE(waitUntil(m_proxy->m_gotSignalWithVariant));
+    ASSERT_THAT(m_proxy->m_variantFromSignal, DoubleEq(d));
 }
 
 TEST_F(SdbusTestObject, EmitsSignalWithoutRegistrationSuccesfully)
 {
-    m_adaptor->signalWithoutRegistration({"platform", {"av"}});
-    usleep(10000);
+    m_adaptor->emitSignalWithoutRegistration({"platform", {"av"}});
 
-    auto signature = m_proxy->getSignatureFromSignal();
-    ASSERT_THAT(signature["platform"], Eq("av"));
+    ASSERT_TRUE(waitUntil(m_proxy->m_gotSignalWithSignature));
+    ASSERT_THAT(m_proxy->m_signatureFromSignal["platform"], Eq("av"));
 }
 
 // Properties
 
-TEST_F(SdbusTestObject, ReadsReadPropertySuccesfully)
+TEST_F(SdbusTestObject, ReadsReadOnlyPropertySuccesfully)
 {
-    ASSERT_THAT(m_proxy->state(), Eq(STRING_VALUE));
+    ASSERT_THAT(m_proxy->state(), Eq(DEFAULT_STATE_VALUE));
+}
+
+TEST_F(SdbusTestObject, FailsWritingToReadOnlyProperty)
+{
+    ASSERT_THROW(m_proxy->state("new_value"), sdbus::Error);
 }
 
 TEST_F(SdbusTestObject, WritesAndReadsReadWritePropertySuccesfully)
 {
-    uint32_t x = 42;
-    ASSERT_NO_THROW(m_proxy->action(x));
-    ASSERT_THAT(m_proxy->action(), Eq(x));
+    uint32_t newActionValue = 5678;
+
+    m_proxy->action(newActionValue);
+
+    ASSERT_THAT(m_proxy->action(), Eq(newActionValue));
 }
 
-TEST_F(SdbusTestObject, WritesToWritePropertySuccesfully)
+// Standard D-Bus interfaces
+
+TEST_F(SdbusTestObject, PingsViaPeerInterface)
 {
-    auto x = true;
-    ASSERT_NO_THROW(m_proxy->blocking(x));
+    ASSERT_NO_THROW(m_proxy->Ping());
 }
 
-TEST_F(SdbusTestObject, CannotReadFromWriteProperty)
+TEST_F(SdbusTestObject, AnswersMachineUuidViaPeerInterface)
 {
-    ASSERT_THROW(m_proxy->blocking(), sdbus::Error);
+    ASSERT_NO_THROW(m_proxy->GetMachineId());
 }
 
-TEST_F(SdbusTestObject, AnswersXmlApiDescriptionOnIntrospection)
+TEST_F(SdbusTestObject, AnswersXmlApiDescriptionViaIntrospectableInterface)
 {
     ASSERT_THAT(m_proxy->Introspect(), Eq(m_adaptor->getExpectedXmlApiDescription()));
+}
+
+TEST_F(SdbusTestObject, GetsPropertyViaPropertiesInterface)
+{
+    ASSERT_THAT(m_proxy->Get(INTERFACE_NAME, "state").get<std::string>(), Eq(DEFAULT_STATE_VALUE));
+}
+
+TEST_F(SdbusTestObject, SetsPropertyViaPropertiesInterface)
+{
+    uint32_t newActionValue = 2345;
+
+    m_proxy->Set(INTERFACE_NAME, "action", newActionValue);
+
+    ASSERT_THAT(m_proxy->action(), Eq(newActionValue));
+}
+
+TEST_F(SdbusTestObject, GetsAllPropertiesViaPropertiesInterface)
+{
+    const auto properties = m_proxy->GetAll(INTERFACE_NAME);
+
+    ASSERT_THAT(properties, SizeIs(3));
+    EXPECT_THAT(properties.at("state").get<std::string>(), Eq(DEFAULT_STATE_VALUE));
+    EXPECT_THAT(properties.at("action").get<uint32_t>(), Eq(DEFAULT_ACTION_VALUE));
+    EXPECT_THAT(properties.at("blocking").get<bool>(), Eq(DEFAULT_BLOCKING_VALUE));
+}
+
+TEST_F(SdbusTestObject, EmitsPropertyChangedSignalForSelectedProperties)
+{
+    std::atomic<bool> signalReceived{false};
+    m_proxy->m_onPropertiesChangedHandler = [&signalReceived]( const std::string& interfaceName
+                                                             , const std::map<std::string, sdbus::Variant>& changedProperties
+                                                             , const std::vector<std::string>& invalidatedProperties )
+    {
+        EXPECT_THAT(interfaceName, Eq(INTERFACE_NAME));
+        EXPECT_THAT(changedProperties, SizeIs(1));
+        EXPECT_THAT(changedProperties.at("blocking").get<bool>(), Eq(!DEFAULT_BLOCKING_VALUE));
+        signalReceived = true;
+    };
+
+    m_proxy->blocking(!DEFAULT_BLOCKING_VALUE);
+    m_proxy->action(DEFAULT_ACTION_VALUE*2);
+    m_adaptor->emitPropertiesChangedSignal(INTERFACE_NAME, {"blocking"});
+
+    ASSERT_TRUE(waitUntil(signalReceived));
+}
+
+TEST_F(SdbusTestObject, EmitsPropertyChangedSignalForAllProperties)
+{
+    std::atomic<bool> signalReceived{false};
+    m_proxy->m_onPropertiesChangedHandler = [&signalReceived]( const std::string& interfaceName
+                                                             , const std::map<std::string, sdbus::Variant>& changedProperties
+                                                             , const std::vector<std::string>& invalidatedProperties )
+    {
+        EXPECT_THAT(interfaceName, Eq(INTERFACE_NAME));
+        EXPECT_THAT(changedProperties, SizeIs(1));
+        EXPECT_THAT(changedProperties.at("blocking").get<bool>(), Eq(DEFAULT_BLOCKING_VALUE));
+        ASSERT_THAT(invalidatedProperties, SizeIs(1));
+        EXPECT_THAT(invalidatedProperties[0], Eq("action"));
+        signalReceived = true;
+    };
+
+    m_adaptor->emitPropertiesChangedSignal(INTERFACE_NAME);
+
+    ASSERT_TRUE(waitUntil(signalReceived));
+}
+
+TEST_F(SdbusTestObject, GetsZeroManagedObjectsIfHasNoSubPathObjects)
+{
+    const auto objectsInterfacesAndProperties = m_proxy->GetManagedObjects();
+
+    ASSERT_THAT(objectsInterfacesAndProperties, SizeIs(0));
+}
+
+TEST_F(SdbusTestObject, GetsManagedObjectsSuccessfully)
+{
+    auto subObject1 = sdbus::createObject(*s_connection, "/sub/path1");
+    subObject1->registerProperty("aProperty1").onInterface("org.sdbuscpp.integrationtests.iface1").withGetter([]{return uint8_t{123};});
+    subObject1->finishRegistration();
+    auto subObject2 = sdbus::createObject(*s_connection, "/sub/path2");
+    subObject2->registerProperty("aProperty2").onInterface("org.sdbuscpp.integrationtests.iface2").withGetter([]{return "hi";});
+    subObject2->finishRegistration();
+
+    const auto objectsInterfacesAndProperties = m_proxy->GetManagedObjects();
+
+    ASSERT_THAT(objectsInterfacesAndProperties, SizeIs(2));
+    EXPECT_THAT(objectsInterfacesAndProperties.at("/sub/path1").at("org.sdbuscpp.integrationtests.iface1").at("aProperty1").get<uint8_t>(), Eq(123));
+    EXPECT_THAT(objectsInterfacesAndProperties.at("/sub/path2").at("org.sdbuscpp.integrationtests.iface2").at("aProperty2").get<std::string>(), Eq("hi"));
+}
+
+TEST_F(SdbusTestObject, EmitsInterfacesAddedSignalForSelectedObjectInterfaces)
+{
+    std::atomic<bool> signalReceived{false};
+    m_proxy->m_onInterfacesAddedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
+                                                           , const std::map<std::string, std::map<std::string, sdbus::Variant>>& interfacesAndProperties )
+    {
+        EXPECT_THAT(objectPath, Eq(OBJECT_PATH));
+        EXPECT_THAT(interfacesAndProperties, SizeIs(1));
+        EXPECT_THAT(interfacesAndProperties.count(INTERFACE_NAME), Eq(1));
+        EXPECT_THAT(interfacesAndProperties.at(INTERFACE_NAME), SizeIs(3));
+        signalReceived = true;
+    };
+
+    m_adaptor->emitInterfacesAddedSignal({INTERFACE_NAME});
+
+    ASSERT_TRUE(waitUntil(signalReceived));
+}
+
+TEST_F(SdbusTestObject, EmitsInterfacesAddedSignalForAllObjectInterfaces)
+{
+    std::atomic<bool> signalReceived{false};
+    m_proxy->m_onInterfacesAddedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
+                                                           , const std::map<std::string, std::map<std::string, sdbus::Variant>>& interfacesAndProperties )
+    {
+        EXPECT_THAT(objectPath, Eq(OBJECT_PATH));
+        EXPECT_THAT(interfacesAndProperties, SizeIs(5)); // INTERFACE_NAME + 4 standard interfaces
+        EXPECT_THAT(interfacesAndProperties.at(INTERFACE_NAME), SizeIs(3)); // 3 properties under INTERFACE_NAME
+        signalReceived = true;
+    };
+
+    m_adaptor->emitInterfacesAddedSignal();
+
+    ASSERT_TRUE(waitUntil(signalReceived));
+}
+
+TEST_F(SdbusTestObject, EmitsInterfacesRemovedSignalForSelectedObjectInterfaces)
+{
+    std::atomic<bool> signalReceived{false};
+    m_proxy->m_onInterfacesRemovedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
+                                                             , const std::vector<std::string>& interfaces )
+    {
+        EXPECT_THAT(objectPath, Eq(OBJECT_PATH));
+        ASSERT_THAT(interfaces, SizeIs(1));
+        EXPECT_THAT(interfaces[0], Eq(INTERFACE_NAME));
+        signalReceived = true;
+    };
+
+    m_adaptor->emitInterfacesRemovedSignal({INTERFACE_NAME});
+
+    ASSERT_TRUE(waitUntil(signalReceived));
+}
+
+TEST_F(SdbusTestObject, EmitsInterfacesRemovedSignalForAllObjectInterfaces)
+{
+    std::atomic<bool> signalReceived{false};
+    m_proxy->m_onInterfacesRemovedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
+                                                             , const std::vector<std::string>& interfaces )
+    {
+        EXPECT_THAT(objectPath, Eq(OBJECT_PATH));
+        ASSERT_THAT(interfaces, SizeIs(5)); // INTERFACE_NAME + 4 standard interfaces
+        signalReceived = true;
+    };
+
+    m_adaptor->emitInterfacesRemovedSignal();
+
+    ASSERT_TRUE(waitUntil(signalReceived));
 }

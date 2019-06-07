@@ -17,29 +17,35 @@ Using sdbus-c++ library
 12. [Asynchronous server-side methods](#asynchronous-server-side-methods)
 13. [Asynchronous client-side methods](#asynchronous-client-side-methods)
 14. [Using D-Bus properties](#using-d-bus-properties)
-15. [Conclusion](#conclusion)
+15. [Standard D-Bus interfaces](#standard-d-bus-interfaces)
+16. [Conclusion](#conclusion)
 
 Introduction
 ------------
 
-sdbus-c++ is a C++ wrapper library built on top of [sd-bus](http://0pointer.net/blog/the-new-sd-bus-api-of-systemd.html), a lightweight D-Bus client library implemented within systemd project. It provides D-Bus functionality on a higher level of abstraction, trying to employ C++ type system to shift as much work as possible from the developer to the compiler.
+sdbus-c++ is a C++ D-Bus library built on top of [sd-bus](http://0pointer.net/blog/the-new-sd-bus-api-of-systemd.html), a lightweight D-Bus client library implemented within [systemd](https://github.com/systemd/systemd) project. It provides D-Bus functionality on a higher level of abstraction, trying to employ C++ type system to shift as much work as possible from the developer to the compiler.
 
 sdbus-c++ does not cover the entire sd-bus API, but provides tools for implementing the most common functionality - RPC method calls, signals and properties. There is room for additions and improvements, as needed and when needed.
 
 Integrating sdbus-c++ into your project
 ---------------------------------------
 
-The library build system is based on CMake. The library provides a config file, so integrating it into your CMake project is rather straight-forward:
+The library build system is based on CMake. The library provides a config and an export file, so integrating it into your CMake project is sooo simple:
 
-```bash
+```cmake
+# First, find sdbus-c++
 find_package(sdbus-c++ REQUIRED)
+
+# Use the sdbus-c++ target in SDBusCpp namespace
+add_executable(exe exe.cpp)
+target_link_libraries(exe PRIVATE SDBusCpp::sdbus-c++)
 ```
 
 The library also supports `pkg-config`, so it easily be integrated into e.g. an Autotools project:
 
 ```bash
-PKG_CHECK_MODULES(SDBUSCPP, [sdbus-c++ >= 0.4],,
-    AC_MSG_ERROR([You need the sdbus-c++ library (version 0.4 or newer)]
+PKG_CHECK_MODULES(SDBUSCPP, [sdbus-c++ >= 0.6],,
+    AC_MSG_ERROR([You need the sdbus-c++ library (version 0.6 or newer)]
     [http://www.kistler.com/])
 )
 ```
@@ -55,7 +61,7 @@ Minimum required libsystemd shared library version is 0.20.0 (which corresponds 
 
 If your target Linux distribution is already based on systemd ecosystem of version 236 and higher, then there is no additional effort, just make sure you have corresponding systemd header files available (provided by `libsystemd-dev` package on Debian/Ubuntu, for example), and you may go on building sdbus-c++ seamlessly.
 
-sdbus-c++ can perfectly be used in non-systemd environments as well. There are two ways to approach this:
+However, sdbus-c++ can perfectly be used in non-systemd environments as well. There are two ways to approach this:
 
 ### Building and distributing libsystemd as a shared library yourself
 
@@ -65,17 +71,19 @@ Fortunately, libsystemd is rather self-contained and can be built and used indep
 $ git clone https://github.com/systemd/systemd
 $ cd systemd
 $ git checkout v242  # or any other recent stable version
-$ meson build/  # solve systemd dependencies if any pop up, e.g. libmount-dev, libcap, librt...
-$ ninja -C build version.h
-$ ninja -C build libsystemd.so.0.26.0  # or another version number depending which systemd version you have
+$ mkdir build
+$ cd build
+$ meson --buildtype=release .. # solve systemd dependencies if any pop up, e.g. libmount-dev, libcap, librt...
+$ ninja version.h # building version.h target is only necessary in systemd version >= 241
+$ ninja libsystemd.so.0.26.0  # or another version number depending which systemd version you have
 # finally, manually install the library, header files and libsystemd.pc pkgconfig file
 ```
 
 ### Building and distributing libsystemd as part of sdbus-c++
 
-sdbus-c++ provides `BUILD_LIBSYSTEMD` configuration option. When turned on, sdbus-c++ will automatically download, build and integrate libsystemd as a static library into sdbus-c++ for you. This is the most convenient and effective approach to build, distribute and use sdbus-c++ as a self-contained, systemd-independent library in non-systemd enviroments. Just make sure your build machine has all dependencies needed by libsystemd build process. That includes `meson`, `ninja`, `git` programs and mainly libraries and headers for `libmount`, `libcap` and `librt` (part of glibc). Also when distributing, make sure these dependency libraries are installed on the production machine. (Contributors willing to help with bringing sdbus-c++ to popular package systems are welcome.)
+sdbus-c++ provides `BUILD_LIBSYSTEMD` configuration option. When turned on, sdbus-c++ will automatically download, build and integrate libsystemd as a static library into sdbus-c++ for you. This is the most convenient and effective approach to build, distribute and use sdbus-c++ as a self-contained, systemd-independent library in non-systemd enviroments. Just make sure your build machine has all dependencies needed by libsystemd build process. That includes `meson`, `ninja`, `git` programs and mainly libraries and library headers for `libmount`, `libcap` and `librt` (part of glibc). Also when distributing, make sure these dependency libraries are installed on the production machine. (Contributors willing to help with bringing sdbus-c++ to popular package systems are welcome.)
 
-You may additionally use `LIBSYSTEMD_VERSION` configuration flag to fine-tune the version of systemd to be used.
+You may additionally set the `LIBSYSTEMD_VERSION` configuration flag to fine-tune the version of systemd to be taken in. (The default value is 242).
 
 Header files and namespaces
 ---------------------------
@@ -533,20 +541,20 @@ namespace sdbuscpp {
 class Concatenator_adaptor
 {
 public:
-    static constexpr const char* interfaceName = "org.sdbuscpp.Concatenator";
+    static constexpr const char* INTERFACE_NAME = "org.sdbuscpp.Concatenator";
 
 protected:
     Concatenator_adaptor(sdbus::IObject& object)
         : object_(object)
     {
-        object_.registerMethod("concatenate").onInterface(interfaceName).implementedAs([this](const std::vector<int32_t>& numbers, const std::string& separator){ return this->concatenate(numbers, separator); });
-        object_.registerSignal("concatenated").onInterface(interfaceName).withParameters<std::string>();
+        object_.registerMethod("concatenate").onInterface(INTERFACE_NAME).implementedAs([this](const std::vector<int32_t>& numbers, const std::string& separator){ return this->concatenate(numbers, separator); });
+        object_.registerSignal("concatenated").onInterface(INTERFACE_NAME).withParameters<std::string>();
     }
 
 public:
-    void concatenated(const std::string& concatenatedString)
+    void emitConcatenated(const std::string& concatenatedString)
     {
-        object_.emitSignal("concatenated").onInterface(interfaceName).withArguments(concatenatedString);
+        object_.emitSignal("concatenated").onInterface(INTERFACE_NAME).withArguments(concatenatedString);
     }
 
 private:
@@ -583,13 +591,13 @@ namespace sdbuscpp {
 class Concatenator_proxy
 {
 public:
-    static constexpr const char* interfaceName = "org.sdbuscpp.Concatenator";
+    static constexpr const char* INTERFACE_NAME = "org.sdbuscpp.Concatenator";
 
 protected:
     Concatenator_proxy(sdbus::IProxy& proxy)
         : proxy_(proxy)
     {
-        proxy_.uponSignal("concatenated").onInterface(interfaceName).call([this](const std::string& concatenatedString){ this->onConcatenated(concatenatedString); });
+        proxy_.uponSignal("concatenated").onInterface(INTERFACE_NAME).call([this](const std::string& concatenatedString){ this->onConcatenated(concatenatedString); });
     }
 
     virtual void onConcatenated(const std::string& concatenatedString) = 0;
@@ -598,7 +606,7 @@ public:
     std::string concatenate(const std::vector<int32_t>& numbers, const std::string& separator)
     {
         std::string result;
-        proxy_.callMethod("concatenate").onInterface(interfaceName).withArguments(numbers, separator).storeResultsTo(result);
+        proxy_.callMethod("concatenate").onInterface(INTERFACE_NAME).withArguments(numbers, separator).storeResultsTo(result);
         return result;
     }
 
@@ -658,7 +666,7 @@ protected:
         }
         
         // Emit the 'concatenated' signal with the resulting string
-        concatenated(result);
+        emitConcatenated(result);
         
         // Return the resulting string
         return result;
@@ -861,7 +869,7 @@ void concatenate(sdbus::Result<std::string>&& result, std::vector<int32_t> numbe
         methodResult.returnReply(result);
         
         // Emit the 'concatenated' signal with the resulting string
-        this->concatenated(result);
+        this->emitConcatenated(result);
     }).detach();
 }
 ```
@@ -1086,6 +1094,24 @@ public:
 ```
 
 When implementing the adaptor, we simply need to provide the body for `status` getter and setter method by overriding them. Then in the proxy, we just call them.
+
+Standard D-Bus interfaces
+-------------------------
+
+sdbus-c++ provides support for standard D-Bus interfaces. These are:
+
+* `org.freedesktop.DBus.Peer`
+* `org.freedesktop.DBus.Introspectable`
+* `org.freedesktop.DBus.Properties`
+* `org.freedesktop.DBus.ObjectManager`
+
+The implementation of methods that these interfaces define is provided by the library. `Peer`, `Introspectable` and `Properties` are automatically part of interfaces of every D-Bus object. `ObjectManager` is not automatically present and has to be enabled by the client when using `IObject` API. When using generated `ObjectManager_adaptor`, `ObjectManager` is enabled automatically in its constructor.
+
+Pre-generated `*_proxy` and `*_adaptor` convenience classes for these standard interfaces are located in `sdbus-c++/StandardInterfaces.h`. We add them simply as additional parameters of `sdbus::ProxyInterfaces` or `sdbus::AdaptorInterfaces` class template, and our proxy or adaptor class inherits convenience functions from those interface classes.
+
+For example, to conveniently emit a `PropertyChanged` signal under `org.freedesktop.DBus.Properties` interface, we just issue `emitPropertiesChangedSignal` function of our adaptor object.
+
+Note that signals of afore-mentioned standard D-Bus interfaces are not emitted by the library automatically. It's clients who are supposed to emit them.
 
 Conclusion
 ----------

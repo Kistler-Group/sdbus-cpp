@@ -91,6 +91,41 @@ int SdBus::sd_bus_message_new_method_error(sd_bus_message *call, sd_bus_message 
     return ::sd_bus_message_new_method_error(call, m, e);
 }
 
+int SdBus::sd_bus_emit_properties_changed_strv(sd_bus *bus, const char *path, const char *interface, char **names)
+{
+    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
+
+    return ::sd_bus_emit_properties_changed_strv(bus, path, interface, names);
+}
+
+int SdBus::sd_bus_emit_object_added(sd_bus *bus, const char *path)
+{
+    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
+
+    return ::sd_bus_emit_object_added(bus, path);
+}
+
+int SdBus::sd_bus_emit_object_removed(sd_bus *bus, const char *path)
+{
+    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
+
+    return ::sd_bus_emit_object_removed(bus, path);
+}
+
+int SdBus::sd_bus_emit_interfaces_added_strv(sd_bus *bus, const char *path, char **interfaces)
+{
+    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
+
+    return ::sd_bus_emit_interfaces_added_strv(bus, path, interfaces);
+}
+
+int SdBus::sd_bus_emit_interfaces_removed_strv(sd_bus *bus, const char *path, char **interfaces)
+{
+    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
+
+    return ::sd_bus_emit_interfaces_removed_strv(bus, path, interfaces);
+}
+
 int SdBus::sd_bus_open_user(sd_bus **ret)
 {
     return ::sd_bus_open_user(ret);
@@ -120,6 +155,13 @@ int SdBus::sd_bus_add_object_vtable(sd_bus *bus, sd_bus_slot **slot, const char 
     std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
 
     return ::sd_bus_add_object_vtable(bus, slot, path, interface,  vtable, userdata);
+}
+
+int SdBus::sd_bus_add_object_manager(sd_bus *bus, sd_bus_slot **slot, const char *path)
+{
+    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
+
+    return ::sd_bus_add_object_manager(bus, slot, path);
 }
 
 int SdBus::sd_bus_add_match(sd_bus *bus, sd_bus_slot **slot, const char *match, sd_bus_message_handler_t callback, void *userdata)

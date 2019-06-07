@@ -2,9 +2,9 @@
 # PROJECT INFORMATION
 #-------------------------------
 
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.6)
 
-project(sdbus-c++ VERSION 0.6.1 LANGUAGES C CXX)
+project(sdbus-c++ VERSION 0.7.0 LANGUAGES C CXX)
 
 include(GNUInstallDirs) # Installation directories for `install` command and pkgconfig file
 
@@ -31,9 +31,9 @@ endif()
 # SOURCE FILES CONFIGURATION
 #-------------------------------
 
-set(SDBUSCPP_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src)
+set(SDBUSCPP_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(SDBUSCPP_INCLUDE_SUBDIR sdbus-c++)
-set(SDBUSCPP_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include/${SDBUSCPP_INCLUDE_SUBDIR})
+set(SDBUSCPP_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include/${SDBUSCPP_INCLUDE_SUBDIR})
 
 set(SDBUSCPP_CPP_SRCS
     ${SDBUSCPP_SOURCE_DIR}/Connection.cpp
@@ -65,7 +65,7 @@ set(SDBUSCPP_PUBLIC_HDRS
     ${SDBUSCPP_INCLUDE_DIR}/IConnection.h
     ${SDBUSCPP_INCLUDE_DIR}/AdaptorInterfaces.h
     ${SDBUSCPP_INCLUDE_DIR}/ProxyInterfaces.h
-    ${SDBUSCPP_INCLUDE_DIR}/Introspection.h
+    ${SDBUSCPP_INCLUDE_DIR}/StandardInterfaces.h
     ${SDBUSCPP_INCLUDE_DIR}/IObject.h
     ${SDBUSCPP_INCLUDE_DIR}/IProxy.h
     ${SDBUSCPP_INCLUDE_DIR}/Message.h
@@ -86,9 +86,6 @@ if(${CMAKE_VERSION} VERSION_LESS "3.8.0")
 else()
     set(CMAKE_CXX_STANDARD 17) # Supported in CMake>=3.8
 endif()
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
-include_directories("${CMAKE_SOURCE_DIR}/include")
-include_directories("${CMAKE_SOURCE_DIR}/src")
 
 #----------------------------------
 # LIBRARY BUILD INFORMATION
@@ -99,30 +96,35 @@ set(SDBUSCPP_VERSION "${PROJECT_VERSION}")
 
 option(BUILD_SHARED_LIBS "Build shared libraries (.so) instead of static ones (.a)" ON)
 
-add_library(sdbus-cpp OBJECT ${SDBUSCPP_SRCS})
-target_include_directories(sdbus-cpp PUBLIC ${SYSTEMD_INCLUDE_DIRS})
-target_compile_definitions(sdbus-cpp PRIVATE BUILDLIB=1)
+# Having an object target allows unit tests to reuse already built sources without re-building
+add_library(sdbus-c++-objlib OBJECT ${SDBUSCPP_SRCS})
+target_compile_definitions(sdbus-c++-objlib PRIVATE BUILDLIB=1)
+target_include_directories(sdbus-c++-objlib PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                                                   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+                                                   $<BUILD_INTERFACE:${SYSTEMD_INCLUDE_DIRS}>)
 if(BUILD_SHARED_LIBS)
-    set_target_properties(sdbus-cpp PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    set_target_properties(sdbus-c++-objlib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
 if(BUILD_LIBSYSTEMD)
-    add_dependencies(sdbus-cpp LibsystemdBuildProject)
+    add_dependencies(sdbus-c++-objlib LibsystemdBuildProject)
 endif()
 
-add_library(sdbus-c++ $<TARGET_OBJECTS:sdbus-cpp>)
+add_library(sdbus-c++ $<TARGET_OBJECTS:sdbus-c++-objlib>)
+target_include_directories(sdbus-c++ PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                                            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 set_target_properties(sdbus-c++
-    PROPERTIES
-    PUBLIC_HEADER "${SDBUSCPP_PUBLIC_HDRS}"
-    VERSION "${SDBUSCPP_VERSION}"
-    SOVERSION "${SDBUSCPP_VERSION_MAJOR}"
-    OUTPUT_NAME "sdbus-c++")
-target_link_libraries(sdbus-c++ ${SYSTEMD_LIBRARIES})
+                      PROPERTIES PUBLIC_HEADER "${SDBUSCPP_PUBLIC_HDRS}"
+                                 VERSION "${SDBUSCPP_VERSION}"
+                                 SOVERSION "${SDBUSCPP_VERSION_MAJOR}"
+                                 OUTPUT_NAME "sdbus-c++")
+target_link_libraries(sdbus-c++ PRIVATE ${SYSTEMD_LIBRARIES})
 
 #----------------------------------
 # INSTALLATION
 #----------------------------------
 
 install(TARGETS sdbus-c++
+        EXPORT sdbus-c++-targets
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT libraries
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT libraries
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT static_libraries
@@ -136,7 +138,7 @@ option(BUILD_TESTS "Build and install tests (default OFF)" OFF)
 
 if(BUILD_TESTS)
     enable_testing()
-    add_subdirectory("${CMAKE_SOURCE_DIR}/tests")
+    add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/tests")
 endif()
 
 #----------------------------------
@@ -146,7 +148,7 @@ endif()
 option(BUILD_CODE_GEN "Build and install interface stub code generator (default OFF)" OFF)
 
 if(BUILD_CODE_GEN)
-    add_subdirectory("${CMAKE_SOURCE_DIR}/tools")
+    add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/tools")
 endif()
 
 #----------------------------------
@@ -157,7 +159,7 @@ option(BUILD_DOC "Build documentation for sdbus-c++" ON)
 
 if(BUILD_DOC)
     option(BUILD_DOXYGEN_DOC "Build doxygen documentation for sdbus-c++ API" OFF)
-    add_subdirectory("${CMAKE_SOURCE_DIR}/docs")
+    add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/docs")
     install(FILES README README.md NEWS COPYING ChangeLog AUTHORS DESTINATION ${CMAKE_INSTALL_DOCDIR})
 endif()
 
@@ -166,15 +168,20 @@ endif()
 #----------------------------------
 
 include(CMakePackageConfigHelpers)
-set(SDBUSCPP_CONFIG_INSTALL_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/sdbus-c++)
 
-configure_file(sdbus-c++-config.cmake.in sdbus-c++-config.cmake @ONLY)
-install(FILES ${CMAKE_BINARY_DIR}/sdbus-c++-config.cmake DESTINATION ${SDBUSCPP_CONFIG_INSTALL_DIR} COMPONENT dev)
+install(EXPORT sdbus-c++-targets
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/sdbus-c++
+        NAMESPACE SDBusCpp::
+        COMPONENT dev)
 
-write_basic_package_version_file(sdbus-c++-config-version.cmake
-        VERSION ${PROJECT_VERSION}
-        COMPATIBILITY AnyNewerVersion)
-install(FILES ${CMAKE_BINARY_DIR}/sdbus-c++-config-version.cmake DESTINATION ${SDBUSCPP_CONFIG_INSTALL_DIR} COMPONENT dev)
+configure_package_config_file(cmake/sdbus-c++-config.cmake.in cmake/sdbus-c++-config.cmake
+                              INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/sdbus-c++)
+write_basic_package_version_file(cmake/sdbus-c++-config-version.cmake COMPATIBILITY SameMajorVersion)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/sdbus-c++-config.cmake
+              ${CMAKE_CURRENT_BINARY_DIR}/cmake/sdbus-c++-config-version.cmake
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/sdbus-c++
+        COMPONENT dev)
 
-configure_file(sdbus-c++.pc.in sdbus-c++.pc @ONLY)
-install(FILES ${CMAKE_BINARY_DIR}/sdbus-c++.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig COMPONENT dev)
+configure_file(pkgconfig/sdbus-c++.pc.in pkgconfig/sdbus-c++.pc @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/sdbus-c++.pc
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig COMPONENT dev)

@@ -111,28 +111,29 @@ protected:
         object_.registerSignal("signalWithVariant").onInterface(INTERFACE_NAME).withParameters<sdbus::Variant>();
 
         object_.registerProperty("state").onInterface(INTERFACE_NAME).withGetter([this](){ return this->state(); }).markAsDeprecated().withUpdateBehavior(sdbus::Flags::CONST_PROPERTY_VALUE);
-        object_.registerProperty("action").onInterface(INTERFACE_NAME).withGetter([this](){ return this->action(); }).withSetter([this](const uint32_t& value){ this->action(value); }).withUpdateBehavior(sdbus::Flags::EMITS_NO_SIGNAL);
-        object_.registerProperty("blocking").onInterface(INTERFACE_NAME)./*withGetter([this](){ return this->blocking(); }).*/withSetter([this](const bool& value){ this->blocking(value); });
+        object_.registerProperty("action").onInterface(INTERFACE_NAME).withGetter([this](){ return this->action(); }).withSetter([this](const uint32_t& value){ this->action(value); }).withUpdateBehavior(sdbus::Flags::EMITS_INVALIDATION_SIGNAL);
+        //object_.registerProperty("blocking").onInterface(INTERFACE_NAME)./*withGetter([this](){ return this->blocking(); }).*/withSetter([this](const bool& value){ this->blocking(value); });
+        object_.registerProperty("blocking").onInterface(INTERFACE_NAME).withGetter([this](){ return this->blocking(); }).withSetter([this](const bool& value){ this->blocking(value); });
 
     }
 
 public:
-    void simpleSignal()
+    void emitSimpleSignal()
     {
         object_.emitSignal("simpleSignal").onInterface(INTERFACE_NAME);
     }
 
-    void signalWithMap(const std::map<int32_t, std::string>& map)
+    void emitSignalWithMap(const std::map<int32_t, std::string>& map)
     {
         object_.emitSignal("signalWithMap").onInterface(INTERFACE_NAME).withArguments(map);
     }
 
-    void signalWithVariant(const sdbus::Variant& v)
+    void emitSignalWithVariant(const sdbus::Variant& v)
     {
         object_.emitSignal("signalWithVariant").onInterface(INTERFACE_NAME).withArguments(v);
     }
 
-    void signalWithoutRegistration(const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& s)
+    void emitSignalWithoutRegistration(const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& s)
     {
         object_.emitSignal("signalWithoutRegistration").onInterface(INTERFACE_NAME).withArguments(s);
     }
@@ -208,6 +209,19 @@ R"delimiter(<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspectio
    <arg type="s" name="interface"/>
    <arg type="a{sv}" name="changed_properties"/>
    <arg type="as" name="invalidated_properties"/>
+  </signal>
+ </interface>
+ <interface name="org.freedesktop.DBus.ObjectManager">
+  <method name="GetManagedObjects">
+   <arg type="a{oa{sa{sv}}}" name="object_paths_interfaces_and_properties" direction="out"/>
+  </method>
+  <signal name="InterfacesAdded">
+   <arg type="o" name="object_path"/>
+   <arg type="a{sa{sv}}" name="interfaces_and_properties"/>
+  </signal>
+  <signal name="InterfacesRemoved">
+   <arg type="o" name="object_path"/>
+   <arg type="as" name="interfaces"/>
   </signal>
  </interface>
  <interface name="org.sdbuscpp.integrationtests">
@@ -294,7 +308,7 @@ R"delimiter(<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspectio
    <annotation name="org.freedesktop.DBus.Deprecated" value="true"/>
   </signal>
   <property name="action" type="u" access="readwrite">
-   <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="false"/>
+   <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="invalidates"/>
   </property>
   <property name="blocking" type="b" access="readwrite">
   </property>
