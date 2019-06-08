@@ -210,7 +210,15 @@ Message& Message::operator<<(const ObjectPath &item)
 Message& Message::operator<<(const Signature &item)
 {
     auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_SIGNATURE, item.c_str());
-    SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize an Signature value", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a Signature value", -r);
+
+    return *this;
+}
+
+Message& Message::operator<<(const UnixFd &item)
+{
+    auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_UNIX_FD, &item.fd_);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a UnixFd value", -r);
 
     return *this;
 }
@@ -379,6 +387,17 @@ Message& Message::operator>>(Signature &item)
 
     if (str != nullptr)
         item = str;
+
+    return *this;
+}
+
+Message& Message::operator>>(UnixFd &item)
+{
+    auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_UNIX_FD, &item.fd_);
+    if (r == 0)
+        ok_ = false;
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to deserialize a UnixFd value", -r);
 
     return *this;
 }

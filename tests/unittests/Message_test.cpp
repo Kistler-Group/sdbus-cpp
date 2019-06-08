@@ -30,6 +30,7 @@
 #include <cstdint>
 
 using ::testing::Eq;
+using ::testing::Gt;
 using ::testing::DoubleEq;
 using namespace std::string_literals;
 
@@ -123,6 +124,21 @@ TEST(AMessage, CanCarryASimpleInteger)
     msg >> dataRead;
 
     ASSERT_THAT(dataRead, Eq(dataWritten));
+}
+
+TEST(AMessage, CanCarryAUnixFd)
+{
+    sdbus::Message msg{sdbus::createPlainMessage()};
+
+    sdbus::UnixFd dataWritten = 0;
+    msg << dataWritten;
+
+    msg.seal();
+
+    sdbus::UnixFd dataRead;
+    msg >> dataRead;
+
+    ASSERT_THAT(dataRead, Gt(dataWritten));
 }
 
 TEST(AMessage, CanCarryAVariant)

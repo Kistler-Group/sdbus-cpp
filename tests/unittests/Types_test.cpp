@@ -240,3 +240,10 @@ TEST(ASignature, CanBeConstructedFromStdString)
 
     ASSERT_THAT(sdbus::Signature{aSignature}, Eq(aSignature));
 }
+
+TEST(AUnixFd, CanBeConstructedFromInt)
+{
+    int fd{2};
+
+    ASSERT_THAT((int)sdbus::UnixFd{fd}, Eq(fd));
+}
