@@ -298,7 +298,7 @@ int Object::sdbus_property_get_callback( sd_bus */*bus*/
         return 1;
     }
 
-    Message reply{sdbusReply, &object->connection_.getSdBusInterface()};
+    PropertyGetReply reply{sdbusReply, &object->connection_.getSdBusInterface()};
 
     try
     {
@@ -327,7 +327,7 @@ int Object::sdbus_property_set_callback( sd_bus */*bus*/
     auto& callback = object->interfaces_[interface].properties_[property].setCallback_;
     assert(callback);
 
-    Message value{sdbusValue, &object->connection_.getSdBusInterface()};
+    PropertySetCall value{sdbusValue, &object->connection_.getSdBusInterface()};
 
     try
     {

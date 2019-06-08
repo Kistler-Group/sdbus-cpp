@@ -30,7 +30,7 @@
 
 namespace sdbus
 {
-    Message createPlainMessage();
+    PlainMessage createPlainMessage();
 }
 
 #endif /* SDBUS_CXX_INTERNAL_MESSAGEUTILS_H_ */

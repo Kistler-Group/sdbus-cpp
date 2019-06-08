@@ -76,16 +76,18 @@ namespace sdbus {
      ***********************************************/
     class Message
     {
+    protected:
+        ~Message();
+        Message(const Message&) noexcept;
+        Message& operator=(const Message&) noexcept;
+        Message(Message&& other) noexcept;
+        Message& operator=(Message&& other) noexcept;
+
     public:
         Message() = default;
         Message(internal::ISdBus* sdbus) noexcept;
         Message(void *msg, internal::ISdBus* sdbus) noexcept;
         Message(void *msg, internal::ISdBus* sdbus, adopt_message_t) noexcept;
-        Message(const Message&) noexcept;
-        Message& operator=(const Message&) noexcept;
-        Message(Message&& other) noexcept;
-        Message& operator=(Message&& other) noexcept;
-        ~Message();
 
         Message& operator<<(bool item);
         Message& operator<<(int16_t item);
@@ -194,6 +196,24 @@ namespace sdbus {
     public:
         using Message::Message;
         void send() const;
+    };
+
+    class PropertySetCall : public Message
+    {
+    public:
+        using Message::Message;
+    };
+
+    class PropertyGetReply : public Message
+    {
+    public:
+        using Message::Message;
+    };
+
+    class PlainMessage : public Message
+    {
+    public:
+        using Message::Message;
     };
 
     template <typename _Element>

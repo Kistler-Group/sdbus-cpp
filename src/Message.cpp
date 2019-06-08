@@ -699,7 +699,7 @@ void Signal::send() const
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit signal", -r);
 }
 
-Message createPlainMessage()
+PlainMessage createPlainMessage()
 {
     int r;
 
@@ -736,7 +736,7 @@ Message createPlainMessage()
     r = sd_bus_message_new(bus, &sdbusMsg, _SD_BUS_MESSAGE_TYPE_INVALID);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create a new message", -r);
 
-    return Message{sdbusMsg, &sdbus, adopt_message};
+    return PlainMessage{sdbusMsg, &sdbus, adopt_message};
 }
 
 }
