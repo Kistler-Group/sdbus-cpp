@@ -40,6 +40,7 @@ constexpr const int32_t INT64_VALUE{-1024};
 const std::string STRING_VALUE{"sdbus-c++-testing"};
 const sdbus::Signature SIGNATURE_VALUE{"a{is}"};
 const sdbus::ObjectPath OBJECT_PATH_VALUE{"/"};
+const int UNIX_FD_VALUE = 0;
 
 const std::string DEFAULT_STATE_VALUE{"default-state-value"};
 const uint32_t DEFAULT_ACTION_VALUE{999};

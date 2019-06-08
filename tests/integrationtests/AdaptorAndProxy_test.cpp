@@ -209,6 +209,12 @@ TEST_F(SdbusTestObject, CallsMethodWithObjectPathSuccesfully)
     ASSERT_THAT(resObjectPath, Eq(OBJECT_PATH_VALUE));
 }
 
+TEST_F(SdbusTestObject, CallsMethodWithUnixFdSuccesfully)
+{
+    auto resUnixFd = m_proxy->getUnixFd();
+    ASSERT_THAT(resUnixFd, Gt(UNIX_FD_VALUE));
+}
+
 TEST_F(SdbusTestObject, CallsMethodWithComplexTypeSuccesfully)
 {
     auto resComplex = m_proxy->getComplex();

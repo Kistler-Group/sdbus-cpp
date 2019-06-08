@@ -44,6 +44,7 @@ const char *atomic_type_to_string(char t)
             { 'o', "sdbus::ObjectPath" },
             { 'g', "sdbus::Signature" },
             { 'v', "sdbus::Variant" },
+            { 'h', "sdbus::UnixFd" },
             { '\0', "" }
     };
 

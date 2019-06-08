@@ -97,6 +97,7 @@ protected:
 
         object_.registerMethod("getSignature").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->getSignature(); });
         object_.registerMethod("getObjectPath").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->getObjectPath(); });
+        object_.registerMethod("getUnixFd").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->getUnixFd(); });
 
         object_.registerMethod("getComplex").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->getComplex(); }).markAsDeprecated();
 
@@ -163,6 +164,7 @@ protected:
     virtual void doOperationAsync(uint32_t param, sdbus::Result<uint32_t> result) = 0;
     virtual sdbus::Signature getSignature() const  = 0;
     virtual sdbus::ObjectPath getObjectPath() const = 0;
+    virtual sdbus::UnixFd getUnixFd() const  = 0;
     virtual ComplexType getComplex() const = 0;
     virtual void throwError() const = 0;
 
@@ -265,6 +267,9 @@ R"delimiter(<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspectio
   <method name="getTuple">
    <arg type="u" direction="out"/>
    <arg type="s" direction="out"/>
+  </method>
+  <method name="getUnixFd">
+   <arg type="h" direction="out"/>
   </method>
   <method name="multiply">
    <arg type="x" direction="in"/>

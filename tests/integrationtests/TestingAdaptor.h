@@ -157,6 +157,10 @@ protected:
     {
         return OBJECT_PATH_VALUE;
     }
+    sdbus::UnixFd getUnixFd() const
+    {
+        return UNIX_FD_VALUE;
+    }
 
     ComplexType getComplex() const
     {

@@ -175,6 +175,13 @@ public:
         return result;
     }
 
+    sdbus::UnixFd getUnixFd()
+    {
+        sdbus::UnixFd result;
+        object_.callMethod("getUnixFd").onInterface(INTERFACE_NAME).storeResultsTo(result);
+        return result;
+    }
+
     ComplexType getComplex()
     {
         ComplexType result;
