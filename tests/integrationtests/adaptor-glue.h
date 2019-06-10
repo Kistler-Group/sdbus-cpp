@@ -52,7 +52,6 @@ using ComplexType = std::map<
 
 class testing_adaptor
 {
-
 protected:
     testing_adaptor(sdbus::IObject& object) :
         object_(object)
@@ -115,8 +114,9 @@ protected:
         object_.registerProperty("action").onInterface(INTERFACE_NAME).withGetter([this](){ return this->action(); }).withSetter([this](const uint32_t& value){ this->action(value); }).withUpdateBehavior(sdbus::Flags::EMITS_INVALIDATION_SIGNAL);
         //object_.registerProperty("blocking").onInterface(INTERFACE_NAME)./*withGetter([this](){ return this->blocking(); }).*/withSetter([this](const bool& value){ this->blocking(value); });
         object_.registerProperty("blocking").onInterface(INTERFACE_NAME).withGetter([this](){ return this->blocking(); }).withSetter([this](const bool& value){ this->blocking(value); });
-
     }
+
+    ~testing_adaptor() = default;
 
 public:
     void emitSimpleSignal()

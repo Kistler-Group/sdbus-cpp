@@ -26,6 +26,8 @@ protected:
     {
     }
 
+    ~thermometer_proxy() = default;
+
 public:
     uint32_t getCurrentTemperature()
     {

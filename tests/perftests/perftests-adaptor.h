@@ -27,6 +27,8 @@ protected:
         object_.registerSignal("dataSignal").onInterface(INTERFACE_NAME).withParameters<std::string>();
     }
 
+    ~perftests_adaptor() = default;
+
 public:
     void emitDataSignal(const std::string& data)
     {

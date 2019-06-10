@@ -26,6 +26,8 @@ protected:
     {
     }
 
+    ~thermometer_proxy() = default;
+
 public:
     uint32_t getCurrentTemperature()
     {
@@ -56,6 +58,8 @@ protected:
         : proxy_(proxy)
     {
     }
+
+    ~factory_proxy() = default;
 
 public:
     sdbus::ObjectPath createDelegateObject()

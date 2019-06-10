@@ -27,6 +27,8 @@ protected:
         object_.registerMethod("getCurrentTemperature").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->getCurrentTemperature(); });
     }
 
+    ~thermometer_adaptor() = default;
+
 private:
     virtual uint32_t getCurrentTemperature() = 0;
 

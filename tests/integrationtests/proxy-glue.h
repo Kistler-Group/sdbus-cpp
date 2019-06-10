@@ -45,6 +45,8 @@ protected:
                 { this->onSignalWithoutRegistration(s); });
     }
 
+    ~testing_proxy() = default;
+
     virtual void onSimpleSignal() = 0;
     virtual void onSignalWithMap(const std::map<int32_t, std::string>& map) = 0;
     virtual void onSignalWithVariant(const sdbus::Variant& v) = 0;

@@ -46,6 +46,8 @@ namespace sdbus {
         {
         }
 
+        ~Peer_proxy() = default;
+
     public:
         void Ping()
         {
@@ -73,6 +75,8 @@ namespace sdbus {
             : proxy_(proxy)
         {
         }
+
+        ~Introspectable_proxy() = default;
 
     public:
         std::string Introspect()
@@ -105,6 +109,8 @@ namespace sdbus {
                                 this->onPropertiesChanged(interfaceName, changedProperties, invalidatedProperties);
                             });
         }
+
+        ~Properties_proxy() = default;
 
         virtual void onPropertiesChanged( const std::string& interfaceName
                                         , const std::map<std::string, sdbus::Variant>& changedProperties
@@ -160,6 +166,8 @@ namespace sdbus {
                             });
         }
 
+        ~ObjectManager_proxy() = default;
+
         virtual void onInterfacesAdded( const sdbus::ObjectPath& objectPath
                                       , const std::map<std::string, std::map<std::string, sdbus::Variant>>& interfacesAndProperties) = 0;
         virtual void onInterfacesRemoved( const sdbus::ObjectPath& objectPath
@@ -192,6 +200,8 @@ namespace sdbus {
         {
         }
 
+        ~Properties_adaptor() = default;
+
     public:
         void emitPropertiesChangedSignal(const std::string& interfaceName, const std::vector<std::string>& properties)
         {
@@ -218,6 +228,8 @@ namespace sdbus {
         {
             object_.addObjectManager();
         }
+
+        ~ObjectManager_adaptor() = default;
 
     public:
         void emitInterfacesAddedSignal()

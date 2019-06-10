@@ -95,6 +95,9 @@ std::string ProxyGenerator::processInterface(Node& interface) const
     body << tab << "{" << endl
             << registration
             << tab << "}" << endl << endl;
+
+    body << tab << "~" << className << "() = default;" << endl << endl;
+
     if (!declaration.empty())
         body << declaration << endl;
 

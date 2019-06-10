@@ -130,6 +130,8 @@ std::string AdaptorGenerator::processInterface(Node& interface) const
                        << propertyRegistration
          << tab << "}" << endl << endl;
 
+    body << tab << "~" << className << "() = default;" << endl << endl;
+
     if (!signalMethods.empty())
     {
         body << "public:" << endl << signalMethods;

@@ -525,7 +525,7 @@ After running this through the stubs generator, we get the stub code that is des
 
 ### concatenator-server-glue.h
 
-For each interface in the XML IDL file the generator creates one class that represents it. The class is de facto an interface which shall be implemented by inheriting from it. The class' constructor takes care of registering all methods, signals and properties. For each D-Bus method there is a pure virtual member function. These pure virtual functions must be implemented in the child class. For each signal, there is a public function member that emits this signal.
+For each interface in the XML IDL file the generator creates one class that represents it. The class is de facto an interface which shall be implemented by the class inheriting it. The class' constructor takes care of registering all methods, signals and properties. For each D-Bus method there is a pure virtual member function. These pure virtual functions must be implemented in the child class. For each signal, there is a public function member that emits this signal.
 
 ```cpp
 /*
@@ -554,6 +554,8 @@ protected:
         object_.registerMethod("concatenate").onInterface(INTERFACE_NAME).implementedAs([this](const std::vector<int32_t>& numbers, const std::string& separator){ return this->concatenate(numbers, separator); });
         object_.registerSignal("concatenated").onInterface(INTERFACE_NAME).withParameters<std::string>();
     }
+
+    ~Concatenator_adaptor() = default;
 
 public:
     void emitConcatenated(const std::string& concatenatedString)
@@ -603,6 +605,8 @@ protected:
     {
         proxy_.uponSignal("concatenated").onInterface(INTERFACE_NAME).call([this](const std::string& concatenatedString){ this->onConcatenated(concatenatedString); });
     }
+
+    ~Concatenator_proxy() = default;
 
     virtual void onConcatenated(const std::string& concatenatedString) = 0;
 
@@ -1062,12 +1066,14 @@ public:
         object_.registerProperty("status").onInterface(INTERFACE_NAME).withGetter([this](){ return this->status(); }).withSetter([this](const uint32_t& value){ this->status(value); });
     }
 
+    ~PropertyProvider_adaptor() = default;
+
 private:
     // property getter
     virtual uint32_t status() = 0;
     // property setter
     virtual void status(const uint32_t& value) = 0;
-    
+
     /*...*/
 };
 #endif
@@ -1079,7 +1085,7 @@ The proxy:
 class PropertyProvider_proxy
 {
     /*...*/
-    
+
 public:
     // getting the property value
     uint32_t status()
@@ -1092,7 +1098,7 @@ public:
     {
         object_.setProperty("status").onInterface(INTERFACE_NAME).toValue(value);
     }
-    
+
     /*...*/
 };
 ```
