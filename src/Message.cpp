@@ -639,7 +639,7 @@ MethodReply MethodCall::sendWithReply() const
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method", -r);
 
-    return MethodReply{sdbusReply, sdbus_, adopt_message};
+    return Factory::create<MethodReply>(sdbusReply, sdbus_, adopt_message);
 }
 
 MethodReply MethodCall::sendWithNoReply() const
@@ -647,7 +647,7 @@ MethodReply MethodCall::sendWithNoReply() const
     auto r = sdbus_->sd_bus_send(nullptr, (sd_bus_message*)msg_, nullptr);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method with no reply", -r);
 
-    return MethodReply{}; // No reply
+    return Factory::create<MethodReply>(); // No reply
 }
 
 MethodReply MethodCall::createReply() const
@@ -656,7 +656,7 @@ MethodReply MethodCall::createReply() const
     auto r = sdbus_->sd_bus_message_new_method_return((sd_bus_message*)msg_, &sdbusReply);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create method reply", -r);
 
-    return MethodReply{sdbusReply, sdbus_, adopt_message};
+    return Factory::create<MethodReply>(sdbusReply, sdbus_, adopt_message);
 }
 
 MethodReply MethodCall::createErrorReply(const Error& error) const
@@ -669,7 +669,7 @@ MethodReply MethodCall::createErrorReply(const Error& error) const
     auto r = sdbus_->sd_bus_message_new_method_error((sd_bus_message*)msg_, &sdbusErrorReply, &sdbusError);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create method error reply", -r);
 
-    return MethodReply{sdbusErrorReply, sdbus_, adopt_message};
+    return Factory::create<MethodReply>(sdbusErrorReply, sdbus_, adopt_message);
 }
 
 AsyncMethodCall::AsyncMethodCall(MethodCall&& call) noexcept
@@ -736,7 +736,7 @@ PlainMessage createPlainMessage()
     r = sd_bus_message_new(bus, &sdbusMsg, _SD_BUS_MESSAGE_TYPE_INVALID);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create a new message", -r);
 
-    return PlainMessage{sdbusMsg, &sdbus, adopt_message};
+    return Message::Factory::create<PlainMessage>(sdbusMsg, &sdbus, adopt_message);
 }
 
 }

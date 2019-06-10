@@ -30,6 +30,34 @@
 
 namespace sdbus
 {
+    class Message::Factory
+    {
+    public:
+        template<typename _Msg>
+        static _Msg create()
+        {
+            return _Msg{};
+        }
+
+        template<typename _Msg>
+        static _Msg create(void *msg)
+        {
+            return _Msg{msg};
+        }
+
+        template<typename _Msg>
+        static _Msg create(void *msg, internal::ISdBus* sdbus)
+        {
+            return _Msg{msg, sdbus};
+        }
+
+        template<typename _Msg>
+        static _Msg create(void *msg, internal::ISdBus* sdbus, adopt_message_t)
+        {
+            return _Msg{msg, sdbus, adopt_message};
+        }
+    };
+
     PlainMessage createPlainMessage();
 }
 

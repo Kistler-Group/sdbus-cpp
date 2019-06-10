@@ -76,19 +76,7 @@ namespace sdbus {
      ***********************************************/
     class Message
     {
-    protected:
-        ~Message();
-        Message(const Message&) noexcept;
-        Message& operator=(const Message&) noexcept;
-        Message(Message&& other) noexcept;
-        Message& operator=(Message&& other) noexcept;
-
     public:
-        Message() = default;
-        Message(internal::ISdBus* sdbus) noexcept;
-        Message(void *msg, internal::ISdBus* sdbus) noexcept;
-        Message(void *msg, internal::ISdBus* sdbus, adopt_message_t) noexcept;
-
         Message& operator<<(bool item);
         Message& operator<<(int16_t item);
         Message& operator<<(int32_t item);
@@ -152,6 +140,23 @@ namespace sdbus {
         void seal();
         void rewind(bool complete);
 
+        class Factory;
+
+    protected:
+        Message() = default;
+        Message(internal::ISdBus* sdbus) noexcept;
+        Message(void *msg, internal::ISdBus* sdbus) noexcept;
+        Message(void *msg, internal::ISdBus* sdbus, adopt_message_t) noexcept;
+
+        Message(const Message&) noexcept;
+        Message& operator=(const Message&) noexcept;
+        Message(Message&& other) noexcept;
+        Message& operator=(Message&& other) noexcept;
+
+        ~Message();
+
+        friend Factory;
+
     protected:
         void* msg_{};
         internal::ISdBus* sdbus_{};
@@ -160,8 +165,10 @@ namespace sdbus {
 
     class MethodCall : public Message
     {
-    public:
         using Message::Message;
+
+    public:
+        MethodCall() = default;
         MethodReply send() const;
         MethodReply createReply() const;
         MethodReply createErrorReply(const sdbus::Error& error) const;
@@ -175,45 +182,56 @@ namespace sdbus {
 
     class AsyncMethodCall : public Message
     {
+        using Message::Message;
+
     public:
         using Slot = std::unique_ptr<void, std::function<void(void*)>>;
 
-        using Message::Message;
-        AsyncMethodCall() = default; // Fixes gcc 6.3 error (default c-tor is not imported in above using declaration)
+        AsyncMethodCall() = default;
         AsyncMethodCall(MethodCall&& call) noexcept;
         Slot send(void* callback, void* userData) const;
     };
 
     class MethodReply : public Message
     {
-    public:
         using Message::Message;
+
+    public:
+        MethodReply() = default;
         void send() const;
     };
 
     class Signal : public Message
     {
-    public:
         using Message::Message;
+
+    public:
+        Signal() = default;
         void send() const;
     };
 
     class PropertySetCall : public Message
     {
-    public:
         using Message::Message;
+
+    public:
+        PropertySetCall() = default;
     };
 
     class PropertyGetReply : public Message
     {
-    public:
         using Message::Message;
+
+    public:
+        PropertyGetReply() = default;
     };
 
     class PlainMessage : public Message
     {
-    public:
         using Message::Message;
+
+    public:
+        PlainMessage() = default;
     };
 
     template <typename _Element>

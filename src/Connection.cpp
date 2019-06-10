@@ -25,6 +25,7 @@
 
 #include "Connection.h"
 #include "SdBus.h"
+#include "MessageUtils.h"
 #include <sdbus-c++/Message.h>
 #include <sdbus-c++/Error.h>
 #include "ScopeGuard.h"
@@ -169,7 +170,7 @@ MethodCall Connection::createMethodCall( const std::string& destination
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create method call", -r);
 
-    return MethodCall{sdbusMsg, iface_.get(), adopt_message};
+    return Message::Factory::create<MethodCall>(sdbusMsg, iface_.get(), adopt_message);
 }
 
 Signal Connection::createSignal( const std::string& objectPath
@@ -186,7 +187,7 @@ Signal Connection::createSignal( const std::string& objectPath
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create signal", -r);
 
-    return Signal{sdbusSignal, iface_.get(), adopt_message};
+    return Message::Factory::create<Signal>(sdbusSignal, iface_.get(), adopt_message);
 }
 
 void Connection::emitPropertiesChangedSignal( const std::string& objectPath
