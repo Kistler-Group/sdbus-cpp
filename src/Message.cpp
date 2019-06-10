@@ -602,7 +602,7 @@ bool Message::isValid() const
 
 bool Message::isEmpty() const
 {
-    return sd_bus_message_is_empty((sd_bus_message*)msg_);
+    return sd_bus_message_is_empty((sd_bus_message*)msg_) != 0;
 }
 
 void MethodCall::dontExpectReply()
@@ -615,7 +615,7 @@ bool MethodCall::doesntExpectReply() const
 {
     auto r = sd_bus_message_get_expect_reply((sd_bus_message*)msg_);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get the dont-expect-reply flag", -r);
-    return r > 0 ? false : true;
+    return r == 0;
 }
 
 MethodReply MethodCall::send() const
@@ -721,7 +721,7 @@ PlainMessage createPlainMessage()
 
     thread_local struct BusReferenceKeeper
     {
-        BusReferenceKeeper(sd_bus* bus) : bus_(sd_bus_ref(bus)) { sd_bus_flush(bus_); }
+        explicit BusReferenceKeeper(sd_bus* bus) : bus_(sd_bus_ref(bus)) { sd_bus_flush(bus_); }
         ~BusReferenceKeeper() { sd_bus_flush_close_unref(bus_); }
         sd_bus* bus_{};
     } busReferenceKeeper{bus};

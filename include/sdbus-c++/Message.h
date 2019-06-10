@@ -127,7 +127,7 @@ namespace sdbus {
         Message& enterStruct(const std::string& signature);
         Message& exitStruct();
 
-        operator bool() const;
+        explicit operator bool() const;
         void clearFlags();
 
         std::string getInterfaceName() const;
@@ -144,7 +144,7 @@ namespace sdbus {
 
     protected:
         Message() = default;
-        Message(internal::ISdBus* sdbus) noexcept;
+        explicit Message(internal::ISdBus* sdbus) noexcept;
         Message(void *msg, internal::ISdBus* sdbus) noexcept;
         Message(void *msg, internal::ISdBus* sdbus, adopt_message_t) noexcept;
 
@@ -188,7 +188,7 @@ namespace sdbus {
         using Slot = std::unique_ptr<void, std::function<void(void*)>>;
 
         AsyncMethodCall() = default;
-        AsyncMethodCall(MethodCall&& call) noexcept;
+        explicit AsyncMethodCall(MethodCall&& call) noexcept;
         Slot send(void* callback, void* userData) const;
     };
 
