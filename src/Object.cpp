@@ -24,6 +24,7 @@
  */
 
 #include "Object.h"
+#include "MessageUtils.h"
 #include <sdbus-c++/IConnection.h>
 #include <sdbus-c++/Message.h>
 #include <sdbus-c++/Error.h>
@@ -260,7 +261,7 @@ int Object::sdbus_method_callback(sd_bus_message *sdbusMessage, void *userData, 
     auto* object = static_cast<Object*>(userData);
     assert(object != nullptr);
 
-    MethodCall message{sdbusMessage, &object->connection_.getSdBusInterface()};
+    auto message = Message::Factory::create<MethodCall>(sdbusMessage, &object->connection_.getSdBusInterface());
 
     // Note: The lookup can be optimized by using sorted vectors instead of associative containers
     auto& callback = object->interfaces_[message.getInterfaceName()].methods_[message.getMemberName()].callback_;
@@ -298,7 +299,7 @@ int Object::sdbus_property_get_callback( sd_bus */*bus*/
         return 1;
     }
 
-    Message reply{sdbusReply, &object->connection_.getSdBusInterface()};
+    auto reply = Message::Factory::create<PropertyGetReply>(sdbusReply, &object->connection_.getSdBusInterface());
 
     try
     {
@@ -327,7 +328,7 @@ int Object::sdbus_property_set_callback( sd_bus */*bus*/
     auto& callback = object->interfaces_[interface].properties_[property].setCallback_;
     assert(callback);
 
-    Message value{sdbusValue, &object->connection_.getSdBusInterface()};
+    auto value = Message::Factory::create<PropertySetCall>(sdbusValue, &object->connection_.getSdBusInterface());
 
     try
     {

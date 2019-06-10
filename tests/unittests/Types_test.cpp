@@ -152,7 +152,7 @@ TEST(ANonEmptyVariant, SerializesSuccessfullyToAMessage)
 {
     sdbus::Variant variant("a string");
 
-    sdbus::Message msg = sdbus::createPlainMessage();
+    auto msg = sdbus::createPlainMessage();
 
     ASSERT_NO_THROW(variant.serializeTo(msg));
 }
@@ -161,7 +161,7 @@ TEST(AnEmptyVariant, ThrowsWhenBeingSerializedToAMessage)
 {
     sdbus::Variant variant;
 
-    sdbus::Message msg = sdbus::createPlainMessage();
+    auto msg = sdbus::createPlainMessage();
 
     ASSERT_THROW(variant.serializeTo(msg), sdbus::Error);
 }
@@ -172,7 +172,7 @@ TEST(ANonEmptyVariant, SerializesToAndDeserializesFromAMessageSuccessfully)
     ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{sdbus::make_struct("hello", ANY_DOUBLE), sdbus::make_struct("world", ANY_DOUBLE)}} };
     sdbus::Variant variant(value);
 
-    sdbus::Message msg = sdbus::createPlainMessage();
+    auto msg = sdbus::createPlainMessage();
     variant.serializeTo(msg);
     msg.seal();
     sdbus::Variant variant2;
@@ -189,7 +189,7 @@ TEST(CopiesOfVariant, SerializeToAndDeserializeFromMessageSuccessfully)
     auto variantCopy1{variant};
     auto variantCopy2 = variant;
 
-    sdbus::Message msg = sdbus::createPlainMessage();
+    auto msg = sdbus::createPlainMessage();
     variant.serializeTo(msg);
     variantCopy1.serializeTo(msg);
     variantCopy2.serializeTo(msg);

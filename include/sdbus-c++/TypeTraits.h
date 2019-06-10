@@ -41,10 +41,11 @@ namespace sdbus {
     class ObjectPath;
     class Signature;
     struct UnixFd;
-    class Message;
     class MethodCall;
     class MethodReply;
     class Signal;
+    class PropertySetCall;
+    class PropertyGetReply;
     template <typename... _Results> class Result;
     class Error;
 }
@@ -54,8 +55,8 @@ namespace sdbus {
     using method_callback = std::function<void(MethodCall msg)>;
     using async_reply_handler = std::function<void(MethodReply& reply, const Error* error)>;
     using signal_handler = std::function<void(Signal& signal)>;
-    using property_set_callback = std::function<void(Message& msg)>;
-    using property_get_callback = std::function<void(Message& reply)>;
+    using property_set_callback = std::function<void(PropertySetCall& msg)>;
+    using property_get_callback = std::function<void(PropertyGetReply& reply)>;
 
     template <typename _T>
     struct signature_of

@@ -132,11 +132,15 @@ The following diagram illustrates the major entities in sdbus-c++.
   * invoking remote methods of the corresponding object, in both synchronous and asynchronous way,
   * registering handlers for signals,
 
-`Message` class represents a message, which is the fundamental DBus concept. There are three distinctive types of message that derive from the `Message` class:
+`Message` class represents a message, which is the fundamental DBus concept. There are three distinctive types of message that are derived from the `Message` class:
 
   * `MethodCall` (with serialized parameters),
+  * `AsyncMethodCall` (with serialized parameters),
   * `MethodReply` (with serialized return values),
-  * or a `Signal` (with serialized parameters).
+  * `Signal` (with serialized parameters),
+  * `PropertySetCall` (with serialized parameter value to be set)
+  * `PropertyGetReply` (where property value shall be stored)
+  * `PlainMessage` (for internal purposes).
 
 ### Thread safety in sdbus-c++
 

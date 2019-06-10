@@ -94,7 +94,7 @@ namespace sdbus {
         std::string peekValueType() const;
 
     private:
-        mutable Message msg_{};
+        mutable PlainMessage msg_{};
     };
 
     /********************************************//**

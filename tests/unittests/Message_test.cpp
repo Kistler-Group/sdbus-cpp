@@ -36,7 +36,7 @@ using namespace std::string_literals;
 
 namespace
 {
-    std::string deserializeString(sdbus::Message& msg)
+    std::string deserializeString(sdbus::PlainMessage& msg)
     {
         std::string str;
         msg >> str;
@@ -50,29 +50,29 @@ namespace
 
 TEST(AMessage, CanBeDefaultConstructed)
 {
-    ASSERT_NO_THROW(sdbus::Message());
+    ASSERT_NO_THROW(sdbus::PlainMessage());
 }
 
 TEST(AMessage, IsInvalidAfterDefaultConstructed)
 {
-    sdbus::Message msg;
+    sdbus::PlainMessage msg;
 
     ASSERT_FALSE(msg.isValid());
 }
 
 TEST(AMessage, IsValidWhenConstructedAsRealMessage)
 {
-    sdbus::Message msg{sdbus::createPlainMessage()};
+    auto msg = sdbus::createPlainMessage();
     ASSERT_TRUE(msg.isValid());
 }
 
 TEST(AMessage, CreatesShallowCopyWhenCopyConstructed)
 {
-    sdbus::Message msg{sdbus::createPlainMessage()};
+    auto msg = sdbus::createPlainMessage();
     msg << "I am a string"s;
     msg.seal();
 
-    sdbus::Message msgCopy = msg;
+    sdbus::PlainMessage msgCopy = msg;
 
     std::string str;
     msgCopy >> str;
@@ -83,11 +83,11 @@ TEST(AMessage, CreatesShallowCopyWhenCopyConstructed)
 
 TEST(AMessage, CreatesDeepCopyWhenEplicitlyCopied)
 {
-    sdbus::Message msg{sdbus::createPlainMessage()};
+    auto msg = sdbus::createPlainMessage();
     msg << "I am a string"s;
     msg.seal();
 
-    sdbus::Message msgCopy{sdbus::createPlainMessage()};
+    auto msgCopy = sdbus::createPlainMessage();
     msg.copyTo(msgCopy, true);
     msgCopy.seal(); // Seal to be able to read from it subsequently
     msg.rewind(true); // Rewind to the beginning after copying
@@ -98,14 +98,14 @@ TEST(AMessage, CreatesDeepCopyWhenEplicitlyCopied)
 
 TEST(AMessage, IsEmptyWhenContainsNoValue)
 {
-    sdbus::Message msg{sdbus::createPlainMessage()};
+    auto msg = sdbus::createPlainMessage();
 
     ASSERT_TRUE(msg.isEmpty());
 }
 
 TEST(AMessage, IsNotEmptyWhenContainsAValue)
 {
-    sdbus::Message msg{sdbus::createPlainMessage()};
+    auto msg = sdbus::createPlainMessage();
     msg << "I am a string"s;
 
     ASSERT_FALSE(msg.isEmpty());
@@ -113,7 +113,7 @@ TEST(AMessage, IsNotEmptyWhenContainsAValue)
 
 TEST(AMessage, CanCarryASimpleInteger)
 {
-    sdbus::Message msg{sdbus::createPlainMessage()};
+    auto msg = sdbus::createPlainMessage();
 
     int dataWritten = 5;
 
@@ -128,7 +128,7 @@ TEST(AMessage, CanCarryASimpleInteger)
 
 TEST(AMessage, CanCarryAUnixFd)
 {
-    sdbus::Message msg{sdbus::createPlainMessage()};
+    auto msg = sdbus::createPlainMessage();
 
     sdbus::UnixFd dataWritten = 0;
     msg << dataWritten;
@@ -143,7 +143,7 @@ TEST(AMessage, CanCarryAUnixFd)
 
 TEST(AMessage, CanCarryAVariant)
 {
-    sdbus::Message msg{sdbus::createPlainMessage()};
+    auto msg = sdbus::createPlainMessage();
 
     auto dataWritten = sdbus::Variant((double)3.14);
 
@@ -158,7 +158,7 @@ TEST(AMessage, CanCarryAVariant)
 
 TEST(AMessage, CanCarryACollectionOfEmbeddedVariants)
 {
-    sdbus::Message msg{sdbus::createPlainMessage()};
+    auto msg = sdbus::createPlainMessage();
 
     auto value = std::vector<sdbus::Variant>{"hello"s, (double)3.14};
     auto dataWritten = sdbus::Variant{value};
@@ -175,7 +175,7 @@ TEST(AMessage, CanCarryACollectionOfEmbeddedVariants)
 
 TEST(AMessage, CanCarryAnArray)
 {
-    sdbus::Message msg{sdbus::createPlainMessage()};
+    auto msg = sdbus::createPlainMessage();
 
     std::vector<int64_t> dataWritten{3545342, 43643532, 324325};
 
@@ -190,7 +190,7 @@ TEST(AMessage, CanCarryAnArray)
 
 TEST(AMessage, CanCarryADictionary)
 {
-    sdbus::Message msg{sdbus::createPlainMessage()};
+    auto msg = sdbus::createPlainMessage();
 
     std::map<int, std::string> dataWritten{{1, "one"}, {2, "two"}};
 
@@ -205,7 +205,7 @@ TEST(AMessage, CanCarryADictionary)
 
 TEST(AMessage, CanCarryAComplexType)
 {
-    sdbus::Message msg{sdbus::createPlainMessage()};
+    auto msg = sdbus::createPlainMessage();
 
     using ComplexType = std::map<
                             uint64_t,
