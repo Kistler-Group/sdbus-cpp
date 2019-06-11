@@ -167,6 +167,7 @@ namespace sdbus {
     class MethodCall : public Message
     {
         using Message::Message;
+        friend Factory;
 
     public:
         MethodCall() = default;
@@ -184,6 +185,7 @@ namespace sdbus {
     class AsyncMethodCall : public Message
     {
         using Message::Message;
+        friend Factory;
 
     public:
         using Slot = std::unique_ptr<void, std::function<void(void*)>>;
@@ -196,6 +198,7 @@ namespace sdbus {
     class MethodReply : public Message
     {
         using Message::Message;
+        friend Factory;
 
     public:
         MethodReply() = default;
@@ -205,6 +208,7 @@ namespace sdbus {
     class Signal : public Message
     {
         using Message::Message;
+        friend Factory;
 
     public:
         Signal() = default;
@@ -214,6 +218,7 @@ namespace sdbus {
     class PropertySetCall : public Message
     {
         using Message::Message;
+        friend Factory;
 
     public:
         PropertySetCall() = default;
@@ -222,6 +227,7 @@ namespace sdbus {
     class PropertyGetReply : public Message
     {
         using Message::Message;
+        friend Factory;
 
     public:
         PropertyGetReply() = default;
@@ -230,6 +236,7 @@ namespace sdbus {
     class PlainMessage : public Message
     {
         using Message::Message;
+        friend Factory;
 
     public:
         PlainMessage() = default;
