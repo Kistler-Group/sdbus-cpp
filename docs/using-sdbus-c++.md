@@ -91,8 +91,7 @@ Distributing sdbus-c++
 
 sdbus-c++ recipes for Yocto are available. Contributors willing to help with bringing sdbus-c++ to popular package systems are welcome.
 
-Yocto
------
+### Yocto
 
 There are sdbus-c++ recipes for already released Yocto versions (for versions Sumo and newer) available in the meta-oe layer of meta-openembedded fork at Kistler-Group:
 
