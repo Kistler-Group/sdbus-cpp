@@ -6,19 +6,20 @@ Using sdbus-c++ library
 1. [Introduction](#introduction)
 2. [Integrating sdbus-c++ into your project](#integrating-sdbus-c-into-your-project)
 3. [Solving libsystemd dependency](#solving-libsystemd-dependency)
-4. [Header files and namespaces](#header-files-and-namespaces)
-5. [Error signalling and propagation](#error-signalling-and-propagation)
-6. [Design of sdbus-c++](#design-of-sdbus-c)
-7. [Multiple layers of sdbus-c++ API](#multiple-layers-of-sdbus-c-api)
-8. [An example: Number concatenator](#an-example-number-concatenator)
-9. [Implementing the Concatenator example using basic sdbus-c++ API layer](#implementing-the-concatenator-example-using-basic-sdbus-c-api-layer)
-10. [Implementing the Concatenator example using convenience sdbus-c++ API layer](#implementing-the-concatenator-example-using-convenience-sdbus-c-api-layer)
-11. [Implementing the Concatenator example using sdbus-c++-generated stubs](#implementing-the-concatenator-example-using-sdbus-c-generated-stubs)
-12. [Asynchronous server-side methods](#asynchronous-server-side-methods)
-13. [Asynchronous client-side methods](#asynchronous-client-side-methods)
-14. [Using D-Bus properties](#using-d-bus-properties)
-15. [Standard D-Bus interfaces](#standard-d-bus-interfaces)
-16. [Conclusion](#conclusion)
+4. [Distributing sdbus-c++](#distributing-sdbus-c)
+5. [Header files and namespaces](#header-files-and-namespaces)
+6. [Error signalling and propagation](#error-signalling-and-propagation)
+7. [Design of sdbus-c++](#design-of-sdbus-c)
+8. [Multiple layers of sdbus-c++ API](#multiple-layers-of-sdbus-c-api)
+9. [An example: Number concatenator](#an-example-number-concatenator)
+10. [Implementing the Concatenator example using basic sdbus-c++ API layer](#implementing-the-concatenator-example-using-basic-sdbus-c-api-layer)
+11. [Implementing the Concatenator example using convenience sdbus-c++ API layer](#implementing-the-concatenator-example-using-convenience-sdbus-c-api-layer)
+12. [Implementing the Concatenator example using sdbus-c++-generated stubs](#implementing-the-concatenator-example-using-sdbus-c-generated-stubs)
+13. [Asynchronous server-side methods](#asynchronous-server-side-methods)
+14. [Asynchronous client-side methods](#asynchronous-client-side-methods)
+15. [Using D-Bus properties](#using-d-bus-properties)
+16. [Standard D-Bus interfaces](#standard-d-bus-interfaces)
+17. [Conclusion](#conclusion)
 
 Introduction
 ------------
@@ -81,9 +82,30 @@ $ ninja libsystemd.so.0.26.0  # or another version number depending which system
 
 ### Building and distributing libsystemd as part of sdbus-c++
 
-sdbus-c++ provides `BUILD_LIBSYSTEMD` configuration option. When turned on, sdbus-c++ will automatically download, build and integrate libsystemd as a static library into sdbus-c++ for you. This is the most convenient and effective approach to build, distribute and use sdbus-c++ as a self-contained, systemd-independent library in non-systemd enviroments. Just make sure your build machine has all dependencies needed by libsystemd build process. That includes `meson`, `ninja`, `git` programs and mainly libraries and library headers for `libmount`, `libcap` and `librt` (part of glibc). Also when distributing, make sure these dependency libraries are installed on the production machine. (Contributors willing to help with bringing sdbus-c++ to popular package systems are welcome.)
+sdbus-c++ provides `BUILD_LIBSYSTEMD` configuration option. When turned on, sdbus-c++ will automatically download and build libsystemd as a static library and make it an opaque part of sdbus-c++ shared library for you. This is the most convenient and effective approach to build, distribute and use sdbus-c++ as a self-contained, systemd-independent library in non-systemd enviroments. Just make sure your build machine has all dependencies needed by libsystemd build process. That includes `meson`, `ninja`, `git` programs and mainly libraries and library headers for `libmount`, `libcap` and `librt` (part of glibc). Also when distributing, make sure these dependency libraries are installed on the production machine.
 
 You may additionally set the `LIBSYSTEMD_VERSION` configuration flag to fine-tune the version of systemd to be taken in. (The default value is 242).
+
+Distributing sdbus-c++
+----------------------
+
+sdbus-c++ recipes for Yocto are available. Contributors willing to help with bringing sdbus-c++ to popular package systems are welcome.
+
+Yocto
+-----
+
+There are sdbus-c++ recipes for already released Yocto versions (for versions Sumo and newer) available in the meta-oe layer of meta-openembedded fork at Kistler-Group:
+
+  * [sdbus-c++ recipes for Yocto Sumo](https://github.com/Kistler-Group/meta-openembedded/tree/sumo-with-sdbus-c%2B%2B/meta-oe/recipes-core/sdbus-c%2B%2B)
+  * [sdbus-c++ recipes for Yocto Thud](https://github.com/Kistler-Group/meta-openembedded/tree/thud-with-sdbus-c%2B%2B/meta-oe/recipes-core/sdbus-c%2B%2B)
+  * [sdbus-c++ recipes for Yocto Warrior](https://github.com/Kistler-Group/meta-openembedded/tree/warrior-with-sdbus-c%2B%2B/meta-oe/recipes-core/sdbus-c%2B%2B)
+
+Also, there is currently a pull request pending that pushes there recipes upstream -- to the OpenEmbedded project, so they will be officially available for the upcoming Yocto release.
+
+There are two recipes:
+
+  * One for sdbus-c++ itself. It detects whether systemd feature is turned on in the poky linux configuration. If so, it simply depends on systemd and makes use of libsystemd shared library available in the target system. Otherwise it automatically downloads and builds libsystemd static library and makes it an opaque part of sdbus-c++ shared library. The recipe also supports ptest.
+  * One for sdbus-c++ native tools, namely sdbus-c++ code generator to generate C++ adaptor and proxy binding classes.
 
 Header files and namespaces
 ---------------------------
