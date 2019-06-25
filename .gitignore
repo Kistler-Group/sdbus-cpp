@@ -40,3 +40,6 @@ test-driver
 .gdbinit
 sdbus-cpp_gdb_arm-poky-linux-gnueabi.launch
 sdbus-c++.pc
+
+#vscode
+.vscode
