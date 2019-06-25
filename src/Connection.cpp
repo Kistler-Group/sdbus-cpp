@@ -1,5 +1,6 @@
 /**
- * (C) 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2019 Stanislav Angelovic <angelovic.s@gmail.com>
  *
  * @file Connection.cpp
  *
@@ -25,6 +26,7 @@
 
 #include "Connection.h"
 #include "SdBus.h"
+#include "MessageUtils.h"
 #include <sdbus-c++/Message.h>
 #include <sdbus-c++/Error.h>
 #include "ScopeGuard.h"
@@ -32,6 +34,19 @@
 #include <unistd.h>
 #include <poll.h>
 #include <sys/eventfd.h>
+
+namespace {
+
+std::vector</*const */char*> to_strv(const std::vector<std::string>& strings)
+{
+    std::vector</*const */char*> strv;
+    for (auto& str : strings)
+        strv.push_back(const_cast<char*>(str.c_str()));
+    strv.push_back(nullptr);
+    return strv;
+}
+
+}
 
 namespace sdbus { namespace internal {
 
@@ -156,7 +171,7 @@ MethodCall Connection::createMethodCall( const std::string& destination
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create method call", -r);
 
-    return MethodCall{sdbusMsg, iface_.get(), adopt_message};
+    return Message::Factory::create<MethodCall>(sdbusMsg, iface_.get(), adopt_message);
 }
 
 Signal Connection::createSignal( const std::string& objectPath
@@ -173,7 +188,59 @@ Signal Connection::createSignal( const std::string& objectPath
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create signal", -r);
 
-    return Signal{sdbusSignal, iface_.get(), adopt_message};
+    return Message::Factory::create<Signal>(sdbusSignal, iface_.get(), adopt_message);
+}
+
+void Connection::emitPropertiesChangedSignal( const std::string& objectPath
+                                            , const std::string& interfaceName
+                                            , const std::vector<std::string>& propNames )
+{
+    auto names = to_strv(propNames);
+
+    auto r = iface_->sd_bus_emit_properties_changed_strv( bus_.get()
+                                                        , objectPath.c_str()
+                                                        , interfaceName.c_str()
+                                                        , propNames.empty() ? nullptr : &names[0] );
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit PropertiesChanged signal", -r);
+}
+
+void Connection::emitInterfacesAddedSignal(const std::string& objectPath)
+{
+    auto r = iface_->sd_bus_emit_object_added(bus_.get(), objectPath.c_str());
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit InterfacesAdded signal for all registered interfaces", -r);
+}
+
+void Connection::emitInterfacesAddedSignal( const std::string& objectPath
+                                          , const std::vector<std::string>& interfaces )
+{
+    auto names = to_strv(interfaces);
+
+    auto r = iface_->sd_bus_emit_interfaces_added_strv( bus_.get()
+                                                      , objectPath.c_str()
+                                                      , interfaces.empty() ? nullptr : &names[0] );
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit InterfacesAdded signal", -r);
+}
+
+void Connection::emitInterfacesRemovedSignal(const std::string& objectPath)
+{
+    auto r = iface_->sd_bus_emit_object_removed(bus_.get(), objectPath.c_str());
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit InterfacesRemoved signal for all registered interfaces", -r);
+}
+
+void Connection::emitInterfacesRemovedSignal( const std::string& objectPath
+                                            , const std::vector<std::string>& interfaces )
+{
+    auto names = to_strv(interfaces);
+
+    auto r = iface_->sd_bus_emit_interfaces_removed_strv( bus_.get()
+                                                        , objectPath.c_str()
+                                                        , interfaces.empty() ? nullptr : &names[0] );
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit InterfacesRemoved signal", -r);
 }
 
 SlotPtr Connection::registerSignalHandler( const std::string& objectPath

@@ -25,6 +25,8 @@ protected:
         proxy_.uponSignal("dataSignal").onInterface(INTERFACE_NAME).call([this](const std::string& data){ this->onDataSignal(data); });
     }
 
+    ~perftests_proxy() = default;
+
     virtual void onDataSignal(const std::string& data) = 0;
 
 public:

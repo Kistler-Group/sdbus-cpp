@@ -1,5 +1,6 @@
 /**
- * (C) 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2019 Stanislav Angelovic <angelovic.s@gmail.com>
  *
  * @file StandardInterfaces.h
  *
@@ -46,6 +47,8 @@ namespace sdbus {
         {
         }
 
+        ~Peer_proxy() = default;
+
     public:
         void Ping()
         {
@@ -73,6 +76,8 @@ namespace sdbus {
             : proxy_(proxy)
         {
         }
+
+        ~Introspectable_proxy() = default;
 
     public:
         std::string Introspect()
@@ -105,6 +110,8 @@ namespace sdbus {
                                 this->onPropertiesChanged(interfaceName, changedProperties, invalidatedProperties);
                             });
         }
+
+        ~Properties_proxy() = default;
 
         virtual void onPropertiesChanged( const std::string& interfaceName
                                         , const std::map<std::string, sdbus::Variant>& changedProperties
@@ -160,6 +167,8 @@ namespace sdbus {
                             });
         }
 
+        ~ObjectManager_proxy() = default;
+
         virtual void onInterfacesAdded( const sdbus::ObjectPath& objectPath
                                       , const std::map<std::string, std::map<std::string, sdbus::Variant>>& interfacesAndProperties) = 0;
         virtual void onInterfacesRemoved( const sdbus::ObjectPath& objectPath
@@ -178,8 +187,76 @@ namespace sdbus {
     };
 
     // Adaptors for the above-listed standard D-Bus interfaces are not necessary because the functionality
-    // is provided automatically for each D-Bus object by underlying libsystemd (with the exception of
-    // object manager which is provided but needs to be added explicitly, see IObject::addObjectManager).
+    // is provided by underlying libsystemd implementation. The exception is Properties_adaptor and
+    // ObjectManager_adaptor, which provide convenience functionality to emit signals.
+
+    // Adaptor for properties
+    class Properties_adaptor
+    {
+        static constexpr const char* INTERFACE_NAME = "org.freedesktop.DBus.Properties";
+
+    protected:
+        Properties_adaptor(sdbus::IObject& object)
+            : object_(object)
+        {
+        }
+
+        ~Properties_adaptor() = default;
+
+    public:
+        void emitPropertiesChangedSignal(const std::string& interfaceName, const std::vector<std::string>& properties)
+        {
+            object_.emitPropertiesChangedSignal(interfaceName, properties);
+        }
+
+        void emitPropertiesChangedSignal(const std::string& interfaceName)
+        {
+            object_.emitPropertiesChangedSignal(interfaceName);
+        }
+
+    private:
+        sdbus::IObject& object_;
+    };
+
+    // Adaptor for object manager
+    class ObjectManager_adaptor
+    {
+        static constexpr const char* INTERFACE_NAME = "org.freedesktop.DBus.ObjectManager";
+
+    protected:
+        ObjectManager_adaptor(sdbus::IObject& object)
+            : object_(object)
+        {
+            object_.addObjectManager();
+        }
+
+        ~ObjectManager_adaptor() = default;
+
+    public:
+        void emitInterfacesAddedSignal()
+        {
+            object_.emitInterfacesAddedSignal();
+        }
+
+        void emitInterfacesAddedSignal(const std::vector<std::string>& interfaces)
+        {
+            object_.emitInterfacesAddedSignal(interfaces);
+        }
+
+        void emitInterfacesRemovedSignal()
+        {
+            object_.emitInterfacesRemovedSignal();
+        }
+
+        void emitInterfacesRemovedSignal(const std::vector<std::string>& interfaces)
+        {
+            object_.emitInterfacesRemovedSignal(interfaces);
+        }
+
+    private:
+        sdbus::IObject& object_;
+    };
+
 }
 
 #endif /* SDBUS_CXX_STANDARDINTERFACES_H_ */

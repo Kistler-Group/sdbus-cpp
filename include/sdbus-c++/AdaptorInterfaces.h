@@ -1,5 +1,6 @@
 /**
- * (C) 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2019 Stanislav Angelovic <angelovic.s@gmail.com>
  *
  * @file AdaptorInterfaces.h
  *
@@ -128,30 +129,6 @@ namespace sdbus {
         void unregisterAdaptor()
         {
             getObject().unregister();
-        }
-
-        /*!
-         * @brief Adds an ObjectManager interface at the path of this D-Bus object
-         *
-         * Creates an ObjectManager interface at the specified object path on
-         * the connection. This is a convenient way to interrogate a connection
-         * to see what objects it has.
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        void addObjectManager()
-        {
-            getObject().addObjectManager();
-        }
-
-        /*!
-         * @brief Removes an ObjectManager interface from the path of this D-Bus object
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        void removeObjectManager()
-        {
-            getObject().removeObjectManager();
         }
 
     protected:

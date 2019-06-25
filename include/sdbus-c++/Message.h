@@ -1,5 +1,6 @@
 /**
- * (C) 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2019 Stanislav Angelovic <angelovic.s@gmail.com>
  *
  * @file Message.h
  *
@@ -43,6 +44,7 @@ namespace sdbus {
     class ObjectPath;
     class Signature;
     template <typename... _ValueTypes> class Struct;
+    struct UnixFd;
     class MethodReply;
     namespace internal {
         class ISdBus;
@@ -76,16 +78,6 @@ namespace sdbus {
     class Message
     {
     public:
-        Message() = default;
-        Message(internal::ISdBus* sdbus) noexcept;
-        Message(void *msg, internal::ISdBus* sdbus) noexcept;
-        Message(void *msg, internal::ISdBus* sdbus, adopt_message_t) noexcept;
-        Message(const Message&) noexcept;
-        Message& operator=(const Message&) noexcept;
-        Message(Message&& other) noexcept;
-        Message& operator=(Message&& other) noexcept;
-        ~Message();
-
         Message& operator<<(bool item);
         Message& operator<<(int16_t item);
         Message& operator<<(int32_t item);
@@ -100,6 +92,7 @@ namespace sdbus {
         Message& operator<<(const Variant &item);
         Message& operator<<(const ObjectPath &item);
         Message& operator<<(const Signature &item);
+        Message& operator<<(const UnixFd &item);
 
         Message& operator>>(bool& item);
         Message& operator>>(int16_t& item);
@@ -115,6 +108,7 @@ namespace sdbus {
         Message& operator>>(Variant &item);
         Message& operator>>(ObjectPath &item);
         Message& operator>>(Signature &item);
+        Message& operator>>(UnixFd &item);
 
         Message& openContainer(const std::string& signature);
         Message& closeContainer();
@@ -134,7 +128,7 @@ namespace sdbus {
         Message& enterStruct(const std::string& signature);
         Message& exitStruct();
 
-        operator bool() const;
+        explicit operator bool() const;
         void clearFlags();
 
         std::string getInterfaceName() const;
@@ -147,6 +141,23 @@ namespace sdbus {
         void seal();
         void rewind(bool complete);
 
+        class Factory;
+
+    protected:
+        Message() = default;
+        explicit Message(internal::ISdBus* sdbus) noexcept;
+        Message(void *msg, internal::ISdBus* sdbus) noexcept;
+        Message(void *msg, internal::ISdBus* sdbus, adopt_message_t) noexcept;
+
+        Message(const Message&) noexcept;
+        Message& operator=(const Message&) noexcept;
+        Message(Message&& other) noexcept;
+        Message& operator=(Message&& other) noexcept;
+
+        ~Message();
+
+        friend Factory;
+
     protected:
         void* msg_{};
         internal::ISdBus* sdbus_{};
@@ -155,8 +166,11 @@ namespace sdbus {
 
     class MethodCall : public Message
     {
-    public:
         using Message::Message;
+        friend Factory;
+
+    public:
+        MethodCall() = default;
         MethodReply send() const;
         MethodReply createReply() const;
         MethodReply createErrorReply(const sdbus::Error& error) const;
@@ -170,27 +184,62 @@ namespace sdbus {
 
     class AsyncMethodCall : public Message
     {
+        using Message::Message;
+        friend Factory;
+
     public:
         using Slot = std::unique_ptr<void, std::function<void(void*)>>;
 
-        using Message::Message;
-        AsyncMethodCall() = default; // Fixes gcc 6.3 error (default c-tor is not imported in above using declaration)
-        AsyncMethodCall(MethodCall&& call) noexcept;
+        AsyncMethodCall() = default;
+        explicit AsyncMethodCall(MethodCall&& call) noexcept;
         Slot send(void* callback, void* userData) const;
     };
 
     class MethodReply : public Message
     {
-    public:
         using Message::Message;
+        friend Factory;
+
+    public:
+        MethodReply() = default;
         void send() const;
     };
 
     class Signal : public Message
     {
-    public:
         using Message::Message;
+        friend Factory;
+
+    public:
+        Signal() = default;
         void send() const;
+    };
+
+    class PropertySetCall : public Message
+    {
+        using Message::Message;
+        friend Factory;
+
+    public:
+        PropertySetCall() = default;
+    };
+
+    class PropertyGetReply : public Message
+    {
+        using Message::Message;
+        friend Factory;
+
+    public:
+        PropertyGetReply() = default;
+    };
+
+    class PlainMessage : public Message
+    {
+        using Message::Message;
+        friend Factory;
+
+    public:
+        PlainMessage() = default;
     };
 
     template <typename _Element>

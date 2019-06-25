@@ -27,8 +27,10 @@ protected:
         object_.registerSignal("concatenatedSignal").onInterface(INTERFACE_NAME).withParameters<std::string>();
     }
 
+    ~concatenator_adaptor() = default;
+
 public:
-    void concatenatedSignal(const std::string& concatenatedString)
+    void emitConcatenatedSignal(const std::string& concatenatedString)
     {
         object_.emitSignal("concatenatedSignal").onInterface(INTERFACE_NAME).withArguments(concatenatedString);
     }

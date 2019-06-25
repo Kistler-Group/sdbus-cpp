@@ -1,5 +1,6 @@
 /**
- * (C) 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2019 Stanislav Angelovic <angelovic.s@gmail.com>
  *
  * @file proxy-glue.h
  *
@@ -44,6 +45,8 @@ protected:
         object_.uponSignal("signalWithoutRegistration").onInterface(INTERFACE_NAME).call([this](const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& s)
                 { this->onSignalWithoutRegistration(s); });
     }
+
+    ~testing_proxy() = default;
 
     virtual void onSimpleSignal() = 0;
     virtual void onSignalWithMap(const std::map<int32_t, std::string>& map) = 0;
@@ -172,6 +175,13 @@ public:
     {
         sdbus::ObjectPath result;
         object_.callMethod("getObjectPath").onInterface(INTERFACE_NAME).storeResultsTo(result);
+        return result;
+    }
+
+    sdbus::UnixFd getUnixFd()
+    {
+        sdbus::UnixFd result;
+        object_.callMethod("getUnixFd").onInterface(INTERFACE_NAME).storeResultsTo(result);
         return result;
     }
 

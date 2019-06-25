@@ -1,5 +1,6 @@
 /**
- * (C) 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2019 Stanislav Angelovic <angelovic.s@gmail.com>
  *
  * @file ProxyInterfaces.h
  *
@@ -94,14 +95,14 @@ namespace sdbus {
     {
     public:
         /*!
-        * @brief Creates native-like proxy object instance
-        *
-        * @param[in] destination Bus name that provides a D-Bus object
-        * @param[in] objectPath Path of the D-Bus object
-        *
-        * This constructor overload creates a proxy that manages its own D-Bus connection(s).
-        * For more information on its behavior, consult @ref createProxy(std::string,std::string)
-        */
+         * @brief Creates native-like proxy object instance
+         *
+         * @param[in] destination Bus name that provides a D-Bus object
+         * @param[in] objectPath Path of the D-Bus object
+         *
+         * This constructor overload creates a proxy that manages its own D-Bus connection(s).
+         * For more information on its behavior, consult @ref createProxy(std::string,std::string)
+         */
         ProxyInterfaces(std::string destination, std::string objectPath)
             : ProxyObjectHolder(createProxy(std::move(destination), std::move(objectPath)))
             , _Interfaces(getProxy())...
@@ -109,15 +110,15 @@ namespace sdbus {
         }
 
         /*!
-        * @brief Creates native-like proxy object instance
-        *
-        * @param[in] connection D-Bus connection to be used by the proxy object
-        * @param[in] destination Bus name that provides a D-Bus object
-        * @param[in] objectPath Path of the D-Bus object
-        *
-        * The proxy created this way just references a D-Bus connection owned and managed by the user.
-        * For more information on its behavior, consult @ref createProxy(IConnection&,std::string,std::string)
-        */
+         * @brief Creates native-like proxy object instance
+         *
+         * @param[in] connection D-Bus connection to be used by the proxy object
+         * @param[in] destination Bus name that provides a D-Bus object
+         * @param[in] objectPath Path of the D-Bus object
+         *
+         * The proxy created this way just references a D-Bus connection owned and managed by the user.
+         * For more information on its behavior, consult @ref createProxy(IConnection&,std::string,std::string)
+         */
         ProxyInterfaces(IConnection& connection, std::string destination, std::string objectPath)
             : ProxyObjectHolder(createProxy(connection, std::move(destination), std::move(objectPath)))
             , _Interfaces(getProxy())...
@@ -125,15 +126,15 @@ namespace sdbus {
         }
 
         /*!
-        * @brief Creates native-like proxy object instance
-        *
-        * @param[in] connection D-Bus connection to be used by the proxy object
-        * @param[in] destination Bus name that provides a D-Bus object
-        * @param[in] objectPath Path of the D-Bus object
-        *
-        * The proxy created this way becomes an owner of the connection.
-        * For more information on its behavior, consult @ref createProxy(std::unique_ptr<sdbus::IConnection>&&,std::string,std::string)
-        */
+         * @brief Creates native-like proxy object instance
+         *
+         * @param[in] connection D-Bus connection to be used by the proxy object
+         * @param[in] destination Bus name that provides a D-Bus object
+         * @param[in] objectPath Path of the D-Bus object
+         *
+         * The proxy created this way becomes an owner of the connection.
+         * For more information on its behavior, consult @ref createProxy(std::unique_ptr<sdbus::IConnection>&&,std::string,std::string)
+         */
         ProxyInterfaces(std::unique_ptr<sdbus::IConnection>&& connection, std::string destination, std::string objectPath)
             : ProxyObjectHolder(createProxy(std::move(connection), std::move(destination), std::move(objectPath)))
             , _Interfaces(getProxy())...

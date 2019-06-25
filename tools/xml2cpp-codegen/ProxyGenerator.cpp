@@ -1,5 +1,6 @@
 /**
- * (C) 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2019 Stanislav Angelovic <angelovic.s@gmail.com>
  *
  * @file ProxyGenerator.cpp
  *
@@ -95,6 +96,9 @@ std::string ProxyGenerator::processInterface(Node& interface) const
     body << tab << "{" << endl
             << registration
             << tab << "}" << endl << endl;
+
+    body << tab << "~" << className << "() = default;" << endl << endl;
+
     if (!declaration.empty())
         body << declaration << endl;
 

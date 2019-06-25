@@ -1,5 +1,6 @@
 /**
- * (C) 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2019 Stanislav Angelovic <angelovic.s@gmail.com>
  *
  * @file TypeTraits.h
  *
@@ -40,10 +41,12 @@ namespace sdbus {
     template <typename... _ValueTypes> class Struct;
     class ObjectPath;
     class Signature;
-    class Message;
+    struct UnixFd;
     class MethodCall;
     class MethodReply;
     class Signal;
+    class PropertySetCall;
+    class PropertyGetReply;
     template <typename... _Results> class Result;
     class Error;
 }
@@ -53,8 +56,8 @@ namespace sdbus {
     using method_callback = std::function<void(MethodCall msg)>;
     using async_reply_handler = std::function<void(MethodReply& reply, const Error* error)>;
     using signal_handler = std::function<void(Signal& signal)>;
-    using property_set_callback = std::function<void(Message& msg)>;
-    using property_get_callback = std::function<void(Message& reply)>;
+    using property_set_callback = std::function<void(PropertySetCall& msg)>;
+    using property_get_callback = std::function<void(PropertyGetReply& reply)>;
 
     template <typename _T>
     struct signature_of
@@ -282,6 +285,17 @@ namespace sdbus {
         static const std::string str()
         {
             return "g";
+        }
+    };
+
+    template <>
+    struct signature_of<UnixFd>
+    {
+        static constexpr bool is_valid = true;
+
+        static const std::string str()
+        {
+            return "h";
         }
     };
 

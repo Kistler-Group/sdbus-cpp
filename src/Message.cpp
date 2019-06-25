@@ -1,5 +1,6 @@
 /**
- * (C) 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2019 Stanislav Angelovic <angelovic.s@gmail.com>
  *
  * @file Message.cpp
  *
@@ -210,7 +211,15 @@ Message& Message::operator<<(const ObjectPath &item)
 Message& Message::operator<<(const Signature &item)
 {
     auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_SIGNATURE, item.c_str());
-    SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize an Signature value", -r);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a Signature value", -r);
+
+    return *this;
+}
+
+Message& Message::operator<<(const UnixFd &item)
+{
+    auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_UNIX_FD, &item.fd_);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a UnixFd value", -r);
 
     return *this;
 }
@@ -379,6 +388,17 @@ Message& Message::operator>>(Signature &item)
 
     if (str != nullptr)
         item = str;
+
+    return *this;
+}
+
+Message& Message::operator>>(UnixFd &item)
+{
+    auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_UNIX_FD, &item.fd_);
+    if (r == 0)
+        ok_ = false;
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to deserialize a UnixFd value", -r);
 
     return *this;
 }
@@ -583,7 +603,7 @@ bool Message::isValid() const
 
 bool Message::isEmpty() const
 {
-    return sd_bus_message_is_empty((sd_bus_message*)msg_);
+    return sd_bus_message_is_empty((sd_bus_message*)msg_) != 0;
 }
 
 void MethodCall::dontExpectReply()
@@ -596,7 +616,7 @@ bool MethodCall::doesntExpectReply() const
 {
     auto r = sd_bus_message_get_expect_reply((sd_bus_message*)msg_);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get the dont-expect-reply flag", -r);
-    return r > 0 ? false : true;
+    return r == 0;
 }
 
 MethodReply MethodCall::send() const
@@ -620,7 +640,7 @@ MethodReply MethodCall::sendWithReply() const
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method", -r);
 
-    return MethodReply{sdbusReply, sdbus_, adopt_message};
+    return Factory::create<MethodReply>(sdbusReply, sdbus_, adopt_message);
 }
 
 MethodReply MethodCall::sendWithNoReply() const
@@ -628,7 +648,7 @@ MethodReply MethodCall::sendWithNoReply() const
     auto r = sdbus_->sd_bus_send(nullptr, (sd_bus_message*)msg_, nullptr);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method with no reply", -r);
 
-    return MethodReply{}; // No reply
+    return Factory::create<MethodReply>(); // No reply
 }
 
 MethodReply MethodCall::createReply() const
@@ -637,7 +657,7 @@ MethodReply MethodCall::createReply() const
     auto r = sdbus_->sd_bus_message_new_method_return((sd_bus_message*)msg_, &sdbusReply);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create method reply", -r);
 
-    return MethodReply{sdbusReply, sdbus_, adopt_message};
+    return Factory::create<MethodReply>(sdbusReply, sdbus_, adopt_message);
 }
 
 MethodReply MethodCall::createErrorReply(const Error& error) const
@@ -650,7 +670,7 @@ MethodReply MethodCall::createErrorReply(const Error& error) const
     auto r = sdbus_->sd_bus_message_new_method_error((sd_bus_message*)msg_, &sdbusErrorReply, &sdbusError);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create method error reply", -r);
 
-    return MethodReply{sdbusErrorReply, sdbus_, adopt_message};
+    return Factory::create<MethodReply>(sdbusErrorReply, sdbus_, adopt_message);
 }
 
 AsyncMethodCall::AsyncMethodCall(MethodCall&& call) noexcept
@@ -680,7 +700,7 @@ void Signal::send() const
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit signal", -r);
 }
 
-Message createPlainMessage()
+PlainMessage createPlainMessage()
 {
     int r;
 
@@ -702,7 +722,7 @@ Message createPlainMessage()
 
     thread_local struct BusReferenceKeeper
     {
-        BusReferenceKeeper(sd_bus* bus) : bus_(sd_bus_ref(bus)) { sd_bus_flush(bus_); }
+        explicit BusReferenceKeeper(sd_bus* bus) : bus_(sd_bus_ref(bus)) { sd_bus_flush(bus_); }
         ~BusReferenceKeeper() { sd_bus_flush_close_unref(bus_); }
         sd_bus* bus_{};
     } busReferenceKeeper{bus};
@@ -717,7 +737,7 @@ Message createPlainMessage()
     r = sd_bus_message_new(bus, &sdbusMsg, _SD_BUS_MESSAGE_TYPE_INVALID);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create a new message", -r);
 
-    return Message{sdbusMsg, &sdbus, adopt_message};
+    return Message::Factory::create<PlainMessage>(sdbusMsg, &sdbus, adopt_message);
 }
 
 }

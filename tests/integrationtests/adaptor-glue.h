@@ -1,5 +1,6 @@
 /**
- * (C) 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2019 Stanislav Angelovic <angelovic.s@gmail.com>
  *
  * @file adaptor-glue.h
  *
@@ -52,7 +53,6 @@ using ComplexType = std::map<
 
 class testing_adaptor
 {
-
 protected:
     testing_adaptor(sdbus::IObject& object) :
         object_(object)
@@ -97,6 +97,7 @@ protected:
 
         object_.registerMethod("getSignature").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->getSignature(); });
         object_.registerMethod("getObjectPath").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->getObjectPath(); });
+        object_.registerMethod("getUnixFd").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->getUnixFd(); });
 
         object_.registerMethod("getComplex").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->getComplex(); }).markAsDeprecated();
 
@@ -114,26 +115,27 @@ protected:
         object_.registerProperty("action").onInterface(INTERFACE_NAME).withGetter([this](){ return this->action(); }).withSetter([this](const uint32_t& value){ this->action(value); }).withUpdateBehavior(sdbus::Flags::EMITS_INVALIDATION_SIGNAL);
         //object_.registerProperty("blocking").onInterface(INTERFACE_NAME)./*withGetter([this](){ return this->blocking(); }).*/withSetter([this](const bool& value){ this->blocking(value); });
         object_.registerProperty("blocking").onInterface(INTERFACE_NAME).withGetter([this](){ return this->blocking(); }).withSetter([this](const bool& value){ this->blocking(value); });
-
     }
 
+    ~testing_adaptor() = default;
+
 public:
-    void simpleSignal()
+    void emitSimpleSignal()
     {
         object_.emitSignal("simpleSignal").onInterface(INTERFACE_NAME);
     }
 
-    void signalWithMap(const std::map<int32_t, std::string>& map)
+    void emitSignalWithMap(const std::map<int32_t, std::string>& map)
     {
         object_.emitSignal("signalWithMap").onInterface(INTERFACE_NAME).withArguments(map);
     }
 
-    void signalWithVariant(const sdbus::Variant& v)
+    void emitSignalWithVariant(const sdbus::Variant& v)
     {
         object_.emitSignal("signalWithVariant").onInterface(INTERFACE_NAME).withArguments(v);
     }
 
-    void signalWithoutRegistration(const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& s)
+    void emitSignalWithoutRegistration(const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& s)
     {
         object_.emitSignal("signalWithoutRegistration").onInterface(INTERFACE_NAME).withArguments(s);
     }
@@ -163,6 +165,7 @@ protected:
     virtual void doOperationAsync(uint32_t param, sdbus::Result<uint32_t> result) = 0;
     virtual sdbus::Signature getSignature() const  = 0;
     virtual sdbus::ObjectPath getObjectPath() const = 0;
+    virtual sdbus::UnixFd getUnixFd() const  = 0;
     virtual ComplexType getComplex() const = 0;
     virtual void throwError() const = 0;
 
@@ -211,6 +214,19 @@ R"delimiter(<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspectio
    <arg type="as" name="invalidated_properties"/>
   </signal>
  </interface>
+ <interface name="org.freedesktop.DBus.ObjectManager">
+  <method name="GetManagedObjects">
+   <arg type="a{oa{sa{sv}}}" name="object_paths_interfaces_and_properties" direction="out"/>
+  </method>
+  <signal name="InterfacesAdded">
+   <arg type="o" name="object_path"/>
+   <arg type="a{sa{sv}}" name="interfaces_and_properties"/>
+  </signal>
+  <signal name="InterfacesRemoved">
+   <arg type="o" name="object_path"/>
+   <arg type="as" name="interfaces"/>
+  </signal>
+ </interface>
  <interface name="org.sdbuscpp.integrationtests">
   <annotation name="org.freedesktop.DBus.Deprecated" value="true"/>
   <method name="doOperation">
@@ -252,6 +268,9 @@ R"delimiter(<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspectio
   <method name="getTuple">
    <arg type="u" direction="out"/>
    <arg type="s" direction="out"/>
+  </method>
+  <method name="getUnixFd">
+   <arg type="h" direction="out"/>
   </method>
   <method name="multiply">
    <arg type="x" direction="in"/>

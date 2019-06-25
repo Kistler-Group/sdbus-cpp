@@ -1,5 +1,6 @@
 /**
- * (C) 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2019 Stanislav Angelovic <angelovic.s@gmail.com>
  *
  * @file TypeTraits_test.cpp
  *
@@ -72,6 +73,7 @@ namespace
     TYPE(sdbus::ObjectPath)HAS_DBUS_TYPE_SIGNATURE("o")
     TYPE(sdbus::Signature)HAS_DBUS_TYPE_SIGNATURE("g")
     TYPE(sdbus::Variant)HAS_DBUS_TYPE_SIGNATURE("v")
+    TYPE(sdbus::UnixFd)HAS_DBUS_TYPE_SIGNATURE("h")
     TYPE(sdbus::Struct<bool>)HAS_DBUS_TYPE_SIGNATURE("(b)")
     TYPE(sdbus::Struct<uint16_t, double, std::string, sdbus::Variant>)HAS_DBUS_TYPE_SIGNATURE("(qdsv)")
     TYPE(std::vector<int16_t>)HAS_DBUS_TYPE_SIGNATURE("an")
@@ -91,10 +93,11 @@ namespace
                                     >
                                 >,
                                 sdbus::Signature,
+                                sdbus::UnixFd,
                                 const char*
                             >
                         >;
-    TYPE(ComplexType)HAS_DBUS_TYPE_SIGNATURE("a{t(a{ya(obva{is})}gs)}")
+    TYPE(ComplexType)HAS_DBUS_TYPE_SIGNATURE("a{t(a{ya(obva{is})}ghs)}")
 
     typedef ::testing::Types< bool
                             , uint8_t
@@ -110,6 +113,7 @@ namespace
                             , sdbus::ObjectPath
                             , sdbus::Signature
                             , sdbus::Variant
+                            , sdbus::UnixFd
                             , sdbus::Struct<bool>
                             , sdbus::Struct<uint16_t, double, std::string, sdbus::Variant>
                             , std::vector<int16_t>

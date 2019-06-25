@@ -1,5 +1,6 @@
 /**
- * (C) 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2019 Stanislav Angelovic <angelovic.s@gmail.com>
  *
  * @file Proxy.cpp
  *
@@ -25,6 +26,7 @@
 
 #include "Proxy.h"
 #include "IConnection.h"
+#include "MessageUtils.h"
 #include "sdbus-c++/Message.h"
 #include "sdbus-c++/IConnection.h"
 #include "sdbus-c++/Error.h"
@@ -137,7 +139,7 @@ int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userDat
 
     SCOPE_EXIT{ proxy.pendingAsyncCalls_.removeCall(asyncCallData->slot.get()); };
 
-    MethodReply message{sdbusMessage, &proxy.connection_->getSdBusInterface()};
+    auto message = Message::Factory::create<MethodReply>(sdbusMessage, &proxy.connection_->getSdBusInterface());
 
     const auto* error = sd_bus_message_get_error(sdbusMessage);
     if (error == nullptr)
@@ -158,7 +160,7 @@ int Proxy::sdbus_signal_callback(sd_bus_message *sdbusMessage, void *userData, s
     auto* proxy = static_cast<Proxy*>(userData);
     assert(proxy != nullptr);
 
-    Signal message{sdbusMessage, &proxy->connection_->getSdBusInterface()};
+    auto message = Message::Factory::create<Signal>(sdbusMessage, &proxy->connection_->getSdBusInterface());
 
     // Note: The lookup can be optimized by using sorted vectors instead of associative containers
     auto& callback = proxy->interfaces_[message.getInterfaceName()].signals_[message.getMemberName()].callback_;

@@ -26,6 +26,8 @@ protected:
         proxy_.uponSignal("concatenatedSignal").onInterface(INTERFACE_NAME).call([this](const std::string& concatenatedString){ this->onConcatenatedSignal(concatenatedString); });
     }
 
+    ~concatenator_proxy() = default;
+
     virtual void onConcatenatedSignal(const std::string& concatenatedString) = 0;
 
     virtual void onConcatenateReply(const std::string& result, const sdbus::Error* error) = 0;

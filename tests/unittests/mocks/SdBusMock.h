@@ -1,5 +1,6 @@
 /**
- * (C) 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2019 Stanislav Angelovic <angelovic.s@gmail.com>
  *
  * @file SdBusMock.h
  * @author Ardazishvili Roman (ardazishvili.roman@yandex.ru)
@@ -45,6 +46,12 @@ public:
     MOCK_METHOD5(sd_bus_message_new_signal, int(sd_bus *bus, sd_bus_message **m, const char *path, const char *interface, const char *member));
     MOCK_METHOD2(sd_bus_message_new_method_return, int(sd_bus_message *call, sd_bus_message **m));
     MOCK_METHOD3(sd_bus_message_new_method_error, int(sd_bus_message *call, sd_bus_message **m, const sd_bus_error *e));
+
+    MOCK_METHOD4(sd_bus_emit_properties_changed_strv, int(sd_bus *bus, const char *path, const char *interface, char **names));
+    MOCK_METHOD2(sd_bus_emit_object_added, int(sd_bus *bus, const char *path));
+    MOCK_METHOD2(sd_bus_emit_object_removed, int(sd_bus *bus, const char *path));
+    MOCK_METHOD3(sd_bus_emit_interfaces_added_strv, int(sd_bus *bus, const char *path, char **interfaces));
+    MOCK_METHOD3(sd_bus_emit_interfaces_removed_strv, int(sd_bus *bus, const char *path, char **interfaces));
 
     MOCK_METHOD1(sd_bus_open_user, int(sd_bus **ret));
     MOCK_METHOD1(sd_bus_open_system, int(sd_bus **ret));

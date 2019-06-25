@@ -1,5 +1,6 @@
 /**
- * (C) 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2019 Stanislav Angelovic <angelovic.s@gmail.com>
  *
  * @file Object.h
  *
@@ -77,12 +78,18 @@ namespace internal {
 
         sdbus::Signal createSignal(const std::string& interfaceName, const std::string& signalName) override;
         void emitSignal(const sdbus::Signal& message) override;
-
-        sdbus::IConnection& getConnection() const override;
+        void emitPropertiesChangedSignal(const std::string& interfaceName, const std::vector<std::string>& propNames) override;
+        void emitPropertiesChangedSignal(const std::string& interfaceName) override;
+        void emitInterfacesAddedSignal() override;
+        void emitInterfacesAddedSignal(const std::vector<std::string>& interfaces) override;
+        void emitInterfacesRemovedSignal() override;
+        void emitInterfacesRemovedSignal(const std::vector<std::string>& interfaces) override;
 
         void addObjectManager() override;
         void removeObjectManager() override;
         bool hasObjectManager() const override;
+
+        sdbus::IConnection& getConnection() const override;
 
     private:
         using InterfaceName = std::string;

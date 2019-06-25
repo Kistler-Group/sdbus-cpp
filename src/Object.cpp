@@ -1,5 +1,6 @@
 /**
- * (C) 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2019 Stanislav Angelovic <angelovic.s@gmail.com>
  *
  * @file Object.cpp
  *
@@ -24,6 +25,7 @@
  */
 
 #include "Object.h"
+#include "MessageUtils.h"
 #include <sdbus-c++/IConnection.h>
 #include <sdbus-c++/Message.h>
 #include <sdbus-c++/Error.h>
@@ -135,9 +137,34 @@ void Object::emitSignal(const sdbus::Signal& message)
     message.send();
 }
 
-sdbus::IConnection& Object::getConnection() const
+void Object::emitPropertiesChangedSignal(const std::string& interfaceName, const std::vector<std::string>& propNames)
 {
-    return dynamic_cast<sdbus::IConnection&>(connection_);
+    connection_.emitPropertiesChangedSignal(objectPath_, interfaceName, propNames);
+}
+
+void Object::emitPropertiesChangedSignal(const std::string& interfaceName)
+{
+    Object::emitPropertiesChangedSignal(interfaceName, {});
+}
+
+void Object::emitInterfacesAddedSignal()
+{
+    connection_.emitInterfacesAddedSignal(objectPath_);
+}
+
+void Object::emitInterfacesAddedSignal(const std::vector<std::string>& interfaces)
+{
+    connection_.emitInterfacesAddedSignal(objectPath_, interfaces);
+}
+
+void Object::emitInterfacesRemovedSignal()
+{
+    connection_.emitInterfacesRemovedSignal(objectPath_);
+}
+
+void Object::emitInterfacesRemovedSignal(const std::vector<std::string>& interfaces)
+{
+    connection_.emitInterfacesRemovedSignal(objectPath_, interfaces);
 }
 
 void Object::addObjectManager()
@@ -153,6 +180,11 @@ void Object::removeObjectManager()
 bool Object::hasObjectManager() const
 {
     return objectManagerSlot_ != nullptr;
+}
+
+sdbus::IConnection& Object::getConnection() const
+{
+    return dynamic_cast<sdbus::IConnection&>(connection_);
 }
 
 const std::vector<sd_bus_vtable>& Object::createInterfaceVTable(InterfaceData& interfaceData)
@@ -230,7 +262,7 @@ int Object::sdbus_method_callback(sd_bus_message *sdbusMessage, void *userData, 
     auto* object = static_cast<Object*>(userData);
     assert(object != nullptr);
 
-    MethodCall message{sdbusMessage, &object->connection_.getSdBusInterface()};
+    auto message = Message::Factory::create<MethodCall>(sdbusMessage, &object->connection_.getSdBusInterface());
 
     // Note: The lookup can be optimized by using sorted vectors instead of associative containers
     auto& callback = object->interfaces_[message.getInterfaceName()].methods_[message.getMemberName()].callback_;
@@ -268,7 +300,7 @@ int Object::sdbus_property_get_callback( sd_bus */*bus*/
         return 1;
     }
 
-    Message reply{sdbusReply, &object->connection_.getSdBusInterface()};
+    auto reply = Message::Factory::create<PropertyGetReply>(sdbusReply, &object->connection_.getSdBusInterface());
 
     try
     {
@@ -297,7 +329,7 @@ int Object::sdbus_property_set_callback( sd_bus */*bus*/
     auto& callback = object->interfaces_[interface].properties_[property].setCallback_;
     assert(callback);
 
-    Message value{sdbusValue, &object->connection_.getSdBusInterface()};
+    auto value = Message::Factory::create<PropertySetCall>(sdbusValue, &object->connection_.getSdBusInterface());
 
     try
     {

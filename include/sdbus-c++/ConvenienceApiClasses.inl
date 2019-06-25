@@ -1,5 +1,6 @@
 /**
- * (C) 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2019 Stanislav Angelovic <angelovic.s@gmail.com>
  *
  * @file ConvenienceApiClasses.inl
  *
@@ -253,10 +254,10 @@ namespace sdbus {
         if (propertySignature_.empty())
             propertySignature_ = signature_of_function_output_arguments<_Function>::str();
 
-        getter_ = [callback = std::forward<_Function>(callback)](Message& msg)
+        getter_ = [callback = std::forward<_Function>(callback)](PropertyGetReply& reply)
         {
-            // Get the propety value and serialize it into the message
-            msg << callback();
+            // Get the propety value and serialize it into the pre-constructed reply message
+            reply << callback();
         };
 
         return *this;
@@ -271,14 +272,14 @@ namespace sdbus {
         if (propertySignature_.empty())
             propertySignature_ = signature_of_function_input_arguments<_Function>::str();
 
-        setter_ = [callback = std::forward<_Function>(callback)](Message& msg)
+        setter_ = [callback = std::forward<_Function>(callback)](PropertySetCall& call)
         {
             // Default-construct property value
             using property_type = function_argument_t<_Function, 0>;
             std::decay_t<property_type> property;
 
-            // Deserialize property value from the message
-            msg >> property;
+            // Deserialize property value from the incoming call message
+            call >> property;
 
             // Invoke setter with the value
             callback(property);

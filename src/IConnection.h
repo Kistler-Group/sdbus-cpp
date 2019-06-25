@@ -1,5 +1,6 @@
 /**
- * (C) 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2019 Stanislav Angelovic <angelovic.s@gmail.com>
  *
  * @file IConnection.h
  *
@@ -30,6 +31,7 @@
 #include <string>
 #include <memory>
 #include <functional>
+#include <vector>
 
 // Forward declaration
 namespace sdbus {
@@ -69,6 +71,18 @@ namespace internal {
                                    , const std::string& interfaceName
                                    , const std::string& signalName ) const = 0;
 
+        virtual void emitPropertiesChangedSignal( const std::string& objectPath
+                                                , const std::string& interfaceName
+                                                , const std::vector<std::string>& propNames ) = 0;
+        virtual void emitInterfacesAddedSignal(const std::string& objectPath) = 0;
+        virtual void emitInterfacesAddedSignal( const std::string& objectPath
+                                              , const std::vector<std::string>& interfaces ) = 0;
+        virtual void emitInterfacesRemovedSignal(const std::string& objectPath) = 0;
+        virtual void emitInterfacesRemovedSignal( const std::string& objectPath
+                                                , const std::vector<std::string>& interfaces ) = 0;
+
+        virtual SlotPtr addObjectManager(const std::string& objectPath, void* /*dummy*/ = nullptr) = 0;
+
         virtual SlotPtr registerSignalHandler( const std::string& objectPath
                                              , const std::string& interfaceName
                                              , const std::string& signalName
@@ -77,8 +91,6 @@ namespace internal {
 
         virtual void enterProcessingLoopAsync() = 0;
         virtual void leaveProcessingLoop() = 0;
-
-        virtual SlotPtr addObjectManager(const std::string& objectPath, void* /*dummy*/ = nullptr) = 0;
     };
 
 }

@@ -1,5 +1,6 @@
 /**
- * (C) 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2019 Stanislav Angelovic <angelovic.s@gmail.com>
  *
  * @file Types.h
  *
@@ -94,9 +95,15 @@ namespace sdbus {
         std::string peekValueType() const;
 
     private:
-        mutable Message msg_{};
+        mutable PlainMessage msg_{};
     };
 
+    /********************************************//**
+     * @class Struct
+     *
+     * Representation of struct D-Bus type
+     *
+     ***********************************************/
     template <typename... _ValueTypes>
     class Struct
         : public std::tuple<_ValueTypes...>
@@ -135,6 +142,12 @@ namespace sdbus {
         return result_type(std::forward<_Elements>(args)...);
     }
 
+    /********************************************//**
+     * @class ObjectPath
+     *
+     * Representation of object path D-Bus type
+     *
+     ***********************************************/
     class ObjectPath : public std::string
     {
     public:
@@ -146,6 +159,12 @@ namespace sdbus {
         using std::string::operator=;
     };
 
+    /********************************************//**
+     * @class Signature
+     *
+     * Representation of Signature D-Bus type
+     *
+     ***********************************************/
     class Signature : public std::string
     {
     public:
@@ -155,6 +174,27 @@ namespace sdbus {
             : std::string(std::move(path))
         {}
         using std::string::operator=;
+    };
+
+    /********************************************//**
+     * @struct UnixFd
+     *
+     * Representation of Unix file descriptor D-Bus type
+     *
+     ***********************************************/
+    struct UnixFd
+    {
+        int fd_ = -1;
+
+        UnixFd() = default;
+        UnixFd(int fd)
+            : fd_(fd)
+        {}
+
+        operator int() const
+        {
+            return fd_;
+        }
     };
 
 }
