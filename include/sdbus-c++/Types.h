@@ -34,6 +34,7 @@
 #include <typeinfo>
 #include <memory>
 #include <tuple>
+#include <unistd.h>
 
 namespace sdbus {
 
@@ -184,18 +185,104 @@ namespace sdbus {
      ***********************************************/
     struct UnixFd
     {
-        int fd_ = -1;
-
         UnixFd() = default;
-        UnixFd(int fd)
+
+        UnixFd(int fd, bool owning = false)
             : fd_(fd)
+            , owning_(owning)
         {}
+
+        UnixFd(UnixFd&& other)
+        {
+            *this = std::move(other);
+        }
+
+        UnixFd& operator=(UnixFd&& other)
+        {
+            fd_ = other.fd_;
+            owning_ = other.owning_;
+            other.fd_ = -1;
+            other.owning_ = false;
+        }
+
+        UnixFd(const UnixFd&) = delete;
+        UnixFd& operator=(const UnixFd&) = delete;
+
+        ~UnixFd()
+        {
+            if (owning_)
+                close(fd_);
+        }
 
         operator int() const
         {
             return fd_;
         }
+
+        int fd_ = -1;
+        bool owning_ = false;
     };
+//    class UnixFd
+//    {
+//        UnixFd() = default;
+//
+//        UnixFd(int fd, bool owning = false)
+//            : fd_(fd)
+//            , owning_(owning)
+//        {}
+//
+//        UnixFd(UnixFd&& other)
+//        {
+//            *this = std::move(other);
+//        }
+//
+//        UnixFd& operator=(UnixFd&& other)
+//        {
+//            fd_ = other.fd_;
+//            owning_ = other.owning_;
+//            other.fd_ = -1;
+//            other.owning_ = false;
+//        }
+//
+//        UnixFd(const UnixFd&) = delete;
+//        UnixFd& operator=(const UnixFd&) = delete;
+//
+//        ~UnixFd()
+//        {
+//            if (owning_)
+//                close(fd_);
+//        }
+//
+//        operator int() const
+//        {
+//            return fd_;
+//        }
+//
+//        int getFd() const
+//        {
+//            return fd_;
+//        }
+//
+//        int releaseFd()
+//        {
+//            owning_ = false;
+//            return fd_;
+//        }
+//
+//        bool isOwning() const
+//        {
+//            return owning_;
+//        }
+//
+//        bool setOwning(bool owning)
+//        {
+//            owning_ = owning;
+//        }
+//
+//    private:
+//        int fd_ = -1;
+//        bool owning_ = false;
+//    };
 
 }
 
