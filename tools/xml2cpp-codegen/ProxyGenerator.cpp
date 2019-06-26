@@ -231,7 +231,7 @@ std::tuple<std::string, std::string> ProxyGenerator::processSignals(const Nodes 
 
         std::string argStr, argTypeStr;
         std::tie(argStr, argTypeStr, std::ignore) = argsToNamesAndTypes(args);
-        registrationSS << tab << "void SetUpSignal" << name << "()" << endl
+        registrationSS << tab << "void setUpSignal" << name << "()" << endl
                        << tab << "{" << endl;
         registrationSS << tab << tab << "proxy_"
                                         ".uponSignal(\""
