@@ -205,7 +205,7 @@ std::tuple<std::string, std::string> AdaptorGenerator::processMethods(const Node
         Nodes outArgs = args.select("direction" , "out");
 
         std::string argStr, argTypeStr;
-        std::tie(argStr, argTypeStr, std::ignore) = argsToNamesAndTypes(inArgs, async);
+        std::tie(argStr, argTypeStr, std::ignore) = argsToNamesAndTypes(inArgs, true, async);
 
         using namespace std::string_literals;
 
@@ -214,7 +214,7 @@ std::tuple<std::string, std::string> AdaptorGenerator::processMethods(const Node
                 << ".onInterface(INTERFACE_NAME)"
                 << ".implementedAs("
                 << "[this]("
-                << (async ? "sdbus::Result<" + outArgsToType(outArgs, true) + ">&& result" + (argTypeStr.empty() ? "" : ", ") : "")
+                << (async ? "sdbus::Result<" + outArgsToType(outArgs, StubType::ADAPTOR, true) + ">&& result" + (argTypeStr.empty() ? "" : ", ") : "")
                 << argTypeStr
                 << "){ " << (async ? "" : "return ") << "this->" << methodName << "("
                 << (async ? "std::move(result)"s + (argTypeStr.empty() ? "" : ", ") : "")
@@ -223,10 +223,10 @@ std::tuple<std::string, std::string> AdaptorGenerator::processMethods(const Node
 
         declarationSS << tab
                 << "virtual "
-                << (async ? "void" : outArgsToType(outArgs))
+                << (async ? "void" : outArgsToType(outArgs, StubType::ADAPTOR))
                 << " " << methodName
                 << "("
-                << (async ? "sdbus::Result<" + outArgsToType(outArgs, true) + ">&& result" + (argTypeStr.empty() ? "" : ", ") : "")
+                << (async ? "sdbus::Result<" + outArgsToType(outArgs, StubType::ADAPTOR, true) + ">&& result" + (argTypeStr.empty() ? "" : ", ") : "")
                 << argTypeStr
                 << ") = 0;" << endl;
     }
@@ -260,7 +260,7 @@ std::tuple<std::string, std::string> AdaptorGenerator::processSignals(const Node
         Nodes args = (*signal)["arg"];
 
         std::string argStr, argTypeStr, typeStr;;
-        std::tie(argStr, argTypeStr, typeStr) = argsToNamesAndTypes(args);
+        std::tie(argStr, argTypeStr, typeStr) = argsToNamesAndTypes(args, false);
 
         signalRegistrationSS << tab << tab
                 << "object_.registerSignal(\"" << name << "\")"
@@ -305,9 +305,11 @@ std::tuple<std::string, std::string> AdaptorGenerator::processProperties(const N
         auto propertyAccess = property->get("access");
         auto propertySignature = property->get("type");
 
-        auto propertyType = signature_to_type(propertySignature);
+        auto incomingPropertyType = signature_to_type(propertySignature, true);
+        auto outgoingPropertyType = signature_to_type(propertySignature, false);
         auto propertyArg = std::string("value");
-        auto propertyTypeArg = std::string("const ") + propertyType + "& " + propertyArg;
+        auto incomingPropertyTypeArg = std::string("const ") + incomingPropertyType + "& " + propertyArg;
+        auto outgoingPropertyTypeArg = std::string("const ") + outgoingPropertyType + "& " + propertyArg;
 
         auto annotations = getAnnotations(*property);
         std::string annotationRegistration;
@@ -339,7 +341,7 @@ std::tuple<std::string, std::string> AdaptorGenerator::processProperties(const N
         if (propertyAccess == "readwrite" || propertyAccess == "write")
         {
             registrationSS
-                << ".withSetter([this](" << propertyTypeArg << ")"
+                << ".withSetter([this](" << incomingPropertyTypeArg << ")"
                    "{ this->" << propertyName << "(" << propertyArg << "); })";
         }
 
@@ -347,9 +349,9 @@ std::tuple<std::string, std::string> AdaptorGenerator::processProperties(const N
         registrationSS << ";" << endl;
 
         if (propertyAccess == "read" || propertyAccess == "readwrite")
-            declarationSS << tab << "virtual " << propertyType << " " << propertyName << "() = 0;" << endl;
+            declarationSS << tab << "virtual " << outgoingPropertyType << " " << propertyName << "() = 0;" << endl;
         if (propertyAccess == "readwrite" || propertyAccess == "write")
-            declarationSS << tab << "virtual void " << propertyName << "(" << propertyTypeArg << ") = 0;" << endl;
+            declarationSS << tab << "virtual void " << propertyName << "(" << incomingPropertyTypeArg << ") = 0;" << endl;
     }
 
     return std::make_tuple(registrationSS.str(), declarationSS.str());

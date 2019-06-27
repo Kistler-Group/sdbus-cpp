@@ -34,6 +34,7 @@
 #include <cstdint>
 #include <functional>
 #include <tuple>
+#include <variant>
 
 // Forward declarations
 namespace sdbus {
@@ -41,7 +42,9 @@ namespace sdbus {
     template <typename... _ValueTypes> class Struct;
     class ObjectPath;
     class Signature;
-    struct UnixFd;
+    struct UnixFdRef;
+    struct UniqueUnixFd;
+    struct AnyUnixFd;
     class MethodCall;
     class MethodReply;
     class Signal;
@@ -289,7 +292,29 @@ namespace sdbus {
     };
 
     template <>
-    struct signature_of<UnixFd>
+    struct signature_of<AnyUnixFd>
+    {
+        static constexpr bool is_valid = true;
+
+        static const std::string str()
+        {
+            return "h";
+        }
+    };
+
+    template <>
+    struct signature_of<UnixFdRef>
+    {
+        static constexpr bool is_valid = true;
+
+        static const std::string str()
+        {
+            return "h";
+        }
+    };
+
+    template <>
+    struct signature_of<UniqueUnixFd>
     {
         static constexpr bool is_valid = true;
 

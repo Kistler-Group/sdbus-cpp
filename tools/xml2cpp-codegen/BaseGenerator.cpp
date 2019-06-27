@@ -105,7 +105,7 @@ std::tuple<unsigned, std::string> BaseGenerator::generateNamespaces(const std::s
 }
 
 
-std::tuple<std::string, std::string, std::string> BaseGenerator::argsToNamesAndTypes(const Nodes& args, bool async) const
+std::tuple<std::string, std::string, std::string> BaseGenerator::argsToNamesAndTypes(const Nodes& args, bool incoming, bool async) const
 {
     std::ostringstream argSS, argTypeSS, typeSS;
 
@@ -124,7 +124,7 @@ std::tuple<std::string, std::string, std::string> BaseGenerator::argsToNamesAndT
         {
             argName = "arg" + std::to_string(i);
         }
-        auto type = signature_to_type(arg->get("type"));
+        auto type = signature_to_type(arg->get("type"), incoming);
         if (!async)
         {
             argSS << argName;
@@ -144,7 +144,7 @@ std::tuple<std::string, std::string, std::string> BaseGenerator::argsToNamesAndT
 /**
  *
  */
-std::string BaseGenerator::outArgsToType(const Nodes& args, bool bareList) const
+std::string BaseGenerator::outArgsToType(const Nodes& args, const StubType& stubType, bool bareList) const
 {
     std::ostringstream retTypeSS;
 
@@ -158,7 +158,7 @@ std::string BaseGenerator::outArgsToType(const Nodes& args, bool bareList) const
     else if (args.size() == 1)
     {
         const auto& arg = *args.begin();
-        retTypeSS << signature_to_type(arg->get("type"));
+        retTypeSS << signature_to_type(arg->get("type"), stubType != StubType::ADAPTOR);
     }
     else if (args.size() >= 2)
     {
@@ -169,7 +169,7 @@ std::string BaseGenerator::outArgsToType(const Nodes& args, bool bareList) const
         for (const auto& arg : args)
         {
             if (firstArg) firstArg = false; else retTypeSS << ", ";
-            retTypeSS << signature_to_type(arg->get("type"));
+            retTypeSS << signature_to_type(arg->get("type"), stubType != StubType::ADAPTOR);
         }
 
         if (!bareList)

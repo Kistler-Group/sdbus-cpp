@@ -216,9 +216,27 @@ Message& Message::operator<<(const Signature &item)
     return *this;
 }
 
-Message& Message::operator<<(const UnixFd &item)
+Message& Message::operator<<(const AnyUnixFd &item)
+{
+    int fd = item;
+    auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_UNIX_FD, &fd);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a UnixFd value", -r);
+
+    return *this;
+}
+
+Message& Message::operator<<(const UnixFdRef &item)
 {
     auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_UNIX_FD, &item.fd_);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a UnixFd value", -r);
+
+    return *this;
+}
+
+Message& Message::operator<<(const UniqueUnixFd &item)
+{
+    int fd = item;
+    auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_UNIX_FD, &fd);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a UnixFd value", -r);
 
     return *this;
@@ -392,13 +410,27 @@ Message& Message::operator>>(Signature &item)
     return *this;
 }
 
-Message& Message::operator>>(UnixFd &item)
+Message& Message::operator>>(UnixFdRef &item)
 {
     auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_UNIX_FD, &item.fd_);
     if (r == 0)
         ok_ = false;
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to deserialize a UnixFd value", -r);
+
+    return *this;
+}
+
+Message& Message::operator>>(UniqueUnixFd &item)
+{
+    int fd = -1;
+    auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_UNIX_FD, &fd);
+    if (r == 0)
+        ok_ = false;
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to deserialize a UnixFd value", -r);
+
+    item = UniqueUnixFd(dup(fd));
 
     return *this;
 }

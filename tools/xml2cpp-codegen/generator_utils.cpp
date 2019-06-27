@@ -27,36 +27,30 @@ std::string stub_name(const std::string& name)
     return "_" + underscorize(name) + "_stub";
 }
 
-const char *atomic_type_to_string(char t)
+const char *atomic_type_to_string(char t, bool incoming)
 {
-    static std::map<char, const char*> atos
+    switch (t)
     {
-            { 'y', "uint8_t" },
-            { 'b', "bool" },
-            { 'n', "int16_t" },
-            { 'q', "uint16_t" },
-            { 'i', "int32_t" },
-            { 'u', "uint32_t" },
-            { 'x', "int64_t" },
-            { 't', "uint64_t" },
-            { 'd', "double" },
-            { 's', "std::string" },
-            { 'o', "sdbus::ObjectPath" },
-            { 'g', "sdbus::Signature" },
-            { 'v', "sdbus::Variant" },
-            { 'h', "sdbus::UnixFd" },
-            { '\0', "" }
+            case 'y': return "uint8_t";
+            case 'b': return "bool";
+            case 'n': return "int16_t";
+            case 'q': return "uint16_t";
+            case 'i': return "int32_t";
+            case 'u': return "uint32_t";
+            case 'x': return "int64_t";
+            case 't': return "uint64_t";
+            case 'd': return "double";
+            case 's': return "std::string";
+            case 'o': return "sdbus::ObjectPath";
+            case 'g': return "sdbus::Signature";
+            case 'v': return "sdbus::Variant";
+            case 'h': return incoming ? "sdbus::UnixFdRef" : "sdbus::AnyUnixFd";
+            case '\0': return "";
+            default: return nullptr;
     };
-
-    if (atos.count(t))
-    {
-        return atos[t];
-    }
-
-    return nullptr;
 }
 
-static void _parse_signature(const std::string &signature, std::string &type, unsigned int &i, bool only_once = false)
+static void _parse_signature(const std::string &signature, std::string &type, unsigned int &i, bool incoming, bool only_once = false)
 {
     for (; i < signature.length(); ++i)
     {
@@ -70,7 +64,7 @@ static void _parse_signature(const std::string &signature, std::string &type, un
                     {
                         type += "std::map<";
                         ++i;
-                        _parse_signature(signature, type, i);
+                        _parse_signature(signature, type, i, incoming);
                         type += ">";
 
                         break;
@@ -79,7 +73,7 @@ static void _parse_signature(const std::string &signature, std::string &type, un
                     {
                         type += "std::vector<sdbus::Struct<";
                         ++i;
-                        _parse_signature(signature, type, i);
+                        _parse_signature(signature, type, i, incoming);
                         type += ">>";
 
                         break;
@@ -87,7 +81,7 @@ static void _parse_signature(const std::string &signature, std::string &type, un
                     default:
                     {
                         type += "std::vector<";
-                        _parse_signature(signature, type, i, true);
+                        _parse_signature(signature, type, i, incoming, true);
 
                         type += ">";
 
@@ -101,7 +95,7 @@ static void _parse_signature(const std::string &signature, std::string &type, un
                 type += "sdbus::Struct<";
                 ++i;
 
-                _parse_signature(signature, type, i);
+                _parse_signature(signature, type, i, incoming);
 
                 type += ">";
                 break;
@@ -113,7 +107,7 @@ static void _parse_signature(const std::string &signature, std::string &type, un
             }
             default:
             {
-                const char *atom = atomic_type_to_string(signature[i]);
+                const char *atom = atomic_type_to_string(signature[i], incoming);
                 if (!atom)
                 {
                     std::cerr << "Invalid signature: " << signature << std::endl;
@@ -135,10 +129,10 @@ static void _parse_signature(const std::string &signature, std::string &type, un
     }
 }
 
-std::string signature_to_type(const std::string& signature)
+std::string signature_to_type(const std::string& signature, bool incoming)
 {
     std::string type;
     unsigned int i = 0;
-    _parse_signature(signature, type, i);
+    _parse_signature(signature, type, i, incoming);
     return type;
 }

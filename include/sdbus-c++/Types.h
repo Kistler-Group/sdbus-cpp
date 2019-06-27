@@ -35,6 +35,10 @@
 #include <memory>
 #include <tuple>
 
+extern "C" {
+#include <unistd.h>
+}
+
 namespace sdbus {
 
     /********************************************//**
@@ -177,26 +181,65 @@ namespace sdbus {
     };
 
     /********************************************//**
-     * @struct UnixFd
+     * @struct UnixFdRef
      *
      * Representation of Unix file descriptor D-Bus type
      *
      ***********************************************/
-    struct UnixFd
+    struct UnixFdRef
     {
-        int fd_ = -1;
+        int fd_;
 
-        UnixFd() = default;
-        UnixFd(int fd)
-            : fd_(fd)
-        {}
+        UnixFdRef(std::nullptr_t = nullptr): fd_(-1) {}
+        UnixFdRef(int fd): fd_(fd) {}
 
-        operator int() const
-        {
-            return fd_;
-        }
+        operator int() const { return fd_; }
+
+        bool operator==(UnixFdRef other) const { return fd_ == other.fd_; }
+        bool operator==(std::nullptr_t) const { return fd_ < 0; }
+        bool operator!=(UnixFdRef other) const { return fd_ != other.fd_; }
+        bool operator!=(std::nullptr_t) const { return fd_ >= 0; }
     };
 
+    /********************************************//**
+     * @struct UnixFdClose
+     *
+     * Deleter for unix file descriptors
+     *
+     ***********************************************/
+    struct UnixFdClose
+    {
+        using pointer = UnixFdRef;
+        void operator()(UnixFdRef fd) const noexcept { close(fd); }
+    };
+
+    /********************************************//**
+     * @struct UniqueUnixFd
+     *
+     * Representation of owned Unix file descriptor D-Bus type
+     *
+     ***********************************************/
+    struct UniqueUnixFd: std::unique_ptr<void, UnixFdClose>
+    {
+        using std::unique_ptr<void, UnixFdClose>::unique_ptr;
+        operator int() const { return get(); }
+    };
+
+    /********************************************//**
+     * @struct AnyUnixFd
+     *
+     * Representation of any Unix file descriptor D-Bus type
+     *
+     ***********************************************/
+    struct AnyUnixFd: std::variant<UnixFdRef, UniqueUnixFd>
+    {
+        using std::variant<UnixFdRef, UniqueUnixFd>::variant;
+        operator int() const
+        {
+            return std::visit([](const auto &fd){ return int(fd); },
+                              static_cast<const std::variant<UnixFdRef, UniqueUnixFd> &>(*this));
+        }
+    };
 }
 
 #endif /* SDBUS_CXX_TYPES_H_ */

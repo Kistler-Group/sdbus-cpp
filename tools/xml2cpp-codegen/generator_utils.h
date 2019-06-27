@@ -9,11 +9,11 @@
 #include <sstream>
 #include <iomanip>
 
-const char *atomic_type_to_string(char t);
+const char *atomic_type_to_string(char t, bool incoming);
 
 std::string stub_name(const std::string& name);
 
-std::string signature_to_type(const std::string& signature);
+std::string signature_to_type(const std::string& signature, bool incoming);
 
 std::string underscorize(const std::string& str);
 

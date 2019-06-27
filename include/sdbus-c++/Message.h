@@ -44,7 +44,9 @@ namespace sdbus {
     class ObjectPath;
     class Signature;
     template <typename... _ValueTypes> class Struct;
-    struct UnixFd;
+    struct UnixFdRef;
+    struct UniqueUnixFd;
+    struct AnyUnixFd;
     class MethodReply;
     namespace internal {
         class ISdBus;
@@ -92,7 +94,9 @@ namespace sdbus {
         Message& operator<<(const Variant &item);
         Message& operator<<(const ObjectPath &item);
         Message& operator<<(const Signature &item);
-        Message& operator<<(const UnixFd &item);
+        Message& operator<<(const AnyUnixFd &item);
+        Message& operator<<(const UnixFdRef &item);
+        Message& operator<<(const UniqueUnixFd &item);
 
         Message& operator>>(bool& item);
         Message& operator>>(int16_t& item);
@@ -108,7 +112,8 @@ namespace sdbus {
         Message& operator>>(Variant &item);
         Message& operator>>(ObjectPath &item);
         Message& operator>>(Signature &item);
-        Message& operator>>(UnixFd &item);
+        Message& operator>>(UnixFdRef &item);
+        Message& operator>>(UniqueUnixFd &item);
 
         Message& openContainer(const std::string& signature);
         Message& closeContainer();

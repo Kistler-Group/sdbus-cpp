@@ -158,11 +158,11 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes&
             dontExpectReply = false;
         }
 
-        auto retType = outArgsToType(outArgs);
+        auto retType = outArgsToType(outArgs, StubType::PROXY);
         std::string inArgStr, inArgTypeStr;
-        std::tie(inArgStr, inArgTypeStr, std::ignore) = argsToNamesAndTypes(inArgs);
+        std::tie(inArgStr, inArgTypeStr, std::ignore) = argsToNamesAndTypes(inArgs, false);
         std::string outArgStr, outArgTypeStr;
-        std::tie(outArgStr, outArgTypeStr, std::ignore) = argsToNamesAndTypes(outArgs);
+        std::tie(outArgStr, outArgTypeStr, std::ignore) = argsToNamesAndTypes(outArgs, true);
 
         definitionSS << tab << (async ? "void" : retType) << " " << name << "(" << inArgTypeStr << ")" << endl
                 << tab << "{" << endl;
@@ -220,7 +220,7 @@ std::tuple<std::string, std::string> ProxyGenerator::processSignals(const Nodes&
         nameBigFirst[0] = islower(nameBigFirst[0]) ? nameBigFirst[0] + 'A' - 'a' : nameBigFirst[0];
 
         std::string argStr, argTypeStr;
-        std::tie(argStr, argTypeStr, std::ignore) = argsToNamesAndTypes(args);
+        std::tie(argStr, argTypeStr, std::ignore) = argsToNamesAndTypes(args, true);
 
         registrationSS << tab << tab << "proxy_"
                 ".uponSignal(\"" << name << "\")"
@@ -243,12 +243,9 @@ std::string ProxyGenerator::processProperties(const Nodes& properties) const
         auto propertyAccess = property->get("access");
         auto propertySignature = property->get("type");
 
-        auto propertyType = signature_to_type(propertySignature);
-        auto propertyArg = std::string("value");
-        auto propertyTypeArg = std::string("const ") + propertyType + "& " + propertyArg;
-
         if (propertyAccess == "read" || propertyAccess == "readwrite")
         {
+            auto propertyType = signature_to_type(propertySignature, true);
             propertySS << tab << propertyType << " " << propertyName << "()" << endl
                     << tab << "{" << endl;
             propertySS << tab << tab << "return proxy_.getProperty(\"" << propertyName << "\")"
@@ -258,6 +255,9 @@ std::string ProxyGenerator::processProperties(const Nodes& properties) const
 
         if (propertyAccess == "readwrite" || propertyAccess == "write")
         {
+            auto propertyType = signature_to_type(propertySignature, false);
+            auto propertyArg = std::string("value");
+            auto propertyTypeArg = std::string("const ") + propertyType + "& " + propertyArg;
             propertySS << tab << "void " << propertyName << "(" << propertyTypeArg << ")" << endl
                     << tab << "{" << endl;
             propertySS << tab << tab << "proxy_.setProperty(\"" << propertyName << "\")"
