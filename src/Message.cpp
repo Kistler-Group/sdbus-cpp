@@ -218,7 +218,8 @@ Message& Message::operator<<(const Signature &item)
 
 Message& Message::operator<<(const UnixFd &item)
 {
-    auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_UNIX_FD, &item.fd_);
+    auto fd = item.get();
+    auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_UNIX_FD, &fd);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a UnixFd value", -r);
 
     return *this;
@@ -394,11 +395,14 @@ Message& Message::operator>>(Signature &item)
 
 Message& Message::operator>>(UnixFd &item)
 {
-    auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_UNIX_FD, &item.fd_);
+    int fd = -1;
+    auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_UNIX_FD, &fd);
     if (r == 0)
         ok_ = false;
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to deserialize a UnixFd value", -r);
+
+    item.reset(fd);
 
     return *this;
 }

@@ -139,7 +139,7 @@ TEST(AMessage, CanCarryAUnixFd)
     sdbus::UnixFd dataRead;
     msg >> dataRead;
 
-    ASSERT_THAT(dataRead, Gt(dataWritten));
+    ASSERT_THAT(dataRead.get(), Gt(dataWritten.get()));
 }
 
 TEST(AMessage, CanCarryAVariant)
