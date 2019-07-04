@@ -131,7 +131,7 @@ TEST(AMessage, CanCarryAUnixFd)
 {
     auto msg = sdbus::createPlainMessage();
 
-    sdbus::UnixFd dataWritten = 0;
+    sdbus::UnixFd dataWritten{0};
     msg << dataWritten;
 
     msg.seal();
