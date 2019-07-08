@@ -213,7 +213,7 @@ TEST_F(SdbusTestObject, CallsMethodWithObjectPathSuccesfully)
 TEST_F(SdbusTestObject, CallsMethodWithUnixFdSuccesfully)
 {
     auto resUnixFd = m_proxy->getUnixFd();
-    ASSERT_THAT(resUnixFd, Gt(UNIX_FD_VALUE));
+    ASSERT_THAT(resUnixFd.get(), Gt(UNIX_FD_VALUE));
 }
 
 TEST_F(SdbusTestObject, CallsMethodWithComplexTypeSuccesfully)
