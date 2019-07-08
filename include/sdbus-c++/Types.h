@@ -219,6 +219,7 @@ namespace sdbus {
         {
             close();
             fd_ = ::dup(other.fd_);
+            return *this;
         }
 
         UnixFd(UnixFd&& other)
@@ -231,6 +232,7 @@ namespace sdbus {
             close();
             fd_ = other.fd_;
             other.fd_ = -1;
+            return *this;
         }
 
         ~UnixFd()
