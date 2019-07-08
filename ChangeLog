@@ -111,3 +111,6 @@ v0.7.1
 - Resolved a few clang-tidy warnings and suggestions
 - Extended the tutorial with info on standard D-Bus interfaces
 - Added protected non-virtual destructor in generated *_proxy/*_adaptor classes
+
+v0.7.2
+- Rewrite UnixFd implementation from plain UnixFd struct to full-ownership-semantics UnixFd class
