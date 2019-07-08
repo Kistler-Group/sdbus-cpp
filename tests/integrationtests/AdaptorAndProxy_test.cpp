@@ -468,7 +468,7 @@ TEST_F(SdbusTestObject, EmitsPropertyChangedSignalForSelectedProperties)
     std::atomic<bool> signalReceived{false};
     m_proxy->m_onPropertiesChangedHandler = [&signalReceived]( const std::string& interfaceName
                                                              , const std::map<std::string, sdbus::Variant>& changedProperties
-                                                             , const std::vector<std::string>& invalidatedProperties )
+                                                             , const std::vector<std::string>& /*invalidatedProperties*/ )
     {
         EXPECT_THAT(interfaceName, Eq(INTERFACE_NAME));
         EXPECT_THAT(changedProperties, SizeIs(1));
