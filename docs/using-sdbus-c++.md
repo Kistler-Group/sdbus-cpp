@@ -106,6 +106,8 @@ There are two recipes:
   * One for sdbus-c++ itself. It detects whether systemd feature is turned on in the poky linux configuration. If so, it simply depends on systemd and makes use of libsystemd shared library available in the target system. Otherwise it automatically downloads and builds libsystemd static library and makes it an opaque part of sdbus-c++ shared library. The recipe also supports ptest.
   * One for sdbus-c++ native tools, namely sdbus-c++ code generator to generate C++ adaptor and proxy binding classes.
 
+Tip: If you get `ERROR: Program or command 'getent' not found or not executable` when building sdbus-c++ in Yocto, please make sure you've added `getent` to `HOSTTOOLS`. For example, you can add `HOSTTOOLS_NONFATAL += "getent"` into your local.conf file.
+
 Header files and namespaces
 ---------------------------
 
