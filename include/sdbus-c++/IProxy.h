@@ -81,6 +81,7 @@ namespace sdbus {
          *
          * @param[in] interfaceName Name of an interface that provides a given method
          * @param[in] methodName Name of the method
+         * @param[in] timeout Timeout for dbus call in microseconds
          * @return A method call message
          *
          * Serialize method arguments into the returned message and invoke the method by passing
@@ -89,7 +90,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual AsyncMethodCall createAsyncMethodCall(const std::string& interfaceName, const std::string& methodName) = 0;
+        virtual AsyncMethodCall createAsyncMethodCall(const std::string& interfaceName, const std::string& methodName, uint64_t timeout = 0) = 0;
 
         /*!
          * @brief Calls method on the proxied D-Bus object
@@ -185,6 +186,7 @@ namespace sdbus {
          * @brief Calls method on the proxied D-Bus object asynchronously
          *
          * @param[in] methodName Name of the method
+         * @param[in] timeout Timeout for dbus call in microseconds
          * @return A helper object for convenient asynchronous invocation of the method
          *
          * This is a high-level, convenience way of calling D-Bus methods that abstracts
@@ -203,7 +205,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        AsyncMethodInvoker callMethodAsync(const std::string& methodName);
+        AsyncMethodInvoker callMethodAsync(const std::string& methodName, uint64_t timeout = 0);
 
         /*!
          * @brief Registers signal handler for a given signal of the proxied D-Bus object
@@ -269,9 +271,9 @@ namespace sdbus {
         return MethodInvoker(*this, methodName);
     }
 
-    inline AsyncMethodInvoker IProxy::callMethodAsync(const std::string& methodName)
+    inline AsyncMethodInvoker IProxy::callMethodAsync(const std::string& methodName, uint64_t timeout)
     {
-        return AsyncMethodInvoker(*this, methodName);
+        return AsyncMethodInvoker(*this, methodName, timeout);
     }
 
     inline SignalSubscriber IProxy::uponSignal(const std::string& signalName)

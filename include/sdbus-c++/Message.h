@@ -191,8 +191,10 @@ namespace sdbus {
         using Slot = std::unique_ptr<void, std::function<void(void*)>>;
 
         AsyncMethodCall() = default;
-        explicit AsyncMethodCall(MethodCall&& call) noexcept;
+        explicit AsyncMethodCall(MethodCall&& call, uint64_t timeout = 0) noexcept;
         Slot send(void* callback, void* userData) const;
+    private:
+        uint64_t timeout_;
     };
 
     class MethodReply : public Message

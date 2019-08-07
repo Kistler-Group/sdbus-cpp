@@ -180,7 +180,7 @@ namespace sdbus {
     class AsyncMethodInvoker
     {
     public:
-        AsyncMethodInvoker(IProxy& proxy, const std::string& methodName);
+        AsyncMethodInvoker(IProxy& proxy, const std::string& methodName, uint64_t timeout = 0);
         AsyncMethodInvoker& onInterface(const std::string& interfaceName);
         template <typename... _Args> AsyncMethodInvoker& withArguments(_Args&&... args);
         template <typename _Function> void uponReplyInvoke(_Function&& callback);
@@ -189,6 +189,7 @@ namespace sdbus {
         IProxy& proxy_;
         const std::string& methodName_;
         AsyncMethodCall method_;
+        uint64_t timeout_;
     };
 
     class SignalSubscriber
