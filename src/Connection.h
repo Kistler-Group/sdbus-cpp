@@ -57,6 +57,8 @@ namespace sdbus { namespace internal {
         void enterProcessingLoop() override;
         void enterProcessingLoopAsync() override;
         void leaveProcessingLoop() override;
+        bool processPendingRequest() override;
+        sdbus::IConnection::PollData getProcessLoopPollData() override;
 
         void addObjectManager(const std::string& objectPath) override;
         SlotPtr addObjectManager(const std::string& objectPath, void* /*dummy*/) override;
@@ -99,7 +101,6 @@ namespace sdbus { namespace internal {
         void finishHandshake(sd_bus* bus);
         static int createProcessingLoopExitDescriptor();
         static void closeProcessingLoopExitDescriptor(int fd);
-        bool processPendingRequest();
         bool waitForNextRequest();
         static std::string composeSignalMatchFilter( const std::string& objectPath
                                                    , const std::string& interfaceName
