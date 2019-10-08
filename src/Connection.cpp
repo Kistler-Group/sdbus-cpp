@@ -108,6 +108,20 @@ void Connection::leaveProcessingLoop()
     joinWithProcessingLoop();
 }
 
+sdbus::IConnection::PollData Connection::getProcessLoopPollData()
+{
+    sdbus::IConnection::PollData pollData;
+    ISdBus::PollData sdbusPollData;
+    auto r = iface_->sd_bus_get_poll_data(bus_.get(), &sdbusPollData);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus poll data", -r);
+
+    pollData.fd = sdbusPollData.fd;
+    pollData.events = sdbusPollData.events;
+    pollData.timeout_usec = sdbusPollData.timeout_usec;
+
+    return pollData;
+}
+
 const ISdBus& Connection::getSdBusInterface() const
 {
     return *iface_.get();
@@ -345,15 +359,12 @@ bool Connection::waitForNextRequest()
     assert(bus != nullptr);
     assert(loopExitFd_ != 0);
 
-    ISdBus::PollData sdbusPollData;
-    auto r = iface_->sd_bus_get_poll_data(bus, &sdbusPollData);
-    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus poll data", -r);
-
+    auto sdbusPollData = getProcessLoopPollData();
     struct pollfd fds[] = {{sdbusPollData.fd, sdbusPollData.events, 0}, {loopExitFd_, POLLIN, 0}};
     auto fdsCount = sizeof(fds)/sizeof(fds[0]);
 
     auto timeout = sdbusPollData.timeout_usec == (uint64_t) -1 ? (uint64_t)-1 : (sdbusPollData.timeout_usec+999)/1000;
-    r = poll(fds, fdsCount, timeout);
+    auto r = poll(fds, fdsCount, timeout);
 
     if (r < 0 && errno == EINTR)
         return true; // Try again
