@@ -110,16 +110,11 @@ void Connection::leaveProcessingLoop()
 
 sdbus::IConnection::PollData Connection::getProcessLoopPollData()
 {
-    sdbus::IConnection::PollData pollData;
-    ISdBus::PollData sdbusPollData;
-    auto r = iface_->sd_bus_get_poll_data(bus_.get(), &sdbusPollData);
+    ISdBus::PollData pollData;
+    auto r = iface_->sd_bus_get_poll_data(bus_.get(), &pollData);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus poll data", -r);
 
-    pollData.fd = sdbusPollData.fd;
-    pollData.events = sdbusPollData.events;
-    pollData.timeout_usec = sdbusPollData.timeout_usec;
-
-    return pollData;
+    return {pollData.fd, pollData.events, pollData.timeout_usec};
 }
 
 const ISdBus& Connection::getSdBusInterface() const
@@ -342,11 +337,9 @@ void Connection::joinWithProcessingLoop()
 bool Connection::processPendingRequest()
 {
     auto bus = bus_.get();
-
     assert(bus != nullptr);
 
     int r = iface_->sd_bus_process(bus, nullptr);
-
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to process bus requests", -r);
 
     return r > 0;

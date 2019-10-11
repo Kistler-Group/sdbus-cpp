@@ -57,8 +57,8 @@ namespace sdbus { namespace internal {
         void enterProcessingLoop() override;
         void enterProcessingLoopAsync() override;
         void leaveProcessingLoop() override;
-        bool processPendingRequest() override;
         sdbus::IConnection::PollData getProcessLoopPollData() override;
+        bool processPendingRequest() override;
 
         void addObjectManager(const std::string& objectPath) override;
         SlotPtr addObjectManager(const std::string& objectPath, void* /*dummy*/) override;
