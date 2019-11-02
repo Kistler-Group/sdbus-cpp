@@ -137,6 +137,11 @@ int SdBus::sd_bus_open_system(sd_bus **ret)
     return ::sd_bus_open_system(ret);
 }
 
+int SdBus::sd_bus_open_system_remote(sd_bus **ret, const char *host)
+{
+    return ::sd_bus_open_system_remote(ret, host);
+}
+
 int SdBus::sd_bus_request_name(sd_bus *bus, const char *name, uint64_t flags)
 {
     std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);

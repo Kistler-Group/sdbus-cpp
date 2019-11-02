@@ -64,6 +64,21 @@ Connection::Connection(Connection::BusType type, std::unique_ptr<ISdBus>&& inter
     loopExitFd_ = createProcessingLoopExitDescriptor();
 }
 
+Connection::Connection(const std::string& host, std::unique_ptr<ISdBus> &&interface)
+    : iface_(std::move(interface))
+    , busType_(BusType::eRemoteSystem)
+    , host_(host)
+{
+    assert(iface_ != nullptr);
+
+    auto bus = openBus(busType_);
+    bus_.reset(bus);
+
+    finishHandshake(bus);
+
+    loopExitFd_ = createProcessingLoopExitDescriptor();
+}
+
 Connection::~Connection()
 {
     leaveProcessingLoop();
@@ -276,6 +291,8 @@ sd_bus* Connection::openBus(Connection::BusType type)
         r = iface_->sd_bus_open_system(&bus);
     else if (type == BusType::eSession)
         r = iface_->sd_bus_open_user(&bus);
+    else if (type == BusType::eRemoteSystem)
+        r = iface_->sd_bus_open_system_remote(&bus, host_.c_str());
     else
         assert(false);
 
@@ -429,6 +446,14 @@ std::unique_ptr<sdbus::IConnection> createSessionBusConnection(const std::string
     auto conn = createSessionBusConnection();
     conn->requestName(name);
     return conn;
+}
+
+std::unique_ptr<sdbus::IConnection> createRemoteSystemBusConnection(const std::string& host)
+{
+    auto interface = std::make_unique<sdbus::internal::SdBus>();
+    assert(interface != nullptr);
+    return std::make_unique<sdbus::internal::Connection>( host
+                                                        , std::move(interface));
 }
 
 }
