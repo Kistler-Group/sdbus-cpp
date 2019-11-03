@@ -136,6 +136,14 @@ public:
         return result;
     }
 
+    uint32_t doOperationWith500msTimeout(uint32_t param)
+    {
+        using namespace std::chrono_literals;
+        uint32_t result;
+        object_.callMethod("doOperation").onInterface(INTERFACE_NAME).withTimeout(500000us).withArguments(param).storeResultsTo(result);
+        return result;
+    }
+
     uint32_t doOperationAsync(uint32_t param)
     {
         uint32_t result;

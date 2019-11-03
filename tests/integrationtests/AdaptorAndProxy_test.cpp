@@ -232,6 +232,30 @@ TEST_F(SdbusTestObject, CallsMultiplyMethodWithNoReplyFlag)
     ASSERT_THAT(m_adaptor->m_multiplyResult, Eq(INT64_VALUE * DOUBLE_VALUE));
 }
 
+TEST_F(SdbusTestObject, CallsMethodWithCustomTimeoutSuccessfully)
+{
+    auto res = m_proxy->doOperationWith500msTimeout(20); // The operation will take 20ms, but the timeout is 500ms, so we are fine
+    ASSERT_THAT(res, Eq(20));
+}
+
+TEST_F(SdbusTestObject, ThrowsTimeoutErrorWhenMethodTimesOut)
+{
+    try
+    {
+        m_proxy->doOperationWith500msTimeout(1000); // The operation will take 1s, but the timeout is 500ms, so we should time out
+        FAIL() << "Expected sdbus::Error exception";
+    }
+    catch (const sdbus::Error& e)
+    {
+        ASSERT_THAT(e.getName(), Eq("org.freedesktop.DBus.Error.Timeout"));
+        ASSERT_THAT(e.getMessage(), Eq("Connection timed out"));
+    }
+    catch(...)
+    {
+        FAIL() << "Expected sdbus::Error exception";
+    }
+}
+
 TEST_F(SdbusTestObject, CallsMethodThatThrowsError)
 {
     try
@@ -367,6 +391,20 @@ TEST_F(SdbusTestObject, FailsCallingMethodOnNonexistentObject)
     TestingProxy proxy(INTERFACE_NAME, "/sdbuscpp/path/that/does/not/exist");
     ASSERT_THROW(proxy.getInt(), sdbus::Error);
 }
+
+#if LIBSYSTEMD_VERSION>=240
+TEST_F(SdbusTestObject, CanSetGeneralMethodTimeoutWithLibsystemdVersionGreaterThan239)
+{
+    s_connection->setMethodCallTimeout(5000000);
+    ASSERT_THAT(s_connection->getMethodCallTimeout(), Eq(5000000));
+}
+#else
+TEST_F(SdbusTestObject, CannotSetGeneralMethodTimeoutWithLibsystemdVersionLessThan240)
+{
+    ASSERT_THROW(s_connection->setMethodCallTimeout(5000000), sdbus::Error);
+    ASSERT_THROW(s_connection->getMethodCallTimeout(), sdbus::Error);
+}
+#endif
 
 // Signals
 

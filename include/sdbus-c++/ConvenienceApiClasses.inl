@@ -40,6 +40,10 @@
 
 namespace sdbus {
 
+    /*** ----------------- ***/
+    /*** MethodRegistrator ***/
+    /*** ----------------- ***/
+
     // Moved into the library to isolate from C++17 dependency
     /*
     inline MethodRegistrator::MethodRegistrator(IObject& object, const std::string& methodName)
@@ -149,6 +153,9 @@ namespace sdbus {
         return *this;
     }
 
+    /*** ----------------- ***/
+    /*** SignalRegistrator ***/
+    /*** ----------------- ***/
 
     // Moved into the library to isolate from C++17 dependency
     /*
@@ -203,6 +210,9 @@ namespace sdbus {
         return *this;
     }
 
+    /*** ------------------- ***/
+    /*** PropertyRegistrator ***/
+    /*** ------------------- ***/
 
     // Moved into the library to isolate from C++17 dependency
     /*
@@ -309,6 +319,9 @@ namespace sdbus {
         return *this;
     }
 
+    /*** -------------------- ***/
+    /*** InterfaceFlagsSetter ***/
+    /*** -------------------- ***/
 
     // Moved into the library to isolate from C++17 dependency
     /*
@@ -369,6 +382,9 @@ namespace sdbus {
         return *this;
     }
 
+    /*** ------------- ***/
+    /*** SignalEmitter ***/
+    /*** ------------- ***/
 
     // Moved into the library to isolate from C++17 dependency
     /*
@@ -416,6 +432,9 @@ namespace sdbus {
         detail::serialize_pack(signal_, std::forward<_Args>(args)...);
     }
 
+    /*** ------------- ***/
+    /*** MethodInvoker ***/
+    /*** ------------- ***/
 
     // Moved into the library to isolate from C++17 dependency
     /*
@@ -456,6 +475,20 @@ namespace sdbus {
         return *this;
     }
 
+    inline MethodInvoker& MethodInvoker::withTimeout(uint64_t usec)
+    {
+        timeout_ = usec;
+
+        return *this;
+    }
+
+    template <typename _Rep, typename _Period>
+    inline MethodInvoker& MethodInvoker::withTimeout(const std::chrono::duration<_Rep, _Period>& timeout)
+    {
+        auto microsecs = std::chrono::duration_cast<std::chrono::microseconds>(timeout);
+        return withTimeout(microsecs.count());
+    }
+
     template <typename... _Args>
     inline MethodInvoker& MethodInvoker::withArguments(_Args&&... args)
     {
@@ -471,7 +504,7 @@ namespace sdbus {
     {
         SDBUS_THROW_ERROR_IF(!method_.isValid(), "DBus interface not specified when calling a DBus method", EINVAL);
 
-        auto reply = proxy_.callMethod(method_);
+        auto reply = proxy_.callMethod(method_, timeout_);
         methodCalled_ = true;
 
         detail::deserialize_pack(reply, args...);
@@ -484,6 +517,9 @@ namespace sdbus {
         method_.dontExpectReply();
     }
 
+    /*** ------------------ ***/
+    /*** AsyncMethodInvoker ***/
+    /*** ------------------ ***/
 
     inline AsyncMethodInvoker::AsyncMethodInvoker(IProxy& proxy, const std::string& methodName)
         : proxy_(proxy)
@@ -496,6 +532,20 @@ namespace sdbus {
         method_ = proxy_.createAsyncMethodCall(interfaceName, methodName_);
 
         return *this;
+    }
+
+    inline AsyncMethodInvoker& AsyncMethodInvoker::withTimeout(uint64_t usec)
+    {
+        timeout_ = usec;
+
+        return *this;
+    }
+
+    template <typename _Rep, typename _Period>
+    inline AsyncMethodInvoker& AsyncMethodInvoker::withTimeout(const std::chrono::duration<_Rep, _Period>& timeout)
+    {
+        auto microsecs = std::chrono::duration_cast<std::chrono::microseconds>(timeout);
+        return withTimeout(microsecs.count());
     }
 
     template <typename... _Args>
@@ -513,7 +563,7 @@ namespace sdbus {
     {
         SDBUS_THROW_ERROR_IF(!method_.isValid(), "DBus interface not specified when calling a DBus method", EINVAL);
 
-        proxy_.callMethod(method_, [callback = std::forward<_Function>(callback)](MethodReply& reply, const Error* error)
+        auto asyncReplyHandler = [callback = std::forward<_Function>(callback)](MethodReply& reply, const Error* error)
         {
             // Create a tuple of callback input arguments' types, which will be used
             // as a storage for the argument values deserialized from the message.
@@ -525,9 +575,14 @@ namespace sdbus {
 
             // Invoke callback with input arguments from the tuple.
             sdbus::apply(callback, error, args); // TODO: Use std::apply when switching to full C++17 support
-        });
+        };
+
+        proxy_.callMethod(method_, std::move(asyncReplyHandler), timeout_);
     }
 
+    /*** ---------------- ***/
+    /*** SignalSubscriber ***/
+    /*** ---------------- ***/
 
     inline SignalSubscriber::SignalSubscriber(IProxy& proxy, const std::string& signalName)
         : proxy_(proxy)
@@ -563,6 +618,9 @@ namespace sdbus {
         });
     }
 
+    /*** -------------- ***/
+    /*** PropertyGetter ***/
+    /*** -------------- ***/
 
     inline PropertyGetter::PropertyGetter(IProxy& proxy, const std::string& propertyName)
         : proxy_(proxy)
@@ -581,6 +639,9 @@ namespace sdbus {
         return var;
     }
 
+    /*** -------------- ***/
+    /*** PropertySetter ***/
+    /*** -------------- ***/
 
     inline PropertySetter::PropertySetter(IProxy& proxy, const std::string& propertyName)
         : proxy_(proxy)

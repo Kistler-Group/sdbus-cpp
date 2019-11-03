@@ -387,6 +387,8 @@ namespace sdbus {
         SignalEmitter emitSignal(const std::string& signalName);
     };
 
+    // Out-of-line member definitions
+
     inline MethodRegistrator IObject::registerMethod(const std::string& methodName)
     {
         return MethodRegistrator(*this, methodName);

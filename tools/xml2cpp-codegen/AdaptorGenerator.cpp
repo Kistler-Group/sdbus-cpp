@@ -193,7 +193,7 @@ std::tuple<std::string, std::string> AdaptorGenerator::processMethods(const Node
                 if (annotationValue == "true")
                     annotationRegistration += ".markAsPrivileged()";
             }
-            else
+            else if (annotationName != "org.freedesktop.DBus.Method.Timeout") // Whatever else...
             {
                 std::cerr << "Node: " << methodName << ": "
                           << "Option '" << annotationName << "' not allowed or supported in this context! Option ignored..." << std::endl;

@@ -27,9 +27,10 @@
 #ifndef SDBUS_CXX_ICONNECTION_H_
 #define SDBUS_CXX_ICONNECTION_H_
 
-//#include <cstdint>
 #include <string>
 #include <memory>
+#include <chrono>
+#include <cstdint>
 
 namespace sdbus {
 
@@ -145,7 +146,45 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         virtual bool processPendingRequest() = 0;
+
+        /*!
+         * @brief Sets general method call timeout
+         *
+         * @param[in] timeout Timeout value in microseconds
+         *
+         * General method call timeout is used for all method calls upon this connection.
+         * Method call-specific timeout overrides this general setting.
+         *
+         * Supported by libsystemd>=v240.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual void setMethodCallTimeout(uint64_t timeout) = 0;
+
+        /*!
+         * @copydoc IConnection::setMethodCallTimeout(uint64_t)
+         */
+        template <typename _Rep, typename _Period>
+        void setMethodCallTimeout(const std::chrono::duration<_Rep, _Period>& timeout);
+
+        /*!
+         * @brief Gets general method call timeout
+         *
+         * @return Timeout value in microseconds
+         *
+         * Supported by libsystemd>=v240.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual uint64_t getMethodCallTimeout() const = 0;
     };
+
+    template <typename _Rep, typename _Period>
+    inline void IConnection::setMethodCallTimeout(const std::chrono::duration<_Rep, _Period>& timeout)
+    {
+        auto microsecs = std::chrono::duration_cast<std::chrono::microseconds>(timeout);
+        return setMethodCallTimeout(microsecs.count());
+    }
 
     /*!
      * @brief Creates/opens D-Bus system connection

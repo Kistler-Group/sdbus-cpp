@@ -122,6 +122,4 @@ public: // for tests
     std::function<void(const sdbus::ObjectPath&, const std::vector<std::string>&)> m_onInterfacesRemovedHandler;
 };
 
-
-
 #endif /* SDBUS_CPP_INTEGRATIONTESTS_TESTINGPROXY_H_ */

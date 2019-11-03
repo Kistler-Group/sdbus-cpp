@@ -63,6 +63,9 @@ namespace sdbus { namespace internal {
         void addObjectManager(const std::string& objectPath) override;
         SlotPtr addObjectManager(const std::string& objectPath, void* /*dummy*/) override;
 
+        void setMethodCallTimeout(uint64_t timeout) override;
+        uint64_t getMethodCallTimeout() const override;
+
         const ISdBus& getSdBusInterface() const override;
         ISdBus& getSdBusInterface() override;
 

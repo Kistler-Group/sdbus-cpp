@@ -98,7 +98,7 @@ option(BUILD_SHARED_LIBS "Build shared libraries (.so) instead of static ones (.
 
 # Having an object target allows unit tests to reuse already built sources without re-building
 add_library(sdbus-c++-objlib OBJECT ${SDBUSCPP_SRCS})
-target_compile_definitions(sdbus-c++-objlib PRIVATE BUILDLIB=1)
+target_compile_definitions(sdbus-c++-objlib PRIVATE BUILD_LIB=1 LIBSYSTEMD_VERSION=${SYSTEMD_VERSION})
 target_include_directories(sdbus-c++-objlib PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                                    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
                                                    $<BUILD_INTERFACE:${SYSTEMD_INCLUDE_DIRS}>)
