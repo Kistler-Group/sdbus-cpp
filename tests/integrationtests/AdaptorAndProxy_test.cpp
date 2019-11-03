@@ -390,6 +390,20 @@ TEST_F(SdbusTestObject, FailsCallingMethodOnNonexistentObject)
     ASSERT_THROW(proxy.getInt(), sdbus::Error);
 }
 
+#if LIBSYSTEMD_VERSION>=240
+TEST_F(SdbusTestObject, CanSetGeneralMethodTimeoutWithLibsystemdVersionGreaterThan239)
+{
+    s_connection->setMethodCallTimeout(5000000);
+    ASSERT_THAT(s_connection->getMethodCallTimeout(), Eq(5000000));
+}
+#else
+TEST_F(SdbusTestObject, CannotSetGeneralMethodTimeoutWithLibsystemdVersionLessThan240)
+{
+    ASSERT_THROW(s_connection->setMethodCallTimeout(5000000), sdbus::Error);
+    ASSERT_THROW(s_connection->getMethodCallTimeout(), sdbus::Error);
+}
+#endif
+
 // Signals
 
 TEST_F(SdbusTestObject, EmitsSimpleSignalSuccesfully)
