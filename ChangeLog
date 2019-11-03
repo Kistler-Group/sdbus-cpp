@@ -119,3 +119,8 @@ v0.7.3
 - Add ability to integrate with external event loops
 - Add getSenderName() method to Message
 - Skip GetMachineId integration test case when /etc/machine-id is not available
+
+v0.7.4
+- Add support for custom timeout of D-Bus method calls
+- Add support for opening a connection to a remote system bus using ssh
+- Internal refactoring: Use tag dispatching to construct various types of Connection
