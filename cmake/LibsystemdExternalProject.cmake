@@ -50,6 +50,8 @@ set(SYSTEMD_INCLUDE_DIRS ${SOURCE_DIR}/src)
 ExternalProject_Get_property(LibsystemdBuildProject BINARY_DIR)
 set(SYSTEMD_LIBRARY_DIRS ${BINARY_DIR})
 
+set(SYSTEMD_VERSION ${LIBSYSTEMD_VERSION})
+
 add_library(Systemd::Libsystemd STATIC IMPORTED)
 set_target_properties(Systemd::Libsystemd PROPERTIES IMPORTED_LOCATION ${SYSTEMD_LIBRARY_DIRS}/libsystemd.a)
 set(SYSTEMD_LIBRARIES Systemd::Libsystemd ${CAP_LIBRARIES} ${GLIBC_RT_LIBRARY} ${MOUNT_LIBRARIES})

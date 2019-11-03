@@ -623,21 +623,21 @@ bool MethodCall::doesntExpectReply() const
     return r == 0;
 }
 
-MethodReply MethodCall::send() const
+MethodReply MethodCall::send(uint64_t timeout) const
 {
     if (!doesntExpectReply())
-        return sendWithReply();
+        return sendWithReply(timeout);
     else
         return sendWithNoReply();
 }
 
-MethodReply MethodCall::sendWithReply() const
+MethodReply MethodCall::sendWithReply(uint64_t timeout) const
 {
     sd_bus_error sdbusError = SD_BUS_ERROR_NULL;
     SCOPE_EXIT{ sd_bus_error_free(&sdbusError); };
 
     sd_bus_message* sdbusReply{};
-    auto r = sdbus_->sd_bus_call(nullptr, (sd_bus_message*)msg_, 0, &sdbusError, &sdbusReply);
+    auto r = sdbus_->sd_bus_call(nullptr, (sd_bus_message*)msg_, timeout, &sdbusError, &sdbusReply);
 
     if (sd_bus_error_is_set(&sdbusError))
         throw sdbus::Error(sdbusError.name, sdbusError.message);
@@ -677,16 +677,16 @@ MethodReply MethodCall::createErrorReply(const Error& error) const
     return Factory::create<MethodReply>(sdbusErrorReply, sdbus_, adopt_message);
 }
 
-AsyncMethodCall::AsyncMethodCall(MethodCall&& call, uint64_t timeout) noexcept
-    : timeout_(timeout), Message(std::move(call))
+AsyncMethodCall::AsyncMethodCall(MethodCall&& call) noexcept
+    : Message(std::move(call))
 {
 }
 
-AsyncMethodCall::Slot AsyncMethodCall::send(void* callback, void* userData) const
+AsyncMethodCall::Slot AsyncMethodCall::send(void* callback, void* userData, uint64_t timeout) const
 {
     sd_bus_slot* slot;
 
-    auto r = sdbus_->sd_bus_call_async(nullptr, &slot, (sd_bus_message*)msg_, (sd_bus_message_handler_t)callback, userData, timeout_);
+    auto r = sdbus_->sd_bus_call_async(nullptr, &slot, (sd_bus_message*)msg_, (sd_bus_message_handler_t)callback, userData, timeout);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method asynchronously", -r);
 
     return Slot{slot, [sdbus_ = sdbus_](void *slot){ sdbus_->sd_bus_slot_unref((sd_bus_slot*)slot); }};

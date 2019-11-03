@@ -32,6 +32,8 @@
 #include <sdbus-c++/Flags.h>
 #include <string>
 #include <type_traits>
+#include <chrono>
+#include <cstdint>
 
 // Forward declarations
 namespace sdbus {
@@ -164,6 +166,9 @@ namespace sdbus {
         ~MethodInvoker() noexcept(false);
 
         MethodInvoker& onInterface(const std::string& interfaceName);
+        MethodInvoker& withTimeout(uint64_t usec);
+        template <typename _Rep, typename _Period>
+        MethodInvoker& withTimeout(const std::chrono::duration<_Rep, _Period>& timeout);
         template <typename... _Args> MethodInvoker& withArguments(_Args&&... args);
         template <typename... _Args> void storeResultsTo(_Args&... args);
 
@@ -172,6 +177,7 @@ namespace sdbus {
     private:
         IProxy& proxy_;
         const std::string& methodName_;
+        uint64_t timeout_{};
         MethodCall method_;
         int exceptions_{}; // Number of active exceptions when MethodInvoker is constructed
         bool methodCalled_{};
@@ -180,16 +186,19 @@ namespace sdbus {
     class AsyncMethodInvoker
     {
     public:
-        AsyncMethodInvoker(IProxy& proxy, const std::string& methodName, uint64_t timeout = 0);
+        AsyncMethodInvoker(IProxy& proxy, const std::string& methodName);
         AsyncMethodInvoker& onInterface(const std::string& interfaceName);
+        AsyncMethodInvoker& withTimeout(uint64_t usec);
+        template <typename _Rep, typename _Period>
+        AsyncMethodInvoker& withTimeout(const std::chrono::duration<_Rep, _Period>& timeout);
         template <typename... _Args> AsyncMethodInvoker& withArguments(_Args&&... args);
         template <typename _Function> void uponReplyInvoke(_Function&& callback);
 
     private:
         IProxy& proxy_;
         const std::string& methodName_;
+        uint64_t timeout_{};
         AsyncMethodCall method_;
-        uint64_t timeout_;
     };
 
     class SignalSubscriber

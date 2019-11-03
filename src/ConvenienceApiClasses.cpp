@@ -203,7 +203,7 @@ MethodInvoker::~MethodInvoker() noexcept(false) // since C++11, destructors must
     // Therefore, we can allow callMethod() to throw even if we are in the destructor.
     // Bottomline is, to be on the safe side, the caller must take care of catching and reacting
     // to the exception thrown from here if the caller is a destructor itself.
-    proxy_.callMethod(method_);
+    proxy_.callMethod(method_, timeout_);
 }
 
 }

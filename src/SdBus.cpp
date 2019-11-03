@@ -26,6 +26,7 @@
  */
 
 #include "SdBus.h"
+#include <sdbus-c++/Error.h>
 
 namespace sdbus { namespace internal {
 
@@ -90,6 +91,32 @@ int SdBus::sd_bus_message_new_method_error(sd_bus_message *call, sd_bus_message 
     std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
 
     return ::sd_bus_message_new_method_error(call, m, e);
+}
+
+int SdBus::sd_bus_set_method_call_timeout(sd_bus *bus, uint64_t usec)
+{
+#if LIBSYSTEMD_VERSION>=240
+    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
+
+    return ::sd_bus_set_method_call_timeout(bus, usec);
+#else
+    (void)bus;
+    (void)usec;
+    throw sdbus::Error(SD_BUS_ERROR_NOT_SUPPORTED, "Setting general method call timeout not supported by underlying version of libsystemd");
+#endif
+}
+
+int SdBus::sd_bus_get_method_call_timeout(sd_bus *bus, uint64_t *ret)
+{
+#if LIBSYSTEMD_VERSION>=240
+    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
+
+    return ::sd_bus_get_method_call_timeout(bus, ret);
+#else
+    (void)bus;
+    (void)ret;
+    throw sdbus::Error(SD_BUS_ERROR_NOT_SUPPORTED, "Getting general method call timeout not supported by underlying version of libsystemd");
+#endif
 }
 
 int SdBus::sd_bus_emit_properties_changed_strv(sd_bus *bus, const char *path, const char *interface, char **names)

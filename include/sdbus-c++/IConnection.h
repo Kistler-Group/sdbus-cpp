@@ -103,6 +103,31 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         virtual void addObjectManager(const std::string& objectPath) = 0;
+
+        /*!
+         * @brief Sets general method call timeout
+         *
+         * @param[in] timeout Timeout value in microseconds
+         *
+         * General method call timeout is used for all method calls upon this connection.
+         * Method call-specific timeout overrides this general setting.
+         *
+         * Supported by libsystemd>=v240.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual void setMethodCallTimeout(uint64_t timeout) = 0;
+
+        /*!
+         * @brief Gets general method call timeout
+         *
+         * @return Timeout value in microseconds
+         *
+         * Supported by libsystemd>=v240.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual uint64_t getMethodCallTimeout() const = 0;
     };
 
     /*!

@@ -171,14 +171,14 @@ namespace sdbus {
 
     public:
         MethodCall() = default;
-        MethodReply send() const;
+        MethodReply send(uint64_t timeout = 0) const;
         MethodReply createReply() const;
         MethodReply createErrorReply(const sdbus::Error& error) const;
         void dontExpectReply();
         bool doesntExpectReply() const;
 
     private:
-        MethodReply sendWithReply() const;
+        MethodReply sendWithReply(uint64_t timeout) const;
         MethodReply sendWithNoReply() const;
     };
 
@@ -191,10 +191,8 @@ namespace sdbus {
         using Slot = std::unique_ptr<void, std::function<void(void*)>>;
 
         AsyncMethodCall() = default;
-        explicit AsyncMethodCall(MethodCall&& call, uint64_t timeout = 0) noexcept;
-        Slot send(void* callback, void* userData) const;
-    private:
-        uint64_t timeout_;
+        explicit AsyncMethodCall(MethodCall&& call) noexcept;
+        Slot send(void* callback, void* userData, uint64_t timeout = 0) const;
     };
 
     class MethodReply : public Message

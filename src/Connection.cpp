@@ -136,6 +136,24 @@ SlotPtr Connection::addObjectManager(const std::string& objectPath, void* /*dumm
     return {slot, [this](void *slot){ iface_->sd_bus_slot_unref((sd_bus_slot*)slot); }};
 }
 
+void Connection::setMethodCallTimeout(uint64_t timeout)
+{
+    auto r = iface_->sd_bus_set_method_call_timeout(bus_.get(), timeout);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to set method call timeout", -r);
+}
+
+uint64_t Connection::getMethodCallTimeout() const
+{
+    uint64_t timeout;
+
+    auto r = iface_->sd_bus_get_method_call_timeout(bus_.get(), &timeout);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get method call timeout", -r);
+
+    return timeout;
+}
+
 SlotPtr Connection::addObjectVTable( const std::string& objectPath
                                    , const std::string& interfaceName
                                    , const sd_bus_vtable* vtable

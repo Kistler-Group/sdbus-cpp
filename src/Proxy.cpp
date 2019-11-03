@@ -64,22 +64,22 @@ MethodCall Proxy::createMethodCall(const std::string& interfaceName, const std::
     return connection_->createMethodCall(destination_, objectPath_, interfaceName, methodName);
 }
 
-AsyncMethodCall Proxy::createAsyncMethodCall(const std::string& interfaceName, const std::string& methodName, uint64_t timeout)
+AsyncMethodCall Proxy::createAsyncMethodCall(const std::string& interfaceName, const std::string& methodName)
 {
-    return AsyncMethodCall{Proxy::createMethodCall(interfaceName, methodName), timeout};
+    return AsyncMethodCall{Proxy::createMethodCall(interfaceName, methodName)};
 }
 
-MethodReply Proxy::callMethod(const MethodCall& message)
+MethodReply Proxy::callMethod(const MethodCall& message, uint64_t timeout)
 {
-    return message.send();
+    return message.send(timeout);
 }
 
-void Proxy::callMethod(const AsyncMethodCall& message, async_reply_handler asyncReplyCallback)
+void Proxy::callMethod(const AsyncMethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout)
 {
     auto callback = (void*)&Proxy::sdbus_async_reply_handler;
     auto callData = std::make_unique<AsyncCalls::CallData>(AsyncCalls::CallData{*this, std::move(asyncReplyCallback), {}});
 
-    callData->slot = message.send(callback, callData.get());
+    callData->slot = message.send(callback, callData.get(), timeout);
 
     pendingAsyncCalls_.addCall(callData->slot.get(), std::move(callData));
 }
