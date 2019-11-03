@@ -243,6 +243,15 @@ namespace sdbus {
      */
     std::unique_ptr<sdbus::IConnection> createSessionBusConnection(const std::string& name);
 
+    /*!
+     * @brief Creates/opens D-Bus system connection on a remote host using ssh
+     *
+     * @param[in] host Name of the host to connect
+     * @return Connection instance
+     *
+     * @throws sdbus::Error in case of failure
+     */
+    std::unique_ptr<sdbus::IConnection> createRemoteSystemBusConnection(const std::string& host);
 }
 
 #endif /* SDBUS_CXX_ICONNECTION_H_ */
