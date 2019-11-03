@@ -121,7 +121,7 @@ namespace
                             , ComplexType
                             > DBusSupportedTypes;
 
-    TYPED_TEST_CASE(Type2DBusTypeSignatureConversion, DBusSupportedTypes);
+    TYPED_TEST_SUITE(Type2DBusTypeSignatureConversion, DBusSupportedTypes);
 }
 
 /*-------------------------------------*/

@@ -58,6 +58,7 @@ public:
 
     MOCK_METHOD1(sd_bus_open_user, int(sd_bus **ret));
     MOCK_METHOD1(sd_bus_open_system, int(sd_bus **ret));
+    MOCK_METHOD2(sd_bus_open_system_remote, int(sd_bus **ret, const char *host));
     MOCK_METHOD3(sd_bus_request_name, int(sd_bus *bus, const char *name, uint64_t flags));
     MOCK_METHOD2(sd_bus_release_name, int(sd_bus *bus, const char *name));
     MOCK_METHOD6(sd_bus_add_object_vtable, int(sd_bus *bus, sd_bus_slot **slot, const char *path, const char *interface, const sd_bus_vtable *vtable, void *userdata));
