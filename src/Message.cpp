@@ -590,6 +590,11 @@ std::string Message::getMemberName() const
     return sd_bus_message_get_member((sd_bus_message*)msg_);
 }
 
+std::string Message::getSender() const
+{
+    return sd_bus_message_get_sender((sd_bus_message*)msg_);
+}
+
 void Message::peekType(std::string& type, std::string& contents) const
 {
     char typeSig;
