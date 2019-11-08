@@ -183,6 +183,12 @@ int SdBus::sd_bus_release_name(sd_bus *bus, const char *name)
     return ::sd_bus_release_name(bus, name);
 }
 
+int SdBus::sd_bus_get_unique_name(sd_bus *bus, const char **name)
+{
+    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
+    return ::sd_bus_get_unique_name(bus, name);
+}
+
 int SdBus::sd_bus_add_object_vtable(sd_bus *bus, sd_bus_slot **slot, const char *path, const char *interface, const sd_bus_vtable *vtable, void *userdata)
 {
     std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);

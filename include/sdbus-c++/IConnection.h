@@ -75,6 +75,13 @@ namespace sdbus {
         virtual void releaseName(const std::string& name) = 0;
 
         /*!
+         * @brief Retrieve the unique name of a connection. E.g. ":1.xx"
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual std::string getUniqueName() = 0;
+
+        /*!
          * @brief Enters the D-Bus processing loop
          *
          * The incoming D-Bus messages are processed in the loop. The method

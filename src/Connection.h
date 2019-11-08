@@ -57,6 +57,7 @@ namespace sdbus { namespace internal {
 
         void requestName(const std::string& name) override;
         void releaseName(const std::string& name) override;
+        std::string getUniqueName() override;
         void enterProcessingLoop() override;
         void enterProcessingLoopAsync() override;
         void leaveProcessingLoop() override;

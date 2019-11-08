@@ -76,6 +76,14 @@ void Connection::releaseName(const std::string& name)
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to release bus name", -r);
 }
 
+std::string Connection::getUniqueName()
+{
+    const char* unique = nullptr;
+    auto r = iface_->sd_bus_get_unique_name(bus_.get(), &unique);
+    SDBUS_THROW_ERROR_IF(r < 0 || unique == nullptr, "Failed to get unique bus name", -r);
+    return unique;
+}
+
 void Connection::enterProcessingLoop()
 {
     while (true)
