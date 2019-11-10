@@ -4,7 +4,7 @@
 
 cmake_minimum_required(VERSION 3.6)
 
-project(sdbus-c++ VERSION 0.7.4 LANGUAGES C CXX)
+project(sdbus-c++ VERSION 0.7.5 LANGUAGES C CXX)
 
 include(GNUInstallDirs) # Installation directories for `install` command and pkgconfig file
 
