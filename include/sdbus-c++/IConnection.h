@@ -79,7 +79,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual std::string getUniqueName() = 0;
+        virtual std::string getUniqueName() const = 0;
 
         /*!
          * @brief Enters the D-Bus processing loop
@@ -137,7 +137,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual PollData getProcessLoopPollData() = 0;
+        virtual PollData getProcessLoopPollData() const = 0;
 
         /*!
          * @brief Process a pending request

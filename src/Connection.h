@@ -57,11 +57,11 @@ namespace sdbus { namespace internal {
 
         void requestName(const std::string& name) override;
         void releaseName(const std::string& name) override;
-        std::string getUniqueName() override;
+        std::string getUniqueName() const override;
         void enterProcessingLoop() override;
         void enterProcessingLoopAsync() override;
         void leaveProcessingLoop() override;
-        sdbus::IConnection::PollData getProcessLoopPollData() override;
+        sdbus::IConnection::PollData getProcessLoopPollData() const override;
         bool processPendingRequest() override;
 
         void addObjectManager(const std::string& objectPath) override;
