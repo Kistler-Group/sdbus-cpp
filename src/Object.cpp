@@ -134,6 +134,8 @@ sdbus::Signal Object::createSignal(const std::string& interfaceName, const std::
 
 void Object::emitSignal(const sdbus::Signal& message)
 {
+    SDBUS_THROW_ERROR_IF(!message.isValid(), "Invalid signal message provided", EINVAL);
+
     message.send();
 }
 
