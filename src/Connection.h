@@ -35,6 +35,8 @@
 #include <systemd/sd-bus.h>
 #include <memory>
 #include <thread>
+#include <string>
+#include <vector>
 
 namespace sdbus { namespace internal {
 
@@ -43,23 +45,30 @@ namespace sdbus { namespace internal {
         , public sdbus::internal::IConnection // Internal, private interface
     {
     public:
-        enum class BusType
-        {
-            eSystem,
-            eSession
-        };
+        // Bus type tags
+        struct system_bus_t{};
+        struct session_bus_t{};
+        struct remote_system_bus_t{};
 
-        Connection(BusType type, std::unique_ptr<ISdBus>&& interface);
+        Connection(std::unique_ptr<ISdBus>&& interface, system_bus_t);
+        Connection(std::unique_ptr<ISdBus>&& interface, session_bus_t);
+        Connection(std::unique_ptr<ISdBus>&& interface, remote_system_bus_t, const std::string& host);
         ~Connection() override;
 
         void requestName(const std::string& name) override;
         void releaseName(const std::string& name) override;
+        std::string getUniqueName() const override;
         void enterProcessingLoop() override;
         void enterProcessingLoopAsync() override;
         void leaveProcessingLoop() override;
+        sdbus::IConnection::PollData getProcessLoopPollData() const override;
+        bool processPendingRequest() override;
 
         void addObjectManager(const std::string& objectPath) override;
         SlotPtr addObjectManager(const std::string& objectPath, void* /*dummy*/) override;
+
+        void setMethodCallTimeout(uint64_t timeout) override;
+        uint64_t getMethodCallTimeout() const override;
 
         const ISdBus& getSdBusInterface() const override;
         ISdBus& getSdBusInterface() override;
@@ -95,11 +104,12 @@ namespace sdbus { namespace internal {
                                      , void* userData ) override;
 
     private:
-        sd_bus* openBus(Connection::BusType type);
+        using BusFactory = std::function<int(sd_bus**)>;
+        using BusPtr = std::unique_ptr<sd_bus, std::function<sd_bus*(sd_bus*)>>;
+        Connection(std::unique_ptr<ISdBus>&& interface, const BusFactory& busFactory);
+
+        BusPtr openBus(const std::function<int(sd_bus**)>& busFactory);
         void finishHandshake(sd_bus* bus);
-        static int createProcessingLoopExitDescriptor();
-        static void closeProcessingLoopExitDescriptor(int fd);
-        bool processPendingRequest();
         bool waitForNextRequest();
         static std::string composeSignalMatchFilter( const std::string& objectPath
                                                    , const std::string& interfaceName
@@ -107,17 +117,20 @@ namespace sdbus { namespace internal {
         void notifyProcessingLoopToExit();
         void clearExitNotification();
         void joinWithProcessingLoop();
+        static std::vector</*const */char*> to_strv(const std::vector<std::string>& strings);
+
+        struct LoopExitEventFd
+        {
+            LoopExitEventFd();
+            ~LoopExitEventFd();
+            int fd;
+        };
 
     private:
         std::unique_ptr<ISdBus> iface_;
-        std::unique_ptr<sd_bus, std::function<sd_bus*(sd_bus*)>> bus_ {nullptr, [this](sd_bus* bus)
-                                                                                {
-                                                                                    return iface_->sd_bus_flush_close_unref(bus);
-                                                                                }};
-        BusType busType_;
-
+        BusPtr bus_;
         std::thread asyncLoopThread_;
-        int loopExitFd_{-1};
+        LoopExitEventFd loopExitFd_;
     };
 
 }}

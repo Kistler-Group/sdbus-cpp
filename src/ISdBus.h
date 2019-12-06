@@ -42,6 +42,8 @@ namespace sdbus { namespace internal {
             uint64_t timeout_usec;
         };
 
+        virtual ~ISdBus() = default;
+
         virtual sd_bus_message* sd_bus_message_ref(sd_bus_message *m) = 0;
         virtual sd_bus_message* sd_bus_message_unref(sd_bus_message *m) = 0;
 
@@ -54,6 +56,9 @@ namespace sdbus { namespace internal {
         virtual int sd_bus_message_new_method_return(sd_bus_message *call, sd_bus_message **m) = 0;
         virtual int sd_bus_message_new_method_error(sd_bus_message *call, sd_bus_message **m, const sd_bus_error *e) = 0;
 
+        virtual int sd_bus_set_method_call_timeout(sd_bus *bus, uint64_t usec) = 0;
+        virtual int sd_bus_get_method_call_timeout(sd_bus *bus, uint64_t *ret) = 0;
+
         virtual int sd_bus_emit_properties_changed_strv(sd_bus *bus, const char *path, const char *interface, char **names) = 0;
         virtual int sd_bus_emit_object_added(sd_bus *bus, const char *path) = 0;
         virtual int sd_bus_emit_object_removed(sd_bus *bus, const char *path) = 0;
@@ -62,8 +67,10 @@ namespace sdbus { namespace internal {
 
         virtual int sd_bus_open_user(sd_bus **ret) = 0;
         virtual int sd_bus_open_system(sd_bus **ret) = 0;
+        virtual int sd_bus_open_system_remote(sd_bus **ret, const char* host) = 0;
         virtual int sd_bus_request_name(sd_bus *bus, const char *name, uint64_t flags) = 0;
         virtual int sd_bus_release_name(sd_bus *bus, const char *name) = 0;
+        virtual int sd_bus_get_unique_name(sd_bus *bus, const char **name) = 0;
         virtual int sd_bus_add_object_vtable(sd_bus *bus, sd_bus_slot **slot, const char *path, const char *interface, const sd_bus_vtable *vtable, void *userdata) = 0;
         virtual int sd_bus_add_object_manager(sd_bus *bus, sd_bus_slot **slot, const char *path) = 0;
         virtual int sd_bus_add_match(sd_bus *bus, sd_bus_slot **slot, const char *match, sd_bus_message_handler_t callback, void *userdata) = 0;
@@ -74,8 +81,6 @@ namespace sdbus { namespace internal {
 
         virtual int sd_bus_flush(sd_bus *bus) = 0;
         virtual sd_bus *sd_bus_flush_close_unref(sd_bus *bus) = 0;
-
-        virtual ~ISdBus() = default;
     };
 
 }}

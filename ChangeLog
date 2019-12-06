@@ -111,3 +111,20 @@ v0.7.1
 - Resolved a few clang-tidy warnings and suggestions
 - Extended the tutorial with info on standard D-Bus interfaces
 - Added protected non-virtual destructor in generated *_proxy/*_adaptor classes
+
+v0.7.2
+- Rewrite UnixFd implementation from plain UnixFd struct to full-ownership-semantics UnixFd class
+
+v0.7.3
+- Add ability to integrate with external event loops
+- Add getSenderName() method to Message
+- Skip GetMachineId integration test case when /etc/machine-id is not available
+
+v0.7.4
+- Add support for custom timeout of D-Bus method calls
+- Add support for opening a connection to a remote system bus using ssh
+- Internal refactoring: Use tag dispatching to construct various types of Connection
+
+v0.7.5
+- [[Breaking ABI change]] No more hiding from C++17: Move API code containing C++17 uncaught_exceptions calls from within library to public API
+- Add a method to retrieve the unique name of a connection

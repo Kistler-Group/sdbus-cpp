@@ -36,16 +36,19 @@
 #include <sdbus-c++/Error.h>
 #include <string>
 #include <tuple>
-/*#include <exception>*/
+#include <exception>
+#include <cassert>
 
 namespace sdbus {
 
-    // Moved into the library to isolate from C++17 dependency
-    /*
+    /*** ----------------- ***/
+    /*** MethodRegistrator ***/
+    /*** ----------------- ***/
+
     inline MethodRegistrator::MethodRegistrator(IObject& object, const std::string& methodName)
         : object_(object)
         , methodName_(methodName)
-        , exceptions_(std::uncaught_exceptions()) // Needs C++17
+        , exceptions_(std::uncaught_exceptions())
     {
     }
 
@@ -55,8 +58,8 @@ namespace sdbus {
         if (std::uncaught_exceptions() != exceptions_)
             return;
 
-        SDBUS_THROW_ERROR_IF(interfaceName_.empty(), "DBus interface not specified when registering a DBus method", EINVAL);
-        SDBUS_THROW_ERROR_IF(!methodCallback_, "Method handler not specified when registering a DBus method", EINVAL);
+        assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
+        assert(methodCallback_); // implementedAs() must be placed/called prior to this function
 
         // registerMethod() can throw. But as the MethodRegistrator shall always be used as an unnamed,
         // temporary object, i.e. not as a stack-allocated object, the double-exception situation
@@ -69,11 +72,10 @@ namespace sdbus {
         // to the exception thrown from here if the caller is a destructor itself.
         object_.registerMethod(interfaceName_, methodName_, inputSignature_, outputSignature_, std::move(methodCallback_), flags_);
     }
-    */
 
-    inline MethodRegistrator& MethodRegistrator::onInterface(const std::string& interfaceName)
+    inline MethodRegistrator& MethodRegistrator::onInterface(std::string interfaceName)
     {
-        interfaceName_ = interfaceName;
+        interfaceName_ = std::move(interfaceName);
 
         return *this;
     }
@@ -149,12 +151,13 @@ namespace sdbus {
         return *this;
     }
 
+    /*** ----------------- ***/
+    /*** SignalRegistrator ***/
+    /*** ----------------- ***/
 
-    // Moved into the library to isolate from C++17 dependency
-    /*
-    inline SignalRegistrator::SignalRegistrator(IObject& object, std::string signalName)
+    inline SignalRegistrator::SignalRegistrator(IObject& object, const std::string& signalName)
         : object_(object)
-        , signalName_(std::move(signalName))
+        , signalName_(signalName)
         , exceptions_(std::uncaught_exceptions())
     {
     }
@@ -165,8 +168,7 @@ namespace sdbus {
         if (std::uncaught_exceptions() != exceptions_)
             return;
 
-        if (interfaceName_.empty())
-            throw sdbus::Exception("DBus interface not specified when registering a DBus signal");
+        assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
 
         // registerSignal() can throw. But as the SignalRegistrator shall always be used as an unnamed,
         // temporary object, i.e. not as a stack-allocated object, the double-exception situation
@@ -177,9 +179,8 @@ namespace sdbus {
         // Therefore, we can allow registerSignal() to throw even if we are in the destructor.
         // Bottomline is, to be on the safe side, the caller must take care of catching and reacting
         // to the exception thrown from here if the caller is a destructor itself.
-        object_.registerSignal(interfaceName_, signalName_, signalSignature_);
+        object_.registerSignal(interfaceName_, signalName_, signalSignature_, flags_);
     }
-    */
 
     inline SignalRegistrator& SignalRegistrator::onInterface(std::string interfaceName)
     {
@@ -203,12 +204,13 @@ namespace sdbus {
         return *this;
     }
 
+    /*** ------------------- ***/
+    /*** PropertyRegistrator ***/
+    /*** ------------------- ***/
 
-    // Moved into the library to isolate from C++17 dependency
-    /*
-    inline PropertyRegistrator::PropertyRegistrator(IObject& object, std::string propertyName)
+    inline PropertyRegistrator::PropertyRegistrator(IObject& object, const std::string& propertyName)
         : object_(object)
-        , propertyName_(std::move(propertyName))
+        , propertyName_(propertyName)
         , exceptions_(std::uncaught_exceptions())
     {
     }
@@ -219,7 +221,7 @@ namespace sdbus {
         if (std::uncaught_exceptions() != exceptions_)
             return;
 
-        SDBUS_THROW_ERROR_IF(interfaceName_.empty(), "DBus interface not specified when registering a DBus property", EINVAL);
+        assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
 
         // registerProperty() can throw. But as the PropertyRegistrator shall always be used as an unnamed,
         // temporary object, i.e. not as a stack-allocated object, the double-exception situation
@@ -230,17 +232,17 @@ namespace sdbus {
         // Therefore, we can allow registerProperty() to throw even if we are in the destructor.
         // Bottomline is, to be on the safe side, the caller must take care of catching and reacting
         // to the exception thrown from here if the caller is a destructor itself.
-        object_.registerProperty( std::move(interfaceName_)
-                                , std::move(propertyName_)
-                                , std::move(propertySignature_)
+        object_.registerProperty( interfaceName_
+                                , propertyName_
+                                , propertySignature_
                                 , std::move(getter_)
-                                , std::move(setter_) );
+                                , std::move(setter_)
+                                , flags_ );
     }
-    */
 
-    inline PropertyRegistrator& PropertyRegistrator::onInterface(const std::string& interfaceName)
+    inline PropertyRegistrator& PropertyRegistrator::onInterface(std::string interfaceName)
     {
-        interfaceName_ = interfaceName;
+        interfaceName_ = std::move(interfaceName);
 
         return *this;
     }
@@ -309,9 +311,10 @@ namespace sdbus {
         return *this;
     }
 
+    /*** -------------------- ***/
+    /*** InterfaceFlagsSetter ***/
+    /*** -------------------- ***/
 
-    // Moved into the library to isolate from C++17 dependency
-    /*
     inline InterfaceFlagsSetter::InterfaceFlagsSetter(IObject& object, const std::string& interfaceName)
         : object_(object)
         , interfaceName_(interfaceName)
@@ -325,8 +328,6 @@ namespace sdbus {
         if (std::uncaught_exceptions() != exceptions_)
             return;
 
-        SDBUS_THROW_ERROR_IF(interfaceName_.empty(), "DBus interface not specified when setting its flags", EINVAL);
-
         // setInterfaceFlags() can throw. But as the InterfaceFlagsSetter shall always be used as an unnamed,
         // temporary object, i.e. not as a stack-allocated object, the double-exception situation
         // shall never happen. I.e. it should not happen that this destructor is directly called
@@ -336,10 +337,8 @@ namespace sdbus {
         // Therefore, we can allow setInterfaceFlags() to throw even if we are in the destructor.
         // Bottomline is, to be on the safe side, the caller must take care of catching and reacting
         // to the exception thrown from here if the caller is a destructor itself.
-        object_.setInterfaceFlags( std::move(interfaceName_)
-                                 , std::move(flags_) );
+        object_.setInterfaceFlags(interfaceName_, std::move(flags_));
     }
-    */
 
     inline InterfaceFlagsSetter& InterfaceFlagsSetter::markAsDeprecated()
     {
@@ -369,9 +368,10 @@ namespace sdbus {
         return *this;
     }
 
+    /*** ------------- ***/
+    /*** SignalEmitter ***/
+    /*** ------------- ***/
 
-    // Moved into the library to isolate from C++17 dependency
-    /*
     inline SignalEmitter::SignalEmitter(IObject& object, const std::string& signalName)
         : object_(object)
         , signalName_(signalName)
@@ -385,9 +385,6 @@ namespace sdbus {
         if (std::uncaught_exceptions() != exceptions_)
             return;
 
-        if (!signal_.isValid())
-            throw sdbus::Exception("DBus interface not specified when emitting a DBus signal");
-
         // emitSignal() can throw. But as the SignalEmitter shall always be used as an unnamed,
         // temporary object, i.e. not as a stack-allocated object, the double-exception situation
         // shall never happen. I.e. it should not happen that this destructor is directly called
@@ -399,7 +396,6 @@ namespace sdbus {
         // to the exception thrown from here if the caller is a destructor itself.
         object_.emitSignal(signal_);
     }
-    */
 
     inline SignalEmitter& SignalEmitter::onInterface(const std::string& interfaceName)
     {
@@ -411,15 +407,16 @@ namespace sdbus {
     template <typename... _Args>
     inline void SignalEmitter::withArguments(_Args&&... args)
     {
-        SDBUS_THROW_ERROR_IF(!signal_.isValid(), "DBus interface not specified when emitting a DBus signal", EINVAL);
+        assert(signal_.isValid()); // onInterface() must be placed/called prior to withArguments()
 
         detail::serialize_pack(signal_, std::forward<_Args>(args)...);
     }
 
+    /*** ------------- ***/
+    /*** MethodInvoker ***/
+    /*** ------------- ***/
 
-    // Moved into the library to isolate from C++17 dependency
-    /*
-    inline MethodInvoker::MethodInvoker(IProxy& proxyObject, const std::string& methodName)
+    inline MethodInvoker::MethodInvoker(IProxy& proxy, const std::string& methodName)
         : proxy_(proxy)
         , methodName_(methodName)
         , exceptions_(std::uncaught_exceptions())
@@ -433,9 +430,6 @@ namespace sdbus {
         if (methodCalled_ || std::uncaught_exceptions() != exceptions_)
             return;
 
-        if (!method_.isValid())
-            throw sdbus::Exception("DBus interface not specified when calling a DBus method");
-
         // callMethod() can throw. But as the MethodInvoker shall always be used as an unnamed,
         // temporary object, i.e. not as a stack-allocated object, the double-exception situation
         // shall never happen. I.e. it should not happen that this destructor is directly called
@@ -445,9 +439,8 @@ namespace sdbus {
         // Therefore, we can allow callMethod() to throw even if we are in the destructor.
         // Bottomline is, to be on the safe side, the caller must take care of catching and reacting
         // to the exception thrown from here if the caller is a destructor itself.
-        proxy_.callMethod(method_);
+        proxy_.callMethod(method_, timeout_);
     }
-    */
 
     inline MethodInvoker& MethodInvoker::onInterface(const std::string& interfaceName)
     {
@@ -456,10 +449,24 @@ namespace sdbus {
         return *this;
     }
 
+    inline MethodInvoker& MethodInvoker::withTimeout(uint64_t usec)
+    {
+        timeout_ = usec;
+
+        return *this;
+    }
+
+    template <typename _Rep, typename _Period>
+    inline MethodInvoker& MethodInvoker::withTimeout(const std::chrono::duration<_Rep, _Period>& timeout)
+    {
+        auto microsecs = std::chrono::duration_cast<std::chrono::microseconds>(timeout);
+        return withTimeout(microsecs.count());
+    }
+
     template <typename... _Args>
     inline MethodInvoker& MethodInvoker::withArguments(_Args&&... args)
     {
-        SDBUS_THROW_ERROR_IF(!method_.isValid(), "DBus interface not specified when calling a DBus method", EINVAL);
+        assert(method_.isValid()); // onInterface() must be placed/called prior to this function
 
         detail::serialize_pack(method_, std::forward<_Args>(args)...);
 
@@ -469,9 +476,9 @@ namespace sdbus {
     template <typename... _Args>
     inline void MethodInvoker::storeResultsTo(_Args&... args)
     {
-        SDBUS_THROW_ERROR_IF(!method_.isValid(), "DBus interface not specified when calling a DBus method", EINVAL);
+        assert(method_.isValid()); // onInterface() must be placed/called prior to this function
 
-        auto reply = proxy_.callMethod(method_);
+        auto reply = proxy_.callMethod(method_, timeout_);
         methodCalled_ = true;
 
         detail::deserialize_pack(reply, args...);
@@ -479,11 +486,14 @@ namespace sdbus {
 
     inline void MethodInvoker::dontExpectReply()
     {
-        SDBUS_THROW_ERROR_IF(!method_.isValid(), "DBus interface not specified when calling a DBus method", EINVAL);
+        assert(method_.isValid()); // onInterface() must be placed/called prior to this function
 
         method_.dontExpectReply();
     }
 
+    /*** ------------------ ***/
+    /*** AsyncMethodInvoker ***/
+    /*** ------------------ ***/
 
     inline AsyncMethodInvoker::AsyncMethodInvoker(IProxy& proxy, const std::string& methodName)
         : proxy_(proxy)
@@ -498,10 +508,24 @@ namespace sdbus {
         return *this;
     }
 
+    inline AsyncMethodInvoker& AsyncMethodInvoker::withTimeout(uint64_t usec)
+    {
+        timeout_ = usec;
+
+        return *this;
+    }
+
+    template <typename _Rep, typename _Period>
+    inline AsyncMethodInvoker& AsyncMethodInvoker::withTimeout(const std::chrono::duration<_Rep, _Period>& timeout)
+    {
+        auto microsecs = std::chrono::duration_cast<std::chrono::microseconds>(timeout);
+        return withTimeout(microsecs.count());
+    }
+
     template <typename... _Args>
     inline AsyncMethodInvoker& AsyncMethodInvoker::withArguments(_Args&&... args)
     {
-        SDBUS_THROW_ERROR_IF(!method_.isValid(), "DBus interface not specified when calling a DBus method", EINVAL);
+        assert(method_.isValid()); // onInterface() must be placed/called prior to this function
 
         detail::serialize_pack(method_, std::forward<_Args>(args)...);
 
@@ -511,9 +535,9 @@ namespace sdbus {
     template <typename _Function>
     void AsyncMethodInvoker::uponReplyInvoke(_Function&& callback)
     {
-        SDBUS_THROW_ERROR_IF(!method_.isValid(), "DBus interface not specified when calling a DBus method", EINVAL);
+        assert(method_.isValid()); // onInterface() must be placed/called prior to this function
 
-        proxy_.callMethod(method_, [callback = std::forward<_Function>(callback)](MethodReply& reply, const Error* error)
+        auto asyncReplyHandler = [callback = std::forward<_Function>(callback)](MethodReply& reply, const Error* error)
         {
             // Create a tuple of callback input arguments' types, which will be used
             // as a storage for the argument values deserialized from the message.
@@ -525,9 +549,14 @@ namespace sdbus {
 
             // Invoke callback with input arguments from the tuple.
             sdbus::apply(callback, error, args); // TODO: Use std::apply when switching to full C++17 support
-        });
+        };
+
+        proxy_.callMethod(method_, std::move(asyncReplyHandler), timeout_);
     }
 
+    /*** ---------------- ***/
+    /*** SignalSubscriber ***/
+    /*** ---------------- ***/
 
     inline SignalSubscriber::SignalSubscriber(IProxy& proxy, const std::string& signalName)
         : proxy_(proxy)
@@ -535,9 +564,9 @@ namespace sdbus {
     {
     }
 
-    inline SignalSubscriber& SignalSubscriber::onInterface(const std::string& interfaceName)
+    inline SignalSubscriber& SignalSubscriber::onInterface(std::string interfaceName)
     {
-        interfaceName_ = interfaceName;
+        interfaceName_ = std::move(interfaceName);
 
         return *this;
     }
@@ -545,7 +574,7 @@ namespace sdbus {
     template <typename _Function>
     inline void SignalSubscriber::call(_Function&& callback)
     {
-        SDBUS_THROW_ERROR_IF(interfaceName_.empty(), "DBus interface not specified when subscribing to a signal", EINVAL);
+        assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
 
         proxy_.registerSignalHandler( interfaceName_
                                     , signalName_
@@ -563,6 +592,9 @@ namespace sdbus {
         });
     }
 
+    /*** -------------- ***/
+    /*** PropertyGetter ***/
+    /*** -------------- ***/
 
     inline PropertyGetter::PropertyGetter(IProxy& proxy, const std::string& propertyName)
         : proxy_(proxy)
@@ -581,6 +613,9 @@ namespace sdbus {
         return var;
     }
 
+    /*** -------------- ***/
+    /*** PropertySetter ***/
+    /*** -------------- ***/
 
     inline PropertySetter::PropertySetter(IProxy& proxy, const std::string& propertyName)
         : proxy_(proxy)
@@ -588,9 +623,9 @@ namespace sdbus {
     {
     }
 
-    inline PropertySetter& PropertySetter::onInterface(const std::string& interfaceName)
+    inline PropertySetter& PropertySetter::onInterface(std::string interfaceName)
     {
-        interfaceName_ = interfaceName;
+        interfaceName_ = std::move(interfaceName);
 
         return *this;
     }
@@ -603,7 +638,7 @@ namespace sdbus {
 
     inline void PropertySetter::toValue(const sdbus::Variant& value)
     {
-        SDBUS_THROW_ERROR_IF(interfaceName_.empty(), "DBus interface not specified when setting a property", EINVAL);
+        assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
 
         proxy_
             .callMethod("Set")

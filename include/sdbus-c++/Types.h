@@ -34,6 +34,7 @@
 #include <typeinfo>
 #include <memory>
 #include <tuple>
+#include <unistd.h>
 
 namespace sdbus {
 
@@ -176,25 +177,104 @@ namespace sdbus {
         using std::string::operator=;
     };
 
+    struct adopt_fd_t { explicit adopt_fd_t() = default; };
+#ifdef __cpp_inline_variables
+    inline constexpr adopt_fd_t adopt_fd{};
+#else
+    constexpr adopt_fd_t adopt_fd{};
+#endif
+
     /********************************************//**
      * @struct UnixFd
      *
-     * Representation of Unix file descriptor D-Bus type
+     * UnixFd is a representation of file descriptor D-Bus type that owns
+     * the underlying fd, provides access to it, and closes the fd when
+     * the UnixFd goes out of scope.
+     *
+     * UnixFd can be default constructed (owning invalid fd), or constructed from
+     * an explicitly provided fd by either duplicating or adopting that fd as-is.
      *
      ***********************************************/
-    struct UnixFd
+    class UnixFd
     {
-        int fd_ = -1;
-
+    public:
         UnixFd() = default;
-        UnixFd(int fd)
-            : fd_(fd)
-        {}
 
-        operator int() const
+        explicit UnixFd(int fd)
+            : fd_(::dup(fd))
+        {
+        }
+
+        UnixFd(int fd, adopt_fd_t)
+            : fd_(fd)
+        {
+        }
+
+        UnixFd(const UnixFd& other)
+        {
+            *this = other;
+        }
+
+        UnixFd& operator=(const UnixFd& other)
+        {
+            close();
+            fd_ = ::dup(other.fd_);
+            return *this;
+        }
+
+        UnixFd(UnixFd&& other)
+        {
+            *this = std::move(other);
+        }
+
+        UnixFd& operator=(UnixFd&& other)
+        {
+            close();
+            fd_ = other.fd_;
+            other.fd_ = -1;
+            return *this;
+        }
+
+        ~UnixFd()
+        {
+            close();
+        }
+
+        int get() const
         {
             return fd_;
         }
+
+        void reset(int fd = -1)
+        {
+            *this = UnixFd{fd};
+        }
+
+        void reset(int fd, adopt_fd_t)
+        {
+            *this = UnixFd{fd, adopt_fd};
+        }
+
+        int release()
+        {
+            auto fd = fd_;
+            fd_ = -1;
+            return fd;
+        }
+
+        bool isValid() const
+        {
+            return fd_ >= 0;
+        }
+
+    private:
+        void close()
+        {
+            if (fd_ >= 0)
+                ::close(fd_);
+        }
+
+        int fd_ = -1;
     };
 
 }

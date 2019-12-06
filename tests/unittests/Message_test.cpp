@@ -131,7 +131,7 @@ TEST(AMessage, CanCarryAUnixFd)
 {
     auto msg = sdbus::createPlainMessage();
 
-    sdbus::UnixFd dataWritten = 0;
+    sdbus::UnixFd dataWritten{0};
     msg << dataWritten;
 
     msg.seal();
@@ -139,7 +139,7 @@ TEST(AMessage, CanCarryAUnixFd)
     sdbus::UnixFd dataRead;
     msg >> dataRead;
 
-    ASSERT_THAT(dataRead, Gt(dataWritten));
+    ASSERT_THAT(dataRead.get(), Gt(dataWritten.get()));
 }
 
 TEST(AMessage, CanCarryAVariant)

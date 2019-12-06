@@ -35,39 +35,33 @@
 #include <poll.h>
 #include <sys/eventfd.h>
 
-namespace {
-
-std::vector</*const */char*> to_strv(const std::vector<std::string>& strings)
-{
-    std::vector</*const */char*> strv;
-    for (auto& str : strings)
-        strv.push_back(const_cast<char*>(str.c_str()));
-    strv.push_back(nullptr);
-    return strv;
-}
-
-}
-
 namespace sdbus { namespace internal {
 
-Connection::Connection(Connection::BusType type, std::unique_ptr<ISdBus>&& interface)
+Connection::Connection(std::unique_ptr<ISdBus>&& interface, const BusFactory& busFactory)
     : iface_(std::move(interface))
-    , busType_(type)
+    , bus_(openBus(busFactory))
 {
     assert(iface_ != nullptr);
+}
 
-    auto bus = openBus(busType_);
-    bus_.reset(bus);
+Connection::Connection(std::unique_ptr<ISdBus>&& interface, system_bus_t)
+    : Connection(std::move(interface), [this](sd_bus** bus){ return iface_->sd_bus_open_system(bus); })
+{
+}
 
-    finishHandshake(bus);
+Connection::Connection(std::unique_ptr<ISdBus>&& interface, session_bus_t)
+    : Connection(std::move(interface), [this](sd_bus** bus){ return iface_->sd_bus_open_user(bus); })
+{
+}
 
-    loopExitFd_ = createProcessingLoopExitDescriptor();
+Connection::Connection(std::unique_ptr<ISdBus>&& interface, remote_system_bus_t, const std::string& host)
+    : Connection(std::move(interface), [this, &host](sd_bus** bus){ return iface_->sd_bus_open_system_remote(bus, host.c_str()); })
+{
 }
 
 Connection::~Connection()
 {
     leaveProcessingLoop();
-    closeProcessingLoopExitDescriptor(loopExitFd_);
 }
 
 void Connection::requestName(const std::string& name)
@@ -80,6 +74,14 @@ void Connection::releaseName(const std::string& name)
 {
     auto r = iface_->sd_bus_release_name(bus_.get(), name.c_str());
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to release bus name", -r);
+}
+
+std::string Connection::getUniqueName() const
+{
+    const char* unique = nullptr;
+    auto r = iface_->sd_bus_get_unique_name(bus_.get(), &unique);
+    SDBUS_THROW_ERROR_IF(r < 0 || unique == nullptr, "Failed to get unique bus name", -r);
+    return unique;
 }
 
 void Connection::enterProcessingLoop()
@@ -108,6 +110,15 @@ void Connection::leaveProcessingLoop()
     joinWithProcessingLoop();
 }
 
+sdbus::IConnection::PollData Connection::getProcessLoopPollData() const
+{
+    ISdBus::PollData pollData;
+    auto r = iface_->sd_bus_get_poll_data(bus_.get(), &pollData);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus poll data", -r);
+
+    return {pollData.fd, pollData.events, pollData.timeout_usec};
+}
+
 const ISdBus& Connection::getSdBusInterface() const
 {
     return *iface_.get();
@@ -134,6 +145,24 @@ SlotPtr Connection::addObjectManager(const std::string& objectPath, void* /*dumm
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to add object manager", -r);
 
     return {slot, [this](void *slot){ iface_->sd_bus_slot_unref((sd_bus_slot*)slot); }};
+}
+
+void Connection::setMethodCallTimeout(uint64_t timeout)
+{
+    auto r = iface_->sd_bus_set_method_call_timeout(bus_.get(), timeout);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to set method call timeout", -r);
+}
+
+uint64_t Connection::getMethodCallTimeout() const
+{
+    uint64_t timeout;
+
+    auto r = iface_->sd_bus_get_method_call_timeout(bus_.get(), &timeout);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get method call timeout", -r);
+
+    return timeout;
 }
 
 SlotPtr Connection::addObjectVTable( const std::string& objectPath
@@ -259,21 +288,15 @@ SlotPtr Connection::registerSignalHandler( const std::string& objectPath
     return {slot, [this](void *slot){ iface_->sd_bus_slot_unref((sd_bus_slot*)slot); }};
 }
 
-sd_bus* Connection::openBus(Connection::BusType type)
+Connection::BusPtr Connection::openBus(const BusFactory& busFactory)
 {
     sd_bus* bus{};
-    int r = 0;
-    if (type == BusType::eSystem)
-        r = iface_->sd_bus_open_system(&bus);
-    else if (type == BusType::eSession)
-        r = iface_->sd_bus_open_user(&bus);
-    else
-        assert(false);
-
+    int r = busFactory(&bus);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to open bus", -r);
-    assert(bus != nullptr);
 
-    return bus;
+    BusPtr busPtr{bus, [this](sd_bus* bus){ return iface_->sd_bus_flush_close_unref(bus); }};
+    finishHandshake(busPtr.get());
+    return busPtr;
 }
 
 void Connection::finishHandshake(sd_bus* bus)
@@ -289,33 +312,19 @@ void Connection::finishHandshake(sd_bus* bus)
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to flush bus on opening", -r);
 }
 
-int Connection::createProcessingLoopExitDescriptor()
-{
-    auto r = eventfd(0, EFD_SEMAPHORE | EFD_CLOEXEC | EFD_NONBLOCK);
-
-    SDBUS_THROW_ERROR_IF(r < 0, "Failed to create event object", -errno);
-
-    return r;
-}
-
-void Connection::closeProcessingLoopExitDescriptor(int fd)
-{
-    close(fd);
-}
-
 void Connection::notifyProcessingLoopToExit()
 {
-    assert(loopExitFd_ >= 0);
+    assert(loopExitFd_.fd >= 0);
 
     uint64_t value = 1;
-    auto r = write(loopExitFd_, &value, sizeof(value));
+    auto r = write(loopExitFd_.fd, &value, sizeof(value));
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to notify processing loop", -errno);
 }
 
 void Connection::clearExitNotification()
 {
     uint64_t value{};
-    auto r = read(loopExitFd_, &value, sizeof(value));
+    auto r = read(loopExitFd_.fd, &value, sizeof(value));
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to read from the event descriptor", -errno);
 }
 
@@ -328,11 +337,9 @@ void Connection::joinWithProcessingLoop()
 bool Connection::processPendingRequest()
 {
     auto bus = bus_.get();
-
     assert(bus != nullptr);
 
     int r = iface_->sd_bus_process(bus, nullptr);
-
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to process bus requests", -r);
 
     return r > 0;
@@ -343,17 +350,14 @@ bool Connection::waitForNextRequest()
     auto bus = bus_.get();
 
     assert(bus != nullptr);
-    assert(loopExitFd_ != 0);
+    assert(loopExitFd_.fd != 0);
 
-    ISdBus::PollData sdbusPollData;
-    auto r = iface_->sd_bus_get_poll_data(bus, &sdbusPollData);
-    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus poll data", -r);
-
-    struct pollfd fds[] = {{sdbusPollData.fd, sdbusPollData.events, 0}, {loopExitFd_, POLLIN, 0}};
+    auto sdbusPollData = getProcessLoopPollData();
+    struct pollfd fds[] = {{sdbusPollData.fd, sdbusPollData.events, 0}, {loopExitFd_.fd, POLLIN, 0}};
     auto fdsCount = sizeof(fds)/sizeof(fds[0]);
 
     auto timeout = sdbusPollData.timeout_usec == (uint64_t) -1 ? (uint64_t)-1 : (sdbusPollData.timeout_usec+999)/1000;
-    r = poll(fds, fdsCount, timeout);
+    auto r = poll(fds, fdsCount, timeout);
 
     if (r < 0 && errno == EINTR)
         return true; // Try again
@@ -383,6 +387,27 @@ std::string Connection::composeSignalMatchFilter( const std::string& objectPath
     return filter;
 }
 
+std::vector</*const */char*> Connection::to_strv(const std::vector<std::string>& strings)
+{
+    std::vector</*const */char*> strv;
+    for (auto& str : strings)
+        strv.push_back(const_cast<char*>(str.c_str()));
+    strv.push_back(nullptr);
+    return strv;
+}
+
+Connection::LoopExitEventFd::LoopExitEventFd()
+{
+    fd = eventfd(0, EFD_SEMAPHORE | EFD_CLOEXEC | EFD_NONBLOCK);
+    SDBUS_THROW_ERROR_IF(fd < 0, "Failed to create event object", -errno);
+}
+
+Connection::LoopExitEventFd::~LoopExitEventFd()
+{
+    assert(fd >= 0);
+    close(fd);
+}
+
 }}
 
 namespace sdbus {
@@ -401,8 +426,8 @@ std::unique_ptr<sdbus::IConnection> createSystemBusConnection()
 {
     auto interface = std::make_unique<sdbus::internal::SdBus>();
     assert(interface != nullptr);
-    return std::make_unique<sdbus::internal::Connection>( sdbus::internal::Connection::BusType::eSystem
-                                                        , std::move(interface));
+    constexpr sdbus::internal::Connection::system_bus_t system_bus;
+    return std::make_unique<sdbus::internal::Connection>(std::move(interface), system_bus);
 }
 
 std::unique_ptr<sdbus::IConnection> createSystemBusConnection(const std::string& name)
@@ -416,8 +441,8 @@ std::unique_ptr<sdbus::IConnection> createSessionBusConnection()
 {
     auto interface = std::make_unique<sdbus::internal::SdBus>();
     assert(interface != nullptr);
-    return std::make_unique<sdbus::internal::Connection>( sdbus::internal::Connection::BusType::eSession
-                                                        , std::move(interface));
+    constexpr sdbus::internal::Connection::session_bus_t session_bus;
+    return std::make_unique<sdbus::internal::Connection>(std::move(interface), session_bus);
 }
 
 std::unique_ptr<sdbus::IConnection> createSessionBusConnection(const std::string& name)
@@ -425,6 +450,14 @@ std::unique_ptr<sdbus::IConnection> createSessionBusConnection(const std::string
     auto conn = createSessionBusConnection();
     conn->requestName(name);
     return conn;
+}
+
+std::unique_ptr<sdbus::IConnection> createRemoteSystemBusConnection(const std::string& host)
+{
+    auto interface = std::make_unique<sdbus::internal::SdBus>();
+    assert(interface != nullptr);
+    constexpr sdbus::internal::Connection::remote_system_bus_t remote_system_bus;
+    return std::make_unique<sdbus::internal::Connection>(std::move(interface), remote_system_bus, host);
 }
 
 }

@@ -150,6 +150,8 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes 
 
         bool dontExpectReply{false};
         bool async{false};
+        std::string timeoutValue;
+
         Nodes annotations = (*method)["annotation"];
         for (const auto &annotation : annotations)
         {
@@ -157,12 +159,20 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes 
                 dontExpectReply = true;
             else if (annotation->get("name") == "org.freedesktop.DBus.Method.Async" && (annotation->get("value") == "client" || annotation->get("value") == "clientserver"))
                 async = true;
+            if (annotation->get("name") == "org.freedesktop.DBus.Method.Timeout")
+                timeoutValue = annotation->get("value");
         }
         if (dontExpectReply && outArgs.size() > 0)
         {
             std::cerr << "Function: " << name << ": ";
             std::cerr << "Option 'org.freedesktop.DBus.Method.NoReply' not allowed for methods with 'out' variables! Option ignored..." << std::endl;
             dontExpectReply = false;
+        }
+        if (!timeoutValue.empty() && dontExpectReply)
+        {
+            std::cerr << "Function: " << name << ": ";
+            std::cerr << "Option 'org.freedesktop.DBus.Method.Timeout' not allowed for 'NoReply' methods! Option ignored..." << std::endl;
+            timeoutValue.clear();
         }
 
         auto retType = outArgsToType(outArgs);
@@ -174,6 +184,11 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes 
         definitionSS << tab << (async ? "void" : retType) << " " << name << "(" << inArgTypeStr << ")" << endl
                      << tab << "{" << endl;
 
+        if (!timeoutValue.empty())
+        {
+            definitionSS << tab << tab << "using namespace std::chrono_literals;" << endl;
+        }
+
         if (outArgs.size() > 0 && !async)
         {
             definitionSS << tab << tab << retType << " result;" << endl;
@@ -181,6 +196,11 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes 
 
         definitionSS << tab << tab << "proxy_.callMethod" << (async ? "Async" : "") << "(\"" << name << "\")"
                                                                                                         ".onInterface(INTERFACE_NAME)";
+
+        if (!timeoutValue.empty())
+        {
+            definitionSS << ".withTimeout(" << timeoutValue << "us)";
+        }
 
         if (inArgs.size() > 0)
         {

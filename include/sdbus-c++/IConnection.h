@@ -27,9 +27,10 @@
 #ifndef SDBUS_CXX_ICONNECTION_H_
 #define SDBUS_CXX_ICONNECTION_H_
 
-//#include <cstdint>
 #include <string>
 #include <memory>
+#include <chrono>
+#include <cstdint>
 
 namespace sdbus {
 
@@ -46,6 +47,13 @@ namespace sdbus {
     class IConnection
     {
     public:
+        struct PollData
+        {
+            int fd;
+            short int events;
+            uint64_t timeout_usec;
+        };
+
         virtual ~IConnection() = default;
 
         /*!
@@ -65,6 +73,13 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         virtual void releaseName(const std::string& name) = 0;
+
+        /*!
+         * @brief Retrieve the unique name of a connection. E.g. ":1.xx"
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual std::string getUniqueName() const = 0;
 
         /*!
          * @brief Enters the D-Bus processing loop
@@ -103,7 +118,80 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         virtual void addObjectManager(const std::string& objectPath) = 0;
+
+        /*!
+         * @brief Returns parameters you can pass to poll
+         *
+         * To integrate sdbus with your app's own custom event handling system
+         * (without the requirement of an extra thread), you can use this
+         * method to query which file descriptors, poll events and timeouts you
+         * should add to your app's poll call in your main event loop. If these
+         * file descriptors signal, then you should call processPendingRequest
+         * to process the event. This means that all of sdbus's callbacks will
+         * arrive on your app's main event thread (opposed to on a thread created
+         * by sdbus-c++). If you are unsure what this all means then use
+         * enterProcessingLoop() or enterProcessingLoopAsync() instead.
+         *
+         * To integrate sdbus-c++ into a gtk app, pass the file descriptor returned
+         * by this method to g_main_context_add_poll.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual PollData getProcessLoopPollData() const = 0;
+
+        /*!
+         * @brief Process a pending request
+         *
+         * Processes a single dbus event. All of sdbus-c++'s callbacks will be called
+         * from within this method. This method should ONLY be used in conjuction
+         * with getProcessLoopPollData(). enterProcessingLoop() and
+         * enterProcessingLoopAsync() will call this method for you, so there is no
+         * need to call it when using these. If you are unsure what this all means then
+         * don't use this method.
+         *
+         * @returns true if an event was processed
+         * @throws sdbus::Error in case of failure
+         */
+        virtual bool processPendingRequest() = 0;
+
+        /*!
+         * @brief Sets general method call timeout
+         *
+         * @param[in] timeout Timeout value in microseconds
+         *
+         * General method call timeout is used for all method calls upon this connection.
+         * Method call-specific timeout overrides this general setting.
+         *
+         * Supported by libsystemd>=v240.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual void setMethodCallTimeout(uint64_t timeout) = 0;
+
+        /*!
+         * @copydoc IConnection::setMethodCallTimeout(uint64_t)
+         */
+        template <typename _Rep, typename _Period>
+        void setMethodCallTimeout(const std::chrono::duration<_Rep, _Period>& timeout);
+
+        /*!
+         * @brief Gets general method call timeout
+         *
+         * @return Timeout value in microseconds
+         *
+         * Supported by libsystemd>=v240.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual uint64_t getMethodCallTimeout() const = 0;
     };
+
+    template <typename _Rep, typename _Period>
+    inline void IConnection::setMethodCallTimeout(const std::chrono::duration<_Rep, _Period>& timeout)
+    {
+        auto microsecs = std::chrono::duration_cast<std::chrono::microseconds>(timeout);
+        return setMethodCallTimeout(microsecs.count());
+    }
 
     /*!
      * @brief Creates/opens D-Bus system connection
@@ -162,6 +250,15 @@ namespace sdbus {
      */
     std::unique_ptr<sdbus::IConnection> createSessionBusConnection(const std::string& name);
 
+    /*!
+     * @brief Creates/opens D-Bus system connection on a remote host using ssh
+     *
+     * @param[in] host Name of the host to connect
+     * @return Connection instance
+     *
+     * @throws sdbus::Error in case of failure
+     */
+    std::unique_ptr<sdbus::IConnection> createRemoteSystemBusConnection(const std::string& host);
 }
 
 #endif /* SDBUS_CXX_ICONNECTION_H_ */

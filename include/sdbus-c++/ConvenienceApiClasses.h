@@ -32,6 +32,8 @@
 #include <sdbus-c++/Flags.h>
 #include <string>
 #include <type_traits>
+#include <chrono>
+#include <cstdint>
 
 // Forward declarations
 namespace sdbus {
@@ -51,7 +53,7 @@ namespace sdbus {
         MethodRegistrator& operator=(MethodRegistrator&& other) = default;
         ~MethodRegistrator() noexcept(false);
 
-        MethodRegistrator& onInterface(const std::string& interfaceName);
+        MethodRegistrator& onInterface(std::string interfaceName);
         template <typename _Function>
         std::enable_if_t<!is_async_method_v<_Function>, MethodRegistrator&> implementedAs(_Function&& callback);
         template <typename _Function>
@@ -100,7 +102,7 @@ namespace sdbus {
         PropertyRegistrator& operator=(PropertyRegistrator&& other) = default;
         ~PropertyRegistrator() noexcept(false);
 
-        PropertyRegistrator& onInterface(const std::string& interfaceName);
+        PropertyRegistrator& onInterface(std::string interfaceName);
         template <typename _Function> PropertyRegistrator& withGetter(_Function&& callback);
         template <typename _Function> PropertyRegistrator& withSetter(_Function&& callback);
         PropertyRegistrator& markAsDeprecated();
@@ -164,6 +166,9 @@ namespace sdbus {
         ~MethodInvoker() noexcept(false);
 
         MethodInvoker& onInterface(const std::string& interfaceName);
+        MethodInvoker& withTimeout(uint64_t usec);
+        template <typename _Rep, typename _Period>
+        MethodInvoker& withTimeout(const std::chrono::duration<_Rep, _Period>& timeout);
         template <typename... _Args> MethodInvoker& withArguments(_Args&&... args);
         template <typename... _Args> void storeResultsTo(_Args&... args);
 
@@ -172,6 +177,7 @@ namespace sdbus {
     private:
         IProxy& proxy_;
         const std::string& methodName_;
+        uint64_t timeout_{};
         MethodCall method_;
         int exceptions_{}; // Number of active exceptions when MethodInvoker is constructed
         bool methodCalled_{};
@@ -182,12 +188,16 @@ namespace sdbus {
     public:
         AsyncMethodInvoker(IProxy& proxy, const std::string& methodName);
         AsyncMethodInvoker& onInterface(const std::string& interfaceName);
+        AsyncMethodInvoker& withTimeout(uint64_t usec);
+        template <typename _Rep, typename _Period>
+        AsyncMethodInvoker& withTimeout(const std::chrono::duration<_Rep, _Period>& timeout);
         template <typename... _Args> AsyncMethodInvoker& withArguments(_Args&&... args);
         template <typename _Function> void uponReplyInvoke(_Function&& callback);
 
     private:
         IProxy& proxy_;
         const std::string& methodName_;
+        uint64_t timeout_{};
         AsyncMethodCall method_;
     };
 
@@ -195,12 +205,12 @@ namespace sdbus {
     {
     public:
         SignalSubscriber(IProxy& proxy, const std::string& signalName);
-        SignalSubscriber& onInterface(const std::string& interfaceName);
+        SignalSubscriber& onInterface(std::string interfaceName);
         template <typename _Function> void call(_Function&& callback);
 
     private:
         IProxy& proxy_;
-        std::string signalName_;
+        const std::string& signalName_;
         std::string interfaceName_;
     };
 
@@ -212,14 +222,14 @@ namespace sdbus {
 
     private:
         IProxy& proxy_;
-        std::string propertyName_;
+        const std::string& propertyName_;
     };
 
     class PropertySetter
     {
     public:
         PropertySetter(IProxy& proxy, const std::string& propertyName);
-        PropertySetter& onInterface(const std::string& interfaceName);
+        PropertySetter& onInterface(std::string interfaceName);
         template <typename _Value> void toValue(const _Value& value);
         void toValue(const sdbus::Variant& value);
 

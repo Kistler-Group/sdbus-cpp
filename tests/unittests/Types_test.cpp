@@ -29,8 +29,10 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <cstdint>
+#include <sys/eventfd.h>
 
 using ::testing::Eq;
+using ::testing::Gt;
 using namespace std::string_literals;
 
 namespace
@@ -242,9 +244,103 @@ TEST(ASignature, CanBeConstructedFromStdString)
     ASSERT_THAT(sdbus::Signature{aSignature}, Eq(aSignature));
 }
 
-TEST(AUnixFd, CanBeConstructedFromInt)
+TEST(AUnixFd, DuplicatesAndOwnsFdUponStandardConstruction)
 {
-    int fd{2};
+    auto fd = ::eventfd(0, EFD_SEMAPHORE | EFD_NONBLOCK);
 
-    ASSERT_THAT((int)sdbus::UnixFd{fd}, Eq(fd));
+    EXPECT_THAT(sdbus::UnixFd{fd}.get(), Gt(fd));
+    EXPECT_THAT(::close(fd), Eq(0));
+}
+
+TEST(AUnixFd, AdoptsAndOwnsFdAsIsUponAdoptionConstruction)
+{
+    auto fd = ::eventfd(0, EFD_SEMAPHORE | EFD_NONBLOCK);
+
+    EXPECT_THAT(sdbus::UnixFd(fd, sdbus::adopt_fd).get(), Eq(fd));
+    EXPECT_THAT(::close(fd), Eq(-1));
+}
+
+TEST(AUnixFd, DuplicatesFdUponCopyConstruction)
+{
+    sdbus::UnixFd unixFd(::eventfd(0, EFD_SEMAPHORE | EFD_NONBLOCK));
+
+    sdbus::UnixFd unixFdCopy{unixFd};
+
+    EXPECT_THAT(unixFdCopy.get(), Gt(unixFd.get()));
+}
+
+TEST(AUnixFd, TakesOverFdUponMoveConstruction)
+{
+    auto fd = ::eventfd(0, EFD_SEMAPHORE | EFD_NONBLOCK);
+    sdbus::UnixFd unixFd(fd, sdbus::adopt_fd);
+
+    sdbus::UnixFd unixFdNew{std::move(unixFd)};
+
+    EXPECT_FALSE(unixFd.isValid());
+    EXPECT_THAT(unixFdNew.get(), Eq(fd));
+}
+
+TEST(AUnixFd, ClosesFdProperlyUponDestruction)
+{
+    int fd, fdCopy;
+    {
+        fd = ::eventfd(0, EFD_SEMAPHORE | EFD_NONBLOCK);
+        sdbus::UnixFd unixFd(fd, sdbus::adopt_fd);
+        auto unixFdNew = std::move(unixFd);
+        auto unixFdCopy = unixFdNew;
+        fdCopy = unixFdCopy.get();
+    }
+
+    EXPECT_THAT(::close(fd), Eq(-1));
+    EXPECT_THAT(::close(fdCopy), Eq(-1));
+}
+
+TEST(AUnixFd, DoesNotCloseReleasedFd)
+{
+    auto fd = ::eventfd(0, EFD_SEMAPHORE | EFD_NONBLOCK);
+    int fdReleased;
+    {
+        sdbus::UnixFd unixFd(fd, sdbus::adopt_fd);
+        fdReleased = unixFd.release();
+        EXPECT_FALSE(unixFd.isValid());
+    }
+
+    EXPECT_THAT(fd, Eq(fdReleased));
+    EXPECT_THAT(::close(fd), Eq(0));
+}
+
+TEST(AUnixFd, ClosesFdOnReset)
+{
+    auto fd = ::eventfd(0, EFD_SEMAPHORE | EFD_NONBLOCK);
+    sdbus::UnixFd unixFd(fd, sdbus::adopt_fd);
+
+    unixFd.reset();
+
+    EXPECT_FALSE(unixFd.isValid());
+    EXPECT_THAT(::close(fd), Eq(-1));
+}
+
+TEST(AUnixFd, DuplicatesNewFdAndClosesOriginalFdOnReset)
+{
+    auto fd = ::eventfd(0, EFD_SEMAPHORE | EFD_NONBLOCK);
+    sdbus::UnixFd unixFd(fd, sdbus::adopt_fd);
+    auto newFd = ::eventfd(0, EFD_SEMAPHORE | EFD_NONBLOCK);
+
+    unixFd.reset(newFd);
+
+    EXPECT_THAT(unixFd.get(), Gt(newFd));
+    EXPECT_THAT(::close(fd), Eq(-1));
+    EXPECT_THAT(::close(newFd), Eq(0));
+}
+
+TEST(AUnixFd, TakesOverNewFdAndClosesOriginalFdOnAdoptingReset)
+{
+    auto fd = ::eventfd(0, EFD_SEMAPHORE | EFD_NONBLOCK);
+    sdbus::UnixFd unixFd(fd, sdbus::adopt_fd);
+    auto newFd = ::eventfd(0, EFD_SEMAPHORE | EFD_NONBLOCK);
+
+    unixFd.reset(newFd, sdbus::adopt_fd);
+
+    EXPECT_THAT(unixFd.get(), Eq(newFd));
+    EXPECT_THAT(::close(fd), Eq(-1));
 }

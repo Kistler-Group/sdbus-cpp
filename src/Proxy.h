@@ -52,8 +52,8 @@ namespace internal {
 
         MethodCall createMethodCall(const std::string& interfaceName, const std::string& methodName) override;
         AsyncMethodCall createAsyncMethodCall(const std::string& interfaceName, const std::string& methodName) override;
-        MethodReply callMethod(const MethodCall& message) override;
-        void callMethod(const AsyncMethodCall& message, async_reply_handler asyncReplyCallback) override;
+        MethodReply callMethod(const MethodCall& message, uint64_t timeout) override;
+        void callMethod(const AsyncMethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout) override;
 
         void registerSignalHandler( const std::string& interfaceName
                                   , const std::string& signalName

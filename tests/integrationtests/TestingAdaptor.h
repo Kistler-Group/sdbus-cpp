@@ -160,7 +160,7 @@ protected:
     }
     sdbus::UnixFd getUnixFd() const
     {
-        return UNIX_FD_VALUE;
+        return sdbus::UnixFd{UNIX_FD_VALUE};
     }
 
     ComplexType getComplex() const

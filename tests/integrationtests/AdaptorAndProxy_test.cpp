@@ -43,6 +43,8 @@
 #include <fstream>
 #include <future>
 
+#include <unistd.h>
+
 using ::testing::Eq;
 using ::testing::DoubleEq;
 using ::testing::Gt;
@@ -213,7 +215,7 @@ TEST_F(SdbusTestObject, CallsMethodWithObjectPathSuccesfully)
 TEST_F(SdbusTestObject, CallsMethodWithUnixFdSuccesfully)
 {
     auto resUnixFd = m_proxy->getUnixFd();
-    ASSERT_THAT(resUnixFd, Gt(UNIX_FD_VALUE));
+    ASSERT_THAT(resUnixFd.get(), Gt(UNIX_FD_VALUE));
 }
 
 TEST_F(SdbusTestObject, CallsMethodWithComplexTypeSuccesfully)
@@ -228,6 +230,30 @@ TEST_F(SdbusTestObject, CallsMultiplyMethodWithNoReplyFlag)
 
     ASSERT_TRUE(waitUntil(m_adaptor->m_wasMultiplyCalled));
     ASSERT_THAT(m_adaptor->m_multiplyResult, Eq(INT64_VALUE * DOUBLE_VALUE));
+}
+
+TEST_F(SdbusTestObject, CallsMethodWithCustomTimeoutSuccessfully)
+{
+    auto res = m_proxy->doOperationWith500msTimeout(20); // The operation will take 20ms, but the timeout is 500ms, so we are fine
+    ASSERT_THAT(res, Eq(20));
+}
+
+TEST_F(SdbusTestObject, ThrowsTimeoutErrorWhenMethodTimesOut)
+{
+    try
+    {
+        m_proxy->doOperationWith500msTimeout(1000); // The operation will take 1s, but the timeout is 500ms, so we should time out
+        FAIL() << "Expected sdbus::Error exception";
+    }
+    catch (const sdbus::Error& e)
+    {
+        ASSERT_THAT(e.getName(), Eq("org.freedesktop.DBus.Error.Timeout"));
+        ASSERT_THAT(e.getMessage(), Eq("Connection timed out"));
+    }
+    catch(...)
+    {
+        FAIL() << "Expected sdbus::Error exception";
+    }
 }
 
 TEST_F(SdbusTestObject, CallsMethodThatThrowsError)
@@ -366,6 +392,20 @@ TEST_F(SdbusTestObject, FailsCallingMethodOnNonexistentObject)
     ASSERT_THROW(proxy.getInt(), sdbus::Error);
 }
 
+#if LIBSYSTEMD_VERSION>=240
+TEST_F(SdbusTestObject, CanSetGeneralMethodTimeoutWithLibsystemdVersionGreaterThan239)
+{
+    s_connection->setMethodCallTimeout(5000000);
+    ASSERT_THAT(s_connection->getMethodCallTimeout(), Eq(5000000));
+}
+#else
+TEST_F(SdbusTestObject, CannotSetGeneralMethodTimeoutWithLibsystemdVersionLessThan240)
+{
+    ASSERT_THROW(s_connection->setMethodCallTimeout(5000000), sdbus::Error);
+    ASSERT_THROW(s_connection->getMethodCallTimeout(), sdbus::Error);
+}
+#endif
+
 // Signals
 
 TEST_F(SdbusTestObject, EmitsSimpleSignalSuccesfully)
@@ -431,6 +471,13 @@ TEST_F(SdbusTestObject, PingsViaPeerInterface)
 
 TEST_F(SdbusTestObject, AnswersMachineUuidViaPeerInterface)
 {
+    // If /etc/machine-id does not exist in your system (which is very likely because you have
+    // a non-systemd Linux), org.freedesktop.DBus.Peer.GetMachineId() will not work. To solve
+    // this, you can create /etc/machine-id yourself as symlink to /var/lib/dbus/machine-id,
+    // and then org.freedesktop.DBus.Peer.GetMachineId() will start to work.
+    if (::access("/etc/machine-id", F_OK) == -1)
+        GTEST_SKIP() << "/etc/machine-id file does not exist, GetMachineId() will not work";
+
     ASSERT_NO_THROW(m_proxy->GetMachineId());
 }
 
@@ -468,7 +515,7 @@ TEST_F(SdbusTestObject, EmitsPropertyChangedSignalForSelectedProperties)
     std::atomic<bool> signalReceived{false};
     m_proxy->m_onPropertiesChangedHandler = [&signalReceived]( const std::string& interfaceName
                                                              , const std::map<std::string, sdbus::Variant>& changedProperties
-                                                             , const std::vector<std::string>& invalidatedProperties )
+                                                             , const std::vector<std::string>& /*invalidatedProperties*/ )
     {
         EXPECT_THAT(interfaceName, Eq(INTERFACE_NAME));
         EXPECT_THAT(changedProperties, SizeIs(1));
