@@ -128,3 +128,6 @@ v0.7.4
 v0.7.5
 - [[Breaking ABI change]] No more hiding from C++17: Move API code containing C++17 uncaught_exceptions calls from within library to public API
 - Add a method to retrieve the unique name of a connection
+
+v0.7.6
+- Fixes of clang-8 errors and warnings
