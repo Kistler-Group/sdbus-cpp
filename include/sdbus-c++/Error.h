@@ -27,7 +27,9 @@
 #ifndef SDBUS_CXX_ERROR_H_
 #define SDBUS_CXX_ERROR_H_
 
+#include <errno.h>
 #include <stdexcept>
+#include <string>
 
 namespace sdbus {
 

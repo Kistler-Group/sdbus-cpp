@@ -67,7 +67,7 @@ TEST(AVariant, CanBeConstructedFromASimpleValue)
 TEST(AVariant, CanBeConstructedFromAComplexValue)
 {
     using ComplexType = std::map<uint64_t, std::vector<sdbus::Struct<std::string, double>>>;
-    ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{sdbus::make_struct("hello", ANY_DOUBLE), sdbus::make_struct("world", ANY_DOUBLE)}} };
+    ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{sdbus::make_struct("hello"s, ANY_DOUBLE), sdbus::make_struct("world"s, ANY_DOUBLE)}} };
 
     ASSERT_NO_THROW(sdbus::Variant(value));
 }
@@ -103,7 +103,7 @@ TEST(ASimpleVariant, ReturnsTheSimpleValueWhenAsked)
 TEST(AComplexVariant, ReturnsTheComplexValueWhenAsked)
 {
     using ComplexType = std::map<uint64_t, std::vector<sdbus::Struct<std::string, double>>>;
-    ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{sdbus::make_struct("hello", ANY_DOUBLE), sdbus::make_struct("world", ANY_DOUBLE)}} };
+    ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{sdbus::make_struct("hello"s, ANY_DOUBLE), sdbus::make_struct("world"s, ANY_DOUBLE)}} };
 
     sdbus::Variant variant(value);
 
@@ -123,7 +123,7 @@ TEST(AVariant, HasConceptuallyNonmutableGetMethodWhichCanBeCalledXTimes)
 TEST(AVariant, ReturnsTrueWhenAskedIfItContainsTheTypeItReallyContains)
 {
     using ComplexType = std::map<uint64_t, std::vector<sdbus::Struct<std::string, double>>>;
-    ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{sdbus::make_struct("hello", ANY_DOUBLE), sdbus::make_struct("world", ANY_DOUBLE)}} };
+    ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{sdbus::make_struct("hello"s, ANY_DOUBLE), sdbus::make_struct("world"s, ANY_DOUBLE)}} };
 
     sdbus::Variant variant(value);
 
@@ -172,7 +172,7 @@ TEST(AnEmptyVariant, ThrowsWhenBeingSerializedToAMessage)
 TEST(ANonEmptyVariant, SerializesToAndDeserializesFromAMessageSuccessfully)
 {
     using ComplexType = std::map<uint64_t, std::vector<sdbus::Struct<std::string, double>>>;
-    ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{sdbus::make_struct("hello", ANY_DOUBLE), sdbus::make_struct("world", ANY_DOUBLE)}} };
+    ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{sdbus::make_struct("hello"s, ANY_DOUBLE), sdbus::make_struct("world"s, ANY_DOUBLE)}} };
     sdbus::Variant variant(value);
 
     auto msg = sdbus::createPlainMessage();
@@ -187,7 +187,7 @@ TEST(ANonEmptyVariant, SerializesToAndDeserializesFromAMessageSuccessfully)
 TEST(CopiesOfVariant, SerializeToAndDeserializeFromMessageSuccessfully)
 {
     using ComplexType = std::map<uint64_t, std::vector<sdbus::Struct<std::string, double>>>;
-    ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{sdbus::make_struct("hello", ANY_DOUBLE), sdbus::make_struct("world", ANY_DOUBLE)}} };
+    ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{sdbus::make_struct("hello"s, ANY_DOUBLE), sdbus::make_struct("world"s, ANY_DOUBLE)}} };
     sdbus::Variant variant(value);
     auto variantCopy1{variant};
     auto variantCopy2 = variant;

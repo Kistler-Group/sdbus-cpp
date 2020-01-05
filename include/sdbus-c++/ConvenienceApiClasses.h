@@ -50,7 +50,6 @@ namespace sdbus {
     public:
         MethodRegistrator(IObject& object, const std::string& methodName);
         MethodRegistrator(MethodRegistrator&& other) = default;
-        MethodRegistrator& operator=(MethodRegistrator&& other) = default;
         ~MethodRegistrator() noexcept(false);
 
         MethodRegistrator& onInterface(std::string interfaceName);
@@ -78,7 +77,6 @@ namespace sdbus {
     public:
         SignalRegistrator(IObject& object, const std::string& signalName);
         SignalRegistrator(SignalRegistrator&& other) = default;
-        SignalRegistrator& operator=(SignalRegistrator&& other) = default;
         ~SignalRegistrator() noexcept(false);
 
         SignalRegistrator& onInterface(std::string interfaceName);
@@ -99,7 +97,6 @@ namespace sdbus {
     public:
         PropertyRegistrator(IObject& object, const std::string& propertyName);
         PropertyRegistrator(PropertyRegistrator&& other) = default;
-        PropertyRegistrator& operator=(PropertyRegistrator&& other) = default;
         ~PropertyRegistrator() noexcept(false);
 
         PropertyRegistrator& onInterface(std::string interfaceName);
@@ -125,7 +122,6 @@ namespace sdbus {
     public:
         InterfaceFlagsSetter(IObject& object, const std::string& interfaceName);
         InterfaceFlagsSetter(InterfaceFlagsSetter&& other) = default;
-        InterfaceFlagsSetter& operator=(InterfaceFlagsSetter&& other) = default;
         ~InterfaceFlagsSetter() noexcept(false);
 
         InterfaceFlagsSetter& markAsDeprecated();
@@ -145,7 +141,6 @@ namespace sdbus {
     public:
         SignalEmitter(IObject& object, const std::string& signalName);
         SignalEmitter(SignalEmitter&& other) = default;
-        SignalEmitter& operator=(SignalEmitter&& other) = default;
         ~SignalEmitter() noexcept(false);
         SignalEmitter& onInterface(const std::string& interfaceName);
         template <typename... _Args> void withArguments(_Args&&... args);
@@ -162,7 +157,6 @@ namespace sdbus {
     public:
         MethodInvoker(IProxy& proxy, const std::string& methodName);
         MethodInvoker(MethodInvoker&& other) = default;
-        MethodInvoker& operator=(MethodInvoker&& other) = default;
         ~MethodInvoker() noexcept(false);
 
         MethodInvoker& onInterface(const std::string& interfaceName);
