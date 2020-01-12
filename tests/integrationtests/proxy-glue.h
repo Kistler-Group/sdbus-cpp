@@ -56,6 +56,11 @@ protected:
     virtual void onDoOperationReply(uint32_t returnValue, const sdbus::Error* error) = 0;
 
 public:
+    void emitTwoSimpleSignals()
+    {
+        object_.callMethod("emitTwoSimpleSignals").onInterface(INTERFACE_NAME);
+    }
+
     void noArgNoReturn()
     {
         object_.callMethod("noArgNoReturn").onInterface(INTERFACE_NAME);
@@ -169,6 +174,19 @@ public:
                .uponReplyInvoke([this](const sdbus::Error* error)
                                 {
                                     this->onDoOperationReply(0, error);
+                                });
+    }
+
+    void doOperationClientSideAsyncWith500msTimeout(uint32_t param)
+    {
+        using namespace std::chrono_literals;
+        object_.callMethodAsync("doOperation")
+               .onInterface(INTERFACE_NAME)
+               .withTimeout(500000us)
+               .withArguments(param)
+               .uponReplyInvoke([this](const sdbus::Error* error, uint32_t returnValue)
+                                {
+                                    this->onDoOperationReply(returnValue, error);
                                 });
     }
 

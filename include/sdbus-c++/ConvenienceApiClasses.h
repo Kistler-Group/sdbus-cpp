@@ -192,7 +192,7 @@ namespace sdbus {
         IProxy& proxy_;
         const std::string& methodName_;
         uint64_t timeout_{};
-        AsyncMethodCall method_;
+        MethodCall method_;
     };
 
     class SignalSubscriber

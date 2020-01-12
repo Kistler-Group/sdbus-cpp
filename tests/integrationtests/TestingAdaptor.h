@@ -197,6 +197,13 @@ protected:
         throw sdbus::createError(1, "A test error occurred");
     }
 
+
+    void emitTwoSimpleSignals() override
+    {
+        emitSimpleSignal();
+        emitSignalWithMap({});
+    }
+
     std::string state()
     {
         return m_state;

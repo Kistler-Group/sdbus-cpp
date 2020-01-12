@@ -503,7 +503,7 @@ namespace sdbus {
 
     inline AsyncMethodInvoker& AsyncMethodInvoker::onInterface(const std::string& interfaceName)
     {
-        method_ = proxy_.createAsyncMethodCall(interfaceName, methodName_);
+        method_ = proxy_.createMethodCall(interfaceName, methodName_);
 
         return *this;
     }

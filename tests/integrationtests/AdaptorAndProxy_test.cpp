@@ -48,6 +48,7 @@
 using ::testing::Eq;
 using ::testing::DoubleEq;
 using ::testing::Gt;
+using ::testing::AnyOf;
 using ::testing::ElementsAre;
 using ::testing::SizeIs;
 using namespace std::chrono_literals;
@@ -106,6 +107,7 @@ public:
 };
 
 std::unique_ptr<sdbus::IConnection> AdaptorAndProxyFixture::s_connection = sdbus::createSystemBusConnection();
+
 }
 
 /*-------------------------------------*/
@@ -247,8 +249,38 @@ TEST_F(SdbusTestObject, ThrowsTimeoutErrorWhenMethodTimesOut)
     }
     catch (const sdbus::Error& e)
     {
-        ASSERT_THAT(e.getName(), Eq("org.freedesktop.DBus.Error.Timeout"));
-        ASSERT_THAT(e.getMessage(), Eq("Connection timed out"));
+        ASSERT_THAT(e.getName(), AnyOf("org.freedesktop.DBus.Error.Timeout", "org.freedesktop.DBus.Error.NoReply"));
+        ASSERT_THAT(e.getMessage(), AnyOf("Connection timed out", "Method call timed out"));
+    }
+    catch(...)
+    {
+        FAIL() << "Expected sdbus::Error exception";
+    }
+}
+
+TEST_F(SdbusTestObject, ThrowsTimeoutErrorWhenClientSideAsyncMethodTimesOut)
+{
+    try
+    {
+        std::promise<uint32_t> promise;
+        auto future = promise.get_future();
+        m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t res, const sdbus::Error* err)
+        {
+            if (err == nullptr)
+                promise.set_value(res);
+            else
+                promise.set_exception(std::make_exception_ptr(*err));
+        });
+
+        m_proxy->doOperationClientSideAsyncWith500msTimeout(1000); // The operation will take 1s, but the timeout is 500ms, so we should time out
+        future.get(), Eq(100);
+
+        FAIL() << "Expected sdbus::Error exception";
+    }
+    catch (const sdbus::Error& e)
+    {
+        ASSERT_THAT(e.getName(), AnyOf("org.freedesktop.DBus.Error.Timeout", "org.freedesktop.DBus.Error.NoReply"));
+        ASSERT_THAT(e.getMessage(), AnyOf("Connection timed out", "Method call timed out"));
     }
     catch(...)
     {
@@ -390,6 +422,14 @@ TEST_F(SdbusTestObject, FailsCallingMethodOnNonexistentObject)
 {
     TestingProxy proxy(INTERFACE_NAME, "/sdbuscpp/path/that/does/not/exist");
     ASSERT_THROW(proxy.getInt(), sdbus::Error);
+}
+
+TEST_F(SdbusTestObject, ReceivesTwoSignalsWhileMakingMethodCall)
+{
+    m_proxy->emitTwoSimpleSignals();
+
+    ASSERT_TRUE(waitUntil(m_proxy->m_gotSimpleSignal));
+    ASSERT_TRUE(waitUntil(m_proxy->m_gotSignalWithMap));
 }
 
 #if LIBSYSTEMD_VERSION>=240

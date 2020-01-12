@@ -36,7 +36,6 @@
 // Forward declaration
 namespace sdbus {
     class MethodCall;
-    class AsyncMethodCall;
     class MethodReply;
     class Signal;
     namespace internal {
@@ -91,6 +90,8 @@ namespace internal {
 
         virtual void enterProcessingLoopAsync() = 0;
         virtual void leaveProcessingLoop() = 0;
+
+        virtual MethodReply tryCallMethodSynchronously(const MethodCall& message, uint64_t timeout) = 0;
     };
 
 }

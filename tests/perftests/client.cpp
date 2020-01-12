@@ -37,6 +37,8 @@
 
 using namespace std::chrono_literals;
 
+uint64_t totalDuration = 0;
+
 class PerftestProxy : public sdbus::ProxyInterfaces<org::sdbuscpp::perftests_proxy>
 {
 public:
@@ -66,7 +68,9 @@ protected:
         else if (counter == m_msgCount)
         {
             auto stopTime = std::chrono::steady_clock::now();
-            std::cout << "Received " << m_msgCount << " signals in: " << std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count() << " ms" << std::endl;
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
+            totalDuration += duration;
+            std::cout << "Received " << m_msgCount << " signals in: " << duration << " ms" << std::endl;
             counter = 0;
         }
     }
@@ -114,6 +118,9 @@ int main(int /*argc*/, char */*argv*/[])
         std::this_thread::sleep_for(1000ms);
     }
 
+    std::cout << "AVERAGE: " << (totalDuration/repetitions) << " ms" << std::endl;
+    totalDuration = 0;
+
     msgSize = 1000;
     std::cout << std::endl << "** Measuring signals of size " << msgSize << " bytes (" << repetitions << " repetitions)..." << std::endl << std::endl;
     client.m_msgCount = msgCount; client.m_msgSize = msgSize;
@@ -123,6 +130,9 @@ int main(int /*argc*/, char */*argv*/[])
 
         std::this_thread::sleep_for(1000ms);
     }
+
+    std::cout << "AVERAGE: " << (totalDuration/repetitions) << " ms" << std::endl;
+    totalDuration = 0;
 
     msgSize = 20;
     std::cout << std::endl << "** Measuring method calls of size " << msgSize << " bytes (" << repetitions << " repetitions)..." << std::endl << std::endl;
@@ -140,10 +150,15 @@ int main(int /*argc*/, char */*argv*/[])
             assert(result.size() == msgSize);
         }
         auto stopTime = std::chrono::steady_clock::now();
-        std::cout << "Called " << msgCount << " methods in: " << std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count() << " ms" << std::endl;
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
+        totalDuration += duration;
+        std::cout << "Called " << msgCount << " methods in: " << duration << " ms" << std::endl;
 
         std::this_thread::sleep_for(1000ms);
     }
+
+    std::cout << "AVERAGE: " << (totalDuration/repetitions) << " ms" << std::endl;
+    totalDuration = 0;
 
     msgSize = 1000;
     std::cout << std::endl << "** Measuring method calls of size " << msgSize << " bytes (" << repetitions << " repetitions)..." << std::endl << std::endl;
@@ -161,10 +176,15 @@ int main(int /*argc*/, char */*argv*/[])
             assert(result.size() == msgSize);
         }
         auto stopTime = std::chrono::steady_clock::now();
-        std::cout << "Called " << msgCount << " methods in: " << std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count() << " ms" << std::endl;
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
+        totalDuration += duration;
+        std::cout << "Called " << msgCount << " methods in: " << duration << " ms" << std::endl;
 
         std::this_thread::sleep_for(1000ms);
     }
+
+    std::cout << "AVERAGE: " << (totalDuration/repetitions) << " ms" << std::endl;
+    totalDuration = 0;
 
     return 0;
 }

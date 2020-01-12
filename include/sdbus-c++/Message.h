@@ -165,25 +165,10 @@ namespace sdbus {
         mutable bool ok_{true};
     };
 
+    struct dont_request_slot_t { explicit dont_request_slot_t() = default; };
+    inline constexpr dont_request_slot_t dont_request_slot{};
+
     class MethodCall : public Message
-    {
-        using Message::Message;
-        friend Factory;
-
-    public:
-        MethodCall() = default;
-        MethodReply send(uint64_t timeout = 0) const;
-        MethodReply createReply() const;
-        MethodReply createErrorReply(const sdbus::Error& error) const;
-        void dontExpectReply();
-        bool doesntExpectReply() const;
-
-    private:
-        MethodReply sendWithReply(uint64_t timeout) const;
-        MethodReply sendWithNoReply() const;
-    };
-
-    class AsyncMethodCall : public Message
     {
         using Message::Message;
         friend Factory;
@@ -191,9 +176,21 @@ namespace sdbus {
     public:
         using Slot = std::unique_ptr<void, std::function<void(void*)>>;
 
-        AsyncMethodCall() = default;
-        explicit AsyncMethodCall(MethodCall&& call) noexcept;
-        Slot send(void* callback, void* userData, uint64_t timeout = 0) const;
+        MethodCall() = default;
+
+        MethodReply send(uint64_t timeout) const;
+        void send(void* callback, void* userData, uint64_t timeout, dont_request_slot_t) const;
+        [[nodiscard]] Slot send(void* callback, void* userData, uint64_t timeout) const;
+
+        MethodReply createReply() const;
+        MethodReply createErrorReply(const sdbus::Error& error) const;
+
+        void dontExpectReply();
+        bool doesntExpectReply() const;
+
+    private:
+        MethodReply sendWithReply(uint64_t timeout = 0) const;
+        MethodReply sendWithNoReply() const;
     };
 
     class MethodReply : public Message

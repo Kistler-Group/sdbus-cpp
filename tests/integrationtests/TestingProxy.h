@@ -108,6 +108,7 @@ protected:
 
 //private:
 public: // for tests
+    int m_SimpleSignals = 0;
     std::atomic<bool> m_gotSimpleSignal{false};
     std::atomic<bool> m_gotSignalWithMap{false};
     std::map<int32_t, std::string> m_mapFromSignal;

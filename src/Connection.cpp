@@ -86,6 +86,10 @@ std::string Connection::getUniqueName() const
 
 void Connection::enterProcessingLoop()
 {
+    loopThreadId_ = std::this_thread::get_id();
+
+    std::lock_guard guard(loopMutex_);
+
     while (true)
     {
         auto processed = processPendingRequest();
@@ -96,6 +100,8 @@ void Connection::enterProcessingLoop()
         if (!success)
             break; // Exit processing loop
     }
+
+    loopThreadId_ = std::thread::id{};
 }
 
 void Connection::enterProcessingLoopAsync()
@@ -286,6 +292,35 @@ SlotPtr Connection::registerSignalHandler( const std::string& objectPath
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to register signal handler", -r);
 
     return {slot, [this](void *slot){ iface_->sd_bus_slot_unref((sd_bus_slot*)slot); }};
+}
+
+MethodReply Connection::tryCallMethodSynchronously(const MethodCall& message, uint64_t timeout)
+{
+    auto loopThreadId = loopThreadId_.load(std::memory_order_relaxed);
+
+    // Is the loop not yet on? => Go make synchronous call
+    while (loopThreadId == std::thread::id{})
+    {
+        // Did the loop begin in the meantime? Or try_lock() failed spuriously?
+        if (!loopMutex_.try_lock())
+        {
+            loopThreadId = loopThreadId_.load(std::memory_order_relaxed);
+            continue;
+        }
+
+        // Synchronous D-Bus call
+        std::lock_guard guard(loopMutex_, std::adopt_lock);
+        return message.send(timeout);
+    }
+
+    // Is the loop on and we are in the same thread? => Go for synchronous call
+    if (loopThreadId == std::this_thread::get_id())
+    {
+        assert(!loopMutex_.try_lock());
+        return message.send(timeout);
+    }
+
+    return {};
 }
 
 Connection::BusPtr Connection::openBus(const BusFactory& busFactory)

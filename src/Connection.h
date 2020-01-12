@@ -37,6 +37,8 @@
 #include <thread>
 #include <string>
 #include <vector>
+#include <atomic>
+#include <mutex>
 
 namespace sdbus { namespace internal {
 
@@ -103,6 +105,8 @@ namespace sdbus { namespace internal {
                                      , sd_bus_message_handler_t callback
                                      , void* userData ) override;
 
+        MethodReply tryCallMethodSynchronously(const MethodCall& message, uint64_t timeout) override;
+
     private:
         using BusFactory = std::function<int(sd_bus**)>;
         using BusPtr = std::unique_ptr<sd_bus, std::function<sd_bus*(sd_bus*)>>;
@@ -130,6 +134,8 @@ namespace sdbus { namespace internal {
         std::unique_ptr<ISdBus> iface_;
         BusPtr bus_;
         std::thread asyncLoopThread_;
+        std::atomic<std::thread::id> loopThreadId_;
+        std::mutex loopMutex_;
         LoopExitEventFd loopExitFd_;
     };
 

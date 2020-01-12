@@ -36,7 +36,6 @@
 // Forward declarations
 namespace sdbus {
     class MethodCall;
-    class AsyncMethodCall;
     class MethodReply;
     class IConnection;
 }
@@ -76,21 +75,6 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         virtual MethodCall createMethodCall(const std::string& interfaceName, const std::string& methodName) = 0;
-
-        /*!
-         * @brief Creates an asynchronous method call message
-         *
-         * @param[in] interfaceName Name of an interface that provides a given method
-         * @param[in] methodName Name of the method
-         * @return A method call message
-         *
-         * Serialize method arguments into the returned message and invoke the method by passing
-         * the message with serialized arguments to the @c callMethod function.
-         * Alternatively, use higher-level API @c callMethodAsync(const std::string& methodName) defined below.
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        virtual AsyncMethodCall createAsyncMethodCall(const std::string& interfaceName, const std::string& methodName) = 0;
 
         /*!
          * @brief Calls method on the proxied D-Bus object
@@ -133,13 +117,13 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void callMethod(const AsyncMethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout = 0) = 0;
+        virtual void callMethod(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout = 0) = 0;
 
         /*!
-         * @copydoc IProxy::callMethod(const AsyncMethodCall&,async_reply_handler,uint64_t)
+         * @copydoc IProxy::callMethod(const MethodCall&,async_reply_handler,uint64_t)
          */
         template <typename _Rep, typename _Period>
-        void callMethod(const AsyncMethodCall& message, async_reply_handler asyncReplyCallback, const std::chrono::duration<_Rep, _Period>& timeout);
+        void callMethod(const MethodCall& message, async_reply_handler asyncReplyCallback, const std::chrono::duration<_Rep, _Period>& timeout);
 
         /*!
          * @brief Registers a handler for the desired signal emitted by the proxied D-Bus object
@@ -289,7 +273,7 @@ namespace sdbus {
     }
 
     template <typename _Rep, typename _Period>
-    inline void IProxy::callMethod(const AsyncMethodCall& message, async_reply_handler asyncReplyCallback, const std::chrono::duration<_Rep, _Period>& timeout)
+    inline void IProxy::callMethod(const MethodCall& message, async_reply_handler asyncReplyCallback, const std::chrono::duration<_Rep, _Period>& timeout)
     {
         auto microsecs = std::chrono::duration_cast<std::chrono::microseconds>(timeout);
         callMethod(message, std::move(asyncReplyCallback), microsecs.count());
