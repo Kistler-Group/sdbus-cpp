@@ -130,6 +130,7 @@ namespace sdbus { namespace internal {
         std::unique_ptr<ISdBus> iface_;
         BusPtr bus_;
         std::thread asyncLoopThread_;
+        std::thread asyncLoopThread2_;
         LoopExitEventFd loopExitFd_;
     };
 

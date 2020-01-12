@@ -35,6 +35,10 @@
 #include <poll.h>
 #include <sys/eventfd.h>
 
+#include <unistd.h>
+#include <sys/syscall.h>
+#define gettid() syscall(SYS_gettid)
+
 namespace sdbus { namespace internal {
 
 Connection::Connection(std::unique_ptr<ISdBus>&& interface, const BusFactory& busFactory)
@@ -47,6 +51,7 @@ Connection::Connection(std::unique_ptr<ISdBus>&& interface, const BusFactory& bu
 Connection::Connection(std::unique_ptr<ISdBus>&& interface, system_bus_t)
     : Connection(std::move(interface), [this](sd_bus** bus){ return iface_->sd_bus_open_system(bus); })
 {
+printf("Here: %p\n", this);
 }
 
 Connection::Connection(std::unique_ptr<ISdBus>&& interface, session_bus_t)
@@ -102,6 +107,40 @@ void Connection::enterProcessingLoopAsync()
 {
     if (!asyncLoopThread_.joinable())
         asyncLoopThread_ = std::thread([this](){ enterProcessingLoop(); });
+//    if (!asyncLoopThread2_.joinable())
+//        asyncLoopThread2_ = std::thread([this](){
+//            enterProcessingLoop();
+////            while (true)
+////            {
+////                auto bus = bus_.get();
+
+////                assert(bus != nullptr);
+////                assert(loopExitFd_.fd != 0);
+
+////                auto sdbusPollData = getProcessLoopPollData();
+////                struct pollfd fds[] = {{sdbusPollData.fd, sdbusPollData.events, 0}, {loopExitFd_.fd, POLLIN, 0}};
+////                auto fdsCount = sizeof(fds)/sizeof(fds[0]);
+
+////                printf("Thread 2: Going to poll %p\n", this);
+
+////                auto timeout = sdbusPollData.timeout_usec == (uint64_t) -1 ? (uint64_t)-1 : (sdbusPollData.timeout_usec+999)/1000;
+////                auto r = poll(fds, fdsCount, timeout);
+
+////                printf("Thread 2: Poll woken up %p\n", this);
+
+////                if (r < 0 && errno == EINTR)
+////                    continue;
+
+////                SDBUS_THROW_ERROR_IF(r < 0, "Failed to wait on the bus", -errno);
+
+////                if (fds[1].revents & POLLIN)
+////                {
+////                    clearExitNotification();
+////                    printf("Thread 2: Exiting %p\n", this);
+////                    break;
+////                }
+////            }
+//        });
 }
 
 void Connection::leaveProcessingLoop()
@@ -332,6 +371,8 @@ void Connection::joinWithProcessingLoop()
 {
     if (asyncLoopThread_.joinable())
         asyncLoopThread_.join();
+//    if (asyncLoopThread2_.joinable())
+//        asyncLoopThread2_.join();
 }
 
 bool Connection::processPendingRequest()
@@ -356,8 +397,13 @@ bool Connection::waitForNextRequest()
     struct pollfd fds[] = {{sdbusPollData.fd, sdbusPollData.events, 0}, {loopExitFd_.fd, POLLIN, 0}};
     auto fdsCount = sizeof(fds)/sizeof(fds[0]);
 
+    printf("Thread %d: Going to poll %p\n", gettid(), this);
+
     auto timeout = sdbusPollData.timeout_usec == (uint64_t) -1 ? (uint64_t)-1 : (sdbusPollData.timeout_usec+999)/1000;
     auto r = poll(fds, fdsCount, timeout);
+    //auto r = ppoll(fds, fdsCount, nullptr, nullptr);
+
+    printf("Thread %d: Poll woken up %p\n", gettid(), this);
 
     if (r < 0 && errno == EINTR)
         return true; // Try again
@@ -367,6 +413,7 @@ bool Connection::waitForNextRequest()
     if (fds[1].revents & POLLIN)
     {
         clearExitNotification();
+        printf("Thread %d: Exiting %p\n", gettid(), this);
         return false;
     }
 

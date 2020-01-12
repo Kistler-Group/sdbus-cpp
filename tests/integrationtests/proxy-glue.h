@@ -56,6 +56,14 @@ protected:
     virtual void onDoOperationReply(uint32_t returnValue, const sdbus::Error* error) = 0;
 
 public:
+    int32_t doSignalEmission()
+    {
+        int32_t result;
+        object_.callMethod("doSignalEmission").onInterface(INTERFACE_NAME).storeResultsTo(result);
+        //object_.callMethodAsync("doSignalEmission").onInterface(INTERFACE_NAME).uponReplyInvoke([this](const sdbus::Error* error, int32_t returnValue){ printf("Async reply handler\n"); });
+        return result;
+    }
+
     void noArgNoReturn()
     {
         object_.callMethod("noArgNoReturn").onInterface(INTERFACE_NAME);

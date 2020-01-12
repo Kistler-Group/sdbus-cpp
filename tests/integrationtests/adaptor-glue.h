@@ -59,6 +59,8 @@ protected:
     {
         object_.setInterfaceFlags(INTERFACE_NAME).markAsDeprecated().withPropertyUpdateBehavior(sdbus::Flags::EMITS_NO_SIGNAL);
 
+        object_.registerMethod("doSignalEmission").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->doSignalEmission(); });
+
         object_.registerMethod("noArgNoReturn").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->noArgNoReturn(); });
         object_.registerMethod("getInt").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->getInt(); });
         object_.registerMethod("getTuple").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->getTuple(); });
@@ -150,6 +152,7 @@ private:
 
 protected:
 
+    virtual int32_t doSignalEmission() = 0;
     virtual void noArgNoReturn() const  = 0;
     virtual int32_t getInt() const = 0;
     virtual std::tuple<uint32_t, std::string> getTuple() const = 0;
