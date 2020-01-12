@@ -167,12 +167,16 @@ The following diagram illustrates the major entities in sdbus-c++.
 
 ### Thread safety in sdbus-c++
 
-sdbus-c++ is thread-aware by design. But, in general, it's not thread-safe. At least not in all places. There are situations where sdbus-c++ provides and guarantees API-level thread safety by design. It is safe to do these operations from multiple threads at the same time:
+sdbus-c++ is completely thread-aware by design. Though sdbus-c++ is not thread-safe in general, there are situations where sdbus-c++ provides and guarantees API-level thread safety by design. It is safe to do these operations (operations within the bullet points, not across them) from multiple threads at the same time:
 
-  * Making and destroying `Object`s and `Proxy`s, even on a shared connection that is already running an event loop. Under *making* here is meant a complete atomic sequence of construction, registration of method/signal/property callbacks and export of the `Object`/`Proxy` so it is ready to issue/receive messages. This sequence must be done in one thread.
+  * Making or destroying distinct `Object`/`Proxy` instances simultaneously (even on a shared connection that is running an event loop already, see below). Under *making* here is meant a complete sequence of construction, registration of method/signal/property callbacks and export of the `Object`/`Proxy` so it is ready to issue/receive messages. This sequence must be completely done within the context of one thread.
   * Creating and sending asynchronous method replies on an `Object` instance.
   * Creating and emitting signals on an `Object` instance.
   * Creating and sending method calls (both synchronously and asynchronously) on an `Proxy` instance. (But it's generally better that our threads use their own exclusive instances of proxy, to minimize shared state and contention.)
+
+sdbus-c++ is designed such that all the above operations are thread-safe also on a connection that is running an event loop (usually in a separate thread) at that time. It's an internal thread safety. For example, a signal arrives and is processed by sdbus-c++ even loop at an appropriate `Proxy` instance, while the user is going to destroy that instance in their application thread. The user cannot explicitly control these situations (or they could, but that would be very limiting and cubersome on the API level).
+
+However, other combinations, that the user invokes explicitly from within more threads are NOT thread-safe in sdbus-c++ by design, and the user should make sure by their design that these cases never occur. For example, destroying an `Object` instance in one thread while emitting a signal on it in another thread is not thread-safe. In this specific case, the user should make sure in their application that all threads stop working with a specific instance before a thread proceeds with deleting an instance.
 
 Multiple layers of sdbus-c++ API
 -------------------------------

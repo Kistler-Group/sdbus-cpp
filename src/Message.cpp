@@ -652,6 +652,14 @@ MethodReply MethodCall::sendWithReply(uint64_t timeout) const
     return Factory::create<MethodReply>(sdbusReply, sdbus_, adopt_message);
 }
 
+// TODO: Consider merging MethodCall with AsyncMethodCall  (provide owning boolean parameter for no Slot),
+// return sendWithReply and sendWithNoReply back as private methods.
+void MethodCall::sendWithAsyncReply(void* callback, void* userData, uint64_t timeout) const
+{
+    auto r = sdbus_->sd_bus_call_async(nullptr, nullptr, (sd_bus_message*)msg_, (sd_bus_message_handler_t)callback, userData, timeout);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method with asynchronous reply", -r);
+}
+
 MethodReply MethodCall::sendWithNoReply() const
 {
     auto r = sdbus_->sd_bus_send(nullptr, (sd_bus_message*)msg_, nullptr);

@@ -172,15 +172,17 @@ namespace sdbus {
 
     public:
         MethodCall() = default;
+
         MethodReply send(uint64_t timeout = 0) const;
+        MethodReply sendWithReply(uint64_t timeout = 0) const;
+        void sendWithAsyncReply(void* callback, void* userData, uint64_t timeout = 0) const;
+        MethodReply sendWithNoReply() const;
+
         MethodReply createReply() const;
         MethodReply createErrorReply(const sdbus::Error& error) const;
+
         void dontExpectReply();
         bool doesntExpectReply() const;
-
-    private:
-        MethodReply sendWithReply(uint64_t timeout) const;
-        MethodReply sendWithNoReply() const;
     };
 
     class AsyncMethodCall : public Message

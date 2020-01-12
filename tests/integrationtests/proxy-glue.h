@@ -56,12 +56,9 @@ protected:
     virtual void onDoOperationReply(uint32_t returnValue, const sdbus::Error* error) = 0;
 
 public:
-    int32_t doSignalEmission()
+    void emitTwoSimpleSignals()
     {
-        int32_t result;
-        object_.callMethod("doSignalEmission").onInterface(INTERFACE_NAME).storeResultsTo(result);
-        //object_.callMethodAsync("doSignalEmission").onInterface(INTERFACE_NAME).uponReplyInvoke([this](const sdbus::Error* error, int32_t returnValue){ printf("Async reply handler\n"); });
-        return result;
+        object_.callMethod("emitTwoSimpleSignals").onInterface(INTERFACE_NAME);
     }
 
     void noArgNoReturn()
@@ -177,6 +174,19 @@ public:
                .uponReplyInvoke([this](const sdbus::Error* error)
                                 {
                                     this->onDoOperationReply(0, error);
+                                });
+    }
+
+    void doOperationClientSideAsyncWith500msTimeout(uint32_t param)
+    {
+        using namespace std::chrono_literals;
+        object_.callMethodAsync("doOperation")
+               .onInterface(INTERFACE_NAME)
+               .withTimeout(500000us)
+               .withArguments(param)
+               .uponReplyInvoke([this](const sdbus::Error* error, uint32_t returnValue)
+                                {
+                                    this->onDoOperationReply(returnValue, error);
                                 });
     }
 

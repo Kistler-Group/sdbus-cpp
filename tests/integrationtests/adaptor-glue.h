@@ -59,8 +59,6 @@ protected:
     {
         object_.setInterfaceFlags(INTERFACE_NAME).markAsDeprecated().withPropertyUpdateBehavior(sdbus::Flags::EMITS_NO_SIGNAL);
 
-        object_.registerMethod("doSignalEmission").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->doSignalEmission(); });
-
         object_.registerMethod("noArgNoReturn").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->noArgNoReturn(); });
         object_.registerMethod("getInt").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->getInt(); });
         object_.registerMethod("getTuple").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->getTuple(); });
@@ -108,6 +106,8 @@ protected:
 
         object_.registerMethod("doPrivilegedStuff").onInterface(INTERFACE_NAME).implementedAs([](){}).markAsPrivileged();
 
+        object_.registerMethod("emitTwoSimpleSignals").onInterface(INTERFACE_NAME).implementedAs([this](){ this->emitTwoSimpleSignals(); });
+
         // registration of signals is optional, it is useful because of introspection
         object_.registerSignal("simpleSignal").onInterface(INTERFACE_NAME).markAsDeprecated();
         object_.registerSignal("signalWithMap").onInterface(INTERFACE_NAME).withParameters<std::map<int32_t, std::string>>();
@@ -152,7 +152,6 @@ private:
 
 protected:
 
-    virtual int32_t doSignalEmission() = 0;
     virtual void noArgNoReturn() const  = 0;
     virtual int32_t getInt() const = 0;
     virtual std::tuple<uint32_t, std::string> getTuple() const = 0;
@@ -171,6 +170,7 @@ protected:
     virtual sdbus::UnixFd getUnixFd() const  = 0;
     virtual ComplexType getComplex() const = 0;
     virtual void throwError() const = 0;
+    virtual void emitTwoSimpleSignals() = 0;
 
     virtual std::string state() = 0;
     virtual uint32_t action() = 0;

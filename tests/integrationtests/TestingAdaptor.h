@@ -50,20 +50,6 @@ public:
 
 protected:
 
-    int32_t doSignalEmission() override
-    {
-        static int32_t counter = 0;
-        emitSimpleSignal();
-        printf("First simple signal thrown\n");
-        counter++;
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        //emitSimpleSignal();
-        //printf("Second simple signal thrown\n");
-        counter++;
-
-        return counter;
-    }
-
     void noArgNoReturn() const
     {
     }
@@ -209,6 +195,13 @@ protected:
     {
         m_wasThrowErrorCalled = true;
         throw sdbus::createError(1, "A test error occurred");
+    }
+
+
+    void emitTwoSimpleSignals() override
+    {
+        emitSimpleSignal();
+        emitSignalWithMap({});
     }
 
     std::string state()

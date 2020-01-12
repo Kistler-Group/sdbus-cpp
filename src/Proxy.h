@@ -62,9 +62,11 @@ namespace internal {
         void unregister() override;
 
     private:
+        MethodReply callMethodWithAsyncReplyBlocking(const MethodCall& message, uint64_t timeout);
         void registerSignalHandlers(sdbus::internal::IConnection& connection);
         static int sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
-        static int sdbus_signal_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
+        static int sdbus_quasi_sync_reply_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
+        static int sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
 
     private:
         std::unique_ptr< sdbus::internal::IConnection
