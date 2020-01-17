@@ -33,7 +33,7 @@
 
 namespace sdbus { namespace internal {
 
-class SdBus final : public ISdBus
+class SdBus /*final*/ : public ISdBus
 {
 public:
     virtual sd_bus_message* sd_bus_message_ref(sd_bus_message *m) override;

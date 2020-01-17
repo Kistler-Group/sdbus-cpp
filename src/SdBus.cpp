@@ -27,8 +27,57 @@
 
 #include "SdBus.h"
 #include <sdbus-c++/Error.h>
+#include "ScopeGuard.h"
 
 namespace sdbus { namespace internal {
+
+sd_bus_message* createPlainMessage()
+{
+    int r;
+
+    // All references to the bus (like created messages) must not outlive this thread (because messages refer to sdbus
+    // which is thread-local, and because BusReferenceKeeper below destroys the bus at thread exit).
+    // A more flexible solution would be that the caller would already provide an ISdBus reference as a parameter.
+    // Variant is one of the callers. This means Variant could no more be created in a stand-alone way, but
+    // through a factory of some existing facility (Object, Proxy, Connection...).
+    // TODO: Consider this alternative of creating Variant, it may live next to the current one. This function would
+    // get IConnection* parameter and IConnection would provide createPlainMessage factory (just like it already
+    // provides e.g. createMethodCall). If this parameter were null, the current mechanism would be used.
+
+    thread_local internal::SdBus sdbus;
+
+    sd_bus* bus{};
+    SCOPE_EXIT{ sd_bus_unref(bus); };
+    r = sd_bus_default_system(&bus);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get default system bus", -r);
+
+    thread_local struct BusReferenceKeeper
+    {
+        explicit BusReferenceKeeper(sd_bus* bus) : bus_(sd_bus_ref(bus)) { sd_bus_flush(bus_); }
+        ~BusReferenceKeeper() { sd_bus_flush_close_unref(bus_); }
+        sd_bus* bus_{};
+    } busReferenceKeeper{bus};
+
+    // Shelved here as handy thing for potential future tracing purposes:
+    //#include <unistd.h>
+    //#include <sys/syscall.h>
+    //#define gettid() syscall(SYS_gettid)
+    //printf("createPlainMessage: sd_bus*=[%p], n_ref=[%d], TID=[%d]\n", bus, *(unsigned*)bus, gettid());
+
+    sd_bus_message* sdbusMsg{};
+    r = sd_bus_message_new(bus, &sdbusMsg, _SD_BUS_MESSAGE_TYPE_INVALID);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to create a new message", -r);
+
+    r = sd_bus_message_append_basic(sdbusMsg, SD_BUS_TYPE_STRING, "This is item.c_str()");
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a string value", -r);
+
+    r = ::sd_bus_message_seal(sdbusMsg, 1, 0);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to seal the reply", -r);
+
+    return sdbusMsg;
+}
+
+static auto g_sdbusMessage = createPlainMessage();
 
 sd_bus_message* SdBus::sd_bus_message_ref(sd_bus_message *m)
 {
@@ -55,14 +104,38 @@ int SdBus::sd_bus_call(sd_bus *bus, sd_bus_message *m, uint64_t usec, sd_bus_err
 {
     std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
 
-    return ::sd_bus_call(bus, m, usec, ret_error, reply);
+    //return ::sd_bus_call(bus, m, usec, ret_error, reply);
+    ::sd_bus_message_ref(g_sdbusMessage);
+
+    *reply = g_sdbusMessage;
+
+    return 1;
 }
 
 int SdBus::sd_bus_call_async(sd_bus *bus, sd_bus_slot **slot, sd_bus_message *m, sd_bus_message_handler_t callback, void *userdata, uint64_t usec)
 {
     std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
 
-    return ::sd_bus_call_async(bus, slot, m, callback, userdata, usec);
+    //return ::sd_bus_call_async(bus, slot, m, callback, userdata, usec);
+
+//    auto r = ::sd_bus_message_seal(m, 1, 0);
+//    SDBUS_THROW_ERROR_IF(r < 0, "Failed to seal the message", -r);
+
+//    sd_bus_message* sdbusReply{};
+//    r = this->sd_bus_message_new_method_return(m, &sdbusReply);
+//    SDBUS_THROW_ERROR_IF(r < 0, "Failed to create method reply", -r);
+
+//    r = sd_bus_message_append_basic(sdbusReply, SD_BUS_TYPE_STRING, "This is item.c_str()");
+//    SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a string value", -r);
+
+//    r = ::sd_bus_message_seal(sdbusReply, 1, 0);
+//    SDBUS_THROW_ERROR_IF(r < 0, "Failed to seal the reply", -r);
+
+    ::sd_bus_message_ref(g_sdbusMessage);
+
+    callback(g_sdbusMessage, userdata, nullptr);
+
+    return 1;
 }
 
 int SdBus::sd_bus_message_new_method_call(sd_bus *bus, sd_bus_message **m, const char *destination, const char *path, const char *interface, const char *member)

@@ -91,9 +91,8 @@ MethodReply Proxy::callMethod(const MethodCall& message, uint64_t timeout)
 
     SDBUS_THROW_ERROR_IF(!message.isValid(), "Invalid method call message provided", EINVAL);
 
-    return message.send(timeout);
+    //return message.send(timeout);
 
-    /*
     // If we don't need to wait for any reply, we can send the message now irrespective of the context
     if (message.doesntExpectReply())
         return message.sendWithNoReply();
@@ -106,7 +105,6 @@ MethodReply Proxy::callMethod(const MethodCall& message, uint64_t timeout)
 
     // Otherwise we send the call asynchronously and do blocking wait for the reply from the event loop thread
     return callMethodWithAsyncReplyBlocking(message, timeout);
-    */
 }
 
 void Proxy::callMethod(const AsyncMethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout)
@@ -123,31 +121,63 @@ void Proxy::callMethod(const AsyncMethodCall& message, async_reply_handler async
 
 MethodReply Proxy::callMethodWithAsyncReplyBlocking(const MethodCall& message, uint64_t timeout)
 {
-    // TODO: use thread_local data exchange facility (OPTIMIZE)
-    std::promise<MethodReply> result;
-    auto future = result.get_future();
+    // VARIANT 1: THREAD LOCAL COND VAR
+    message.sendWithAsyncReply((void*)&Proxy::sdbus_sync_reply_handler, this, timeout);
 
-    auto callback = (void*)&Proxy::sdbus_quasi_sync_reply_handler;
-    auto data = std::make_pair(std::ref(result), std::ref(connection_->getSdBusInterface()));
-    message.sendWithAsyncReply(callback, &data, timeout);
+    auto& syncCallReplyData = getSyncCallReplyData();
+    std::unique_lock<std::mutex> lock(syncCallReplyData.mutex);
+    syncCallReplyData.cond.wait(lock, [&syncCallReplyData](){ return syncCallReplyData.arrived; });
 
-    //printf("Thread %d: Proxy going to wait on future\n", gettid());
-    MethodReply r = future.get();
-    //printf("Thread %d: Proxy woken up on future\n", gettid());
-    return r;
+    syncCallReplyData.arrived = false;
+    if (syncCallReplyData.error)
+        throw *syncCallReplyData.error;
 
-    //    // TODO: Switch to thread_local once we have re-usable thread_local data exchange facility
-    //    /*thread_local*/ async_reply_handler asyncReplyCallback = [&result](MethodReply& reply, const Error* error)
-    //    {
-    //        if (error == nullptr)
-    //            result.set_value(std::move(reply));
-    //        else
-    //            result.set_exception(std::make_exception_ptr(error));
-    //    };
+    return std::move(syncCallReplyData.reply);
 
-    //    auto callback = (void*)&Proxy::sdbus_async_reply_handler;
-    //    AsyncCalls::CallData callData{*this, std::move(asyncReplyCallback), {}};
-    //    message.sendWithAsyncReply((void*)&Proxy::sdbus_async_reply_handler, &data, timeout);
+    // VARIANT 2: USING SPECIAL APPROACH, A. PROMISE/FUTURE
+//    std::promise<MethodReply> result;
+//    auto future = result.get_future();
+
+//    auto callback = (void*)&Proxy::sdbus_sync_reply_handler;
+//    auto data = std::make_pair(std::ref(result), std::ref(connection_->getSdBusInterface()));
+//    message.sendWithAsyncReply(callback, &data, timeout);
+
+//    //printf("Thread %d: Proxy going to wait on future\n", gettid());
+//    MethodReply r = future.get();
+//    //printf("Thread %d: Proxy woken up on future\n", gettid());
+//    return r;
+
+    // VARIANT 3: USING CLASSIC ASYNC APPROACH
+    // TODO: Try with thread local std::function
+//    thread_local async_reply_handler asyncReplyCallback = [](MethodReply& reply, const Error* error)
+//    {
+//        auto& syncCallReplyData = getSyncCallReplyData();
+
+//        std::unique_lock<std::mutex> lock(syncCallReplyData.mutex);
+
+//        syncCallReplyData.error = nullptr;
+//        if (error == nullptr)
+//            syncCallReplyData.reply = std::move(reply);
+//        else
+//            syncCallReplyData.error = std::make_unique<Error>(*error);
+//        syncCallReplyData.arrived = true;
+
+//        lock.unlock();
+//        syncCallReplyData.cond.notify_one();
+//    };
+
+//    AsyncCalls::CallData callData{*this, /*std::move(*/asyncReplyCallback/*)*/, {}};
+//    message.sendWithAsyncReply((void*)&Proxy::sdbus_async_reply_handler, &callData, timeout);
+
+//    auto& syncCallReplyData = getSyncCallReplyData();
+//    std::unique_lock<std::mutex> lock(syncCallReplyData.mutex);
+//    syncCallReplyData.cond.wait(lock, [&syncCallReplyData](){ return syncCallReplyData.arrived; });
+
+//    syncCallReplyData.arrived = false;
+//    if (syncCallReplyData.error)
+//        throw *syncCallReplyData.error;
+
+//    return std::move(syncCallReplyData.reply);
 }
 
 void Proxy::registerSignalHandler( const std::string& interfaceName
@@ -196,6 +226,12 @@ void Proxy::unregister()
     interfaces_.clear();
 }
 
+Proxy::SyncCallReplyData& Proxy::getSyncCallReplyData()
+{
+    thread_local SyncCallReplyData syncCallReplyData;
+    return syncCallReplyData;
+}
+
 // Handler for D-Bus method replies of fully asynchronous D-Bus method calls
 int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error */*retError*/)
 {
@@ -204,7 +240,7 @@ int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userDat
     assert(asyncCallData->callback);
     auto& proxy = asyncCallData->proxy;
 
-    SCOPE_EXIT{ proxy.pendingAsyncCalls_.removeCall(asyncCallData->slot.get()); };
+    SCOPE_EXIT{ if (asyncCallData->slot) proxy.pendingAsyncCalls_.removeCall(asyncCallData->slot.get()); };
 
     auto message = Message::Factory::create<MethodReply>(sdbusMessage, &proxy.connection_->getSdBusInterface());
 
@@ -223,28 +259,53 @@ int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userDat
 }
 
 // Handler for D-Bus method replies of synchronous D-Bus method calls done out of event loop thread context
-int Proxy::sdbus_quasi_sync_reply_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error */*retError*/)
+int Proxy::sdbus_sync_reply_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error */*retError*/)
 {
     //printf("Thread %d: Proxy::sdbus_quasi_sync_reply_handler 1\n", gettid());
 
+    // VARIANT 1: THREAD LOCAL COND VAR
     assert(userData != nullptr);
-    auto* data = static_cast<std::pair<std::promise<MethodReply>&, ISdBus&>*>(userData);
-    auto& promise = data->first;
-    auto& sdBus = data->second;
 
-    auto message = Message::Factory::create<MethodReply>(sdbusMessage, &sdBus);
+    auto& syncCallReplyData = getSyncCallReplyData();
+    std::unique_lock<std::mutex> lock(syncCallReplyData.mutex);
 
     const auto* error = sd_bus_message_get_error(sdbusMessage);
     if (error == nullptr)
     {
-        //printf("Thread %d: Proxy::sdbus_quasi_sync_reply_handler 2\n", gettid());
-        promise.set_value(std::move(message));
+        auto* proxy = static_cast<Proxy*>(userData);
+        auto message = Message::Factory::create<MethodReply>(sdbusMessage, &proxy->connection_->getSdBusInterface());
+        syncCallReplyData.reply = std::move(message);
+        syncCallReplyData.error = nullptr;
     }
     else
     {
-        sdbus::Error exception(error->name, error->message);
-        promise.set_exception(std::make_exception_ptr(exception));
+        auto exception = std::make_unique<sdbus::Error>(error->name, error->message);
+        syncCallReplyData.error = std::move(exception);
     }
+    syncCallReplyData.arrived = true;
+
+    lock.unlock();
+    syncCallReplyData.cond.notify_one();
+
+    // VARIANT 2: Promise/Future
+//    assert(userData != nullptr);
+//    auto* data = static_cast<std::pair<std::promise<MethodReply>&, ISdBus&>*>(userData);
+//    auto& promise = data->first;
+//    auto& sdBus = data->second;
+
+//    auto message = Message::Factory::create<MethodReply>(sdbusMessage, &sdBus);
+
+//    const auto* error = sd_bus_message_get_error(sdbusMessage);
+//    if (error == nullptr)
+//    {
+//        //printf("Thread %d: Proxy::sdbus_quasi_sync_reply_handler 2\n", gettid());
+//        promise.set_value(std::move(message));
+//    }
+//    else
+//    {
+//        sdbus::Error exception(error->name, error->message);
+//        promise.set_exception(std::make_exception_ptr(exception));
+//    }
 
     return 1;
 }
