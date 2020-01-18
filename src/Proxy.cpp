@@ -149,13 +149,13 @@ MethodReply Proxy::callMethodWithAsyncReplyBlocking(const MethodCall& message, u
 
     // VARIANT 3: USING CLASSIC ASYNC APPROACH
     // TODO: Try with thread local std::function
-//    thread_local async_reply_handler asyncReplyCallback = [](MethodReply& reply, const Error* error)
-//    {
-//        auto& syncCallReplyData = getSyncCallReplyData();
+//    /*thread_local*/ SyncCallReplyData syncCallReplyData;
 
+//    async_reply_handler asyncReplyCallback = [&syncCallReplyData](MethodReply& reply, const Error* error)
+//    {
 //        std::unique_lock<std::mutex> lock(syncCallReplyData.mutex);
 
-//        syncCallReplyData.error = nullptr;
+//        //syncCallReplyData.error = nullptr;
 //        if (error == nullptr)
 //            syncCallReplyData.reply = std::move(reply);
 //        else
@@ -166,14 +166,13 @@ MethodReply Proxy::callMethodWithAsyncReplyBlocking(const MethodCall& message, u
 //        syncCallReplyData.cond.notify_one();
 //    };
 
-//    AsyncCalls::CallData callData{*this, /*std::move(*/asyncReplyCallback/*)*/, {}};
+//    AsyncCalls::CallData callData{*this, std::move(asyncReplyCallback), {}};
 //    message.sendWithAsyncReply((void*)&Proxy::sdbus_async_reply_handler, &callData, timeout);
 
-//    auto& syncCallReplyData = getSyncCallReplyData();
 //    std::unique_lock<std::mutex> lock(syncCallReplyData.mutex);
 //    syncCallReplyData.cond.wait(lock, [&syncCallReplyData](){ return syncCallReplyData.arrived; });
 
-//    syncCallReplyData.arrived = false;
+//    //syncCallReplyData.arrived = false;
 //    if (syncCallReplyData.error)
 //        throw *syncCallReplyData.error;
 

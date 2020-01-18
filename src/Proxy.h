@@ -140,7 +140,7 @@ namespace internal {
         {
             std::mutex mutex;
             std::condition_variable cond;
-            bool arrived;
+            bool arrived{};
             MethodReply reply;
             std::unique_ptr<Error> error;
         };
