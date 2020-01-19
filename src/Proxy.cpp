@@ -124,7 +124,7 @@ MethodReply Proxy::sendMethodCallMessageAndWaitForReply(const MethodCall& messag
 void Proxy::SyncCallReplyData::sendMethodReplyToWaitingThread(MethodReply& reply, const Error* error)
 {
     SCOPE_EXIT{ cond_.notify_one(); };
-    std::unique_lock lock{mutex_};
+    std::unique_lock<std::mutex> lock{mutex_};
     SCOPE_EXIT{ arrived_ = true; };
 
     //error_ = nullptr; // Necessary if SyncCallReplyData instance is thread_local
@@ -137,7 +137,7 @@ void Proxy::SyncCallReplyData::sendMethodReplyToWaitingThread(MethodReply& reply
 
 MethodReply Proxy::SyncCallReplyData::waitForMethodReply()
 {
-    std::unique_lock lock{mutex_};
+    std::unique_lock<std::mutex> lock{mutex_};
     cond_.wait(lock, [this](){ return arrived_; });
 
     //arrived_ = false; // Necessary if SyncCallReplyData instance is thread_local
