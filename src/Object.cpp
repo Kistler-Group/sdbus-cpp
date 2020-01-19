@@ -125,6 +125,7 @@ void Object::finishRegistration()
 void Object::unregister()
 {
     interfaces_.clear();
+    removeObjectManager();
 }
 
 sdbus::Signal Object::createSignal(const std::string& interfaceName, const std::string& signalName)

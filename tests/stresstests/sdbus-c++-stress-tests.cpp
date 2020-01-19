@@ -154,12 +154,12 @@ public:
 
     ~FahrenheitThermometerAdaptor()
     {
-        unregisterAdaptor();
-
         exit_ = true;
         cond_.notify_all();
         for (auto& worker : workers_)
             worker.join();
+
+        unregisterAdaptor();
     }
 
 protected:
@@ -264,12 +264,12 @@ public:
 
     ~ConcatenatorAdaptor()
     {
-        unregisterAdaptor();
-
         exit_ = true;
         cond_.notify_all();
         for (auto& worker : workers_)
             worker.join();
+
+        unregisterAdaptor();
     }
 
 protected:

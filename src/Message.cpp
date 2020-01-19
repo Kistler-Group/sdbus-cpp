@@ -737,6 +737,24 @@ PlainMessage createPlainMessage()
         sd_bus* bus_{};
     } busReferenceKeeper{bus};
 
+//    thread_local struct BusKeeper
+//    {
+//        BusKeeper()
+//        {
+//            auto r = sd_bus_open_system(&bus);
+//            sd_bus_flush(bus);
+//            SDBUS_THROW_ERROR_IF(r < 0, "Failed to get default system bus", -r);
+//        }
+
+//        ~BusKeeper()
+//        {
+//            sd_bus_flush_close_unref(bus);
+//        }
+
+//        sd_bus* bus{};
+//        internal::SdBus intf;
+//    } busKeeper;
+
     // Shelved here as handy thing for potential future tracing purposes:
     //#include <unistd.h>
     //#include <sys/syscall.h>
