@@ -131,3 +131,7 @@ v0.7.5
 
 v0.7.6
 - Fixes of clang-8 errors and warnings
+
+v0.7.7
+- Fix race condition of polling on D-Bus fd from two threads (event loop thread and sync D-Bus call thread)
+- Little ordering fix in stress tests
