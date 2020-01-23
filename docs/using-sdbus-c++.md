@@ -89,7 +89,16 @@ You may additionally set the `LIBSYSTEMD_VERSION` configuration flag to fine-tun
 Distributing sdbus-c++
 ----------------------
 
-sdbus-c++ recipes for Yocto are available. Contributors willing to help with bringing sdbus-c++ to popular package systems are welcome.
+### Yocto
+
+There are Yocto recipes for sdbus-c++ available in the [`meta-oe`](https://github.com/openembedded/meta-openembedded/tree/master/meta-oe/recipes-core/sdbus-c%2B%2B) layer of the `meta-openembedded` project. There are two recipes:
+
+  * One for sdbus-c++ itself. It detects whether systemd feature is turned on in the poky linux configuration. If so, it simply depends on systemd and makes use of libsystemd shared library available in the target system. Otherwise it automatically downloads and builds libsystemd static library and links it into the sdbus-c++ shared library. The recipe also supports ptest.
+  * One for sdbus-c++ native tools, namely sdbus-c++ code generator to generate C++ adaptor and proxy binding classes.
+
+Tip: If you get `ERROR: Program or command 'getent' not found or not executable` when building sdbus-c++ in Yocto, please make sure you've added `getent` to `HOSTTOOLS`. For example, you can add `HOSTTOOLS_NONFATAL += "getent"` into your local.conf file.
+
+Contributors willing to help with bringing sdbus-c++ to other popular package systems are welcome.
 
 ### Yocto
 
@@ -101,12 +110,9 @@ There are sdbus-c++ recipes for already released Yocto versions (for versions Su
 
 Also, there is currently a pull request pending that pushes there recipes upstream -- to the OpenEmbedded project, so they will be officially available for the upcoming Yocto release.
 
-There are two recipes:
 
-  * One for sdbus-c++ itself. It detects whether systemd feature is turned on in the poky linux configuration. If so, it simply depends on systemd and makes use of libsystemd shared library available in the target system. Otherwise it automatically downloads and builds libsystemd static library and makes it an opaque part of sdbus-c++ shared library. The recipe also supports ptest.
-  * One for sdbus-c++ native tools, namely sdbus-c++ code generator to generate C++ adaptor and proxy binding classes.
 
-Tip: If you get `ERROR: Program or command 'getent' not found or not executable` when building sdbus-c++ in Yocto, please make sure you've added `getent` to `HOSTTOOLS`. For example, you can add `HOSTTOOLS_NONFATAL += "getent"` into your local.conf file.
+
 
 Header files and namespaces
 ---------------------------
