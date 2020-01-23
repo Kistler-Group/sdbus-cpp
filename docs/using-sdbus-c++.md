@@ -100,20 +100,6 @@ Tip: If you get `ERROR: Program or command 'getent' not found or not executable`
 
 Contributors willing to help with bringing sdbus-c++ to other popular package systems are welcome.
 
-### Yocto
-
-There are sdbus-c++ recipes for already released Yocto versions (for versions Sumo and newer) available in the meta-oe layer of meta-openembedded fork at Kistler-Group:
-
-  * [sdbus-c++ recipes for Yocto Sumo](https://github.com/Kistler-Group/meta-openembedded/tree/sumo-with-sdbus-c%2B%2B/meta-oe/recipes-core/sdbus-c%2B%2B)
-  * [sdbus-c++ recipes for Yocto Thud](https://github.com/Kistler-Group/meta-openembedded/tree/thud-with-sdbus-c%2B%2B/meta-oe/recipes-core/sdbus-c%2B%2B)
-  * [sdbus-c++ recipes for Yocto Warrior](https://github.com/Kistler-Group/meta-openembedded/tree/warrior-with-sdbus-c%2B%2B/meta-oe/recipes-core/sdbus-c%2B%2B)
-
-Also, there is currently a pull request pending that pushes there recipes upstream -- to the OpenEmbedded project, so they will be officially available for the upcoming Yocto release.
-
-
-
-
-
 Header files and namespaces
 ---------------------------
 
