@@ -166,7 +166,11 @@ namespace sdbus {
     };
 
     struct dont_request_slot_t { explicit dont_request_slot_t() = default; };
+#ifdef __cpp_inline_variables
     inline constexpr dont_request_slot_t dont_request_slot{};
+#else
+    constexpr dont_request_slot_t dont_request_slot{};
+#endif
 
     class MethodCall : public Message
     {
