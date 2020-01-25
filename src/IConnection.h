@@ -38,6 +38,7 @@ namespace sdbus {
     class MethodCall;
     class MethodReply;
     class Signal;
+    class PlainMessage;
     namespace internal {
         class ISdBus;
     }
@@ -61,11 +62,11 @@ namespace internal {
                                        , const sd_bus_vtable* vtable
                                        , void* userData ) = 0;
 
+        virtual PlainMessage createPlainMessage() const = 0;
         virtual MethodCall createMethodCall( const std::string& destination
                                            , const std::string& objectPath
                                            , const std::string& interfaceName
                                            , const std::string& methodName ) const = 0;
-
         virtual Signal createSignal( const std::string& objectPath
                                    , const std::string& interfaceName
                                    , const std::string& signalName ) const = 0;
@@ -93,6 +94,8 @@ namespace internal {
 
         virtual MethodReply tryCallMethodSynchronously(const MethodCall& message, uint64_t timeout) = 0;
     };
+
+    std::unique_ptr<sdbus::internal::IConnection> createConnection();
 
 }
 }

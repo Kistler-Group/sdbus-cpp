@@ -190,6 +190,17 @@ SlotPtr Connection::addObjectVTable( const std::string& objectPath
     return {slot, [this](void *slot){ iface_->sd_bus_slot_unref((sd_bus_slot*)slot); }};
 }
 
+PlainMessage Connection::createPlainMessage() const
+{
+    sd_bus_message* sdbusMsg{};
+
+    auto r = iface_->sd_bus_message_new(bus_.get(), &sdbusMsg, _SD_BUS_MESSAGE_TYPE_INVALID);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to create a plain message", -r);
+
+    return Message::Factory::create<PlainMessage>(sdbusMsg, iface_.get(), adopt_message);
+}
+
 MethodCall Connection::createMethodCall( const std::string& destination
                                        , const std::string& objectPath
                                        , const std::string& interfaceName
@@ -213,17 +224,17 @@ Signal Connection::createSignal( const std::string& objectPath
                                , const std::string& interfaceName
                                , const std::string& signalName ) const
 {
-    sd_bus_message *sdbusSignal{};
+    sd_bus_message *sdbusMsg{};
 
     auto r = iface_->sd_bus_message_new_signal( bus_.get()
-                                              , &sdbusSignal
+                                              , &sdbusMsg
                                               , objectPath.c_str()
                                               , interfaceName.c_str()
                                               , signalName.c_str() );
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create signal", -r);
 
-    return Message::Factory::create<Signal>(sdbusSignal, iface_.get(), adopt_message);
+    return Message::Factory::create<Signal>(sdbusMsg, iface_.get(), adopt_message);
 }
 
 void Connection::emitPropertiesChangedSignal( const std::string& objectPath
@@ -446,6 +457,16 @@ Connection::LoopExitEventFd::~LoopExitEventFd()
 }}
 
 namespace sdbus {
+
+namespace internal {
+std::unique_ptr<sdbus::internal::IConnection> createConnection()
+{
+    auto connection = sdbus::createConnection();
+    SCOPE_EXIT{ connection.release(); };
+    auto connectionInternal = dynamic_cast<sdbus::internal::IConnection*>(connection.get());
+    return std::unique_ptr<sdbus::internal::IConnection>(connectionInternal);
+}
+}
 
 std::unique_ptr<sdbus::IConnection> createConnection()
 {

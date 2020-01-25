@@ -65,6 +65,13 @@ int SdBus::sd_bus_call_async(sd_bus *bus, sd_bus_slot **slot, sd_bus_message *m,
     return ::sd_bus_call_async(bus, slot, m, callback, userdata, usec);
 }
 
+int SdBus::sd_bus_message_new(sd_bus *bus, sd_bus_message **m, uint8_t type)
+{
+    std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);
+
+    return ::sd_bus_message_new(bus, m, type);
+}
+
 int SdBus::sd_bus_message_new_method_call(sd_bus *bus, sd_bus_message **m, const char *destination, const char *path, const char *interface, const char *member)
 {
     std::unique_lock<std::recursive_mutex> lock(sdbusMutex_);

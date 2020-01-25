@@ -80,11 +80,11 @@ namespace sdbus { namespace internal {
                                , const sd_bus_vtable* vtable
                                , void* userData ) override;
 
+        PlainMessage createPlainMessage() const override;
         MethodCall createMethodCall( const std::string& destination
                                    , const std::string& objectPath
                                    , const std::string& interfaceName
                                    , const std::string& methodName ) const override;
-
         Signal createSignal( const std::string& objectPath
                            , const std::string& interfaceName
                            , const std::string& signalName ) const override;
