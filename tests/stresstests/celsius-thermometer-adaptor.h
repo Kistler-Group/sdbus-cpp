@@ -24,7 +24,7 @@ protected:
     thermometer_adaptor(sdbus::IObject& object)
         : object_(object)
     {
-        object_.registerMethod("getCurrentTemperature").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->getCurrentTemperature(); });
+        object_.registerMethod("getCurrentTemperature").onInterface(INTERFACE_NAME).withOutputParamNames("result").implementedAs([this](){ return this->getCurrentTemperature(); });
     }
 
     ~thermometer_adaptor() = default;

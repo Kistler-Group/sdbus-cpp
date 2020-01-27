@@ -23,8 +23,8 @@ protected:
     concatenator_adaptor(sdbus::IObject& object)
         : object_(object)
     {
-        object_.registerMethod("concatenate").onInterface(INTERFACE_NAME).implementedAs([this](sdbus::Result<std::string>&& result, std::map<std::string, sdbus::Variant> params){ this->concatenate(std::move(result), std::move(params)); });
-        object_.registerSignal("concatenatedSignal").onInterface(INTERFACE_NAME).withParameters<std::string>();
+        object_.registerMethod("concatenate").onInterface(INTERFACE_NAME).withInputParamNames("params").withOutputParamNames("result").implementedAs([this](sdbus::Result<std::string>&& result, std::map<std::string, sdbus::Variant> params){ this->concatenate(std::move(result), std::move(params)); });
+        object_.registerSignal("concatenatedSignal").onInterface(INTERFACE_NAME).withParameters<std::string>("concatenatedString");
     }
 
     ~concatenator_adaptor() = default;

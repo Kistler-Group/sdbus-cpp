@@ -105,9 +105,9 @@ std::tuple<unsigned, std::string> BaseGenerator::generateNamespaces(const std::s
 }
 
 
-std::tuple<std::string, std::string, std::string> BaseGenerator::argsToNamesAndTypes(const Nodes& args, bool async) const
+std::tuple<std::string, std::string, std::string, std::string> BaseGenerator::argsToNamesAndTypes(const Nodes& args, bool async) const
 {
-    std::ostringstream argSS, argTypeSS, typeSS;
+    std::ostringstream argSS, argTypeSS, typeSS, argStringsSS;
 
     for (size_t i = 0; i < args.size(); ++i)
     {
@@ -115,6 +115,7 @@ std::tuple<std::string, std::string, std::string> BaseGenerator::argsToNamesAndT
         if (i > 0)
         {
             argSS << ", ";
+            argStringsSS << ", ";
             argTypeSS << ", ";
             typeSS << ", ";
         }
@@ -125,6 +126,7 @@ std::tuple<std::string, std::string, std::string> BaseGenerator::argsToNamesAndT
             argName = "arg" + std::to_string(i);
         }
         auto type = signature_to_type(arg->get("type"));
+        argStringsSS << "\"" << argName << "\"";
         if (!async)
         {
             argSS << argName;
@@ -138,7 +140,7 @@ std::tuple<std::string, std::string, std::string> BaseGenerator::argsToNamesAndT
         typeSS << type;
     }
 
-    return std::make_tuple(argSS.str(), argTypeSS.str(), typeSS.str());
+    return std::make_tuple(argSS.str(), argTypeSS.str(), typeSS.str(), argStringsSS.str());
 }
 
 /**

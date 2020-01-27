@@ -36,18 +36,46 @@ sd_bus_vtable createVTableStartItem(uint64_t flags)
 sd_bus_vtable createVTableMethodItem( const char *member
                                     , const char *signature
                                     , const char *result
+                                    , const char *paramNames
                                     , sd_bus_message_handler_t handler
                                     , uint64_t flags )
 {
+#if LIBSYSTEMD_VERSION>=242
+    // We have to expand macro SD_BUS_METHOD_WITH_NAMES manually here, because the macro expects literal char strings
+    /*struct sd_bus_vtable vtableItem = SD_BUS_METHOD_WITH_NAMES(member, signature, innames, result, outnames, handler, flags);*/
+    struct sd_bus_vtable vtableItem =
+    {
+            .type = _SD_BUS_VTABLE_METHOD,
+            .flags = flags,
+            .x = {
+                .method = {
+                    .member = member,
+                    .signature = signature,
+                    .result = result,
+                    .handler = handler,
+                    .offset = 0,
+                    .names = paramNames,
+                },
+            },
+    };
+#else
+    (void)paramNames;
     struct sd_bus_vtable vtableItem = SD_BUS_METHOD(member, signature, result, handler, flags);
+#endif
     return vtableItem;
 }
 
 sd_bus_vtable createVTableSignalItem( const char *member
                                     , const char *signature
+                                    , const char *outnames
                                     , uint64_t flags )
 {
+#if LIBSYSTEMD_VERSION>=242
+    struct sd_bus_vtable vtableItem = SD_BUS_SIGNAL_WITH_NAMES(member, signature, outnames, flags);
+#else
+    (void)outnames;
     struct sd_bus_vtable vtableItem = SD_BUS_SIGNAL(member, signature, flags);
+#endif
     return vtableItem;
 }
 

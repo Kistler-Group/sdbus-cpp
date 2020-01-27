@@ -169,9 +169,9 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes&
 
         auto retType = outArgsToType(outArgs);
         std::string inArgStr, inArgTypeStr;
-        std::tie(inArgStr, inArgTypeStr, std::ignore) = argsToNamesAndTypes(inArgs);
+        std::tie(inArgStr, inArgTypeStr, std::ignore, std::ignore) = argsToNamesAndTypes(inArgs);
         std::string outArgStr, outArgTypeStr;
-        std::tie(outArgStr, outArgTypeStr, std::ignore) = argsToNamesAndTypes(outArgs);
+        std::tie(outArgStr, outArgTypeStr, std::ignore, std::ignore) = argsToNamesAndTypes(outArgs);
 
         definitionSS << tab << (async ? "void" : retType) << " " << name << "(" << inArgTypeStr << ")" << endl
                 << tab << "{" << endl;
@@ -239,7 +239,7 @@ std::tuple<std::string, std::string> ProxyGenerator::processSignals(const Nodes&
         nameBigFirst[0] = islower(nameBigFirst[0]) ? nameBigFirst[0] + 'A' - 'a' : nameBigFirst[0];
 
         std::string argStr, argTypeStr;
-        std::tie(argStr, argTypeStr, std::ignore) = argsToNamesAndTypes(args);
+        std::tie(argStr, argTypeStr, std::ignore, std::ignore) = argsToNamesAndTypes(args);
 
         registrationSS << tab << tab << "proxy_"
                 ".uponSignal(\"" << name << "\")"
