@@ -204,14 +204,17 @@ std::tuple<std::string, std::string> AdaptorGenerator::processMethods(const Node
         Nodes inArgs = args.select("direction" , "in");
         Nodes outArgs = args.select("direction" , "out");
 
-        std::string argStr, argTypeStr;
-        std::tie(argStr, argTypeStr, std::ignore) = argsToNamesAndTypes(inArgs, async);
+        std::string argStr, argTypeStr, argStringsStr, outArgStringsStr;
+        std::tie(argStr, argTypeStr, std::ignore, argStringsStr) = argsToNamesAndTypes(inArgs, async);
+        std::tie(std::ignore, std::ignore, std::ignore, outArgStringsStr) = argsToNamesAndTypes(outArgs);
 
         using namespace std::string_literals;
 
         registrationSS << tab << tab << "object_.registerMethod(\""
                 << methodName << "\")"
                 << ".onInterface(INTERFACE_NAME)"
+                << (!argStringsStr.empty() ? (".withInputParamNames(" + argStringsStr + ")") : "")
+                << (!outArgStringsStr.empty() ? (".withOutputParamNames(" + outArgStringsStr + ")") : "")
                 << ".implementedAs("
                 << "[this]("
                 << (async ? "sdbus::Result<" + outArgsToType(outArgs, true) + ">&& result" + (argTypeStr.empty() ? "" : ", ") : "")
@@ -259,8 +262,8 @@ std::tuple<std::string, std::string> AdaptorGenerator::processSignals(const Node
 
         Nodes args = (*signal)["arg"];
 
-        std::string argStr, argTypeStr, typeStr;;
-        std::tie(argStr, argTypeStr, typeStr) = argsToNamesAndTypes(args);
+        std::string argStr, argTypeStr, typeStr, argStringsStr;
+        std::tie(argStr, argTypeStr, typeStr, argStringsStr) = argsToNamesAndTypes(args);
 
         signalRegistrationSS << tab << tab
                 << "object_.registerSignal(\"" << name << "\")"
@@ -268,7 +271,7 @@ std::tuple<std::string, std::string> AdaptorGenerator::processSignals(const Node
 
         if (args.size() > 0)
         {
-            signalRegistrationSS << ".withParameters<" << typeStr << ">()";
+            signalRegistrationSS << ".withParameters<" << typeStr << ">(" << argStringsStr << ")";
         }
 
         signalRegistrationSS << annotationRegistration;

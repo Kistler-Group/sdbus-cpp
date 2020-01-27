@@ -31,6 +31,7 @@
 #include <sdbus-c++/TypeTraits.h>
 #include <sdbus-c++/Flags.h>
 #include <string>
+#include <vector>
 #include <type_traits>
 #include <chrono>
 #include <cstdint>
@@ -45,6 +46,9 @@ namespace sdbus {
 
 namespace sdbus {
 
+    template <typename... _Args>
+    inline constexpr bool are_strings_v = std::conjunction<std::is_convertible<_Args, std::string>...>::value;
+
     class MethodRegistrator
     {
     public:
@@ -57,6 +61,12 @@ namespace sdbus {
         std::enable_if_t<!is_async_method_v<_Function>, MethodRegistrator&> implementedAs(_Function&& callback);
         template <typename _Function>
         std::enable_if_t<is_async_method_v<_Function>, MethodRegistrator&> implementedAs(_Function&& callback);
+        MethodRegistrator& withInputParamNames(std::vector<std::string> paramNames);
+        template <typename... _String>
+        std::enable_if_t<are_strings_v<_String...>, MethodRegistrator&> withInputParamNames(_String... paramNames);
+        MethodRegistrator& withOutputParamNames(std::vector<std::string> paramNames);
+        template <typename... _String>
+        std::enable_if_t<are_strings_v<_String...>, MethodRegistrator&> withOutputParamNames(_String... paramNames);
         MethodRegistrator& markAsDeprecated();
         MethodRegistrator& markAsPrivileged();
         MethodRegistrator& withNoReply();
@@ -66,7 +76,9 @@ namespace sdbus {
         const std::string& methodName_;
         std::string interfaceName_;
         std::string inputSignature_;
+        std::vector<std::string> inputParamNames_;
         std::string outputSignature_;
+        std::vector<std::string> outputParamNames_;
         method_callback methodCallback_;
         Flags flags_;
         int exceptions_{}; // Number of active exceptions when SignalRegistrator is constructed
@@ -81,6 +93,9 @@ namespace sdbus {
 
         SignalRegistrator& onInterface(std::string interfaceName);
         template <typename... _Args> SignalRegistrator& withParameters();
+        template <typename... _Args> SignalRegistrator& withParameters(std::vector<std::string> paramNames);
+        template <typename... _Args, typename... _String>
+        std::enable_if_t<are_strings_v<_String...>, SignalRegistrator&> withParameters(_String... paramNames);
         SignalRegistrator& markAsDeprecated();
 
     private:
@@ -88,6 +103,7 @@ namespace sdbus {
         const std::string& signalName_;
         std::string interfaceName_;
         std::string signalSignature_;
+        std::vector<std::string> paramNames_;
         Flags flags_;
         int exceptions_{}; // Number of active exceptions when SignalRegistrator is constructed
     };

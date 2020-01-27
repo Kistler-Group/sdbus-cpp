@@ -60,17 +60,18 @@ protected:
         object_.setInterfaceFlags(INTERFACE_NAME).markAsDeprecated().withPropertyUpdateBehavior(sdbus::Flags::EMITS_NO_SIGNAL);
 
         object_.registerMethod("noArgNoReturn").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->noArgNoReturn(); });
-        object_.registerMethod("getInt").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->getInt(); });
+        object_.registerMethod("getInt").onInterface(INTERFACE_NAME).withOutputParamNames("anInt").implementedAs([this](){ return this->getInt(); });
         object_.registerMethod("getTuple").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->getTuple(); });
 
-        object_.registerMethod("multiply").onInterface(INTERFACE_NAME).implementedAs([this](const int64_t& a, const double& b){ return this->multiply(a, b); });
+        object_.registerMethod("multiply").onInterface(INTERFACE_NAME).withInputParamNames("a", "b").withOutputParamNames("result").implementedAs([this](const int64_t& a, const double& b){ return this->multiply(a, b); });
         object_.registerMethod("multiplyWithNoReply").onInterface(INTERFACE_NAME).implementedAs([this](const int64_t& a, const double& b){ this->multiplyWithNoReply(a, b); }).markAsDeprecated().withNoReply();
         object_.registerMethod("getInts16FromStruct").onInterface(INTERFACE_NAME).implementedAs([this](
                 const sdbus::Struct<uint8_t, int16_t, double, std::string, std::vector<int16_t>>& x){ return this->getInts16FromStruct(x); });
 
         object_.registerMethod("processVariant").onInterface(INTERFACE_NAME).implementedAs([this](sdbus::Variant& v){ return this->processVariant(v); });
 
-        object_.registerMethod("getMapOfVariants").onInterface(INTERFACE_NAME).implementedAs([this](
+        object_.registerMethod("getMapOfVariants").onInterface(INTERFACE_NAME)
+                .withInputParamNames("x", "y").withOutputParamNames("aMapOfVariants").implementedAs([this](
                 const std::vector<int32_t>& x, const sdbus::Struct<sdbus::Variant, sdbus::Variant>& y){ return this->getMapOfVariants(x ,y); });
 
         object_.registerMethod("getStructInStruct").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->getStructInStruct(); });
@@ -110,8 +111,9 @@ protected:
 
         // registration of signals is optional, it is useful because of introspection
         object_.registerSignal("simpleSignal").onInterface(INTERFACE_NAME).markAsDeprecated();
-        object_.registerSignal("signalWithMap").onInterface(INTERFACE_NAME).withParameters<std::map<int32_t, std::string>>();
-        object_.registerSignal("signalWithVariant").onInterface(INTERFACE_NAME).withParameters<sdbus::Variant>();
+        // Note: sd-bus of libsystemd up to v244 has a bug where it doesn't generate signal parameter names in introspection XML. Signal param names commented temporarily.
+        object_.registerSignal("signalWithMap").onInterface(INTERFACE_NAME).withParameters<std::map<int32_t, std::string>>(/*"aMap"*/);
+        object_.registerSignal("signalWithVariant").onInterface(INTERFACE_NAME).withParameters<sdbus::Variant>(/*"aVariant"*/);
 
         object_.registerProperty("state").onInterface(INTERFACE_NAME).withGetter([this](){ return this->state(); }).markAsDeprecated().withUpdateBehavior(sdbus::Flags::CONST_PROPERTY_VALUE);
         object_.registerProperty("action").onInterface(INTERFACE_NAME).withGetter([this](){ return this->action(); }).withSetter([this](const uint32_t& value){ this->action(value); }).withUpdateBehavior(sdbus::Flags::EMITS_INVALIDATION_SIGNAL);
@@ -250,16 +252,16 @@ R"delimiter(<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspectio
    <annotation name="org.freedesktop.DBus.Deprecated" value="true"/>
   </method>
   <method name="getInt">
-   <arg type="i" direction="out"/>
+   <arg type="i" name="anInt" direction="out"/>
   </method>
   <method name="getInts16FromStruct">
    <arg type="(yndsan)" direction="in"/>
    <arg type="an" direction="out"/>
   </method>
   <method name="getMapOfVariants">
-   <arg type="ai" direction="in"/>
-   <arg type="(vv)" direction="in"/>
-   <arg type="a{iv}" direction="out"/>
+   <arg type="ai" name="x" direction="in"/>
+   <arg type="(vv)" name="y" direction="in"/>
+   <arg type="a{iv}" name="aMapOfVariants" direction="out"/>
   </method>
   <method name="getObjectPath">
    <arg type="o" direction="out"/>
@@ -278,9 +280,9 @@ R"delimiter(<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspectio
    <arg type="h" direction="out"/>
   </method>
   <method name="multiply">
-   <arg type="x" direction="in"/>
-   <arg type="d" direction="in"/>
-   <arg type="d" direction="out"/>
+   <arg type="x" name="a" direction="in"/>
+   <arg type="d" name="b" direction="in"/>
+   <arg type="d" name="result" direction="out"/>
   </method>
   <method name="multiplyWithNoReply">
    <arg type="x" direction="in"/>

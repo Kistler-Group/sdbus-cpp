@@ -38,10 +38,12 @@ sd_bus_vtable createVTableStartItem(uint64_t flags);
 sd_bus_vtable createVTableMethodItem( const char *member
                                     , const char *signature
                                     , const char *result
+                                    , const char *paramNames
                                     , sd_bus_message_handler_t handler
                                     , uint64_t flags );
 sd_bus_vtable createVTableSignalItem( const char *member
                                     , const char *signature
+                                    , const char *outnames
                                     , uint64_t flags );
 sd_bus_vtable createVTablePropertyItem( const char *member
                                       , const char *signature

@@ -74,9 +74,37 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         virtual void registerMethod( const std::string& interfaceName
-                                   , const std::string& methodName
-                                   , const std::string& inputSignature
-                                   , const std::string& outputSignature
+                                   , std::string methodName
+                                   , std::string inputSignature
+                                   , std::string outputSignature
+                                   , method_callback methodCallback
+                                   , Flags flags = {} ) = 0;
+
+        /*!
+         * @brief Registers method that the object will provide on D-Bus
+         *
+         * @param[in] interfaceName Name of an interface that the method will belong to
+         * @param[in] methodName Name of the method
+         * @param[in] inputSignature D-Bus signature of method input parameters
+         * @param[in] inputNames Names of input parameters
+         * @param[in] outputSignature D-Bus signature of method output parameters
+         * @param[in] outputNames Names of output parameters
+         * @param[in] methodCallback Callback that implements the body of the method
+         * @param[in] flags D-Bus method flags (privileged, deprecated, or no reply)
+         *
+         * Provided names of input and output parameters will be included in the introspection
+         * description (given that at least version 242 of underlying libsystemd library is
+         * used; otherwise, names of parameters are ignored). This usually helps better describe
+         * the API to the introspector.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual void registerMethod( const std::string& interfaceName
+                                   , std::string methodName
+                                   , std::string inputSignature
+                                   , const std::vector<std::string>& inputNames
+                                   , std::string outputSignature
+                                   , const std::vector<std::string>& outputNames
                                    , method_callback methodCallback
                                    , Flags flags = {} ) = 0;
 
@@ -91,8 +119,30 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         virtual void registerSignal( const std::string& interfaceName
-                                   , const std::string& signalName
-                                   , const std::string& signature
+                                   , std::string signalName
+                                   , std::string signature
+                                   , Flags flags = {} ) = 0;
+
+        /*!
+         * @brief Registers signal that the object will emit on D-Bus
+         *
+         * @param[in] interfaceName Name of an interface that the signal will fall under
+         * @param[in] signalName Name of the signal
+         * @param[in] signature D-Bus signature of signal parameters
+         * @param[in] paramNames Names of parameters of the signal
+         * @param[in] flags D-Bus signal flags (deprecated)
+         *
+         * Provided names of signal output parameters will be included in the introspection
+         * description (given that at least version 242 of underlying libsystemd library is
+         * used; otherwise, names of parameters are ignored). This usually helps better describe
+         * the API to the introspector.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual void registerSignal( const std::string& interfaceName
+                                   , std::string signalName
+                                   , std::string signature
+                                   , const std::vector<std::string>& paramNames
                                    , Flags flags = {} ) = 0;
 
         /*!
@@ -107,8 +157,8 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         virtual void registerProperty( const std::string& interfaceName
-                                     , const std::string& propertyName
-                                     , const std::string& signature
+                                     , std::string propertyName
+                                     , std::string signature
                                      , property_get_callback getCallback
                                      , Flags flags = {} ) = 0;
 
@@ -125,8 +175,8 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         virtual void registerProperty( const std::string& interfaceName
-                                     , const std::string& propertyName
-                                     , const std::string& signature
+                                     , std::string propertyName
+                                     , std::string signature
                                      , property_get_callback getCallback
                                      , property_set_callback setCallback
                                      , Flags flags = {} ) = 0;

@@ -24,7 +24,7 @@ protected:
     thermometer_adaptor(sdbus::IObject& object)
         : object_(object)
     {
-        object_.registerMethod("getCurrentTemperature").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->getCurrentTemperature(); });
+        object_.registerMethod("getCurrentTemperature").onInterface(INTERFACE_NAME).withOutputParamNames("result").implementedAs([this](){ return this->getCurrentTemperature(); });
     }
 
     ~thermometer_adaptor() = default;
@@ -53,8 +53,8 @@ protected:
     factory_adaptor(sdbus::IObject& object)
         : object_(object)
     {
-        object_.registerMethod("createDelegateObject").onInterface(INTERFACE_NAME).implementedAs([this](sdbus::Result<sdbus::ObjectPath>&& result){ this->createDelegateObject(std::move(result)); });
-        object_.registerMethod("destroyDelegateObject").onInterface(INTERFACE_NAME).implementedAs([this](sdbus::Result<>&& result, sdbus::ObjectPath delegate){ this->destroyDelegateObject(std::move(result), std::move(delegate)); }).withNoReply();
+        object_.registerMethod("createDelegateObject").onInterface(INTERFACE_NAME).withOutputParamNames("delegate").implementedAs([this](sdbus::Result<sdbus::ObjectPath>&& result){ this->createDelegateObject(std::move(result)); });
+        object_.registerMethod("destroyDelegateObject").onInterface(INTERFACE_NAME).withInputParamNames("delegate").implementedAs([this](sdbus::Result<>&& result, sdbus::ObjectPath delegate){ this->destroyDelegateObject(std::move(result), std::move(delegate)); }).withNoReply();
     }
 
     ~factory_adaptor() = default;

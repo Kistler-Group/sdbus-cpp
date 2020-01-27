@@ -47,26 +47,38 @@ namespace internal {
         Object(sdbus::internal::IConnection& connection, std::string objectPath);
 
         void registerMethod( const std::string& interfaceName
-                           , const std::string& methodName
-                           , const std::string& inputSignature
-                           , const std::string& outputSignature
+                           , std::string methodName
+                           , std::string inputSignature
+                           , std::string outputSignature
+                           , method_callback methodCallback
+                           , Flags flags ) override;
+        void registerMethod( const std::string& interfaceName
+                           , std::string methodName
+                           , std::string inputSignature
+                           , const std::vector<std::string>& inputNames
+                           , std::string outputSignature
+                           , const std::vector<std::string>& outputNames
                            , method_callback methodCallback
                            , Flags flags ) override;
 
         void registerSignal( const std::string& interfaceName
-                           , const std::string& signalName
-                           , const std::string& signature
+                           , std::string signalName
+                           , std::string signature
+                           , Flags flags ) override;
+        void registerSignal( const std::string& interfaceName
+                           , std::string signalName
+                           , std::string signature
+                           , const std::vector<std::string>& paramNames
                            , Flags flags ) override;
 
         void registerProperty( const std::string& interfaceName
-                             , const std::string& propertyName
-                             , const std::string& signature
+                             , std::string propertyName
+                             , std::string signature
                              , property_get_callback getCallback
                              , Flags flags ) override;
-
         void registerProperty( const std::string& interfaceName
-                             , const std::string& propertyName
-                             , const std::string& signature
+                             , std::string propertyName
+                             , std::string signature
                              , property_get_callback getCallback
                              , property_set_callback setCallback
                              , Flags flags ) override;
@@ -98,32 +110,34 @@ namespace internal {
             using MethodName = std::string;
             struct MethodData
             {
-                std::string inputArgs_;
-                std::string outputArgs_;
-                method_callback callback_;
+                const std::string inputArgs;
+                const std::string outputArgs;
+                const std::string paramNames;
+                method_callback callback;
                 Flags flags_;
             };
-            std::map<MethodName, MethodData> methods_;
+            std::map<MethodName, MethodData> methods;
             using SignalName = std::string;
             struct SignalData
             {
-                std::string signature_;
-                Flags flags_;
+                const std::string signature;
+                const std::string paramNames;
+                Flags flags;
             };
-            std::map<SignalName, SignalData> signals_;
+            std::map<SignalName, SignalData> signals;
             using PropertyName = std::string;
             struct PropertyData
             {
-                std::string signature_;
-                property_get_callback getCallback_;
-                property_set_callback setCallback_;
-                Flags flags_;
+                const std::string signature;
+                property_get_callback getCallback;
+                property_set_callback setCallback;
+                Flags flags;
             };
-            std::map<PropertyName, PropertyData> properties_;
-            std::vector<sd_bus_vtable> vtable_;
-            Flags flags_;
+            std::map<PropertyName, PropertyData> properties;
+            std::vector<sd_bus_vtable> vtable;
+            Flags flags;
 
-            SlotPtr slot_;
+            SlotPtr slot;
         };
 
         static const std::vector<sd_bus_vtable>& createInterfaceVTable(InterfaceData& interfaceData);
@@ -133,6 +147,7 @@ namespace internal {
         void activateInterfaceVTable( const std::string& interfaceName
                                     , InterfaceData& interfaceData
                                     , const std::vector<sd_bus_vtable>& vtable );
+        static std::string paramNamesToString(const std::vector<std::string>& paramNames);
 
         static int sdbus_method_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
         static int sdbus_property_get_callback( sd_bus *bus

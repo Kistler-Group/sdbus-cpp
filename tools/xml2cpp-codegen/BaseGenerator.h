@@ -88,7 +88,7 @@ protected:
      * @param args
      * @return tuple: argument names, argument types and names, argument types
      */
-    std::tuple<std::string, std::string, std::string> argsToNamesAndTypes(const sdbuscpp::xml::Nodes& args, bool async = false) const;
+    std::tuple<std::string, std::string, std::string, std::string> argsToNamesAndTypes(const sdbuscpp::xml::Nodes& args, bool async = false) const;
 
     /**
      * Output arguments to return type

@@ -70,7 +70,14 @@ namespace sdbus {
         // Therefore, we can allow registerMethod() to throw even if we are in the destructor.
         // Bottomline is, to be on the safe side, the caller must take care of catching and reacting
         // to the exception thrown from here if the caller is a destructor itself.
-        object_.registerMethod(interfaceName_, methodName_, inputSignature_, outputSignature_, std::move(methodCallback_), flags_);
+        object_.registerMethod( interfaceName_
+                              , std::move(methodName_)
+                              , std::move(inputSignature_)
+                              , std::move(inputParamNames_)
+                              , std::move(outputSignature_)
+                              , std::move(outputParamNames_)
+                              , std::move(methodCallback_)
+                              , std::move(flags_));
     }
 
     inline MethodRegistrator& MethodRegistrator::onInterface(std::string interfaceName)
@@ -81,7 +88,8 @@ namespace sdbus {
     }
 
     template <typename _Function>
-    inline std::enable_if_t<!is_async_method_v<_Function>, MethodRegistrator&> MethodRegistrator::implementedAs(_Function&& callback)
+    inline std::enable_if_t<!is_async_method_v<_Function>, MethodRegistrator&>
+    MethodRegistrator::implementedAs(_Function&& callback)
     {
         inputSignature_ = signature_of_function_input_arguments<_Function>::str();
         outputSignature_ = signature_of_function_output_arguments<_Function>::str();
@@ -110,7 +118,8 @@ namespace sdbus {
     }
 
     template <typename _Function>
-    inline std::enable_if_t<is_async_method_v<_Function>, MethodRegistrator&> MethodRegistrator::implementedAs(_Function&& callback)
+    inline std::enable_if_t<is_async_method_v<_Function>, MethodRegistrator&>
+    MethodRegistrator::implementedAs(_Function&& callback)
     {
         inputSignature_ = signature_of_function_input_arguments<_Function>::str();
         outputSignature_ = signature_of_function_output_arguments<_Function>::str();
@@ -128,6 +137,32 @@ namespace sdbus {
         };
 
         return *this;
+    }
+
+    inline MethodRegistrator& MethodRegistrator::withInputParamNames(std::vector<std::string> paramNames)
+    {
+        inputParamNames_ = std::move(paramNames);
+
+        return *this;
+    }
+
+    template <typename... _String>
+    inline std::enable_if_t<are_strings_v<_String...>, MethodRegistrator&> MethodRegistrator::withInputParamNames(_String... paramNames)
+    {
+        return withInputParamNames({paramNames...});
+    }
+
+    inline MethodRegistrator& MethodRegistrator::withOutputParamNames(std::vector<std::string> paramNames)
+    {
+        outputParamNames_ = std::move(paramNames);
+
+        return *this;
+    }
+
+    template <typename... _String>
+    inline std::enable_if_t<are_strings_v<_String...>, MethodRegistrator&> MethodRegistrator::withOutputParamNames(_String... paramNames)
+    {
+        return withOutputParamNames({paramNames...});
     }
 
     inline MethodRegistrator& MethodRegistrator::markAsDeprecated()
@@ -179,7 +214,11 @@ namespace sdbus {
         // Therefore, we can allow registerSignal() to throw even if we are in the destructor.
         // Bottomline is, to be on the safe side, the caller must take care of catching and reacting
         // to the exception thrown from here if the caller is a destructor itself.
-        object_.registerSignal(interfaceName_, signalName_, signalSignature_, flags_);
+        object_.registerSignal( interfaceName_
+                              , std::move(signalName_)
+                              , std::move(signalSignature_)
+                              , std::move(paramNames_)
+                              , std::move(flags_) );
     }
 
     inline SignalRegistrator& SignalRegistrator::onInterface(std::string interfaceName)
@@ -195,6 +234,23 @@ namespace sdbus {
         signalSignature_ = signature_of_function_input_arguments<void(_Args...)>::str();
 
         return *this;
+    }
+
+    template <typename... _Args>
+    inline SignalRegistrator& SignalRegistrator::withParameters(std::vector<std::string> paramNames)
+    {
+        paramNames_ = std::move(paramNames);
+
+        return withParameters<_Args...>();
+    }
+
+    template <typename... _Args, typename... _String>
+    inline std::enable_if_t<are_strings_v<_String...>, SignalRegistrator&>
+    SignalRegistrator::withParameters(_String... paramNames)
+    {
+        static_assert(sizeof...(_Args) == sizeof...(_String), "Numbers of signal parameters and their names don't match");
+
+        return withParameters<_Args...>({paramNames...});
     }
 
     inline SignalRegistrator& SignalRegistrator::markAsDeprecated()
