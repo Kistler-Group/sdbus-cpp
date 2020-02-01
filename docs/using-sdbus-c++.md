@@ -51,7 +51,7 @@ PKG_CHECK_MODULES(SDBUSCPP, [sdbus-c++ >= 0.6],,
 )
 ```
 
-Note: sdbus-c++ library depends on C++17, since it uses C++17 `std::uncaught_exceptions()` feature. When building sdbus-c++ manually, make sure you use a compiler that supports that feature. To use the library, make sure you have a C++ standard library that supports the feature. The feature is supported by e.g. gcc >= 6, and clang >= 3.7.
+Note: sdbus-c++ library uses a number of modern C++17 features. Please make certain you have a recent compiler (gcc >= 7, clang >= 6).
 
 Solving libsystemd dependency
 -----------------------------
