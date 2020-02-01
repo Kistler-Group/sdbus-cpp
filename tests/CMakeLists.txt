@@ -1,36 +1,28 @@
 #-------------------------------
 # DOWNLOAD AND BUILD OF GOOGLETEST
-# https://github.com/google/googletest/blob/master/googletest/README.md#incorporating-into-an-existing-cmake-project
 #-------------------------------
 
-configure_file(googletest-download/CMakeLists.txt.in googletest-download/CMakeLists.txt)
+include(FetchContent)
 
-execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
-    RESULT_VARIABLE result
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download)
+message("Fetching googletest...")
+FetchContent_Declare(googletest
+                     GIT_REPOSITORY https://github.com/google/googletest.git
+                     GIT_TAG        master
+                     GIT_SHALLOW    1
+                     UPDATE_COMMAND "")
 
-if(result)
-    message(FATAL_ERROR "CMake step for googletest failed: ${result}")
+#FetchContent_MakeAvailable(googletest) # Not available in CMake 3.13 :-( Let's do it manually:
+FetchContent_GetProperties(googletest)
+if(NOT googletest_POPULATED)
+    FetchContent_Populate(googletest)
+    set(gtest_force_shared_crt ON CACHE INTERNAL "" FORCE)
+    set(BUILD_GMOCK ON CACHE INTERNAL "" FORCE)
+    set(INSTALL_GTEST OFF CACHE INTERNAL "" FORCE)
+    set(BUILD_SHARED_LIBS_BAK ${BUILD_SHARED_LIBS})
+    set(BUILD_SHARED_LIBS OFF)
+    add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
+    set(BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS_BAK})
 endif()
-
-execute_process(COMMAND ${CMAKE_COMMAND} --build .
-    RESULT_VARIABLE result
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download)
-
-if(result)
-    message(FATAL_ERROR "Build step for googletest failed: ${result}")
-endif()
-
-set(gtest_force_shared_crt ON CACHE INTERNAL "" FORCE)
-set(BUILD_GMOCK ON CACHE INTERNAL "" FORCE)
-set(INSTALL_GTEST OFF CACHE INTERNAL "" FORCE)
-
-set(BUILD_SHARED_LIBS_BAK ${BUILD_SHARED_LIBS})
-set(BUILD_SHARED_LIBS OFF)
-add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
-                    ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
-                    EXCLUDE_FROM_ALL)
-set(BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS_BAK})
 
 #-------------------------------
 # SOURCE FILES CONFIGURATION
@@ -84,15 +76,12 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 # BUILD INFORMATION
 #----------------------------------
 
-add_executable(sdbus-c++-unit-tests ${UNITTESTS_SRCS} $<TARGET_OBJECTS:sdbus-c++-objlib>)
-target_compile_definitions(sdbus-c++-unit-tests PRIVATE LIBSYSTEMD_VERSION=${SYSTEMD_VERSION})
-target_include_directories(sdbus-c++-unit-tests PRIVATE ${SYSTEMD_INCLUDE_DIRS}
-                                                        ${CMAKE_SOURCE_DIR}/src
-                                                        ${CMAKE_SOURCE_DIR}/include)
-target_link_libraries(sdbus-c++-unit-tests ${SYSTEMD_LIBRARIES} gmock gmock_main)
+add_executable(sdbus-c++-unit-tests ${UNITTESTS_SRCS})
+target_compile_definitions(sdbus-c++-unit-tests PRIVATE LIBSYSTEMD_VERSION=${LIBSYSTEMD_VERSION})
+target_link_libraries(sdbus-c++-unit-tests sdbus-c++-objlib gmock gmock_main)
 
 add_executable(sdbus-c++-integration-tests ${INTEGRATIONTESTS_SRCS})
-target_compile_definitions(sdbus-c++-integration-tests PRIVATE LIBSYSTEMD_VERSION=${SYSTEMD_VERSION})
+target_compile_definitions(sdbus-c++-integration-tests PRIVATE LIBSYSTEMD_VERSION=${LIBSYSTEMD_VERSION})
 target_link_libraries(sdbus-c++-integration-tests sdbus-c++ gmock gmock_main)
 
 # Manual performance and stress tests
