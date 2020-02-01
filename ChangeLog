@@ -138,3 +138,7 @@ v0.7.7
 
 v0.7.8
 - Switch from thread_local to global bus instance that is used to create Variant instances (thread_local caused issues with Variant in very special inter-thread situations)
+
+v0.8.0
+- [[Breaking ABI change]]  Implement support for input & output parameter names for D-Bus methods and signals, which are used in introspection
+- Explain better in tutorial the design and how to use connections in relation to objects and proxies
