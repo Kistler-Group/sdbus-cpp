@@ -69,7 +69,7 @@ TEST(AVariant, CanBeConstructedFromAComplexValue)
     using ComplexType = std::map<uint64_t, std::vector<sdbus::Struct<std::string, double>>>;
     ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{sdbus::make_struct("hello"s, ANY_DOUBLE), sdbus::make_struct("world"s, ANY_DOUBLE)}} };
 
-    ASSERT_NO_THROW(sdbus::Variant(value));
+    ASSERT_NO_THROW(sdbus::Variant{value});
 }
 
 TEST(AVariant, CanBeCopied)

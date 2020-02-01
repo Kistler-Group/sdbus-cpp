@@ -488,7 +488,7 @@ namespace sdbus {
         static const std::string str()
         {
             std::string signature;
-            (signature += ... += signature_of<std::decay_t<_Types>>::str());
+            (void)(signature += ... += signature_of<std::decay_t<_Types>>::str());
             return signature;
         }
     };

@@ -50,32 +50,32 @@ public:
 
 protected:
 
-    void noArgNoReturn() const
+    void noArgNoReturn() const override
     {
     }
 
-    int32_t getInt() const
+    int32_t getInt() const override
     {
         return INT32_VALUE;
     }
 
-    std::tuple<uint32_t, std::string> getTuple() const
+    std::tuple<uint32_t, std::string> getTuple() const override
     {
         return std::make_tuple(UINT32_VALUE, STRING_VALUE);
     }
 
-    double multiply(const int64_t& a, const double& b) const
+    double multiply(const int64_t& a, const double& b) const override
     {
         return a * b;
     }
 
-    void multiplyWithNoReply(const int64_t& a, const double& b) const
+    void multiplyWithNoReply(const int64_t& a, const double& b) const override
     {
         m_multiplyResult = a * b;
         m_wasMultiplyCalled = true;
     }
 
-    std::vector<int16_t> getInts16FromStruct(const sdbus::Struct<uint8_t, int16_t, double, std::string, std::vector<int16_t>>& x) const
+    std::vector<int16_t> getInts16FromStruct(const sdbus::Struct<uint8_t, int16_t, double, std::string, std::vector<int16_t>>& x) const override
     {
         std::vector<int16_t> res{x.get<1>()};
         auto y = std::get<std::vector<int16_t>>(x);
@@ -83,13 +83,13 @@ protected:
         return res;
     }
 
-    sdbus::Variant processVariant(sdbus::Variant& v)
+    sdbus::Variant processVariant(sdbus::Variant& v) override
     {
         sdbus::Variant res = static_cast<int32_t>(v.get<double>());
         return res;
     }
 
-    std::map<int32_t, sdbus::Variant> getMapOfVariants(const std::vector<int32_t>& x, const sdbus::Struct<sdbus::Variant, sdbus::Variant>& y) const
+    std::map<int32_t, sdbus::Variant> getMapOfVariants(const std::vector<int32_t>& x, const sdbus::Struct<sdbus::Variant, sdbus::Variant>& y) const override
     {
         std::map<int32_t, sdbus::Variant> res;
         for (auto item : x)
@@ -99,12 +99,12 @@ protected:
         return res;
     }
 
-    sdbus::Struct<std::string, sdbus::Struct<std::map<int32_t, int32_t>>> getStructInStruct() const
+    sdbus::Struct<std::string, sdbus::Struct<std::map<int32_t, int32_t>>> getStructInStruct() const override
     {
         return sdbus::make_struct(STRING_VALUE, sdbus::make_struct(std::map<int32_t, int32_t>{{INT32_VALUE, INT32_VALUE}}));
     }
 
-    int32_t sumStructItems(const sdbus::Struct<uint8_t, uint16_t>& a, const sdbus::Struct<int32_t, int64_t>& b)
+    int32_t sumStructItems(const sdbus::Struct<uint8_t, uint16_t>& a, const sdbus::Struct<int32_t, int64_t>& b) override
     {
         int32_t res{0};
         res += std::get<0>(a) + std::get<1>(a);
@@ -112,7 +112,7 @@ protected:
         return res;
     }
 
-    uint32_t sumVectorItems(const std::vector<uint16_t>& a, const std::vector<uint64_t>& b)
+    uint32_t sumVectorItems(const std::vector<uint16_t>& a, const std::vector<uint64_t>& b) override
     {
         uint32_t res{0};
         for (auto x : a)
@@ -126,13 +126,13 @@ protected:
         return res;
     }
 
-    uint32_t doOperation(uint32_t param)
+    uint32_t doOperation(uint32_t param) override
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(param));
         return param;
     }
 
-    void doOperationAsync(uint32_t param, sdbus::Result<uint32_t> result)
+    void doOperationAsync(uint32_t param, sdbus::Result<uint32_t> result) override
     {
         if (param == 0)
         {
@@ -150,20 +150,20 @@ protected:
         }
     }
 
-    sdbus::Signature getSignature() const
+    sdbus::Signature getSignature() const override
     {
         return SIGNATURE_VALUE;
     }
-    sdbus::ObjectPath getObjectPath() const
+    sdbus::ObjectPath getObjectPath() const override
     {
         return OBJECT_PATH_VALUE;
     }
-    sdbus::UnixFd getUnixFd() const
+    sdbus::UnixFd getUnixFd() const override
     {
         return sdbus::UnixFd{UNIX_FD_VALUE};
     }
 
-    ComplexType getComplex() const
+    ComplexType getComplex() const override
     {
         return { // map
             {
@@ -191,7 +191,7 @@ protected:
         };
     }
 
-    void throwError() const
+    void throwError() const override
     {
         m_wasThrowErrorCalled = true;
         throw sdbus::createError(1, "A test error occurred");
@@ -204,27 +204,27 @@ protected:
         emitSignalWithMap({});
     }
 
-    std::string state()
+    std::string state() override
     {
         return m_state;
     }
 
-    uint32_t action()
+    uint32_t action() override
     {
         return m_action;
     }
 
-    void action(const uint32_t& value)
+    void action(const uint32_t& value) override
     {
         m_action = value;
     }
 
-    bool blocking()
+    bool blocking() override
     {
         return m_blocking;
     }
 
-    void blocking(const bool& value)
+    void blocking(const bool& value) override
     {
         m_blocking = value;
     }

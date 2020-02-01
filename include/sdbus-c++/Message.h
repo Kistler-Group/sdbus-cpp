@@ -71,7 +71,7 @@ namespace sdbus {
      * of @c IObject and @c IProxy.
      *
      ***********************************************/
-    class Message
+    class [[nodiscard]] Message
     {
     public:
         Message& operator<<(bool item);
@@ -275,7 +275,7 @@ namespace sdbus {
         template <typename... _Args>
         void serialize_pack(Message& msg, _Args&&... args)
         {
-            (msg << ... << args);
+            (void)(msg << ... << args);
         }
 
         template <class _Tuple, std::size_t... _Is>
@@ -367,7 +367,7 @@ namespace sdbus {
         template <typename... _Args>
         void deserialize_pack(Message& msg, _Args&... args)
         {
-            (msg >> ... >> args);
+            (void)(msg >> ... >> args);
         }
 
         template <class _Tuple, std::size_t... _Is>

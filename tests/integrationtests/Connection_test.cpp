@@ -47,7 +47,7 @@ using ::testing::Eq;
 
 TEST(Connection, CanBeDefaultConstructed)
 {
-    ASSERT_NO_THROW(sdbus::createConnection());
+    ASSERT_NO_THROW(auto con = sdbus::createConnection());
 }
 
 TEST(Connection, CanRequestRegisteredDbusName)
