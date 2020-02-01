@@ -353,27 +353,33 @@ The design of D-Bus connections in sdbus-c++ allows for certain flexibility and 
 
 How shall we use connections in relation to D-Bus objects and object proxies?
 
-A D-Bus connection is represented by a `IConnection` instance. Each connection needs an event loop being run upon it. So it needs a thread handling the event loop. This thread serves all incoming and outgoing messages and all communication towards D-Bus daemon.
+A D-Bus connection is represented by a `IConnection` instance. Each connection needs an event loop being run upon it. So it needs a thread handling the event loop. This thread serves all incoming and outgoing messages and all communication towards D-Bus daemon. One process can have one but also multiple D-Bus connections (we just have to make certain that the connections with assigned bus names don't share a common name; the name must be unique).
 
-One process can have multiple D-Bus connections, with assigned unique bus names or without, as long as those with assigned bus names do not share a common bus name.
+A typical use case for most services is **one** D-Bus connection in the application. The application runs event loop on that connection. When creating objects or proxies, the application provides reference of that connection to those objects and proxies. This means all these objects and proxies share the same connection. This is nicely scalable, because with whatever number of objects or proxies, there is only one connection and one event loop thread. Yet, services that provide objects at various bus names have to create and maintain multiple D-Bus connections, each with the unique bus name.
 
-A D-Bus connection can be created for and used exclusively by one D-Bus object (represented by one `IObject` instance) or one D-Bus proxy (represented by one `IProxy` instance), but can very well be used by and shared across multiple objects, multiple proxies or even both multiple objects and proxies at the same time. When shared, one must bear in mind that the access to the connection is mutually exclusive and is serialized. This means, for example, that if an object's callback is going to be invoked for an incoming remote method call and in another thread we use a proxy to call remote method in another process, the threads are contending and only one can go on while the other must wait and can only proceed after the first one has finished, because both are using a shared resource -- the connection.
+The connection is thread-safe and objects and proxies can invoke operations on it from multiple threads simultaneously, but the operations are serialized. This means, for example, that if an object's callback for an incoming remote method call is going to be invoked in an event loop thread, and in another thread we use a proxy to call remote method in another process, the threads are contending and only one can go on while the other must wait and can only proceed after the first one has finished, because both are using a shared resource -- the connection.
 
-The former case (1:1) is one extreme; it's usually simple, has zero resource contention, but hurts scalability (for example, 50 proxies in our program need 50 D-Bus connections and 50 event loop threads upon them). The latter case (1:N) is the other extreme -- all D-Bus objects and proxies share one single connection. This is the most scalable solution (since, for example, 5 or 200 objects/proxies use always one single connection), but may increase contention and hurt concurrency (since only one of all those objects/proxies can work with the connection at a time). And then there are limitless options between the two (for example, we can use one connection for all objects, and another connection for all proxies in our service...). sdbus-c++ gives its users freedom to choose whatever approach is more suitable to them in their application at fine granularity.
+We should bear that in mind when designing more complex, multi-threaded services with high parallelism. If we have undesired contention on a connection, creating a specific, dedicated connection for a hot spot helps to increase concurrency. sdbus-c++ provides us freedom to create as many connections as we want and assign objects and proxies to those connections at our will. We, as application developers, choose whatever approach is more suitable to us at quite a fine granularity.
 
-How can we use connections from the server and the client perspective?
+So, more technically, how can we use connections from the server and the client perspective?
 
-* On the *server* side, we generally need to create D-Bus objects and publish their APIs. For that we first need a connection with a unique bus name. We need to create the D-Bus connection manually ourselves, request bus name on it, and manually launch its event loop (in a blocking way, through `enterProcessingLoop()`, or non-blocking async way, through `enterProcessingLoopAsync()`). At any time before or after running the event loop on the connection, we can create and "hook", as well as remove, objects and proxies upon that connection.
+On the **server** side, we generally need to create D-Bus objects and publish their APIs. For that we first need a connection with a unique bus name. We need to create the D-Bus connection manually ourselves, request bus name on it, and manually launch its event loop:
 
-* On the *client* side, for our D-Bus object proxies, we have more options (corresponding to three overloads of the `createProxy()` factory):
+  * either in a blocking way, through `enterProcessingLoop()`,  
+  * or in a non-blocking async way, through `enterProcessingLoopAsync()`),
+  * or, when we have our own implementation of an event loop (e.g. we are using sd-event event loop), we can ask the connection for its underlying fd and use that fd in our loop.
 
-    * We don't bother about any connection when creating a proxy. For each proxy instance sdbus-c++ also creates an internal connection instance to be used just by this proxy, and it will be a *system bus* connection. Additionally, an event loop thread for that connection is created and run internally.
+Of course, at any time before or after running the event loop on the connection, we can create and "hook", as well as remove, objects and proxies upon that connection.
 
-      This hurts scalability (see discussion above), but our code is simpler, and since each proxy has its own connection, there is zero contention.
+On the **client** side we have more options when creating D-Bus proxies. That corresponds to three overloads of the `createProxy()` factory:
 
-    * We create a connection explicitly by ourselves and `std::move` it to the proxy object factory. The proxy becomes an owner of this connection, and will run the event loop on that connection. This is the same as in the above bullet point, but with a flexibility that we can choose the bus type (system, session bus).
+  * In case we (the application) already maintain a D-Bus connection, e.g. because we a D-Bus service anyway, the simple and typical approach is to create proxy upon that connection. The proxy will share the connection with others. So we pass connection reference to proxy factory. With this approach we must of course ensure that the connection exists as long as the proxy exists.
+  
+  * Or -- and this is typical when we have a simple D-Bus client application -- we have another option: we let proxy maintain its own connection (and an associated thread):
+  
+    * We either create the connection ourselves and `std::move` it to the proxy object factory. The proxy becomes an owner of this connection, and will run the event loop on that connection. This had the advantage that we may choose the type of connection (system, session, remote).
 
-    * We are always full owners of the connection. We create the connection, and a proxy only takes and keeps a reference to it. We take care of the event loop upon that connection (and we must ensure the connection exists as long as all its users exist).
+    * Or we don't bother about any connection at all when creating a proxy (the factory overload with no connection parameter). Under the hood, the proxy creates its own *system bus* connection, creates a separate thread and runs an event loop in it. This is **the simplest approach** for non-complex D-Bus clients. For more complex ones, with big number of proxies, this hurts scalability but may improve concurrency (see discussion higher above), so we should make a conscious choice.
 
 Implementing the Concatenator example using convenience sdbus-c++ API layer
 ---------------------------------------------------------------------------
