@@ -88,38 +88,7 @@ namespace sdbus {
     }
 
     template <typename _Function>
-    inline std::enable_if_t<!is_async_method_v<_Function>, MethodRegistrator&>
-    MethodRegistrator::implementedAs(_Function&& callback)
-    {
-        inputSignature_ = signature_of_function_input_arguments<_Function>::str();
-        outputSignature_ = signature_of_function_output_arguments<_Function>::str();
-        methodCallback_ = [callback = std::forward<_Function>(callback)](MethodCall call)
-        {
-            // Create a tuple of callback input arguments' types, which will be used
-            // as a storage for the argument values deserialized from the message.
-            tuple_of_function_input_arg_types_t<_Function> inputArgs;
-
-            // Deserialize input arguments from the message into the tuple
-            call >> inputArgs;
-
-            // Invoke callback with input arguments from the tuple.
-            // For callbacks returning a non-void value, `apply' also returns that value.
-            // For callbacks returning void, `apply' returns an empty tuple.
-            auto ret = sdbus::apply(callback, inputArgs); // We don't yet have C++17's std::apply :-(
-
-            // The return value is stored to the reply message.
-            // In case of void functions, ret is an empty tuple and thus nothing is stored.
-            auto reply = call.createReply();
-            reply << ret;
-            reply.send();
-        };
-
-        return *this;
-    }
-
-    template <typename _Function>
-    inline std::enable_if_t<is_async_method_v<_Function>, MethodRegistrator&>
-    MethodRegistrator::implementedAs(_Function&& callback)
+    MethodRegistrator& MethodRegistrator::implementedAs(_Function&& callback)
     {
         inputSignature_ = signature_of_function_input_arguments<_Function>::str();
         outputSignature_ = signature_of_function_output_arguments<_Function>::str();
@@ -132,8 +101,22 @@ namespace sdbus {
             // Deserialize input arguments from the message into the tuple.
             call >> inputArgs;
 
-            // Invoke callback with input arguments from the tuple.
-            sdbus::apply(callback, typename function_traits<_Function>::async_result_t{std::move(call)}, std::move(inputArgs));
+            if constexpr (!is_async_method_v<_Function>)
+            {
+                // Invoke callback with input arguments from the tuple.
+                auto ret = sdbus::apply(callback, inputArgs);
+
+                // Store output arguments to the reply message and send it back.
+                auto reply = call.createReply();
+                reply << ret;
+                reply.send();
+            }
+            else
+            {
+                // Invoke callback with input arguments from the tuple and with result object to be set later
+                using AsyncResult = typename function_traits<_Function>::async_result_t;
+                sdbus::apply(callback, AsyncResult{std::move(call)}, std::move(inputArgs));
+            }
         };
 
         return *this;
@@ -147,8 +130,10 @@ namespace sdbus {
     }
 
     template <typename... _String>
-    inline std::enable_if_t<are_strings_v<_String...>, MethodRegistrator&> MethodRegistrator::withInputParamNames(_String... paramNames)
+    inline MethodRegistrator& MethodRegistrator::withInputParamNames(_String... paramNames)
     {
+        static_assert(std::conjunction_v<std::is_convertible<_String, std::string>...>, "Parameter names must be (convertible to) strings");
+
         return withInputParamNames({paramNames...});
     }
 
@@ -160,8 +145,10 @@ namespace sdbus {
     }
 
     template <typename... _String>
-    inline std::enable_if_t<are_strings_v<_String...>, MethodRegistrator&> MethodRegistrator::withOutputParamNames(_String... paramNames)
+    inline MethodRegistrator& MethodRegistrator::withOutputParamNames(_String... paramNames)
     {
+        static_assert(std::conjunction_v<std::is_convertible<_String, std::string>...>, "Parameter names must be (convertible to) strings");
+
         return withOutputParamNames({paramNames...});
     }
 
@@ -245,9 +232,9 @@ namespace sdbus {
     }
 
     template <typename... _Args, typename... _String>
-    inline std::enable_if_t<are_strings_v<_String...>, SignalRegistrator&>
-    SignalRegistrator::withParameters(_String... paramNames)
+    inline SignalRegistrator& SignalRegistrator::withParameters(_String... paramNames)
     {
+        static_assert(std::conjunction_v<std::is_convertible<_String, std::string>...>, "Parameter names must be (convertible to) strings");
         static_assert(sizeof...(_Args) == sizeof...(_String), "Numbers of signal parameters and their names don't match");
 
         return withParameters<_Args...>({paramNames...});
@@ -604,7 +591,7 @@ namespace sdbus {
                 reply >> args;
 
             // Invoke callback with input arguments from the tuple.
-            sdbus::apply(callback, error, args); // TODO: Use std::apply when switching to full C++17 support
+            sdbus::apply(callback, error, args);
         };
 
         proxy_.callMethod(method_, std::move(asyncReplyHandler), timeout_);
@@ -644,7 +631,7 @@ namespace sdbus {
             signal >> signalArgs;
 
             // Invoke callback with input arguments from the tuple.
-            sdbus::apply(callback, signalArgs); // We don't yet have C++17's std::apply :-(
+            sdbus::apply(callback, signalArgs);
         });
     }
 

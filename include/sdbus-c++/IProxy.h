@@ -178,7 +178,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        MethodInvoker callMethod(const std::string& methodName);
+        [[nodiscard]] MethodInvoker callMethod(const std::string& methodName);
 
         /*!
          * @brief Calls method on the proxied D-Bus object asynchronously
@@ -202,7 +202,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        AsyncMethodInvoker callMethodAsync(const std::string& methodName);
+        [[nodiscard]] AsyncMethodInvoker callMethodAsync(const std::string& methodName);
 
         /*!
          * @brief Registers signal handler for a given signal of the proxied D-Bus object
@@ -222,7 +222,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        SignalSubscriber uponSignal(const std::string& signalName);
+        [[nodiscard]] SignalSubscriber uponSignal(const std::string& signalName);
 
         /*!
          * @brief Gets value of a property of the proxied D-Bus object
@@ -241,7 +241,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        PropertyGetter getProperty(const std::string& propertyName);
+        [[nodiscard]] PropertyGetter getProperty(const std::string& propertyName);
 
         /*!
          * @brief Sets value of a property of the proxied D-Bus object
@@ -260,7 +260,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        PropertySetter setProperty(const std::string& propertyName);
+        [[nodiscard]] PropertySetter setProperty(const std::string& propertyName);
     };
 
     // Out-of-line member definitions
@@ -323,9 +323,9 @@ namespace sdbus {
      * auto proxy = sdbus::createProxy(connection, "com.kistler.foo", "/com/kistler/foo");
      * @endcode
      */
-    std::unique_ptr<sdbus::IProxy> createProxy( sdbus::IConnection& connection
-                                              , std::string destination
-                                              , std::string objectPath );
+    [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( sdbus::IConnection& connection
+                                                            , std::string destination
+                                                            , std::string objectPath );
 
     /*!
      * @brief Creates a proxy object for a specific remote D-Bus object
@@ -346,9 +346,9 @@ namespace sdbus {
      * auto proxy = sdbus::createProxy(std::move(connection), "com.kistler.foo", "/com/kistler/foo");
      * @endcode
      */
-    std::unique_ptr<sdbus::IProxy> createProxy( std::unique_ptr<sdbus::IConnection>&& connection
-                                              , std::string destination
-                                              , std::string objectPath );
+    [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( std::unique_ptr<sdbus::IConnection>&& connection
+                                                            , std::string destination
+                                                            , std::string objectPath );
 
     /*!
      * @brief Creates a proxy object for a specific remote D-Bus object
@@ -367,8 +367,8 @@ namespace sdbus {
      * auto proxy = sdbus::createProxy("com.kistler.foo", "/com/kistler/foo");
      * @endcode
      */
-    std::unique_ptr<sdbus::IProxy> createProxy( std::string destination
-                                              , std::string objectPath );
+    [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( std::string destination
+                                                            , std::string objectPath );
 
 }
 

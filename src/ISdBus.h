@@ -30,7 +30,7 @@
 
 #include <systemd/sd-bus.h>
 
-namespace sdbus { namespace internal {
+namespace sdbus::internal {
 
     class ISdBus
     {
@@ -84,6 +84,6 @@ namespace sdbus { namespace internal {
         virtual sd_bus *sd_bus_flush_close_unref(sd_bus *bus) = 0;
     };
 
-}}
+}
 
 #endif //SDBUS_CXX_ISDBUS_H

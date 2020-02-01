@@ -245,11 +245,9 @@ namespace sdbus {
 
         static const std::string str()
         {
-            std::initializer_list<std::string> signatures{signature_of<_ValueTypes>::str()...};
             std::string signature;
             signature += "(";
-            for (const auto& item : signatures)
-                signature += item;
+            (signature += ... += signature_of<_ValueTypes>::str());
             signature += ")";
             return signature;
         }
@@ -489,11 +487,8 @@ namespace sdbus {
     {
         static const std::string str()
         {
-            // TODO: This could be a fold expression in C++17...
-            std::initializer_list<std::string> signatures{signature_of<std::decay_t<_Types>>::str()...};
             std::string signature;
-            for (const auto& item : signatures)
-                signature += item;
+            (signature += ... += signature_of<std::decay_t<_Types>>::str());
             return signature;
         }
     };
@@ -536,27 +531,17 @@ namespace sdbus {
             return std::forward<_Function>(f)(e, std::get<_I>(std::forward<_Tuple>(t))...);
         }
 
-        // Version of apply_impl for functions returning non-void values.
-        // In this case just forward function return value.
+        // For non-void returning functions, apply_impl simply returns function return value (a tuple of values).
+        // For void-returning functions, apply_impl returns an empty tuple.
         template <class _Function, class _Tuple, std::size_t... _I>
         constexpr decltype(auto) apply_impl( _Function&& f
                                            , _Tuple&& t
-                                           , std::index_sequence<_I...>
-                                           , std::enable_if_t<!std::is_void<function_result_t<_Function>>::value>* = nullptr)
+                                           , std::index_sequence<_I...> )
         {
-            return std::forward<_Function>(f)(std::get<_I>(std::forward<_Tuple>(t))...);
-        }
-
-        // Version of apply_impl for functions returning void.
-        // In this case, to have uniform code on the caller side, return empty tuple, our synonym for `void'.
-        template <class _Function, class _Tuple, std::size_t... _I>
-        constexpr decltype(auto) apply_impl( _Function&& f
-                                           , _Tuple&& t
-                                           , std::index_sequence<_I...>
-                                           , std::enable_if_t<std::is_void<function_result_t<_Function>>::value>* = nullptr)
-        {
-            std::forward<_Function>(f)(std::get<_I>(std::forward<_Tuple>(t))...);
-            return std::tuple<>{};
+            if constexpr (!std::is_void_v<function_result_t<_Function>>)
+                return std::forward<_Function>(f)(std::get<_I>(std::forward<_Tuple>(t))...);
+            else
+                return std::forward<_Function>(f)(std::get<_I>(std::forward<_Tuple>(t))...), std::tuple<>{};
         }
     }
 

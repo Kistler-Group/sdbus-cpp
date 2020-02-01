@@ -37,8 +37,7 @@
 #include <mutex>
 #include <condition_variable>
 
-namespace sdbus {
-namespace internal {
+namespace sdbus::internal {
 
     class Proxy
         : public IProxy
@@ -122,13 +121,13 @@ namespace internal {
 
             bool addCall(void* slot, std::unique_ptr<CallData>&& asyncCallData)
             {
-                std::lock_guard<std::mutex> lock(mutex_);
+                std::lock_guard lock(mutex_);
                 return calls_.emplace(slot, std::move(asyncCallData)).second;
             }
 
             bool removeCall(void* slot)
             {
-                std::lock_guard<std::mutex> lock(mutex_);
+                std::lock_guard lock(mutex_);
                 return calls_.erase(slot) > 0;
             }
 
@@ -147,6 +146,6 @@ namespace internal {
         } pendingAsyncCalls_;
     };
 
-}}
+}
 
 #endif /* SDBUS_CXX_INTERNAL_PROXY_H_ */

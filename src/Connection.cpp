@@ -35,7 +35,7 @@
 #include <poll.h>
 #include <sys/eventfd.h>
 
-namespace sdbus { namespace internal {
+namespace sdbus::internal {
 
 Connection::Connection(std::unique_ptr<ISdBus>&& interface, const BusFactory& busFactory)
     : iface_(std::move(interface))
@@ -454,11 +454,10 @@ Connection::LoopExitEventFd::~LoopExitEventFd()
     close(fd);
 }
 
-}}
+}
 
-namespace sdbus {
+namespace sdbus::internal {
 
-namespace internal {
 std::unique_ptr<sdbus::internal::IConnection> createConnection()
 {
     auto connection = sdbus::createConnection();
@@ -466,7 +465,10 @@ std::unique_ptr<sdbus::internal::IConnection> createConnection()
     auto connectionInternal = dynamic_cast<sdbus::internal::IConnection*>(connection.get());
     return std::unique_ptr<sdbus::internal::IConnection>(connectionInternal);
 }
+
 }
+
+namespace sdbus {
 
 std::unique_ptr<sdbus::IConnection> createConnection()
 {

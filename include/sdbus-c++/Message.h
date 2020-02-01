@@ -55,11 +55,7 @@ namespace sdbus {
 
     // Assume the caller has already obtained message ownership
     struct adopt_message_t { explicit adopt_message_t() = default; };
-#ifdef __cpp_inline_variables
     inline constexpr adopt_message_t adopt_message{};
-#else
-    constexpr adopt_message_t adopt_message{};
-#endif
 
     /********************************************//**
      * @class Message
@@ -166,11 +162,7 @@ namespace sdbus {
     };
 
     struct dont_request_slot_t { explicit dont_request_slot_t() = default; };
-#ifdef __cpp_inline_variables
     inline constexpr dont_request_slot_t dont_request_slot{};
-#else
-    constexpr dont_request_slot_t dont_request_slot{};
-#endif
 
     class MethodCall : public Message
     {
@@ -283,10 +275,7 @@ namespace sdbus {
         template <typename... _Args>
         void serialize_pack(Message& msg, _Args&&... args)
         {
-            // Use initializer_list because it guarantees left to right order, and can be empty
-            using _ = std::initializer_list<int>;
-            // We are not interested in the list itself, but in the side effects
-            (void)_{(void(msg << std::forward<_Args>(args)), 0)...};
+            (msg << ... << args);
         }
 
         template <class _Tuple, std::size_t... _Is>
@@ -378,10 +367,7 @@ namespace sdbus {
         template <typename... _Args>
         void deserialize_pack(Message& msg, _Args&... args)
         {
-            // Use initializer_list because it guarantees left to right order, and can be empty
-            using _ = std::initializer_list<int>;
-            // We are not interested in the list itself, but in the side effects
-            (void)_{(void(msg >> args), 0)...};
+            (msg >> ... >> args);
         }
 
         template <class _Tuple, std::size_t... _Is>

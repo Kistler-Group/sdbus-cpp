@@ -178,11 +178,7 @@ namespace sdbus {
     };
 
     struct adopt_fd_t { explicit adopt_fd_t() = default; };
-#ifdef __cpp_inline_variables
     inline constexpr adopt_fd_t adopt_fd{};
-#else
-    constexpr adopt_fd_t adopt_fd{};
-#endif
 
     /********************************************//**
      * @struct UnixFd

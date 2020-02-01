@@ -200,7 +200,7 @@ namespace sdbus {
      *
      * @throws sdbus::Error in case of failure
      */
-    std::unique_ptr<sdbus::IConnection> createConnection();
+    [[nodiscard]] std::unique_ptr<sdbus::IConnection> createConnection();
 
     /*!
      * @brief Creates/opens D-Bus system connection with a name
@@ -210,7 +210,7 @@ namespace sdbus {
      *
      * @throws sdbus::Error in case of failure
      */
-    std::unique_ptr<sdbus::IConnection> createConnection(const std::string& name);
+    [[nodiscard]] std::unique_ptr<sdbus::IConnection> createConnection(const std::string& name);
 
     /*!
      * @brief Creates/opens D-Bus system connection
@@ -219,7 +219,7 @@ namespace sdbus {
      *
      * @throws sdbus::Error in case of failure
      */
-    std::unique_ptr<sdbus::IConnection> createSystemBusConnection();
+    [[nodiscard]] std::unique_ptr<sdbus::IConnection> createSystemBusConnection();
 
     /*!
      * @brief Creates/opens D-Bus system connection with a name
@@ -229,7 +229,7 @@ namespace sdbus {
      *
      * @throws sdbus::Error in case of failure
      */
-    std::unique_ptr<sdbus::IConnection> createSystemBusConnection(const std::string& name);
+    [[nodiscard]] std::unique_ptr<sdbus::IConnection> createSystemBusConnection(const std::string& name);
 
     /*!
      * @brief Creates/opens D-Bus session connection
@@ -238,7 +238,7 @@ namespace sdbus {
      *
      * @throws sdbus::Error in case of failure
      */
-    std::unique_ptr<sdbus::IConnection> createSessionBusConnection();
+    [[nodiscard]] std::unique_ptr<sdbus::IConnection> createSessionBusConnection();
 
     /*!
      * @brief Creates/opens D-Bus session connection with a name
@@ -248,7 +248,7 @@ namespace sdbus {
      *
      * @throws sdbus::Error in case of failure
      */
-    std::unique_ptr<sdbus::IConnection> createSessionBusConnection(const std::string& name);
+    [[nodiscard]] std::unique_ptr<sdbus::IConnection> createSessionBusConnection(const std::string& name);
 
     /*!
      * @brief Creates/opens D-Bus system connection on a remote host using ssh
@@ -258,7 +258,7 @@ namespace sdbus {
      *
      * @throws sdbus::Error in case of failure
      */
-    std::unique_ptr<sdbus::IConnection> createRemoteSystemBusConnection(const std::string& host);
+    [[nodiscard]] std::unique_ptr<sdbus::IConnection> createRemoteSystemBusConnection(const std::string& host);
 }
 
 #endif /* SDBUS_CXX_ICONNECTION_H_ */

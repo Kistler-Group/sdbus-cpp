@@ -37,8 +37,7 @@
 #include <memory>
 #include <cassert>
 
-namespace sdbus {
-namespace internal {
+namespace sdbus::internal {
 
     class Object
         : public IObject
@@ -172,7 +171,6 @@ namespace internal {
         SlotPtr objectManagerSlot_;
     };
 
-}
 }
 
 #endif /* SDBUS_CXX_INTERNAL_OBJECT_H_ */
