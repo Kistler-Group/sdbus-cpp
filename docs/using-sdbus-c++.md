@@ -385,11 +385,11 @@ The convenience API layer abstracts the concept of underlying D-Bus messages awa
 Thus, in the end of the day, the code written using the convenience API is:
 
   - more expressive,
-  - closer to the abstraction level of the problem being solved,
-  - shorter,
+  - at a higher level of abstraction (closer to the abstraction level of the problem being solved),
+  - significantly shorter,
   - almost as fast as one written using the basic API layer.
 
-The code written using this layer expresses *what* it does, rather then *how*. Let's look at code samples.
+The code written using this layer expresses in a declarative way *what* it does, rather then *how*. Let's look at code samples.
 
 ### Server side
 
@@ -505,10 +505,17 @@ When registering methods, calling methods or emitting signals, multiple lines of
 
 sdbus-c++ users shall prefer the convenience API to the lower level, basic API. When feasible, using generated adaptor and proxy stubs is even better. These stubs provide yet another, higher API level built on top of the convenience API. They are described in the following section.
 
+Tip: When registering a D-Bus object, we can additionally provide names of input and output parameters of its methods and names of parameters of its signals. When the object is introspected, these names are listed in the resulting introspection XML, which improves the description of object's interfaces:
+
+```c++
+    concatenator->registerMethod("concatenate").onInterface(interfaceName).withInputParamNames("numbers", "separator").withOutputParamNames("concatenatedString").implementedAs(&concatenate);
+    concatenator->registerSignal("concatenated").onInterface(interfaceName).withParameters<std::string>("concatenatedString");
+```
+
 Implementing the Concatenator example using sdbus-c++-generated stubs
 ---------------------------------------------------------------------
 
-sdbus-c++ ships with the native stub generator tool called `sdbus-c++-xml2cpp`. The tool is very similar to `dbusxx-xml2cpp` tool that comes with the dbus-c++ project.
+sdbus-c++ ships with the native stub generator tool called `sdbus-c++-xml2cpp`. The tool is very similar to `dbusxx-xml2cpp` tool that comes with the dbus-c++ library.
 
 The generator tool takes D-Bus XML IDL description of D-Bus interfaces on its input, and can be instructed to generate one or both of these: an adaptor header file for use on the server side, and a proxy header file for use on the client side. Like this:
 
@@ -569,8 +576,8 @@ protected:
     Concatenator_adaptor(sdbus::IObject& object)
         : object_(object)
     {
-        object_.registerMethod("concatenate").onInterface(INTERFACE_NAME).implementedAs([this](const std::vector<int32_t>& numbers, const std::string& separator){ return this->concatenate(numbers, separator); });
-        object_.registerSignal("concatenated").onInterface(INTERFACE_NAME).withParameters<std::string>();
+        object_.registerMethod("concatenate").onInterface(INTERFACE_NAME).withInputParamNames("numbers", "separator").withOutputParamNames("concatenatedString").implementedAs([this](const std::vector<int32_t>& numbers, const std::string& separator){ return this->concatenate(numbers, separator); });
+        object_.registerSignal("concatenated").onInterface(INTERFACE_NAME).withParameters<std::string>("concatenatedString");
     }
 
     ~Concatenator_adaptor() = default;
@@ -1050,7 +1057,7 @@ Using D-Bus properties
 
 Defining and working with D-Bus properties using XML description is quite easy.
 
-### Defining a property in the XML
+### Defining a property in the IDL
 
 A property element has no arg child element. It just has the attributes name, type and access, which are all mandatory. The access attribute allows the values ‘readwrite’, ‘read’, and ‘write’.
 
