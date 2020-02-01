@@ -36,7 +36,7 @@
 #include <chrono>
 #include <thread>
 
-namespace sdbus { namespace internal {
+namespace sdbus::internal {
 
 Proxy::Proxy(sdbus::internal::IConnection& connection, std::string destination, std::string objectPath)
     : connection_(&connection, [](sdbus::internal::IConnection *){ /* Intentionally left empty */ })
@@ -241,7 +241,7 @@ int Proxy::sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd
     return 1;
 }
 
-}}
+}
 
 namespace sdbus {
 

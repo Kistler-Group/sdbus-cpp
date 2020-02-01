@@ -40,7 +40,7 @@
 #include <atomic>
 #include <mutex>
 
-namespace sdbus { namespace internal {
+namespace sdbus::internal {
 
     class Connection
         : public sdbus::IConnection           // External, public interface
@@ -139,6 +139,6 @@ namespace sdbus { namespace internal {
         LoopExitEventFd loopExitFd_;
     };
 
-}}
+}
 
 #endif /* SDBUS_CXX_INTERNAL_CONNECTION_H_ */

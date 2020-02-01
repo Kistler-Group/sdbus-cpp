@@ -76,12 +76,7 @@ namespace sdbus {
     {
         assert(call_.isValid());
         auto reply = call_.createReply();
-#ifdef __cpp_fold_expressions
         (reply << ... << results);
-#else
-        using _ = std::initializer_list<int>;
-        (void)_{(void(reply << results), 0)...};
-#endif
         reply.send();
     }
 
