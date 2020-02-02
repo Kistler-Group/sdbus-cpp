@@ -42,7 +42,7 @@
 
 namespace sdbus::internal {
 
-    class Connection
+    class Connection final
         : public sdbus::IConnection           // External, public interface
         , public sdbus::internal::IConnection // Internal, private interface
     {
@@ -60,10 +60,10 @@ namespace sdbus::internal {
         void requestName(const std::string& name) override;
         void releaseName(const std::string& name) override;
         std::string getUniqueName() const override;
-        void enterProcessingLoop() override;
-        void enterProcessingLoopAsync() override;
-        void leaveProcessingLoop() override;
-        sdbus::IConnection::PollData getProcessLoopPollData() const override;
+        void enterEventLoop() override;
+        void enterEventLoopAsync() override;
+        void leaveEventLoop() override;
+        PollData getEventLoopPollData() const override;
         bool processPendingRequest() override;
 
         void addObjectManager(const std::string& objectPath) override;
@@ -118,9 +118,9 @@ namespace sdbus::internal {
         static std::string composeSignalMatchFilter( const std::string& objectPath
                                                    , const std::string& interfaceName
                                                    , const std::string& signalName );
-        void notifyProcessingLoopToExit();
+        void notifyEventLoopToExit();
         void clearExitNotification();
-        void joinWithProcessingLoop();
+        void joinWithEventLoop();
         static std::vector</*const */char*> to_strv(const std::vector<std::string>& strings);
 
         struct LoopExitEventFd

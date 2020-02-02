@@ -111,7 +111,7 @@ namespace sdbus {
          *
          * The call is non-blocking. It doesn't wait for the reply. Once the reply arrives,
          * the provided async reply handler will get invoked from the context of the connection
-         * event loop processing thread.
+         * I/O event loop thread.
          *
          * Note: To avoid messing with messages, use higher-level API defined below.
          *
@@ -315,7 +315,7 @@ namespace sdbus {
      * The provided connection will be used by the proxy to issue calls against the object,
      * and signals, if any, will be subscribed to on this connection. The caller still
      * remains the owner of the connection (the proxy just keeps a reference to it), and
-     * should make sure that a processing loop is running on that connection, so the proxy
+     * should make sure that an I/O event loop is running on that connection, so the proxy
      * may receive incoming signals and asynchronous method replies.
      *
      * Code example:

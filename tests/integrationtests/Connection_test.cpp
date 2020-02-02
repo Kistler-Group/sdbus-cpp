@@ -78,13 +78,13 @@ TEST(Connection, CannotReleaseNonrequestedName)
     ASSERT_THROW(connection->releaseName("some.random.nonrequested.name"), sdbus::Error);
 }
 
-TEST(Connection, CanEnterAndLeaveProcessingLoop)
+TEST(Connection, CanEnterAndLeaveEventLoop)
 {
     auto connection = sdbus::createConnection();
     connection->requestName(INTERFACE_NAME);
 
-    std::thread t([&](){ connection->enterProcessingLoop(); });
-    connection->leaveProcessingLoop();
+    std::thread t([&](){ connection->enterEventLoop(); });
+    connection->leaveEventLoop();
 
     t.join();
 

@@ -475,7 +475,7 @@ namespace sdbus {
      * issue signals and provide properties.
      *
      * Creating a D-Bus object instance is (thread-)safe even upon the connection
-     * which is already running its processing loop.
+     * which is already running its I/O event loop.
      *
      * Code example:
      * @code

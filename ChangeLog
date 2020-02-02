@@ -146,3 +146,4 @@ v0.8.0
 v0.8.1
 - Switch to full C++17 support
 - Switch to more modern CMake (>=3.12)
+- Provide better names to event loop-related IConnection methods, keep old ones marked as deprecated for backwards compatibility

@@ -38,7 +38,7 @@ namespace sdbus {
      * @class IConnection
      *
      * An interface to D-Bus bus connection. Incorporates implementation
-     * of both synchronous and asynchronous processing loop.
+     * of both synchronous and asynchronous D-Bus I/O event loop.
      *
      * All methods throw sdbus::Error in case of failure. All methods in
      * this class are thread-aware, but not thread-safe.
@@ -82,31 +82,31 @@ namespace sdbus {
         virtual std::string getUniqueName() const = 0;
 
         /*!
-         * @brief Enters the D-Bus processing loop
+         * @brief Enters I/O event loop on this bus connection
          *
          * The incoming D-Bus messages are processed in the loop. The method
-         * blocks indefinitely, until unblocked via leaveProcessingLoop.
+         * blocks indefinitely, until unblocked through leaveEventLoop().
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void enterProcessingLoop() = 0;
+        virtual void enterEventLoop() = 0;
 
         /*!
-         * @brief Enters the D-Bus processing loop in a separate thread
+         * @brief Enters I/O event loop on this bus connection in a separate thread
          *
-         * The same as enterProcessingLoop, except that it doesn't block
-         * because it runs the loop in a separate thread managed internally.
+         * The same as enterEventLoop, except that it doesn't block
+         * because it runs the loop in a separate, internally managed thread.
          */
-        virtual void enterProcessingLoopAsync() = 0;
+        virtual void enterEventLoopAsync() = 0;
 
         /*!
-         * @brief Leaves the D-Bus processing loop
+         * @brief Leaves the I/O event loop running on this bus connection
          *
-         * Ends the previously started processing loop.
+         * This causes the loop to exit and frees the thread serving the loop
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void leaveProcessingLoop() = 0;
+        virtual void leaveEventLoop() = 0;
 
         /*!
          * @brief Adds an ObjectManager at the specified D-Bus object path
@@ -120,7 +120,7 @@ namespace sdbus {
         virtual void addObjectManager(const std::string& objectPath) = 0;
 
         /*!
-         * @brief Returns parameters you can pass to poll
+         * @brief Returns fd, I/O events and timeout data you can pass to poll
          *
          * To integrate sdbus with your app's own custom event handling system
          * (without the requirement of an extra thread), you can use this
@@ -130,26 +130,31 @@ namespace sdbus {
          * to process the event. This means that all of sdbus's callbacks will
          * arrive on your app's main event thread (opposed to on a thread created
          * by sdbus-c++). If you are unsure what this all means then use
-         * enterProcessingLoop() or enterProcessingLoopAsync() instead.
+         * enterEventLoop() or enterEventLoopAsync() instead.
          *
          * To integrate sdbus-c++ into a gtk app, pass the file descriptor returned
          * by this method to g_main_context_add_poll.
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual PollData getProcessLoopPollData() const = 0;
+        virtual PollData getEventLoopPollData() const = 0;
 
         /*!
          * @brief Process a pending request
          *
+         * @returns true if an event was processed, false if poll should be called
+         *
          * Processes a single dbus event. All of sdbus-c++'s callbacks will be called
          * from within this method. This method should ONLY be used in conjuction
-         * with getProcessLoopPollData(). enterProcessingLoop() and
-         * enterProcessingLoopAsync() will call this method for you, so there is no
-         * need to call it when using these. If you are unsure what this all means then
-         * don't use this method.
+         * with getEventLoopPollData().
+         * This method returns true if an I/O message was processed. This you can try
+         * to call this method again before going to poll on I/O events. The method
+         * returns false if no operations were pending, and the caller should then
+         * poll for I/O events before calling this method again.
+         * enterEventLoop() and enterEventLoopAsync() will call this method for you,
+         * so there is no need to call it when using these. If you are unsure what
+         * this all means then don't use this method.
          *
-         * @returns true if an event was processed
          * @throws sdbus::Error in case of failure
          */
         virtual bool processPendingRequest() = 0;
@@ -184,6 +189,34 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         virtual uint64_t getMethodCallTimeout() const = 0;
+
+        /*!
+         * @copydoc IConnection::enterEventLoop()
+         *
+         * @deprecated This function has been replaced by enterEventLoop()
+         */
+        [[deprecated("This function has been replaced by enterEventLoop()")]] void enterProcessingLoop();
+
+        /*!
+         * @copydoc IConnection::enterProcessingLoopAsync()
+         *
+         * @deprecated This function has been replaced by enterEventLoopAsync()
+         */
+        [[deprecated("This function has been replaced by enterEventLoopAsync()")]] void enterProcessingLoopAsync();
+
+        /*!
+         * @copydoc IConnection::leaveProcessingLoop()
+         *
+         * @deprecated This function has been replaced by leaveEventLoop()
+         */
+        [[deprecated("This function has been replaced by leaveEventLoop()")]] void leaveProcessingLoop();
+
+        /*!
+         * @copydoc IConnection::getProcessLoopPollData()
+         *
+         * @deprecated This function has been replaced by getEventLoopPollData()
+         */
+        [[deprecated("This function has been replaced by getEventLoopPollData()")]] PollData getProcessLoopPollData() const;
     };
 
     template <typename _Rep, typename _Period>
@@ -191,6 +224,26 @@ namespace sdbus {
     {
         auto microsecs = std::chrono::duration_cast<std::chrono::microseconds>(timeout);
         return setMethodCallTimeout(microsecs.count());
+    }
+
+    inline void IConnection::enterProcessingLoop()
+    {
+        enterEventLoop();
+    }
+
+    inline void IConnection::enterProcessingLoopAsync()
+    {
+        enterEventLoopAsync();
+    }
+
+    inline void IConnection::leaveProcessingLoop()
+    {
+        leaveEventLoop();
+    }
+
+    inline IConnection::PollData IConnection::getProcessLoopPollData() const
+    {
+        return getEventLoopPollData();
     }
 
     /*!

@@ -88,8 +88,8 @@ namespace sdbus::internal {
                                                            , sd_bus_message_handler_t callback
                                                            , void* userData ) = 0;
 
-        virtual void enterProcessingLoopAsync() = 0;
-        virtual void leaveProcessingLoop() = 0;
+        virtual void enterEventLoopAsync() = 0;
+        virtual void leaveEventLoop() = 0;
 
         virtual MethodReply tryCallMethodSynchronously(const MethodCall& message, uint64_t timeout) = 0;
     };

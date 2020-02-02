@@ -392,7 +392,7 @@ int main(int argc, char *argv[])
         {
             CelsiusThermometerAdaptor thermometer(con, CELSIUS_THERMOMETER_OBJECT_PATH);
             service2ThreadReady = true;
-            con.enterProcessingLoop();
+            con.enterEventLoop();
         });
 
         auto service1Connection = sdbus::createSystemBusConnection(SERVICE_1_BUS_NAME);
@@ -402,7 +402,7 @@ int main(int argc, char *argv[])
             ConcatenatorAdaptor concatenator(con, CONCATENATOR_OBJECT_PATH);
             FahrenheitThermometerAdaptor thermometer(con, FAHRENHEIT_THERMOMETER_OBJECT_PATH, false);
             service1ThreadReady = true;
-            con.enterProcessingLoop();
+            con.enterEventLoop();
         });
 
         // Wait for both services to export their D-Bus objects
@@ -480,8 +480,8 @@ int main(int argc, char *argv[])
 
             // We could run the loop in a sync way, but we want it to run also when proxies are destroyed for better
             // coverage of multi-threaded scenarios, so we run it async and use condition variable for exit notification
-            //con.enterProcessingLoop();
-            con.enterProcessingLoopAsync();
+            //con.enterEventLoop();
+            con.enterEventLoopAsync();
 
             std::unique_lock<std::mutex> lock(clientThreadExitMutex);
             clientThreadExitCond.wait(lock, [&]{return clientThreadExit;});
@@ -493,17 +493,17 @@ int main(int argc, char *argv[])
 
         std::this_thread::sleep_for(std::chrono::milliseconds(loopDuration));
 
-        //clientConnection->leaveProcessingLoop();
+        //clientConnection->leaveEventLoop();
         std::unique_lock<std::mutex> lock(clientThreadExitMutex);
         clientThreadExit = true;
         lock.unlock();
         clientThreadExitCond.notify_one();
         clientThread.join();
 
-        service1Connection->leaveProcessingLoop();
+        service1Connection->leaveEventLoop();
         service1Thread.join();
 
-        service2Connection->leaveProcessingLoop();
+        service2Connection->leaveEventLoop();
         service2Thread.join();
     }
 

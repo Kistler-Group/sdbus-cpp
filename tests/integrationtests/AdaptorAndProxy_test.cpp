@@ -62,12 +62,12 @@ public:
     static void SetUpTestCase()
     {
         s_connection->requestName(INTERFACE_NAME);
-        s_connection->enterProcessingLoopAsync();
+        s_connection->enterEventLoopAsync();
     }
 
     static void TearDownTestCase()
     {
-        s_connection->leaveProcessingLoop();
+        s_connection->leaveEventLoop();
         s_connection->releaseName(INTERFACE_NAME);
     }
 

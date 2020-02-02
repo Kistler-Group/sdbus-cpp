@@ -97,5 +97,5 @@ int main(int /*argc*/, char */*argv*/[])
     const char* objectPath = "/org/sdbuscpp/perftests";
     PerftestAdaptor server(*connection, objectPath);
 
-    connection->enterProcessingLoop();
+    connection->enterEventLoop();
 }

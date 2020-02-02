@@ -61,7 +61,7 @@ Connection::Connection(std::unique_ptr<ISdBus>&& interface, remote_system_bus_t,
 
 Connection::~Connection()
 {
-    leaveProcessingLoop();
+    Connection::leaveEventLoop();
 }
 
 void Connection::requestName(const std::string& name)
@@ -84,7 +84,7 @@ std::string Connection::getUniqueName() const
     return unique;
 }
 
-void Connection::enterProcessingLoop()
+void Connection::enterEventLoop()
 {
     loopThreadId_ = std::this_thread::get_id();
 
@@ -98,25 +98,25 @@ void Connection::enterProcessingLoop()
 
         auto success = waitForNextRequest();
         if (!success)
-            break; // Exit processing loop
+            break; // Exit I/O event loop
     }
 
     loopThreadId_ = std::thread::id{};
 }
 
-void Connection::enterProcessingLoopAsync()
+void Connection::enterEventLoopAsync()
 {
     if (!asyncLoopThread_.joinable())
-        asyncLoopThread_ = std::thread([this](){ enterProcessingLoop(); });
+        asyncLoopThread_ = std::thread([this](){ enterEventLoop(); });
 }
 
-void Connection::leaveProcessingLoop()
+void Connection::leaveEventLoop()
 {
-    notifyProcessingLoopToExit();
-    joinWithProcessingLoop();
+    notifyEventLoopToExit();
+    joinWithEventLoop();
 }
 
-sdbus::IConnection::PollData Connection::getProcessLoopPollData() const
+Connection::PollData Connection::getEventLoopPollData() const
 {
     ISdBus::PollData pollData;
     auto r = iface_->sd_bus_get_poll_data(bus_.get(), &pollData);
@@ -358,13 +358,13 @@ void Connection::finishHandshake(sd_bus* bus)
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to flush bus on opening", -r);
 }
 
-void Connection::notifyProcessingLoopToExit()
+void Connection::notifyEventLoopToExit()
 {
     assert(loopExitFd_.fd >= 0);
 
     uint64_t value = 1;
     auto r = write(loopExitFd_.fd, &value, sizeof(value));
-    SDBUS_THROW_ERROR_IF(r < 0, "Failed to notify processing loop", -errno);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to notify event loop", -errno);
 }
 
 void Connection::clearExitNotification()
@@ -374,7 +374,7 @@ void Connection::clearExitNotification()
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to read from the event descriptor", -errno);
 }
 
-void Connection::joinWithProcessingLoop()
+void Connection::joinWithEventLoop()
 {
     if (asyncLoopThread_.joinable())
         asyncLoopThread_.join();
@@ -398,7 +398,7 @@ bool Connection::waitForNextRequest()
     assert(bus != nullptr);
     assert(loopExitFd_.fd != 0);
 
-    auto sdbusPollData = getProcessLoopPollData();
+    auto sdbusPollData = getEventLoopPollData();
     struct pollfd fds[] = {{sdbusPollData.fd, sdbusPollData.events, 0}, {loopExitFd_.fd, POLLIN, 0}};
     auto fdsCount = sizeof(fds)/sizeof(fds[0]);
 

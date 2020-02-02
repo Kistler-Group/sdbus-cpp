@@ -135,7 +135,7 @@ The following diagram illustrates the major entities in sdbus-c++.
 
 ![class](sdbus-c++-class-diagram.png)
 
-`IConnection` represents the concept of a D-Bus connection. You can connect to either the system bus or a session bus. Services can assign unique service names to those connections. A processing loop should be run on the connection.
+`IConnection` represents the concept of a D-Bus connection. You can connect to either the system bus or a session bus. Services can assign unique service names to those connections. An I/O event loop should be run on the bus connection.
 
 `IObject` represents the concept of an object that exposes its methods, signals and properties. Its responsibilities are:
 
@@ -262,8 +262,8 @@ int main(int argc, char *argv[])
     concatenator->registerSignal(interfaceName, "concatenated", "s");
     concatenator->finishRegistration();
 
-    // Run the loop on the connection.
-    connection->enterProcessingLoop();
+    // Run the I/O event loop on the bus connection.
+    connection->enterEventLoop();
 }
 ```
 
@@ -363,13 +363,17 @@ We should bear that in mind when designing more complex, multi-threaded services
 
 So, more technically, how can we use connections from the server and the client perspective?
 
+#### Using D-Bus connections on the server side
+
 On the **server** side, we generally need to create D-Bus objects and publish their APIs. For that we first need a connection with a unique bus name. We need to create the D-Bus connection manually ourselves, request bus name on it, and manually launch its event loop:
 
-  * either in a blocking way, through `enterProcessingLoop()`,  
-  * or in a non-blocking async way, through `enterProcessingLoopAsync()`),
-  * or, when we have our own implementation of an event loop (e.g. we are using sd-event event loop), we can ask the connection for its underlying fd and use that fd in our loop.
+  * either in a blocking way, through `enterEventLoop()`,
+  * or in a non-blocking async way, through `enterEventLoopAsync()`,
+  * or, when we have our own implementation of an event loop (e.g. we are using sd-event event loop), we can ask the connection for its underlying fd, I/O events and timeouts through `getEventLoopPollData()` and use that data in our event loop mechanism.
 
 Of course, at any time before or after running the event loop on the connection, we can create and "hook", as well as remove, objects and proxies upon that connection.
+
+#### Using D-Bus connections on the client side
 
 On the **client** side we have more options when creating D-Bus proxies. That corresponds to three overloads of the `createProxy()` factory:
 
@@ -380,6 +384,10 @@ On the **client** side we have more options when creating D-Bus proxies. That co
     * We either create the connection ourselves and `std::move` it to the proxy object factory. The proxy becomes an owner of this connection, and will run the event loop on that connection. This had the advantage that we may choose the type of connection (system, session, remote).
 
     * Or we don't bother about any connection at all when creating a proxy (the factory overload with no connection parameter). Under the hood, the proxy creates its own *system bus* connection, creates a separate thread and runs an event loop in it. This is **the simplest approach** for non-complex D-Bus clients. For more complex ones, with big number of proxies, this hurts scalability but may improve concurrency (see discussion higher above), so we should make a conscious choice.
+
+#### Stopping I/O event loops graciously
+
+A connection with an asynchronous event loop (i.e. one initiated through `enterEventLoopAsync()`) will stop and join its event loop thread automatically in its destructor. An event loop that blocks in the synchronous `enterEventLoop()` call can be unblocked through `leaveEventLoop()` call on the respective bus connection issued from a different thread or from an OS signal handler.
 
 Implementing the Concatenator example using convenience sdbus-c++ API layer
 ---------------------------------------------------------------------------
@@ -447,7 +455,7 @@ int main(int argc, char *argv[])
     concatenator->finishRegistration();
 
     // Run the loop on the connection.
-    connection->enterProcessingLoop();
+    connection->enterEventLoop();
 }
 ```
 
@@ -729,7 +737,7 @@ int main(int argc, char *argv[])
     Concatenator concatenator(*connection, objectPath);
 
     // Run the loop on the connection.
-    connection->enterProcessingLoop();
+    connection->enterEventLoop();
 }
 ```
 
