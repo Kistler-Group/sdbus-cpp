@@ -26,7 +26,7 @@ Introduction
 
 sdbus-c++ is a C++ D-Bus library built on top of [sd-bus](http://0pointer.net/blog/the-new-sd-bus-api-of-systemd.html), a lightweight D-Bus client library implemented within [systemd](https://github.com/systemd/systemd) project. It provides D-Bus functionality on a higher level of abstraction, trying to employ C++ type system to shift as much work as possible from the developer to the compiler.
 
-sdbus-c++ does not cover the entire sd-bus API, but provides tools for implementing the most common functionality - RPC method calls, signals and properties. There is room for additions and improvements, as needed and when needed.
+Although sdbus-c++ covers most of sd-bus API, it does not (yet) fully cover every sd-bus API detail. The focus is put on the most widely used functionality: D-Bus connections, object, proxies, synchronous and asynchronous method calls, signals, and properties. If you are missing a desired functionality, you are welcome to submit an issue, or, best, to contribute to sdbus-c++ by submitting a pull request.
 
 Integrating sdbus-c++ into your project
 ---------------------------------------
