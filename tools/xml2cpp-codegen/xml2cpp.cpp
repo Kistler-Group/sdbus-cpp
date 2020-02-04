@@ -149,7 +149,7 @@ int main(int argc, char **argv)
 
             std::ifstream input(xmlFile);
 
-            if (input.bad())
+            if (input.fail())
             {
                 std::cerr << "Unable to open file " << xmlFile << endl;
                 return 1;
