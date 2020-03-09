@@ -61,8 +61,23 @@ int SdBus::sd_bus_call(sd_bus *bus, sd_bus_message *m, uint64_t usec, sd_bus_err
 int SdBus::sd_bus_call_async(sd_bus *bus, sd_bus_slot **slot, sd_bus_message *m, sd_bus_message_handler_t callback, void *userdata, uint64_t usec)
 {
     std::lock_guard lock(sdbusMutex_);
+    if (usec == 0 || usec == uint64_t(-1) || !notify_)
+        return ::sd_bus_call_async(bus, slot, m, callback, userdata, usec);
 
-    return ::sd_bus_call_async(bus, slot, m, callback, userdata, usec);
+    if (!bus)
+        bus = ::sd_bus_message_get_bus(m);
+
+    auto prevTimeout = uint64_t(0);
+    ::sd_bus_get_timeout(bus, &prevTimeout);
+    auto r = ::sd_bus_call_async(bus, slot, m, callback, userdata, usec);
+    if (r < 0)
+        return r;
+
+    auto currentTimeout = uint64_t(-1);
+    ::sd_bus_get_timeout(bus, &currentTimeout);
+    if (currentTimeout < prevTimeout)
+        notify_(userData_);
+    return r;
 }
 
 int SdBus::sd_bus_message_new(sd_bus *bus, sd_bus_message **m, uint8_t type)
@@ -246,6 +261,21 @@ int SdBus::sd_bus_get_poll_data(sd_bus *bus, PollData* data)
     data->events = static_cast<short int>(r);
 
     r = ::sd_bus_get_timeout(bus, &data->timeout_usec);
+    if (r < 0)
+        return r;
+
+    // Despite what is documented, the timeout returned by ::sd_bus_get_timeout is an absolute time of linux's CLOCK_MONOTONIC clock.
+    // Values 0 and uint64_t(-1) are used as sentinels meaning "non-blocking poll" and "no-timeout", respectively.
+    if (data->timeout_usec != uint64_t(-1) && data->timeout_usec != 0)
+    {
+        struct timespec ts{};
+        r = clock_gettime(CLOCK_MONOTONIC, &ts);
+        if (r < 0)
+            return r;
+        auto now = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::seconds(ts.tv_sec) + std::chrono::nanoseconds(ts.tv_nsec));
+        auto to  = data->timeout_usec > now.count() ? data->timeout_usec - now.count() : 0;
+        data->timeout_usec = to;
+    }
 
     return r;
 }
@@ -258,6 +288,13 @@ int SdBus::sd_bus_flush(sd_bus *bus)
 sd_bus* SdBus::sd_bus_flush_close_unref(sd_bus *bus)
 {
     return ::sd_bus_flush_close_unref(bus);
+}
+
+void SdBus::set_loop_notify(void(*f)(void*), void* d)
+{
+    std::lock_guard lock(sdbusMutex_);
+    notify_ = f;
+    userData_ = d;
 }
 
 }

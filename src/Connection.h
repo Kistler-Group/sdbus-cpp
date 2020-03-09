@@ -123,10 +123,14 @@ namespace sdbus::internal {
         void joinWithEventLoop();
         static std::vector</*const */char*> to_strv(const std::vector<std::string>& strings);
 
-        struct LoopExitEventFd
+        struct LoopEventFd
         {
-            LoopExitEventFd();
-            ~LoopExitEventFd();
+            explicit LoopEventFd(int flag);
+            ~LoopEventFd();
+
+            void set();
+            void clear();
+
             int fd;
         };
 
@@ -136,7 +140,8 @@ namespace sdbus::internal {
         std::thread asyncLoopThread_;
         std::atomic<std::thread::id> loopThreadId_;
         std::mutex loopMutex_;
-        LoopExitEventFd loopExitFd_;
+        LoopEventFd loopExitFd_;
+        LoopEventFd loopNotifyFd_;
     };
 
 }

@@ -75,8 +75,12 @@ public:
     virtual int sd_bus_flush(sd_bus *bus) override;
     virtual sd_bus *sd_bus_flush_close_unref(sd_bus *bus) override;
 
+    void set_loop_notify(void(*)(void* userdata), void* userdata);
+
 private:
     std::recursive_mutex sdbusMutex_;
+    void (*notify_)(void*);
+    void* userData_;
 };
 
 }
