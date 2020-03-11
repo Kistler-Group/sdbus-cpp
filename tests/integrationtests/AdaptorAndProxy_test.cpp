@@ -385,6 +385,20 @@ TEST_F(SdbusTestObject, InvokesMethodAsynchronouslyOnClientSide)
     ASSERT_THAT(future.get(), Eq(100));
 }
 
+TEST_F(SdbusTestObject, CancelsPendingCallOnClientSide)
+{
+    std::promise<uint32_t> promise;
+    auto future = promise.get_future();
+    m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t res, const sdbus::Error* err){ promise.set_value(1); });
+
+    auto pending = m_proxy->doOperationClientSideAsync(0);
+    ASSERT_TRUE(pending.isPending());
+    ASSERT_TRUE(pending.cancel());
+
+    ASSERT_THAT(future.wait_for(200ms), Eq(std::future_status::timeout));
+    ASSERT_FALSE(pending.isPending());
+}
+
 TEST_F(SdbusTestObject, InvokesErroneousMethodAsynchronouslyOnClientSide)
 {
     std::promise<uint32_t> promise;

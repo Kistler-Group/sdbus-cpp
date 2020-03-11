@@ -93,16 +93,33 @@ MethodReply Proxy::callMethod(const MethodCall& message, uint64_t timeout)
     return sendMethodCallMessageAndWaitForReply(message, timeout);
 }
 
-void Proxy::callMethod(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout)
+
+sdbus::PendingCall Proxy::callMethod(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout)
 {
     SDBUS_THROW_ERROR_IF(!message.isValid(), "Invalid async method call message provided", EINVAL);
 
     auto callback = (void*)&Proxy::sdbus_async_reply_handler;
-    auto callData = std::make_unique<AsyncCalls::CallData>(AsyncCalls::CallData{*this, std::move(asyncReplyCallback), {}});
+    auto callData = std::make_shared<AsyncCalls::CallData>(*this, std::move(asyncReplyCallback), nullptr);
+    auto weakData = std::weak_ptr{callData};
 
     callData->slot = message.send(callback, callData.get(), timeout);
+    auto key = callData->slot.get();
+    assert(key);
+    pendingAsyncCalls_.addCall(key, std::move(callData));
+    return PendingCall(weakData, [](void* userdata){
+        auto* callData = static_cast<AsyncCalls::CallData*>(userdata);
+        assert(callData);
+        // Spin in case the loop thread is currently running our reply call back.
+        while (callData->lock.test_and_set())
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
-    pendingAsyncCalls_.addCall(callData->slot.get(), std::move(callData));
+        auto key = callData->slot.get();
+        // We explicitly unref the slot while callData is still alive. If the loop thread is actively processing requests (thereby holding the sdbus mutex),
+        // the call to reset() blocks until the loop thread is done processing and has released the sdbus mutex.
+        // Otoh, once reset() returned, we can safely delete call data since the loop thread no longer references it.
+        callData->slot.reset();
+        callData->proxy.pendingAsyncCalls_.removeCall(key);
+    });
 }
 
 MethodReply Proxy::sendMethodCallMessageAndWaitForReply(const MethodCall& message, uint64_t timeout)
@@ -199,19 +216,25 @@ int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userDat
     auto* asyncCallData = static_cast<AsyncCalls::CallData*>(userData);
     assert(asyncCallData != nullptr);
     assert(asyncCallData->callback);
-    auto& proxy = asyncCallData->proxy;
 
     SCOPE_EXIT
     {
+        asyncCallData->lock.clear();
+
         // Slot may be null if we're doing blocking synchronous call implemented by means of asynchronous call,
         // because in that case the call data is still alive on the stack, we don't need to manage it separately.
         if (asyncCallData->slot)
-            proxy.pendingAsyncCalls_.removeCall(asyncCallData->slot.get());
+            asyncCallData->proxy.pendingAsyncCalls_.removeCall(asyncCallData->slot.get());
+
     };
 
-    auto message = Message::Factory::create<MethodReply>(sdbusMessage, &proxy.connection_->getSdBusInterface());
+    auto message = Message::Factory::create<MethodReply>(sdbusMessage, &asyncCallData->proxy.connection_->getSdBusInterface());
 
     const auto* error = sd_bus_message_get_error(sdbusMessage);
+
+    if (asyncCallData->lock.test_and_set())
+        return 1; // Too late, cancel handler is already running
+
     if (error == nullptr)
     {
         asyncCallData->callback(message, nullptr);

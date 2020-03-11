@@ -193,7 +193,7 @@ namespace sdbus {
         template <typename _Rep, typename _Period>
         AsyncMethodInvoker& withTimeout(const std::chrono::duration<_Rep, _Period>& timeout);
         template <typename... _Args> AsyncMethodInvoker& withArguments(_Args&&... args);
-        template <typename _Function> void uponReplyInvoke(_Function&& callback);
+        template <typename _Function> PendingCall uponReplyInvoke(_Function&& callback);
 
     private:
         IProxy& proxy_;

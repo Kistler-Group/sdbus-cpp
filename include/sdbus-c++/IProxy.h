@@ -38,6 +38,7 @@ namespace sdbus {
     class MethodCall;
     class MethodReply;
     class IConnection;
+    class PendingCall;
 }
 
 namespace sdbus {
@@ -117,7 +118,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void callMethod(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout = 0) = 0;
+        virtual PendingCall callMethod(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout = 0) = 0;
 
         /*!
          * @copydoc IProxy::callMethod(const MethodCall&,async_reply_handler,uint64_t)

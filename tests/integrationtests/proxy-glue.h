@@ -156,9 +156,9 @@ public:
         return result;
     }
 
-    void doOperationClientSideAsync(uint32_t param)
+    sdbus::PendingCall doOperationClientSideAsync(uint32_t param)
     {
-        object_.callMethodAsync("doOperation")
+        return object_.callMethodAsync("doOperation")
                .onInterface(INTERFACE_NAME)
                .withArguments(param)
                .uponReplyInvoke([this](const sdbus::Error* error, uint32_t returnValue)

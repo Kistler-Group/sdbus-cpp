@@ -36,6 +36,26 @@
 
 namespace sdbus {
 
+PendingCall::PendingCall(std::weak_ptr<void> p, void(*cancelFunc)(void*))
+    : ptr_(std::move(p))
+    , cancel_(cancelFunc)
+{
+}
+
+bool PendingCall::cancel()
+{
+    if (auto ptr = ptr_.lock(); ptr && cancel_)
+    {
+        cancel_(ptr.get());
+        return true;
+    }
+    return false;
+}
+bool PendingCall::isPending() const
+{
+    return !ptr_.expired();
+}
+
 Message::Message(internal::ISdBus* sdbus) noexcept
     : sdbus_(sdbus)
 {

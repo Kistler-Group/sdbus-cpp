@@ -58,6 +58,26 @@ namespace sdbus {
     inline constexpr adopt_message_t adopt_message{};
 
     /********************************************//**
+     * @class PendingCall
+     *
+     * A simple handle type for canceling the result delivery of an asynchronous call.
+     ***********************************************/
+    class PendingCall
+    {
+    public:
+        PendingCall(std::weak_ptr<void>, void(*cancelFunc)(void*));
+        //! Returns whether or not the delivery of the call result is still pending.
+        bool isPending() const;
+        //! Cancels delivery if it is still pending. Otherwise, the call has no effect and returns false.
+        //! \return Whether or not delivery was canceled.
+        bool cancel();
+    private:
+        std::weak_ptr<void> ptr_;
+        void (*cancel_)(void*);
+    };
+
+
+    /********************************************//**
      * @class Message
      *
      * Message represents a D-Bus message, which can be either method call message,

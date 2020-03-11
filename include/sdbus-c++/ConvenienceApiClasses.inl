@@ -576,7 +576,7 @@ namespace sdbus {
     }
 
     template <typename _Function>
-    void AsyncMethodInvoker::uponReplyInvoke(_Function&& callback)
+    PendingCall AsyncMethodInvoker::uponReplyInvoke(_Function&& callback)
     {
         assert(method_.isValid()); // onInterface() must be placed/called prior to this function
 
@@ -594,7 +594,7 @@ namespace sdbus {
             sdbus::apply(callback, error, args);
         };
 
-        proxy_.callMethod(method_, std::move(asyncReplyHandler), timeout_);
+        return proxy_.callMethod(method_, std::move(asyncReplyHandler), timeout_);
     }
 
     /*** ---------------- ***/

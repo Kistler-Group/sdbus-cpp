@@ -36,6 +36,7 @@
 #include <unordered_map>
 #include <mutex>
 #include <condition_variable>
+#include <atomic>
 
 namespace sdbus::internal {
 
@@ -52,7 +53,7 @@ namespace sdbus::internal {
 
         MethodCall createMethodCall(const std::string& interfaceName, const std::string& methodName) override;
         MethodReply callMethod(const MethodCall& message, uint64_t timeout) override;
-        void callMethod(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout) override;
+        PendingCall callMethod(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout) override;
 
         void registerSignalHandler( const std::string& interfaceName
                                   , const std::string& signalName
@@ -109,9 +110,16 @@ namespace sdbus::internal {
         public:
             struct CallData
             {
+                CallData(Proxy& p, async_reply_handler h, MethodCall::Slot s)
+                    : proxy(p)
+                    , callback(std::move(h))
+                    , slot(std::move(s))
+                    , lock(ATOMIC_FLAG_INIT)
+                {}
                 Proxy& proxy;
                 async_reply_handler callback;
                 MethodCall::Slot slot;
+                std::atomic_flag lock;
             };
 
             ~AsyncCalls()
@@ -119,7 +127,7 @@ namespace sdbus::internal {
                 clear();
             }
 
-            bool addCall(void* slot, std::unique_ptr<CallData>&& asyncCallData)
+            bool addCall(void* slot, std::shared_ptr<CallData>&& asyncCallData)
             {
                 std::lock_guard lock(mutex_);
                 return calls_.emplace(slot, std::move(asyncCallData)).second;
@@ -141,7 +149,7 @@ namespace sdbus::internal {
             }
 
         private:
-            std::unordered_map<void*, std::unique_ptr<CallData>> calls_;
+            std::unordered_map<void*, std::shared_ptr<CallData>> calls_;
             std::mutex mutex_;
         } pendingAsyncCalls_;
     };
