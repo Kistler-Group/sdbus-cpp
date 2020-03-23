@@ -455,6 +455,18 @@ TEST_F(SdbusTestObject, EmitsSimpleSignalSuccesfully)
     ASSERT_TRUE(waitUntil(m_proxy->m_gotSimpleSignal));
 }
 
+TEST_F(SdbusTestObject, EmitsSimpleSignalToMultipleProxiesSuccesfully)
+{
+    auto proxy1 = std::make_unique<TestingProxy>(*s_connection, INTERFACE_NAME, OBJECT_PATH);
+    auto proxy2 = std::make_unique<TestingProxy>(*s_connection, INTERFACE_NAME, OBJECT_PATH);
+
+    m_adaptor->emitSimpleSignal();
+
+    ASSERT_TRUE(waitUntil(m_proxy->m_gotSimpleSignal));
+    ASSERT_TRUE(waitUntil(proxy1->m_gotSimpleSignal));
+    ASSERT_TRUE(waitUntil(proxy2->m_gotSimpleSignal));
+}
+
 TEST_F(SdbusTestObject, EmitsSignalWithMapSuccesfully)
 {
     m_adaptor->emitSignalWithMap({{0, "zero"}, {1, "one"}});

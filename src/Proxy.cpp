@@ -238,7 +238,7 @@ int Proxy::sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd
 
     callback(message);
 
-    return 1;
+    return 0;
 }
 
 }
