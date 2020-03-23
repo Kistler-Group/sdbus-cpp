@@ -43,6 +43,12 @@ public:
         registerProxy();
     }
 
+    TestingProxy(sdbus::IConnection& connection, std::string destination, std::string objectPath)
+        : ProxyInterfaces(connection, std::move(destination), std::move(objectPath))
+    {
+        registerProxy();
+    }
+
     ~TestingProxy()
     {
         unregisterProxy();
