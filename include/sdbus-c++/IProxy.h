@@ -290,6 +290,10 @@ namespace sdbus {
          * @brief Answers whether the asynchronous call is still pending
          *
          * @return True if the call is pending, false if the call has been fully completed
+         *
+         * Pending call in this context means a call whose results have not arrived,
+         * or have arrived and are currently being handled by the async callback handler.
+         * After the callback handler has completed, the call is deemed completed.
          */
         bool isPending();
 
