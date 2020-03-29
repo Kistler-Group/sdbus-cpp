@@ -385,6 +385,51 @@ TEST_F(SdbusTestObject, InvokesMethodAsynchronouslyOnClientSide)
     ASSERT_THAT(future.get(), Eq(100));
 }
 
+TEST_F(SdbusTestObject, AnswersThatAsyncCallIsPendingIfItIsInProgress)
+{
+    m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t /*res*/, const sdbus::Error* /*err*/){});
+
+    auto call = m_proxy->doOperationClientSideAsync(100);
+
+    ASSERT_TRUE(call.isPending());
+}
+
+TEST_F(SdbusTestObject, CancelsPendingAsyncCallOnClientSide)
+{
+    std::promise<uint32_t> promise;
+    auto future = promise.get_future();
+    m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t /*res*/, const sdbus::Error* /*err*/){ promise.set_value(1); });
+    auto call = m_proxy->doOperationClientSideAsync(100);
+
+    call.cancel();
+
+    ASSERT_THAT(future.wait_for(300ms), Eq(std::future_status::timeout));
+}
+
+TEST_F(SdbusTestObject, AnswersThatAsyncCallIsNotPendingAfterItHasBeenCancelled)
+{
+    std::promise<uint32_t> promise;
+    auto future = promise.get_future();
+    m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t /*res*/, const sdbus::Error* /*err*/){ promise.set_value(1); });
+    auto call = m_proxy->doOperationClientSideAsync(100);
+
+    call.cancel();
+
+    ASSERT_FALSE(call.isPending());
+}
+
+TEST_F(SdbusTestObject, AnswersThatAsyncCallIsNotPendingAfterItHasBeenCompleted)
+{
+    std::promise<uint32_t> promise;
+    auto future = promise.get_future();
+    m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t /*res*/, const sdbus::Error* /*err*/){ promise.set_value(1); });
+
+    auto call = m_proxy->doOperationClientSideAsync(0);
+    (void) future.get(); // Wait for the call to finish
+
+    ASSERT_FALSE(call.isPending());
+}
+
 TEST_F(SdbusTestObject, InvokesErroneousMethodAsynchronouslyOnClientSide)
 {
     std::promise<uint32_t> promise;
