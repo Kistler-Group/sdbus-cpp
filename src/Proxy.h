@@ -52,7 +52,7 @@ namespace sdbus::internal {
 
         MethodCall createMethodCall(const std::string& interfaceName, const std::string& methodName) override;
         MethodReply callMethod(const MethodCall& message, uint64_t timeout) override;
-        void callMethod(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout) override;
+        PendingAsyncCall callMethod(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout) override;
 
         void registerSignalHandler( const std::string& interfaceName
                                   , const std::string& signalName
@@ -81,6 +81,8 @@ namespace sdbus::internal {
         static int sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
 
     private:
+        friend PendingAsyncCall;
+
         std::unique_ptr< sdbus::internal::IConnection
                        , std::function<void(sdbus::internal::IConnection*)>
                        > connection_;
@@ -119,29 +121,42 @@ namespace sdbus::internal {
                 clear();
             }
 
-            bool addCall(void* slot, std::unique_ptr<CallData>&& asyncCallData)
+            bool addCall(void* slot, std::shared_ptr<CallData> asyncCallData)
             {
                 std::lock_guard lock(mutex_);
                 return calls_.emplace(slot, std::move(asyncCallData)).second;
             }
 
-            bool removeCall(void* slot)
+            void removeCall(void* slot)
             {
-                std::lock_guard lock(mutex_);
-                return calls_.erase(slot) > 0;
+                std::unique_lock lock(mutex_);
+                if (auto it = calls_.find(slot); it != calls_.end())
+                {
+                    auto callData = std::move(it->second);
+                    calls_.erase(it);
+                    lock.unlock();
+
+                    // Releasing call slot pointer acquires global sd-bus mutex. We have to perform the release
+                    // out of the `mutex_' critical section here, because if the `removeCall` is called by some
+                    // thread and at the same time Proxy's async reply handler (which already holds global sd-bus
+                    // mutex) is in progress in a different thread, we get double-mutex deadlock.
+                }
             }
 
             void clear()
             {
-                std::unique_lock<std::mutex> lock(mutex_);
+                std::unique_lock lock(mutex_);
                 auto asyncCallSlots = std::move(calls_);
-                // Perform releasing of sd-bus slots outside of the calls_ critical section which avoids
-                // double mutex dead lock when the async reply handler is invoked at the same time.
                 lock.unlock();
+
+                // Releasing call slot pointer acquires global sd-bus mutex. We have to perform the release
+                // out of the `mutex_' critical section here, because if the `clear` is called by some thread
+                // and at the same time Proxy's async reply handler (which already holds global sd-bus
+                // mutex) is in progress in a different thread, we get double-mutex deadlock.
             }
 
         private:
-            std::unordered_map<void*, std::unique_ptr<CallData>> calls_;
+            std::unordered_map<void*, std::shared_ptr<CallData>> calls_;
             std::mutex mutex_;
         } pendingAsyncCalls_;
     };

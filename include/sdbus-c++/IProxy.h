@@ -38,6 +38,10 @@ namespace sdbus {
     class MethodCall;
     class MethodReply;
     class IConnection;
+    class PendingAsyncCall;
+    namespace internal {
+        class Proxy;
+    }
 }
 
 namespace sdbus {
@@ -108,6 +112,7 @@ namespace sdbus {
          * @param[in] message Message representing an async method call
          * @param[in] asyncReplyCallback Handler for the async reply
          * @param[in] timeout Timeout for dbus call in microseconds
+         * @return Cookie for the the pending asynchronous call
          *
          * The call is non-blocking. It doesn't wait for the reply. Once the reply arrives,
          * the provided async reply handler will get invoked from the context of the connection
@@ -117,7 +122,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void callMethod(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout = 0) = 0;
+        virtual PendingAsyncCall callMethod(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout = 0) = 0;
 
         /*!
          * @copydoc IProxy::callMethod(const MethodCall&,async_reply_handler,uint64_t)
@@ -261,6 +266,46 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         [[nodiscard]] PropertySetter setProperty(const std::string& propertyName);
+    };
+
+    /********************************************//**
+     * @class PendingAsyncCall
+     *
+     * PendingAsyncCall represents a simple handle type to cancel the delivery
+     * of the asynchronous D-Bus call result to the application.
+     *
+     * The handle is lifetime-independent from the originating Proxy object.
+     * It's safe to call its methods even after the Proxy has gone.
+     *
+     ***********************************************/
+    class PendingAsyncCall
+    {
+    public:
+        /*!
+         * @brief Cancels the delivery of the pending asynchronous call result
+         *
+         * This function effectively removes the callback handler registered to the
+         * async D-Bus method call result delivery. Does nothing if the call was
+         * completed already, or if the originating Proxy object has gone meanwhile.
+         */
+        void cancel();
+
+        /*!
+         * @brief Answers whether the asynchronous call is still pending
+         *
+         * @return True if the call is pending, false if the call has been fully completed
+         *
+         * Pending call in this context means a call whose results have not arrived, or
+         * have arrived and are currently being processed by the callback handler.
+         */
+        bool isPending() const;
+
+    private:
+        friend internal::Proxy;
+        PendingAsyncCall(std::weak_ptr<void> callData);
+
+    private:
+        std::weak_ptr<void> callData_;
     };
 
     // Out-of-line member definitions
