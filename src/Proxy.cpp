@@ -93,7 +93,7 @@ MethodReply Proxy::callMethod(const MethodCall& message, uint64_t timeout)
     return sendMethodCallMessageAndWaitForReply(message, timeout);
 }
 
-void Proxy::callMethod(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout)
+PendingAsyncCall Proxy::callMethod(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout)
 {
     SDBUS_THROW_ERROR_IF(!message.isValid(), "Invalid async method call message provided", EINVAL);
 
@@ -102,7 +102,10 @@ void Proxy::callMethod(const MethodCall& message, async_reply_handler asyncReply
 
     callData->slot = message.send(callback, callData.get(), timeout);
 
-    pendingAsyncCalls_.addCall(callData->slot.get(), std::move(callData));
+    auto slotPtr = callData->slot.get();
+    pendingAsyncCalls_.addCall(slotPtr, std::move(callData));
+
+    return {*this, slotPtr};
 }
 
 MethodReply Proxy::sendMethodCallMessageAndWaitForReply(const MethodCall& message, uint64_t timeout)
@@ -124,7 +127,7 @@ MethodReply Proxy::sendMethodCallMessageAndWaitForReply(const MethodCall& messag
 void Proxy::SyncCallReplyData::sendMethodReplyToWaitingThread(MethodReply& reply, const Error* error)
 {
     SCOPE_EXIT{ cond_.notify_one(); };
-    std::unique_lock<std::mutex> lock{mutex_};
+    std::unique_lock lock{mutex_};
     SCOPE_EXIT{ arrived_ = true; };
 
     //error_ = nullptr; // Necessary if SyncCallReplyData instance is thread_local
@@ -137,7 +140,7 @@ void Proxy::SyncCallReplyData::sendMethodReplyToWaitingThread(MethodReply& reply
 
 MethodReply Proxy::SyncCallReplyData::waitForMethodReply()
 {
-    std::unique_lock<std::mutex> lock{mutex_};
+    std::unique_lock lock{mutex_};
     cond_.wait(lock, [this](){ return arrived_; });
 
     //arrived_ = false; // Necessary if SyncCallReplyData instance is thread_local
@@ -239,6 +242,26 @@ int Proxy::sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd
     callback(message);
 
     return 0;
+}
+
+}
+
+namespace sdbus {
+
+void PendingAsyncCall::cancel()
+{
+    assert(dynamic_cast<internal::Proxy*>(&proxy_) != nullptr);
+    assert(slot_ != nullptr);
+
+    static_cast<internal::Proxy&>(proxy_).pendingAsyncCalls_.removeCall(slot_);
+}
+
+bool PendingAsyncCall::isPending()
+{
+    assert(dynamic_cast<internal::Proxy*>(&proxy_) != nullptr);
+    assert(slot_ != nullptr);
+
+    return static_cast<internal::Proxy&>(proxy_).pendingAsyncCalls_.existsCall(slot_);
 }
 
 }

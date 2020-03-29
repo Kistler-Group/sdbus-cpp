@@ -173,7 +173,8 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes&
         std::string outArgStr, outArgTypeStr;
         std::tie(outArgStr, outArgTypeStr, std::ignore, std::ignore) = argsToNamesAndTypes(outArgs);
 
-        definitionSS << tab << (async ? "void" : retType) << " " << name << "(" << inArgTypeStr << ")" << endl
+        const std::string realRetType = (async && !dontExpectReply ? "sdbus::PendingAsyncCall" : async ? "void" : retType);
+        definitionSS << tab << realRetType << " " << name << "(" << inArgTypeStr << ")" << endl
                 << tab << "{" << endl;
 
         if (!timeoutValue.empty())
@@ -186,8 +187,8 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes&
             definitionSS << tab << tab << retType << " result;" << endl;
         }
 
-        definitionSS << tab << tab << "proxy_.callMethod" << (async ? "Async" : "") << "(\"" << name << "\")"
-                        ".onInterface(INTERFACE_NAME)";
+        definitionSS << tab << tab << (async && !dontExpectReply ? "return " : "")
+                     << "proxy_.callMethod" << (async ? "Async" : "") << "(\"" << name << "\").onInterface(INTERFACE_NAME)";
 
         if (!timeoutValue.empty())
         {
