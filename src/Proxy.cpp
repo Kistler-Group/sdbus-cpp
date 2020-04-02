@@ -200,13 +200,15 @@ int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userDat
     assert(asyncCallData != nullptr);
     assert(asyncCallData->callback);
     auto& proxy = asyncCallData->proxy;
+    auto slot = asyncCallData->slot.get();
 
     SCOPE_EXIT
     {
-        // Slot may be null if we're doing blocking synchronous call implemented by means of asynchronous call,
-        // because in that case the call data is still alive on the stack, we don't need to manage it separately.
-        if (asyncCallData->slot)
-            proxy.pendingAsyncCalls_.removeCall(asyncCallData->slot.get());
+        // Slot will be nullptr in case of synchronous call. In that case, the call data lives on the call stack,
+        // in another thread. But that thread may have already been woken up by now and cleared its call stack,
+        // so we can't access asyncCallData here. Hence we save the slot pointer at the beginning of this function.
+        if (slot)
+            proxy.pendingAsyncCalls_.removeCall(slot);
     };
 
     auto message = Message::Factory::create<MethodReply>(sdbusMessage, &proxy.connection_->getSdBusInterface());
