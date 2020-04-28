@@ -251,17 +251,33 @@ R"delimiter(<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspectio
    <arg type="a{t(a{ya(obva{is})}gs)}" direction="out"/>
    <annotation name="org.freedesktop.DBus.Deprecated" value="true"/>
   </method>
-  <method name="getInt">
-   <arg type="i" name="anInt" direction="out"/>
+  <method name="getInt">)delimiter"
+#if LIBSYSTEMD_VERSION>=242
+R"delimiter(
+   <arg type="i" name="anInt" direction="out"/>)delimiter"
+#else
+R"delimiter(
+   <arg type="i" direction="out"/>)delimiter"
+#endif
+R"delimiter(
   </method>
   <method name="getInts16FromStruct">
    <arg type="(yndsan)" direction="in"/>
    <arg type="an" direction="out"/>
   </method>
-  <method name="getMapOfVariants">
+  <method name="getMapOfVariants">)delimiter"
+#if LIBSYSTEMD_VERSION>=242
+R"delimiter(
    <arg type="ai" name="x" direction="in"/>
    <arg type="(vv)" name="y" direction="in"/>
-   <arg type="a{iv}" name="aMapOfVariants" direction="out"/>
+   <arg type="a{iv}" name="aMapOfVariants" direction="out"/>)delimiter"
+#else
+R"delimiter(
+   <arg type="ai" direction="in"/>
+   <arg type="(vv)" direction="in"/>
+   <arg type="a{iv}" direction="out"/>)delimiter"
+#endif
+R"delimiter(
   </method>
   <method name="getObjectPath">
    <arg type="o" direction="out"/>
@@ -279,10 +295,19 @@ R"delimiter(<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspectio
   <method name="getUnixFd">
    <arg type="h" direction="out"/>
   </method>
-  <method name="multiply">
+  <method name="multiply">)delimiter"
+#if LIBSYSTEMD_VERSION>=242
+R"delimiter(
    <arg type="x" name="a" direction="in"/>
    <arg type="d" name="b" direction="in"/>
-   <arg type="d" name="result" direction="out"/>
+   <arg type="d" name="result" direction="out"/>)delimiter"
+#else
+R"delimiter(
+   <arg type="x" direction="in"/>
+   <arg type="d" direction="in"/>
+   <arg type="d" direction="out"/>)delimiter"
+#endif
+R"delimiter(
   </method>
   <method name="multiplyWithNoReply">
    <arg type="x" direction="in"/>
