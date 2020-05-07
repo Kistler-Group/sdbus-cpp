@@ -164,6 +164,7 @@ std::tuple<std::string, std::string> AdaptorGenerator::processMethods(const Node
     for (const auto& method : methods)
     {
         auto methodName = method->get("name");
+        auto methodNameSafe = mangle_name(methodName);
 
         auto annotations = getAnnotations(*method);
         bool async{false};
@@ -219,7 +220,7 @@ std::tuple<std::string, std::string> AdaptorGenerator::processMethods(const Node
                 << "[this]("
                 << (async ? "sdbus::Result<" + outArgsToType(outArgs, true) + ">&& result" + (argTypeStr.empty() ? "" : ", ") : "")
                 << argTypeStr
-                << "){ " << (async ? "" : "return ") << "this->" << methodName << "("
+                << "){ " << (async ? "" : "return ") << "this->" << methodNameSafe << "("
                 << (async ? "std::move(result)"s + (argTypeStr.empty() ? "" : ", ") : "")
                 << argStr << "); })"
                 << annotationRegistration << ";" << endl;
@@ -227,7 +228,7 @@ std::tuple<std::string, std::string> AdaptorGenerator::processMethods(const Node
         declarationSS << tab
                 << "virtual "
                 << (async ? "void" : outArgsToType(outArgs))
-                << " " << methodName
+                << " " << methodNameSafe
                 << "("
                 << (async ? "sdbus::Result<" + outArgsToType(outArgs, true) + ">&& result" + (argTypeStr.empty() ? "" : ", ") : "")
                 << argTypeStr
@@ -279,6 +280,7 @@ std::tuple<std::string, std::string> AdaptorGenerator::processSignals(const Node
 
         auto nameWithCapFirstLetter = name;
         nameWithCapFirstLetter[0] = std::toupper(nameWithCapFirstLetter[0]);
+        nameWithCapFirstLetter = mangle_name(nameWithCapFirstLetter);
 
         signalMethodSS << tab << "void emit" << nameWithCapFirstLetter << "(" << argTypeStr << ")" << endl
                 << tab << "{" << endl
@@ -305,6 +307,7 @@ std::tuple<std::string, std::string> AdaptorGenerator::processProperties(const N
     for (const auto& property : properties)
     {
         auto propertyName = property->get("name");
+        auto propertyNameSafe = mangle_name(propertyName);
         auto propertyAccess = property->get("access");
         auto propertySignature = property->get("type");
 
@@ -336,23 +339,23 @@ std::tuple<std::string, std::string> AdaptorGenerator::processProperties(const N
 
         if (propertyAccess == "read" || propertyAccess == "readwrite")
         {
-            registrationSS << ".withGetter([this](){ return this->" << propertyName << "(); })";
+            registrationSS << ".withGetter([this](){ return this->" << propertyNameSafe << "(); })";
         }
 
         if (propertyAccess == "readwrite" || propertyAccess == "write")
         {
             registrationSS
                 << ".withSetter([this](" << propertyTypeArg << ")"
-                   "{ this->" << propertyName << "(" << propertyArg << "); })";
+                   "{ this->" << propertyNameSafe << "(" << propertyArg << "); })";
         }
 
         registrationSS << annotationRegistration;
         registrationSS << ";" << endl;
 
         if (propertyAccess == "read" || propertyAccess == "readwrite")
-            declarationSS << tab << "virtual " << propertyType << " " << propertyName << "() = 0;" << endl;
+            declarationSS << tab << "virtual " << propertyType << " " << propertyNameSafe << "() = 0;" << endl;
         if (propertyAccess == "readwrite" || propertyAccess == "write")
-            declarationSS << tab << "virtual void " << propertyName << "(" << propertyTypeArg << ") = 0;" << endl;
+            declarationSS << tab << "virtual void " << propertyNameSafe << "(" << propertyTypeArg << ") = 0;" << endl;
     }
 
     return std::make_tuple(registrationSS.str(), declarationSS.str());

@@ -135,6 +135,7 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes&
     for (const auto& method : methods)
     {
         auto name = method->get("name");
+        auto nameSafe = mangle_name(name);
         Nodes args = (*method)["arg"];
         Nodes inArgs = args.select("direction" , "in");
         Nodes outArgs = args.select("direction" , "out");
@@ -174,7 +175,7 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes&
         std::tie(outArgStr, outArgTypeStr, std::ignore, std::ignore) = argsToNamesAndTypes(outArgs);
 
         const std::string realRetType = (async && !dontExpectReply ? "sdbus::PendingAsyncCall" : async ? "void" : retType);
-        definitionSS << tab << realRetType << " " << name << "(" << inArgTypeStr << ")" << endl
+        definitionSS << tab << realRetType << " " << nameSafe << "(" << inArgTypeStr << ")" << endl
                 << tab << "{" << endl;
 
         if (!timeoutValue.empty())
@@ -260,6 +261,7 @@ std::string ProxyGenerator::processProperties(const Nodes& properties) const
     for (const auto& property : properties)
     {
         auto propertyName = property->get("name");
+        auto propertyNameSafe = mangle_name(propertyName);
         auto propertyAccess = property->get("access");
         auto propertySignature = property->get("type");
 
@@ -269,7 +271,7 @@ std::string ProxyGenerator::processProperties(const Nodes& properties) const
 
         if (propertyAccess == "read" || propertyAccess == "readwrite")
         {
-            propertySS << tab << propertyType << " " << propertyName << "()" << endl
+            propertySS << tab << propertyType << " " << propertyNameSafe << "()" << endl
                     << tab << "{" << endl;
             propertySS << tab << tab << "return proxy_.getProperty(\"" << propertyName << "\")"
                             ".onInterface(INTERFACE_NAME)";
@@ -278,7 +280,7 @@ std::string ProxyGenerator::processProperties(const Nodes& properties) const
 
         if (propertyAccess == "readwrite" || propertyAccess == "write")
         {
-            propertySS << tab << "void " << propertyName << "(" << propertyTypeArg << ")" << endl
+            propertySS << tab << "void " << propertyNameSafe << "(" << propertyTypeArg << ")" << endl
                     << tab << "{" << endl;
             propertySS << tab << tab << "proxy_.setProperty(\"" << propertyName << "\")"
                             ".onInterface(INTERFACE_NAME)"
