@@ -7,6 +7,7 @@
 #include <map>
 
 #include "generator_utils.h"
+#include "reserved_names.h"
 
 
 std::string underscorize(const std::string& str)
@@ -141,4 +142,12 @@ std::string signature_to_type(const std::string& signature)
     unsigned int i = 0;
     _parse_signature(signature, type, i);
     return type;
+}
+
+std::string mangle_name(const std::string& name)
+{
+    if (reserved_names.find(name) != reserved_names.end())
+        return name + "_";
+    else
+        return name;
 }

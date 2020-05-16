@@ -96,6 +96,7 @@ std::tuple<unsigned, std::string> BaseGenerator::generateNamespaces(const std::s
     {
         std::string nspace;
         getline(ss, nspace, '.');
+        nspace = mangle_name(nspace);
         body << "namespace " << nspace << " {" << endl;
         ++count;
     }
@@ -125,17 +126,18 @@ std::tuple<std::string, std::string, std::string, std::string> BaseGenerator::ar
         {
             argName = "arg" + std::to_string(i);
         }
+        auto argNameSafe = mangle_name(argName);
         auto type = signature_to_type(arg->get("type"));
         argStringsSS << "\"" << argName << "\"";
         if (!async)
         {
-            argSS << argName;
-            argTypeSS << "const " << type << "& " << argName;
+            argSS << argNameSafe;
+            argTypeSS << "const " << type << "& " << argNameSafe;
         }
         else
         {
-            argSS << "std::move(" << argName << ")";
-            argTypeSS << type << " " << argName;
+            argSS << "std::move(" << argNameSafe << ")";
+            argTypeSS << type << " " << argNameSafe;
         }
         typeSS << type;
     }
