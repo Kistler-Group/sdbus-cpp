@@ -111,7 +111,7 @@ protected:
 
         // registration of signals is optional, it is useful because of introspection
         object_.registerSignal("simpleSignal").onInterface(INTERFACE_NAME).markAsDeprecated();
-        // Note: sd-bus of libsystemd up to v244 has a bug where it doesn't generate signal parameter names in introspection XML. Signal param names commented temporarily.
+        // Note: sd-bus of libsystemd up to (including) v244 has a bug where it doesn't generate signal parameter names in introspection XML. Signal param names commented temporarily.
         object_.registerSignal("signalWithMap").onInterface(INTERFACE_NAME).withParameters<std::map<int32_t, std::string>>(/*"aMap"*/);
         object_.registerSignal("signalWithVariant").onInterface(INTERFACE_NAME).withParameters<sdbus::Variant>(/*"aVariant"*/);
 

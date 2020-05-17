@@ -71,7 +71,8 @@ public:
         s_connection->releaseName(INTERFACE_NAME);
     }
 
-    static bool waitUntil(std::atomic<bool>& flag, std::chrono::milliseconds timeout = 5s)
+    template <typename _Fnc>
+    static bool waitUntil(_Fnc&& fnc, std::chrono::milliseconds timeout = 5s)
     {
         std::chrono::milliseconds elapsed{};
         std::chrono::milliseconds step{5ms};
@@ -80,9 +81,14 @@ public:
             elapsed += step;
             if (elapsed > timeout)
                 return false;
-        } while (!flag);
+        } while (!fnc());
 
         return true;
+    }
+
+    static bool waitUntil(std::atomic<bool>& flag, std::chrono::milliseconds timeout = 5s)
+    {
+        return waitUntil([&flag]() -> bool { return flag; }, timeout);
     }
 
 private:
@@ -110,6 +116,8 @@ std::unique_ptr<sdbus::IConnection> AdaptorAndProxyFixture::s_connection = sdbus
 
 }
 
+using SdbusTestObject = AdaptorAndProxyFixture;
+
 /*-------------------------------------*/
 /* --          TEST CASES           -- */
 /*-------------------------------------*/
@@ -126,8 +134,6 @@ TEST(AdaptorAndProxy, CanBeConstructedSuccesfully)
 }
 
 // Methods
-
-using SdbusTestObject = AdaptorAndProxyFixture;
 
 TEST_F(SdbusTestObject, CallsEmptyMethodSuccesfully)
 {
@@ -427,7 +433,7 @@ TEST_F(SdbusTestObject, AnswersThatAsyncCallIsNotPendingAfterItHasBeenCompleted)
     auto call = m_proxy->doOperationClientSideAsync(0);
     (void) future.get(); // Wait for the call to finish
 
-    ASSERT_FALSE(call.isPending());
+    ASSERT_TRUE(waitUntil([&call](){ return !call.isPending(); }));
 }
 
 TEST_F(SdbusTestObject, InvokesErroneousMethodAsynchronouslyOnClientSide)
@@ -679,7 +685,20 @@ TEST_F(SdbusTestObject, EmitsInterfacesAddedSignalForSelectedObjectInterfaces)
         EXPECT_THAT(objectPath, Eq(OBJECT_PATH));
         EXPECT_THAT(interfacesAndProperties, SizeIs(1));
         EXPECT_THAT(interfacesAndProperties.count(INTERFACE_NAME), Eq(1));
+#if LIBSYSTEMD_VERSION<=244
+        // Up to sd-bus v244, all properties are added to the list, i.e. `state', `action', and `blocking' in this case.
         EXPECT_THAT(interfacesAndProperties.at(INTERFACE_NAME), SizeIs(3));
+        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count("state"));
+        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count("action"));
+        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count("blocking"));
+#else
+        // Since v245 sd-bus does not add to the InterfacesAdded signal message the values of properties marked only
+        // for invalidation on change, which makes the behavior consistent with the PropertiesChangedSignal.
+        // So in this specific instance, `action' property is no more added to the list.
+        EXPECT_THAT(interfacesAndProperties.at(INTERFACE_NAME), SizeIs(2));
+        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count("state"));
+        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count("blocking"));
+#endif
         signalReceived = true;
     };
 
@@ -696,7 +715,20 @@ TEST_F(SdbusTestObject, EmitsInterfacesAddedSignalForAllObjectInterfaces)
     {
         EXPECT_THAT(objectPath, Eq(OBJECT_PATH));
         EXPECT_THAT(interfacesAndProperties, SizeIs(5)); // INTERFACE_NAME + 4 standard interfaces
-        EXPECT_THAT(interfacesAndProperties.at(INTERFACE_NAME), SizeIs(3)); // 3 properties under INTERFACE_NAME
+#if LIBSYSTEMD_VERSION<=244
+        // Up to sd-bus v244, all properties are added to the list, i.e. `state', `action', and `blocking' in this case.
+        EXPECT_THAT(interfacesAndProperties.at(INTERFACE_NAME), SizeIs(3));
+        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count("state"));
+        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count("action"));
+        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count("blocking"));
+#else
+        // Since v245 sd-bus does not add to the InterfacesAdded signal message the values of properties marked only
+        // for invalidation on change, which makes the behavior consistent with the PropertiesChangedSignal.
+        // So in this specific instance, `action' property is no more added to the list.
+        EXPECT_THAT(interfacesAndProperties.at(INTERFACE_NAME), SizeIs(2));
+        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count("state"));
+        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count("blocking"));
+#endif
         signalReceived = true;
     };
 
