@@ -41,8 +41,8 @@ ExternalProject_Add(LibsystemdBuildProject
                               COMMAND ${MESON} --prefix=<INSTALL_DIR> --buildtype=${LIBSYSTEMD_BUILD_TYPE} -Dstatic-libsystemd=pic <SOURCE_DIR> <BINARY_DIR>
                     BUILD_COMMAND     ${BUILD_VERSION_H}
                           COMMAND     ${NINJA} -C <BINARY_DIR> libsystemd.a
-                    BUILD_ALWAYS      1
-                    INSTALL_COMMAND   ${CMAKE_COMMAND} -E copy_directory <SOURCE_DIR>/src/libsystemd <INSTALL_DIR>/include
+                    BUILD_ALWAYS      0
+                    INSTALL_COMMAND   ${CMAKE_COMMAND} -E copy_directory <SOURCE_DIR>/src/systemd <INSTALL_DIR>/include/systemd
                     LOG_DOWNLOAD 1 LOG_UPDATE 1 LOG_CONFIGURE 1 LOG_BUILD 1)
 
 ExternalProject_Get_property(LibsystemdBuildProject SOURCE_DIR)
@@ -51,6 +51,6 @@ ExternalProject_Get_property(LibsystemdBuildProject INSTALL_DIR)
 
 add_library(Systemd::Libsystemd STATIC IMPORTED)
 set_target_properties(Systemd::Libsystemd PROPERTIES IMPORTED_LOCATION ${BINARY_DIR}/libsystemd.a)
-file(MAKE_DIRECTORY ${INSTALL_DIR}/include) # Trick for CMake to stop complaining about non-existent ${INSTALL_DIR}/include directory
+file(MAKE_DIRECTORY ${INSTALL_DIR}/include/systemd) # Trick for CMake to stop complaining about non-existent ${INSTALL_DIR}/include directory
 target_include_directories(Systemd::Libsystemd INTERFACE ${INSTALL_DIR}/include)
 target_link_libraries(Systemd::Libsystemd INTERFACE ${CAP_LIBRARIES} ${GLIBC_RT_LIBRARY} ${MOUNT_LIBRARIES})
