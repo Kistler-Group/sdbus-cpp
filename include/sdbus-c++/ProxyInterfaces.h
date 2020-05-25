@@ -142,6 +142,14 @@ namespace sdbus {
         }
 
         /*!
+         * @brief return object path of the underlying DBus object
+         */
+        const std::string& getObjectPath() const
+        {
+            return getProxy().getObjectPath();
+        }
+
+        /*!
          * @brief Finishes proxy registration and makes the proxy ready for use
          *
          * This function must be called in the constructor of the final proxy class that implements ProxyInterfaces.

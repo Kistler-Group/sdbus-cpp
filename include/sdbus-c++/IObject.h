@@ -62,6 +62,11 @@ namespace sdbus {
         virtual ~IObject() = default;
 
         /*!
+         * @brief return object path of the underlying DBus object
+         */
+        virtual const std::string& getObjectPath() const = 0;
+
+        /*!
          * @brief Registers method that the object will provide on D-Bus
          *
          * @param[in] interfaceName Name of an interface that the method will belong to

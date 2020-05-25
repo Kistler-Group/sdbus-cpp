@@ -66,6 +66,11 @@ namespace sdbus {
         virtual ~IProxy() = default;
 
         /*!
+         * @brief return object path of the underlying DBus object
+         */
+        virtual const std::string& getObjectPath() const = 0;
+
+        /*!
          * @brief Creates a method call message
          *
          * @param[in] interfaceName Name of an interface that provides a given method

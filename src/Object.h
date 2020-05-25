@@ -45,6 +45,11 @@ namespace sdbus::internal {
     public:
         Object(sdbus::internal::IConnection& connection, std::string objectPath);
 
+        const std::string& getObjectPath() const override
+        {
+            return objectPath_;
+        }
+
         void registerMethod( const std::string& interfaceName
                            , std::string methodName
                            , std::string inputSignature
