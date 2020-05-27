@@ -50,11 +50,6 @@ namespace sdbus::internal {
              , std::string destination
              , std::string objectPath );
 
-        const std::string& getObjectPath() const override
-        {
-            return objectPath_;
-        }
-
         MethodCall createMethodCall(const std::string& interfaceName, const std::string& methodName) override;
         MethodReply callMethod(const MethodCall& message, uint64_t timeout) override;
         PendingAsyncCall callMethod(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout) override;
@@ -64,6 +59,8 @@ namespace sdbus::internal {
                                   , signal_handler signalHandler ) override;
         void finishRegistration() override;
         void unregister() override;
+
+        const std::string& getObjectPath() const override;
 
     private:
         class SyncCallReplyData

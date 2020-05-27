@@ -66,11 +66,6 @@ namespace sdbus {
         virtual ~IProxy() = default;
 
         /*!
-         * @brief return object path of the underlying DBus object
-         */
-        virtual const std::string& getObjectPath() const = 0;
-
-        /*!
          * @brief Creates a method call message
          *
          * @param[in] interfaceName Name of an interface that provides a given method
@@ -271,6 +266,11 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         [[nodiscard]] PropertySetter setProperty(const std::string& propertyName);
+
+        /*!
+         * @brief Returns object path of the underlying DBus object
+         */
+        virtual const std::string& getObjectPath() const = 0;
     };
 
     /********************************************//**

@@ -198,6 +198,11 @@ void Proxy::unregister()
     interfaces_.clear();
 }
 
+const std::string& Proxy::getObjectPath() const
+{
+    return objectPath_;
+}
+
 int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error */*retError*/)
 {
     auto* asyncCallData = static_cast<AsyncCalls::CallData*>(userData);

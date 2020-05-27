@@ -108,14 +108,6 @@ namespace sdbus {
         }
 
         /*!
-         * @brief return object path of the underlying DBus object
-         */
-        const std::string& getObjectPath() const
-        {
-            return getObject().getObjectPath();
-        }
-
-        /*!
          * @brief Finishes adaptor API registration and publishes the adaptor on the bus
          *
          * This function must be called in the constructor of the final adaptor class that implements AdaptorInterfaces.
@@ -137,6 +129,14 @@ namespace sdbus {
         void unregisterAdaptor()
         {
             getObject().unregister();
+        }
+
+        /*!
+         * @brief Returns object path of the underlying DBus object
+         */
+        const std::string& getObjectPath() const
+        {
+            return getObject().getObjectPath();
         }
 
     protected:
