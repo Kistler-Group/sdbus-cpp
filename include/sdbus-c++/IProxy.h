@@ -266,6 +266,11 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         [[nodiscard]] PropertySetter setProperty(const std::string& propertyName);
+
+        /*!
+         * @brief Returns object path of the underlying DBus object
+         */
+        virtual const std::string& getObjectPath() const = 0;
     };
 
     /********************************************//**

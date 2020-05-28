@@ -101,6 +101,7 @@ namespace sdbus::internal {
         bool hasObjectManager() const override;
 
         sdbus::IConnection& getConnection() const override;
+        const std::string& getObjectPath() const override;
 
     private:
         using InterfaceName = std::string;

@@ -60,6 +60,8 @@ namespace sdbus::internal {
         void finishRegistration() override;
         void unregister() override;
 
+        const std::string& getObjectPath() const override;
+
     private:
         class SyncCallReplyData
         {

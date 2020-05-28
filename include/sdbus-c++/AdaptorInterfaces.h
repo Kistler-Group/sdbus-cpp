@@ -131,6 +131,14 @@ namespace sdbus {
             getObject().unregister();
         }
 
+        /*!
+         * @brief Returns object path of the underlying DBus object
+         */
+        const std::string& getObjectPath() const
+        {
+            return getObject().getObjectPath();
+        }
+
     protected:
         using base_type = AdaptorInterfaces;
     };

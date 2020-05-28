@@ -165,6 +165,14 @@ namespace sdbus {
             getProxy().unregister();
         }
 
+        /*!
+         * @brief Returns object path of the underlying DBus object
+         */
+        const std::string& getObjectPath() const
+        {
+            return getProxy().getObjectPath();
+        }
+
     protected:
         using base_type = ProxyInterfaces;
     };
