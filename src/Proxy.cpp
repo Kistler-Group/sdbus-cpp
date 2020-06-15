@@ -99,7 +99,7 @@ PendingAsyncCall Proxy::callMethod(const MethodCall& message, async_reply_handle
 
     auto callback = (void*)&Proxy::sdbus_async_reply_handler;
     auto callData = std::make_shared<AsyncCalls::CallData>(AsyncCalls::CallData{*this, std::move(asyncReplyCallback), {}});
-    auto weakData = std::weak_ptr{callData};
+    auto weakData = std::weak_ptr<AsyncCalls::CallData>{callData};
 
     callData->slot = message.send(callback, callData.get(), timeout);
 
