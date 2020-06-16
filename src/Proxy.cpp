@@ -127,8 +127,8 @@ MethodReply Proxy::sendMethodCallMessageAndWaitForReply(const MethodCall& messag
 
 void Proxy::SyncCallReplyData::sendMethodReplyToWaitingThread(MethodReply& reply, const Error* error)
 {
-    SCOPE_EXIT{ cond_.notify_one(); };
     std::unique_lock lock{mutex_};
+    SCOPE_EXIT{ cond_.notify_one(); }; // This must happen before unlocking the mutex to avoid potential data race on spurious wakeup in the waiting thread
     SCOPE_EXIT{ arrived_ = true; };
 
     //error_ = nullptr; // Necessary if SyncCallReplyData instance is thread_local
