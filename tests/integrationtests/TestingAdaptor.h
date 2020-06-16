@@ -154,7 +154,7 @@ protected:
     {
         return SIGNATURE_VALUE;
     }
-    sdbus::ObjectPath getObjectPath() const override
+    sdbus::ObjectPath getObjPath() const override
     {
         return OBJECT_PATH_VALUE;
     }

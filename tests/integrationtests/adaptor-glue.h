@@ -97,7 +97,7 @@ protected:
         });
 
         object_.registerMethod("getSignature").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->getSignature(); });
-        object_.registerMethod("getObjectPath").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->getObjectPath(); });
+        object_.registerMethod("getObjPath").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->getObjPath(); });
         object_.registerMethod("getUnixFd").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->getUnixFd(); });
 
         object_.registerMethod("getComplex").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->getComplex(); }).markAsDeprecated();
@@ -168,7 +168,7 @@ protected:
     virtual uint32_t doOperation(uint32_t param) = 0;
     virtual void doOperationAsync(uint32_t param, sdbus::Result<uint32_t> result) = 0;
     virtual sdbus::Signature getSignature() const  = 0;
-    virtual sdbus::ObjectPath getObjectPath() const = 0;
+    virtual sdbus::ObjectPath getObjPath() const = 0;
     virtual sdbus::UnixFd getUnixFd() const  = 0;
     virtual ComplexType getComplex() const = 0;
     virtual void throwError() const = 0;
@@ -279,7 +279,7 @@ R"delimiter(
 #endif
 R"delimiter(
   </method>
-  <method name="getObjectPath">
+  <method name="getObjPath">
    <arg type="o" direction="out"/>
   </method>
   <method name="getSignature">

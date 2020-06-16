@@ -216,7 +216,7 @@ TEST_F(SdbusTestObject, CallsMethodWithSignatureSuccesfully)
 
 TEST_F(SdbusTestObject, CallsMethodWithObjectPathSuccesfully)
 {
-    auto resObjectPath = m_proxy->getObjectPath();
+    auto resObjectPath = m_proxy->getObjPath();
     ASSERT_THAT(resObjectPath, Eq(OBJECT_PATH_VALUE));
 }
 

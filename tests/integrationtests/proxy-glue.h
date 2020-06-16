@@ -197,10 +197,10 @@ public:
         return result;
     }
 
-    sdbus::ObjectPath getObjectPath()
+    sdbus::ObjectPath getObjPath()
     {
         sdbus::ObjectPath result;
-        object_.callMethod("getObjectPath").onInterface(INTERFACE_NAME).storeResultsTo(result);
+        object_.callMethod("getObjPath").onInterface(INTERFACE_NAME).storeResultsTo(result);
         return result;
     }
 
