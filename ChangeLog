@@ -147,3 +147,16 @@ v0.8.1
 - Switch to full C++17 support
 - Switch to more modern CMake (>=3.12)
 - Provide better names to event loop-related IConnection methods, keep old ones marked as deprecated for backwards compatibility
+
+v0.8.2
+- Introduce support for cancellable async calls
+- Add getObjectPath() for proxy and object classes
+- Sanitize names of namespaces/methods/signals/properties/arguments in sdbus-c++-xml2cpp
+- Fix delivery of signals to multiple proxies subscribed to them
+- Fix file existence condition in sdbus-c++-xml2cpp
+- Fix CallData race condition in Proxy::callMethod
+- Fix integration tests for libsystemd older than 242
+- Fix installation of public sd-bus headers in internal libsystemd build
+- Fix integration test cases failing in specific situations
+- Fix build with clang 9.0.1 and libcxx
+- Fix potential data race in Proxy's condition variable
