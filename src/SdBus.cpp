@@ -27,6 +27,8 @@
 
 #include "SdBus.h"
 #include <sdbus-c++/Error.h>
+#include <unistd.h>
+#include <sys/eventfd.h>
 
 namespace sdbus::internal {
 
@@ -61,8 +63,22 @@ int SdBus::sd_bus_call(sd_bus *bus, sd_bus_message *m, uint64_t usec, sd_bus_err
 int SdBus::sd_bus_call_async(sd_bus *bus, sd_bus_slot **slot, sd_bus_message *m, sd_bus_message_handler_t callback, void *userdata, uint64_t usec)
 {
     std::lock_guard lock(sdbusMutex_);
+    if (usec == 0 || usec == uint64_t(-1))
+        return ::sd_bus_call_async(bus, slot, m, callback, userdata, usec);
 
-    return ::sd_bus_call_async(bus, slot, m, callback, userdata, usec);
+    if (!bus)
+        bus = ::sd_bus_message_get_bus(m);
+    auto prevTimeout = uint64_t(0);
+    ::sd_bus_get_timeout(bus, &prevTimeout);
+    auto r = ::sd_bus_call_async(bus, slot, m, callback, userdata, usec);
+    if (r < 0)
+        return r;
+
+    auto currentTimeout = uint64_t(-1);
+    ::sd_bus_get_timeout(bus, &currentTimeout);
+    if (currentTimeout < prevTimeout)
+        notifyEventFdLocked(bus);
+    return r;
 }
 
 int SdBus::sd_bus_message_new(sd_bus *bus, sd_bus_message **m, uint8_t type)
@@ -161,19 +177,56 @@ int SdBus::sd_bus_emit_interfaces_removed_strv(sd_bus *bus, const char *path, ch
     return ::sd_bus_emit_interfaces_removed_strv(bus, path, interfaces);
 }
 
+void SdBus::dropEventFd(sd_bus *bus) {
+    std::unique_lock lock(sdbusMutex_);
+    auto node = eventFds_.extract(bus);
+    lock.unlock();
+    if (!node.empty())
+        close(node.mapped());
+}
+
+void SdBus::allocEventFd(sd_bus *bus)
+{
+    auto fd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
+    std::lock_guard lock(sdbusMutex_);
+    if (fd >= 0 && !eventFds_.emplace(bus, fd).second)
+        close(fd);
+}
+
+void SdBus::notifyEventFdLocked(sd_bus *bus)
+{
+    if (auto it = eventFds_.find(bus); it != eventFds_.end())
+    {
+        uint64_t value = 1;
+        write(it->second, &value, sizeof(value));
+    }
+}
+
 int SdBus::sd_bus_open_user(sd_bus **ret)
 {
-    return ::sd_bus_open_user(ret);
+    auto r = ::sd_bus_open_user(ret);
+    if (r < 0)
+        return r;
+    allocEventFd(*ret);
+    return r;
 }
 
 int SdBus::sd_bus_open_system(sd_bus **ret)
 {
-    return ::sd_bus_open_system(ret);
+    auto r = ::sd_bus_open_system(ret);
+    if (r < 0)
+        return r;
+    allocEventFd(*ret);
+    return r;
 }
 
 int SdBus::sd_bus_open_system_remote(sd_bus **ret, const char *host)
 {
-    return ::sd_bus_open_system_remote(ret, host);
+    auto r = ::sd_bus_open_system_remote(ret, host);
+    if (r < 0)
+        return r;
+    allocEventFd(*ret);
+    return r;
 }
 
 int SdBus::sd_bus_request_name(sd_bus *bus, const char *name, uint64_t flags)
@@ -234,11 +287,12 @@ int SdBus::sd_bus_process(sd_bus *bus, sd_bus_message **r)
 int SdBus::sd_bus_get_poll_data(sd_bus *bus, PollData* data)
 {
     std::lock_guard lock(sdbusMutex_);
-
     auto r = ::sd_bus_get_fd(bus);
     if (r < 0)
         return r;
     data->fd = r;
+    auto it = eventFds_.find(bus);
+    data->eventFd = it != eventFds_.end() ? it->second : -1;
 
     r = ::sd_bus_get_events(bus);
     if (r < 0)
@@ -246,6 +300,21 @@ int SdBus::sd_bus_get_poll_data(sd_bus *bus, PollData* data)
     data->events = static_cast<short int>(r);
 
     r = ::sd_bus_get_timeout(bus, &data->timeout_usec);
+    if (r < 0)
+        return r;
+
+    // Despite what is documented, the timeout returned by ::sd_bus_get_timeout is an absolute time of linux's CLOCK_MONOTONIC clock.
+    // Values 0 and uint64_t(-1) are used as sentinels meaning "non-blocking poll" and "no-timeout", respectively.
+    if (data->timeout_usec != uint64_t(-1) && data->timeout_usec != 0)
+    {
+        struct timespec ts{};
+        r = clock_gettime(CLOCK_MONOTONIC, &ts);
+        if (r < 0)
+            return r;
+        auto now = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::seconds(ts.tv_sec) + std::chrono::nanoseconds(ts.tv_nsec));
+        auto to  = data->timeout_usec > now.count() ? data->timeout_usec - now.count() : 0;
+        data->timeout_usec = to;
+    }
 
     return r;
 }
@@ -257,6 +326,7 @@ int SdBus::sd_bus_flush(sd_bus *bus)
 
 sd_bus* SdBus::sd_bus_flush_close_unref(sd_bus *bus)
 {
+    dropEventFd(bus);
     return ::sd_bus_flush_close_unref(bus);
 }
 

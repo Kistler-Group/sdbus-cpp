@@ -52,6 +52,8 @@ namespace sdbus {
             int fd;
             short int events;
             uint64_t timeout_usec;
+
+            int eventFd = -1;
         };
 
         virtual ~IConnection() = default;

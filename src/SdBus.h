@@ -30,6 +30,7 @@
 
 #include "ISdBus.h"
 #include <mutex>
+#include <unordered_map>
 
 namespace sdbus::internal {
 
@@ -74,9 +75,13 @@ public:
 
     virtual int sd_bus_flush(sd_bus *bus) override;
     virtual sd_bus *sd_bus_flush_close_unref(sd_bus *bus) override;
-
 private:
+    void allocEventFd(sd_bus* bus);
+    void notifyEventFdLocked(sd_bus* bus);
+    void dropEventFd(sd_bus* bus);
+
     std::recursive_mutex sdbusMutex_;
+    std::unordered_map<sd_bus*, int> eventFds_;
 };
 
 }

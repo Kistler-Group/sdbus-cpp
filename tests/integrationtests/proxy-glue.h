@@ -145,7 +145,7 @@ public:
     {
         using namespace std::chrono_literals;
         uint32_t result;
-        object_.callMethod("doOperation").onInterface(INTERFACE_NAME).withTimeout(500000us).withArguments(param).storeResultsTo(result);
+        object_.callMethod("doOperation").onInterface(INTERFACE_NAME).withTimeout(500ms).withArguments(param).storeResultsTo(result);
         return result;
     }
 

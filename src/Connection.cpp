@@ -34,6 +34,7 @@
 #include <unistd.h>
 #include <poll.h>
 #include <sys/eventfd.h>
+#include <climits>
 
 namespace sdbus::internal {
 
@@ -122,7 +123,7 @@ Connection::PollData Connection::getEventLoopPollData() const
     auto r = iface_->sd_bus_get_poll_data(bus_.get(), &pollData);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus poll data", -r);
 
-    return {pollData.fd, pollData.events, pollData.timeout_usec};
+    return {pollData.fd, pollData.events, pollData.timeout_usec, pollData.eventFd};
 }
 
 const ISdBus& Connection::getSdBusInterface() const
@@ -367,10 +368,10 @@ void Connection::notifyEventLoopToExit()
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to notify event loop", -errno);
 }
 
-void Connection::clearExitNotification()
+void Connection::clearNotification(int fd)
 {
     uint64_t value{};
-    auto r = read(loopExitFd_.fd, &value, sizeof(value));
+    auto r = read(fd, &value, sizeof(value));
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to read from the event descriptor", -errno);
 }
 
@@ -399,10 +400,15 @@ bool Connection::waitForNextRequest()
     assert(loopExitFd_.fd != 0);
 
     auto sdbusPollData = getEventLoopPollData();
-    struct pollfd fds[] = {{sdbusPollData.fd, sdbusPollData.events, 0}, {loopExitFd_.fd, POLLIN, 0}};
+    struct pollfd fds[3] = {{sdbusPollData.fd, sdbusPollData.events, 0}, {loopExitFd_.fd, POLLIN, 0}, {sdbusPollData.eventFd, POLLIN, 0}};
     auto fdsCount = sizeof(fds)/sizeof(fds[0]);
+    if (sdbusPollData.eventFd == -1)
+        --fdsCount;
 
-    auto timeout = sdbusPollData.timeout_usec == (uint64_t) -1 ? (uint64_t)-1 : (sdbusPollData.timeout_usec+999)/1000;
+    int timeout = -1;
+    if (sdbusPollData.timeout_usec != uint64_t(-1) && (sdbusPollData.timeout_usec + 999) < uint64_t(INT_MAX))
+        timeout = static_cast<int>(sdbusPollData.timeout_usec+999)/1000;
+
     auto r = poll(fds, fdsCount, timeout);
 
     if (r < 0 && errno == EINTR)
@@ -410,9 +416,12 @@ bool Connection::waitForNextRequest()
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to wait on the bus", -errno);
 
+    if (fds[2].revents & POLLIN)
+        clearNotification(fds[2].fd);
+
     if (fds[1].revents & POLLIN)
     {
-        clearExitNotification();
+        clearNotification(fds[1].fd);
         return false;
     }
 
