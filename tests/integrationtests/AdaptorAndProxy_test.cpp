@@ -24,25 +24,19 @@
  * along with sdbus-c++. If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Own
-#include "TestingAdaptor.h"
-#include "TestingProxy.h"
-
-// sdbus
+#include "TestFixture.h"
+#include "TestAdaptor.h"
+#include "TestProxy.h"
 #include "sdbus-c++/sdbus-c++.h"
 
-// gmock
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
-
-// STL
 #include <string>
 #include <thread>
 #include <tuple>
 #include <chrono>
 #include <fstream>
 #include <future>
-
 #include <unistd.h>
 
 using ::testing::Eq;
@@ -52,71 +46,9 @@ using ::testing::AnyOf;
 using ::testing::ElementsAre;
 using ::testing::SizeIs;
 using namespace std::chrono_literals;
+using namespace sdbus::test;
 
-namespace
-{
-
-class AdaptorAndProxyFixture : public ::testing::Test
-{
-public:
-    static void SetUpTestCase()
-    {
-        s_connection->requestName(INTERFACE_NAME);
-        s_connection->enterEventLoopAsync();
-    }
-
-    static void TearDownTestCase()
-    {
-        s_connection->leaveEventLoop();
-        s_connection->releaseName(INTERFACE_NAME);
-    }
-
-    template <typename _Fnc>
-    static bool waitUntil(_Fnc&& fnc, std::chrono::milliseconds timeout = 5s)
-    {
-        std::chrono::milliseconds elapsed{};
-        std::chrono::milliseconds step{5ms};
-        do {
-            std::this_thread::sleep_for(step);
-            elapsed += step;
-            if (elapsed > timeout)
-                return false;
-        } while (!fnc());
-
-        return true;
-    }
-
-    static bool waitUntil(std::atomic<bool>& flag, std::chrono::milliseconds timeout = 5s)
-    {
-        return waitUntil([&flag]() -> bool { return flag; }, timeout);
-    }
-
-private:
-    void SetUp() override
-    {
-        m_adaptor = std::make_unique<TestingAdaptor>(*s_connection);
-        m_proxy = std::make_unique<TestingProxy>(INTERFACE_NAME, OBJECT_PATH);
-        std::this_thread::sleep_for(50ms); // Give time for the proxy to start listening to signals
-    }
-
-    void TearDown() override
-    {
-        m_proxy.reset();
-        m_adaptor.reset();
-    }
-
-public:
-    static std::unique_ptr<sdbus::IConnection> s_connection;
-
-    std::unique_ptr<TestingAdaptor> m_adaptor;
-    std::unique_ptr<TestingProxy> m_proxy;
-};
-
-std::unique_ptr<sdbus::IConnection> AdaptorAndProxyFixture::s_connection = sdbus::createSystemBusConnection();
-
-}
-
-using SdbusTestObject = AdaptorAndProxyFixture;
+using SdbusTestObject = TestFixture;
 
 /*-------------------------------------*/
 /* --          TEST CASES           -- */
@@ -127,8 +59,8 @@ TEST(AdaptorAndProxy, CanBeConstructedSuccesfully)
     auto connection = sdbus::createConnection();
     connection->requestName(INTERFACE_NAME);
 
-    ASSERT_NO_THROW(TestingAdaptor adaptor(*connection));
-    ASSERT_NO_THROW(TestingProxy proxy(INTERFACE_NAME, OBJECT_PATH));
+    ASSERT_NO_THROW(TestAdaptor adaptor(*connection));
+    ASSERT_NO_THROW(TestProxy proxy(INTERFACE_NAME, OBJECT_PATH));
 
     connection->releaseName(INTERFACE_NAME);
 }
@@ -279,7 +211,7 @@ TEST_F(SdbusTestObject, ThrowsTimeoutErrorWhenClientSideAsyncMethodTimesOut)
         });
 
         m_proxy->doOperationClientSideAsyncWith500msTimeout(1000); // The operation will take 1s, but the timeout is 500ms, so we should time out
-        future.get(), Eq(100);
+        future.get();
 
         FAIL() << "Expected sdbus::Error exception";
     }
@@ -328,7 +260,7 @@ TEST_F(SdbusTestObject, RunsServerSideAsynchoronousMethodAsynchronously)
     std::atomic<int> startedCount{};
     auto call = [&](uint32_t param)
     {
-        TestingProxy proxy{INTERFACE_NAME, OBJECT_PATH};
+        TestProxy proxy{INTERFACE_NAME, OBJECT_PATH};
         ++startedCount;
         while (!invoke) ;
         auto result = proxy.doOperationAsync(param);
@@ -351,7 +283,7 @@ TEST_F(SdbusTestObject, HandlesCorrectlyABulkOfParallelServerSideAsyncMethods)
     std::atomic<int> startedCount{};
     auto call = [&]()
     {
-        TestingProxy proxy{INTERFACE_NAME, OBJECT_PATH};
+        TestProxy proxy{INTERFACE_NAME, OBJECT_PATH};
         ++startedCount;
         while (!invoke) ;
 
@@ -465,17 +397,17 @@ TEST_F(SdbusTestObject, FailsCallingMethodOnNonexistentInterface)
 
 TEST_F(SdbusTestObject, FailsCallingMethodOnNonexistentDestination)
 {
-    TestingProxy proxy("sdbuscpp.destination.that.does.not.exist", OBJECT_PATH);
+    TestProxy proxy("sdbuscpp.destination.that.does.not.exist", OBJECT_PATH);
     ASSERT_THROW(proxy.getInt(), sdbus::Error);
 }
 
 TEST_F(SdbusTestObject, FailsCallingMethodOnNonexistentObject)
 {
-    TestingProxy proxy(INTERFACE_NAME, "/sdbuscpp/path/that/does/not/exist");
+    TestProxy proxy(INTERFACE_NAME, "/sdbuscpp/path/that/does/not/exist");
     ASSERT_THROW(proxy.getInt(), sdbus::Error);
 }
 
-TEST_F(SdbusTestObject, ReceivesTwoSignalsWhileMakingMethodCall)
+TEST_F(SdbusTestObject, CanReceiveSignalWhileMakingMethodCall)
 {
     m_proxy->emitTwoSimpleSignals();
 
@@ -508,8 +440,8 @@ TEST_F(SdbusTestObject, EmitsSimpleSignalSuccesfully)
 
 TEST_F(SdbusTestObject, EmitsSimpleSignalToMultipleProxiesSuccesfully)
 {
-    auto proxy1 = std::make_unique<TestingProxy>(*s_connection, INTERFACE_NAME, OBJECT_PATH);
-    auto proxy2 = std::make_unique<TestingProxy>(*s_connection, INTERFACE_NAME, OBJECT_PATH);
+    auto proxy1 = std::make_unique<TestProxy>(*s_connection, INTERFACE_NAME, OBJECT_PATH);
+    auto proxy2 = std::make_unique<TestProxy>(*s_connection, INTERFACE_NAME, OBJECT_PATH);
 
     m_adaptor->emitSimpleSignal();
 
@@ -553,7 +485,7 @@ TEST_F(SdbusTestObject, ReadsReadOnlyPropertySuccesfully)
 
 TEST_F(SdbusTestObject, FailsWritingToReadOnlyProperty)
 {
-    ASSERT_THROW(m_proxy->state("new_value"), sdbus::Error);
+    ASSERT_THROW(m_proxy->setStateProperty("new_value"), sdbus::Error);
 }
 
 TEST_F(SdbusTestObject, WritesAndReadsReadWritePropertySuccesfully)

@@ -2,7 +2,7 @@
  * (C) 2016 - 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
  * (C) 2016 - 2019 Stanislav Angelovic <angelovic.s@gmail.com>
  *
- * @file defs.h
+ * @file Defs.h
  *
  * Created on: Jan 2, 2017
  * Project: sdbus-c++
@@ -29,6 +29,8 @@
 
 #include "sdbus-c++/Types.h"
 
+namespace sdbus { namespace test {
+
 const std::string INTERFACE_NAME{"org.sdbuscpp.integrationtests"};
 const std::string OBJECT_PATH{"/"};
 
@@ -48,5 +50,7 @@ const uint32_t DEFAULT_ACTION_VALUE{999};
 const bool DEFAULT_BLOCKING_VALUE{true};
 
 constexpr const double DOUBLE_VALUE{3.24L};
+
+}}
 
 #endif /* SDBUS_CPP_INTEGRATIONTESTS_DEFS_H_ */

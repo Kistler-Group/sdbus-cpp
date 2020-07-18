@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<node name="/org/sdbuscpp/integrationtest">
+    <interface name="org.sdbuscpp.integrationtests">
+        <annotation name="org.freedesktop.DBus.Deprecated" value="true" />
+        <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="false" />
+        <method name="noArgNoReturn">
+        </method>
+        <method name="getInt">
+            <arg type="i" name="anInt" direction="out" />
+        </method>
+        <method name="getTuple">
+            <arg type="u" direction="out" />
+            <arg type="s" direction="out" />
+        </method>
+        <method name="multiply">
+            <arg type="x" name="a" direction="in" />
+            <arg type="d" name="b" direction="in" />
+            <arg type="d" name="result" direction="out" />
+        </method>
+        <method name="multiplyWithNoReply">
+            <annotation name="org.freedesktop.DBus.Deprecated" value="true" />
+            <annotation name="org.freedesktop.DBus.Method.NoReply" value="true" />
+            <arg type="x" name="a" direction="in" />
+            <arg type="d" name="b" direction="in" />
+        </method>
+        <method name="getInts16FromStruct">
+            <arg type="(yndsan)" direction="in" />
+            <arg type="an" direction="out" />
+        </method>
+        <method name="processVariant">
+            <arg type="v" name="variant" direction="in" />
+            <arg type="v" name="result" direction="out" />
+        </method>
+        <method name="getMapOfVariants">
+            <arg type="ai" name="x" direction="in" />
+            <arg type="(vv)" name="y" direction="in" />
+            <arg type="a{iv}" name="aMapOfVariants" direction="out" />
+        </method>
+        <method name="getStructInStruct">
+            <arg type="(s(a{ii}))" name="aMapOfVariants" direction="out" />
+        </method>
+        <method name="sumStructItems">
+            <arg type="(yq)" direction="in" />
+            <arg type="(ix)" direction="in" />
+            <arg type="i" direction="out" />
+        </method>
+        <method name="sumVectorItems">
+            <arg type="aq" direction="in" />
+            <arg type="at" direction="in" />
+            <arg type="u" direction="out" />
+        </method>
+        <method name="doOperation">
+            <arg type="u" direction="in" />
+            <arg type="u" direction="out" />
+        </method>
+        <method name="doOperationAsync">
+            <annotation name="org.freedesktop.DBus.Method.Async" value="server" />
+            <arg type="u" direction="in" />
+            <arg type="u" direction="out" />
+        </method>
+        <method name="getSignature">
+            <arg type="g" direction="out" />
+        </method>
+        <method name="getObjectPath">
+            <arg type="o" direction="out" />
+        </method>
+        <method name="getUnixFd">
+            <arg type="h" direction="out" />
+        </method>
+        <method name="getComplex">
+            <annotation name="org.freedesktop.DBus.Deprecated" value="true" />
+            <arg type="a{t(a{ya(obva{is})}gs)}" direction="out" />
+        </method>
+        <method name="throwError">
+        </method>
+        <method name="throwErrorWithNoReply">
+            <annotation name="org.freedesktop.DBus.Method.NoReply" value="true" />
+        </method>
+        <method name="doPrivilegedStuff">
+            <annotation name="org.freedesktop.systemd1.Privileged" value="true" />
+        </method>
+        <method name="emitTwoSimpleSignals">
+        </method>
+        
+        <signal name="simpleSignal">
+            <annotation name="org.freedesktop.DBus.Deprecated" value="true" />
+        </signal>
+        <signal name="signalWithMap">
+            <arg type="a{is}" name="aMap" />
+        </signal>
+        <signal name="signalWithVariant">
+            <arg type="v" name="aVariant" />
+        </signal>
+        <property name="action" type="u" access="readwrite">
+            <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="invalidates"/>
+        </property>
+        <property name="blocking" type="b" access="readwrite">
+        </property>
+        <property name="state" type="s" access="read">
+            <annotation name="org.freedesktop.DBus.Deprecated" value="true"/>
+            <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="const"/>
+        </property>
+    </interface>
+</node>        
