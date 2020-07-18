@@ -175,6 +175,7 @@ namespace sdbus {
 
     protected:
         using base_type = ProxyInterfaces;
+        ~ProxyInterfaces() = default;
     };
 
 }

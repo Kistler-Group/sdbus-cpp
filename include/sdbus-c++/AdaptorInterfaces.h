@@ -141,6 +141,7 @@ namespace sdbus {
 
     protected:
         using base_type = AdaptorInterfaces;
+        ~AdaptorInterfaces() = default;
     };
 
 }

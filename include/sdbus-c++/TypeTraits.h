@@ -41,7 +41,7 @@ namespace sdbus {
     template <typename... _ValueTypes> class Struct;
     class ObjectPath;
     class Signature;
-    struct UnixFd;
+    class UnixFd;
     class MethodCall;
     class MethodReply;
     class Signal;
