@@ -37,7 +37,7 @@ protected:
         object_.registerMethod("doOperation").onInterface(INTERFACE_NAME).withInputParamNames("arg0").withOutputParamNames("arg0").implementedAs([this](const uint32_t& arg0){ return this->doOperation(arg0); });
         object_.registerMethod("doOperationAsync").onInterface(INTERFACE_NAME).withInputParamNames("arg0").withOutputParamNames("arg0").implementedAs([this](sdbus::Result<uint32_t>&& result, uint32_t arg0){ this->doOperationAsync(std::move(result), std::move(arg0)); });
         object_.registerMethod("getSignature").onInterface(INTERFACE_NAME).withOutputParamNames("arg0").implementedAs([this](){ return this->getSignature(); });
-        object_.registerMethod("getObjectPath").onInterface(INTERFACE_NAME).withOutputParamNames("arg0").implementedAs([this](){ return this->getObjectPath(); });
+        object_.registerMethod("getObjPath").onInterface(INTERFACE_NAME).withOutputParamNames("arg0").implementedAs([this](){ return this->getObjPath(); });
         object_.registerMethod("getUnixFd").onInterface(INTERFACE_NAME).withOutputParamNames("arg0").implementedAs([this](){ return this->getUnixFd(); });
         object_.registerMethod("getComplex").onInterface(INTERFACE_NAME).withOutputParamNames("arg0").implementedAs([this](){ return this->getComplex(); }).markAsDeprecated();
         object_.registerMethod("throwError").onInterface(INTERFACE_NAME).implementedAs([this](){ return this->throwError(); });
@@ -85,7 +85,7 @@ private:
     virtual uint32_t doOperation(const uint32_t& arg0) = 0;
     virtual void doOperationAsync(sdbus::Result<uint32_t>&& result, uint32_t arg0) = 0;
     virtual sdbus::Signature getSignature() = 0;
-    virtual sdbus::ObjectPath getObjectPath() = 0;
+    virtual sdbus::ObjectPath getObjPath() = 0;
     virtual sdbus::UnixFd getUnixFd() = 0;
     virtual std::map<uint64_t, sdbus::Struct<std::map<uint8_t, std::vector<sdbus::Struct<sdbus::ObjectPath, bool, sdbus::Variant, std::map<int32_t, std::string>>>>, sdbus::Signature, std::string>> getComplex() = 0;
     virtual void throwError() = 0;

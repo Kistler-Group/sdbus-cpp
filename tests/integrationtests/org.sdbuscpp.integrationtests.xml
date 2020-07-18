@@ -62,7 +62,7 @@
         <method name="getSignature">
             <arg type="g" direction="out" />
         </method>
-        <method name="getObjectPath">
+        <method name="getObjPath">
             <arg type="o" direction="out" />
         </method>
         <method name="getUnixFd">

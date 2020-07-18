@@ -58,7 +58,7 @@ protected:
     uint32_t doOperation(const uint32_t& arg0) override;
     void doOperationAsync(sdbus::Result<uint32_t>&& result, uint32_t arg0) override;
     sdbus::Signature getSignature() override;
-    sdbus::ObjectPath getObjectPath() override;
+    sdbus::ObjectPath getObjPath() override;
     sdbus::UnixFd getUnixFd() override;
     std::map<uint64_t, sdbus::Struct<std::map<uint8_t, std::vector<sdbus::Struct<sdbus::ObjectPath, bool, sdbus::Variant, std::map<int32_t, std::string>>>>, sdbus::Signature, std::string>> getComplex() override;
     void throwError() override;

@@ -146,7 +146,7 @@ sdbus::Signature TestAdaptor::getSignature()
 {
     return SIGNATURE_VALUE;
 }
-sdbus::ObjectPath TestAdaptor::getObjectPath()
+sdbus::ObjectPath TestAdaptor::getObjPath()
 {
     return OBJECT_PATH_VALUE;
 }
@@ -333,7 +333,7 @@ R"delimiter(
 #endif
 R"delimiter(
 </method>
-<method name="getObjectPath">
+<method name="getObjPath">
 <arg type="o" direction="out"/>
 </method>
 <method name="getSignature">

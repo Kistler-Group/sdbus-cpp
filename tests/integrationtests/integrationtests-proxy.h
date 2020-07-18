@@ -128,10 +128,10 @@ public:
         return result;
     }
 
-    sdbus::ObjectPath getObjectPath()
+    sdbus::ObjectPath getObjPath()
     {
         sdbus::ObjectPath result;
-        proxy_.callMethod("getObjectPath").onInterface(INTERFACE_NAME).storeResultsTo(result);
+        proxy_.callMethod("getObjPath").onInterface(INTERFACE_NAME).storeResultsTo(result);
         return result;
     }
 
