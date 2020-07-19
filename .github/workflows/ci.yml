@@ -28,9 +28,11 @@ jobs:
         #sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++ 60
         #sudo update-alternatives --config c++
         #sudo update-alternatives --remove-all cc
+        sudo update-alternatives --remove-all cc
+        sudo update-alternatives --install /usr/bin/cc cc /usr/bin/clang 10
         sudo update-alternatives --remove-all c++
         sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++ 10
-        sudo update-alternatives --config c++
+        #sudo update-alternatives --config c++
     - name: configure
       run: |
         mkdir build
