@@ -22,8 +22,11 @@ jobs:
         #cmake -DCMAKE_BUILD_TYPE=Debug -BUILD_TESTS=ON -DBUILD_PERF_TESTS=ON -DBUILD_STRESS_TESTS=ON -DBUILD_LIBSYSTEMD=ON -DLIBSYSTEMD_VERSION=242 ..
         cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON ..
     - name: make
-      run: make -j
+      run: |
+        cd build
+        make -j
     - name: verify
       run: |
+        cd build
         sudo make install
         ctest
