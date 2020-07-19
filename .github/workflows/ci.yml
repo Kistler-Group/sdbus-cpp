@@ -24,9 +24,13 @@ jobs:
       if: matrix.compiler == 'clang'
       run: |
         sudo apt-get install -y clang
-        sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++ 40
-        sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++ 60
-        sudo update-alternatives --set c++
+        #sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++ 40
+        #sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++ 60
+        #sudo update-alternatives --config c++
+        #sudo update-alternatives --remove-all cc
+        sudo update-alternatives --remove-all c++
+        sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++ 10
+        sudo update-alternatives --config c++
     - name: configure
       run: |
         mkdir build
