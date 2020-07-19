@@ -20,7 +20,7 @@ jobs:
         mkdir build
         cd build
         #cmake -DCMAKE_BUILD_TYPE=Debug -BUILD_TESTS=ON -DBUILD_PERF_TESTS=ON -DBUILD_STRESS_TESTS=ON -DBUILD_LIBSYSTEMD=ON -DLIBSYSTEMD_VERSION=242 ..
-        cmake -DCMAKE_BUILD_TYPE=Debug -BUILD_TESTS=ON -DBUILD_PERF_TESTS=ON -DBUILD_STRESS_TESTS=ON ..
+        cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DBUILD_PERF_TESTS=ON -DBUILD_STRESS_TESTS=ON ..
     - name: make
       run: make -j
     - name: verify
