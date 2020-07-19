@@ -38,11 +38,11 @@ $ sudo make install
 
   Option for building sdbus-c++ unit and integration tests, invokable by `make test`. That incorporates downloading and building static libraries of Google Test. Default value: `OFF`. Use `-DBUILD_TESTS=ON` to enable building the tests. With this option turned on, you may also enable/disable the following options:
 
-    * `BUILD_PERF_TESTS` [boolean]
+    * `ENABLE_PERF_TESTS` [boolean]
 
       Option for building sdbus-c++ performance tests. Default value: `OFF`.
 
-    * `BUILD_STRESS_TESTS` [boolean]
+    * `ENABLE_STRESS_TESTS` [boolean]
 
       Option for building sdbus-c++ stress tests. Default value: `OFF`.
 
