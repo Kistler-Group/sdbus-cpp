@@ -10,21 +10,26 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-18.04, ubuntu-20.04]
-        embedded_systemd: [ON, OFF]
+        compiler: [g++, clang]
     steps:
     - uses: actions/checkout@v2
-    - name: install-dependencies
+    - name: install-libsystemd
       run: |
         sudo apt-get update -y
         sudo apt-get install -y libsystemd-dev
+    - name: install-clang
+      if: matrix.compiler == 'clang'
+      run: sudo apt-get install -y clang
     - name: configure
       run: |
         mkdir build
         cd build
-        cmake -DCMAKE_BUILD_TYPE=Debug -BUILD_TESTS=ON -DBUILD_PERF_TESTS=ON -DBUILD_STRESS_TESTS=ON -DBUILD_LIBSYSTEMD=${{ matrix.embedded_systemd }} -DLIBSYSTEMD_VERSION=$(systemctl --version | grep systemd | cut -d' ' -f2) ..
-        #cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON ..
+        export CXX=${{ matrix.compiler }}
+        #cmake -DCMAKE_BUILD_TYPE=Debug -BUILD_TESTS=ON -DBUILD_PERF_TESTS=ON -DBUILD_STRESS_TESTS=ON -DBUILD_LIBSYSTEMD=${{ matrix.embedded_systemd }} -DLIBSYSTEMD_VERSION=$(systemctl --version | grep systemd | cut -d' ' -f2) ..
+        cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON ..
     - name: make
       run: |
         cd build
