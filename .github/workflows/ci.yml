@@ -27,6 +27,7 @@ jobs:
       run: |
         mkdir build
         cd build
+        export CC=${{ matrix.compiler }}
         export CXX=${{ matrix.compiler }}
         #cmake -DCMAKE_BUILD_TYPE=Debug -BUILD_TESTS=ON -DBUILD_PERF_TESTS=ON -DBUILD_STRESS_TESTS=ON -DBUILD_LIBSYSTEMD=${{ matrix.embedded_systemd }} -DLIBSYSTEMD_VERSION=$(systemctl --version | grep systemd | cut -d' ' -f2) ..
         cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON ..
