@@ -12,10 +12,13 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: configure
-      run: ./configure
+      run: |
+        mkdir build
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=Debug -BUILD_TESTS=ON -DBUILD_PERF_TESTS=ON -DBUILD_STRESS_TESTS=ON ..
     - name: make
-      run: make
-    - name: make check
-      run: make check
-    - name: make distcheck
-      run: make distcheck
+      run: make -j
+    - name: verify
+      run: |
+        sudo make install
+        ctest
