@@ -33,7 +33,7 @@ jobs:
         mkdir build
         cd build
         #cmake -DCMAKE_BUILD_TYPE=Debug -BUILD_TESTS=ON -DBUILD_PERF_TESTS=ON -DBUILD_STRESS_TESTS=ON -DBUILD_LIBSYSTEMD=${{ matrix.embedded_systemd }} -DLIBSYSTEMD_VERSION=$(systemctl --version | grep systemd | cut -d' ' -f2) ..
-        cmake -DCMAKE_CXX_FLAGS="-O3 -W -Wextra -Wall -Werror -Wnon-virtual-dtor -pedantic" -DBUILD_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON ..
+        cmake -DCMAKE_CXX_FLAGS="-O3 -W -Wextra -Wall -Wnon-virtual-dtor -Werror" -DBUILD_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON ..
     - name: make
       run: |
         cd build
