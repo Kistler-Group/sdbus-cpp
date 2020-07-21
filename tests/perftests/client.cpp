@@ -39,7 +39,7 @@ using namespace std::chrono_literals;
 
 uint64_t totalDuration = 0;
 
-class PerftestProxy : public sdbus::ProxyInterfaces<org::sdbuscpp::perftests_proxy>
+class PerftestProxy final : public sdbus::ProxyInterfaces<org::sdbuscpp::perftests_proxy>
 {
 public:
     PerftestProxy(std::string destination, std::string objectPath)

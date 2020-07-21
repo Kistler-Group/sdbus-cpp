@@ -53,7 +53,7 @@ using namespace std::string_literals;
 #define FAHRENHEIT_THERMOMETER_OBJECT_PATH "/org/sdbuscpp/stresstests/fahrenheit/thermometer"s
 #define CONCATENATOR_OBJECT_PATH "/org/sdbuscpp/stresstests/concatenator"s
 
-class CelsiusThermometerAdaptor : public sdbus::AdaptorInterfaces<org::sdbuscpp::stresstests::celsius::thermometer_adaptor>
+class CelsiusThermometerAdaptor final : public sdbus::AdaptorInterfaces<org::sdbuscpp::stresstests::celsius::thermometer_adaptor>
 {
 public:
     CelsiusThermometerAdaptor(sdbus::IConnection& connection, std::string objectPath)
@@ -92,8 +92,8 @@ public:
     }
 };
 
-class FahrenheitThermometerAdaptor : public sdbus::AdaptorInterfaces< org::sdbuscpp::stresstests::fahrenheit::thermometer_adaptor
-                                                                    , org::sdbuscpp::stresstests::fahrenheit::thermometer::factory_adaptor >
+class FahrenheitThermometerAdaptor final : public sdbus::AdaptorInterfaces< org::sdbuscpp::stresstests::fahrenheit::thermometer_adaptor
+                                                                          , org::sdbuscpp::stresstests::fahrenheit::thermometer::factory_adaptor >
 {
 public:
     FahrenheitThermometerAdaptor(sdbus::IConnection& connection, std::string objectPath, bool isDelegate)
@@ -222,7 +222,7 @@ public:
     }
 };
 
-class ConcatenatorAdaptor : public sdbus::AdaptorInterfaces<org::sdbuscpp::stresstests::concatenator_adaptor>
+class ConcatenatorAdaptor final : public sdbus::AdaptorInterfaces<org::sdbuscpp::stresstests::concatenator_adaptor>
 {
 public:
     ConcatenatorAdaptor(sdbus::IConnection& connection, std::string objectPath)
@@ -294,7 +294,7 @@ private:
     std::atomic<bool> exit_{};
 };
 
-class ConcatenatorProxy : public sdbus::ProxyInterfaces<org::sdbuscpp::stresstests::concatenator_proxy>
+class ConcatenatorProxy final : public sdbus::ProxyInterfaces<org::sdbuscpp::stresstests::concatenator_proxy>
 {
 public:
     ConcatenatorProxy(sdbus::IConnection& connection, std::string destination, std::string objectPath)

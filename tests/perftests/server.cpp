@@ -36,7 +36,7 @@ using namespace std::chrono_literals;
 
 std::string createRandomString(size_t length);
 
-class PerftestAdaptor : public sdbus::AdaptorInterfaces<org::sdbuscpp::perftests_adaptor>
+class PerftestAdaptor final : public sdbus::AdaptorInterfaces<org::sdbuscpp::perftests_adaptor>
 {
 public:
     PerftestAdaptor(sdbus::IConnection& connection, std::string objectPath)
