@@ -309,7 +309,7 @@ public:
     }
 
 private:
-    virtual void onConcatenateReply(const std::string& result, const sdbus::Error* error) override
+    virtual void onConcatenateReply(const std::string& result, [[maybe_unused]] const sdbus::Error* error) override
     {
         assert(error == nullptr);
 
@@ -457,7 +457,7 @@ int main(int argc, char *argv[])
 
                 FahrenheitThermometerProxy thermometer(con, SERVICE_1_BUS_NAME, FAHRENHEIT_THERMOMETER_OBJECT_PATH);
                 uint32_t localCounter{};
-                uint32_t previousTemperature{};
+                [[maybe_unused]] uint32_t previousTemperature{};
 
                 while (!stopClients)
                 {

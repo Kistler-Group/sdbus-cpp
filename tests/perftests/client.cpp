@@ -54,7 +54,7 @@ public:
     }
 
 protected:
-    virtual void onDataSignal(const std::string& data) override
+    virtual void onDataSignal([[maybe_unused]] const std::string& data) override
     {
         static unsigned int counter = 0;
         static std::chrono::time_point<std::chrono::steady_clock> startTime;
