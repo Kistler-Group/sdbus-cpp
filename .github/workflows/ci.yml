@@ -12,11 +12,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-18.04, ubuntu-20.04]
-        compiler: [g++, clang]
+        #os: [ubuntu-18.04, ubuntu-20.04]
+        os: [ubuntu-20.04]
+        compiler: [g++]
+        #compiler: [g++, clang]
+        strategy: [default, embedded-libsystemd]
     steps:
     - uses: actions/checkout@v2
-    - name: install-libsystemd
+    - name: install-libsystemd-toolchain
+      if: matrix.strategy == 'embedded-libsystemd'
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y meson ninja-build libcap-dev libmount-dev m4 gperf
+    - name: install-libsystemd-dev
+      if: matrix.strategy == 'default'
       run: |
         sudo apt-get update -y
         sudo apt-get install -y libsystemd-dev
@@ -28,12 +37,24 @@ jobs:
         sudo update-alternatives --install /usr/bin/cc cc /usr/bin/clang 10
         sudo update-alternatives --remove-all c++
         sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++ 10
-    - name: configure
+    - name: configure-debug
+      if: matrix.strategy == 'default' && matrix.os == 'ubuntu-18.04'
       run: |
         mkdir build
         cd build
-        #cmake -DCMAKE_BUILD_TYPE=Debug -BUILD_TESTS=ON -DBUILD_PERF_TESTS=ON -DBUILD_STRESS_TESTS=ON -DBUILD_LIBSYSTEMD=${{ matrix.embedded_systemd }} -DLIBSYSTEMD_VERSION=$(systemctl --version | grep systemd | cut -d' ' -f2) ..
-        cmake -DCMAKE_CXX_FLAGS="-O3 -W -Wextra -Wall -Wnon-virtual-dtor -Werror" -DBUILD_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON ..
+        cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-O0 -g -W -Wextra -Wall -Wnon-virtual-dtor -Werror" -DBUILD_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON ..
+    - name: configure-release
+      if: matrix.strategy == 'default' && matrix.os == 'ubuntu-20.04'
+      run: |
+        mkdir build
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-O3 -DNDEBUG -W -Wextra -Wall -Wnon-virtual-dtor -Werror" -DBUILD_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON ..
+    - name: configure-with-embedded-libsystemd
+      if: matrix.strategy == 'embedded-libsystemd'
+      run: |
+        mkdir build
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON -DBUILD_LIBSYSTEMD=ON -DLIBSYSTEMD_VERSION=$(systemctl --version | grep systemd | cut -d' ' -f2) ..
     - name: make
       run: |
         cd build
