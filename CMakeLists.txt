@@ -141,6 +141,7 @@ install(TARGETS ${EXPORT_SET}
 option(BUILD_TESTS "Build and install tests (default OFF)" OFF)
 
 if(BUILD_TESTS)
+    message(STATUS "Building with tests")
     enable_testing()
     add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/tests")
 endif()
@@ -152,6 +153,7 @@ endif()
 option(BUILD_CODE_GEN "Build and install interface stub code generator (default OFF)" OFF)
 
 if(BUILD_CODE_GEN)
+    message(STATUS "Building with code generator tool")
     add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/tools")
 endif()
 
@@ -162,6 +164,7 @@ endif()
 option(BUILD_DOC "Build documentation for sdbus-c++" ON)
 
 if(BUILD_DOC)
+    message(STATUS "Building with documentation")
     option(BUILD_DOXYGEN_DOC "Build doxygen documentation for sdbus-c++ API" OFF)
     add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/docs")
     install(FILES README README.md NEWS COPYING ChangeLog AUTHORS DESTINATION ${CMAKE_INSTALL_DOCDIR})

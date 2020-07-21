@@ -30,6 +30,8 @@ if(LIBSYSTEMD_VERSION GREATER "240")
     set(BUILD_VERSION_H ${NINJA} -C <BINARY_DIR> version.h)
 endif()
 
+message(STATUS "Building with embedded libsystemd v${LIBSYSTEMD_VERSION}")
+
 include(ExternalProject)
 ExternalProject_Add(LibsystemdBuildProject
                     PREFIX libsystemd-v${LIBSYSTEMD_VERSION}
