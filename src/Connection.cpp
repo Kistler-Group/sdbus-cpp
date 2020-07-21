@@ -393,9 +393,7 @@ bool Connection::processPendingRequest()
 
 bool Connection::waitForNextRequest()
 {
-    auto bus = bus_.get();
-
-    assert(bus != nullptr);
+    assert(bus_ != nullptr);
     assert(loopExitFd_.fd != 0);
 
     auto sdbusPollData = getEventLoopPollData();
