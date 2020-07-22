@@ -40,13 +40,13 @@ jobs:
         sudo update-alternatives --remove-all c++
         sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++ 10
     - name: configure-debug
-      if: matrix.os == 'ubuntu-18.04'
+      if: matrix.build == 'shared-libsystemd' && matrix.os == 'ubuntu-18.04'
       run: |
         mkdir build
         cd build
         cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-O0 -g -W -Wextra -Wall -Wnon-virtual-dtor -Werror" -DBUILD_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON -DBUILD_CODE_GEN=ON ..
     - name: configure-release
-      if: matrix.os == 'ubuntu-20.04'
+      if: matrix.build == 'shared-libsystemd' && matrix.os == 'ubuntu-20.04'
       run: |
         mkdir build
         cd build
