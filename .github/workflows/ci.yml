@@ -14,16 +14,20 @@ jobs:
       matrix:
         os: [ubuntu-18.04, ubuntu-20.04]
         compiler: [g++, clang]
-        strategy: [default, embedded-libsystemd]
+        libsystemd: [use-shared]
+        include:
+          - os: ubuntu-20.04
+            compiler: g++
+            libsystemd: build-static-embedded
     steps:
     - uses: actions/checkout@v2
     - name: install-libsystemd-toolchain
-      if: matrix.strategy == 'embedded-libsystemd'
+      if: matrix.libsystemd == 'build-static-embedded'
       run: |
         sudo apt-get update -y
         sudo apt-get install -y meson ninja-build libcap-dev libmount-dev m4 gperf
     - name: install-libsystemd-dev
-      if: matrix.strategy == 'default'
+      if: matrix.libsystemd == 'use-shared'
       run: |
         sudo apt-get update -y
         sudo apt-get install -y libsystemd-dev
@@ -36,23 +40,22 @@ jobs:
         sudo update-alternatives --remove-all c++
         sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++ 10
     - name: configure-debug
-      if: matrix.strategy == 'default' && matrix.os == 'ubuntu-18.04'
+      if: matrix.os == 'ubuntu-18.04'
       run: |
         mkdir build
         cd build
         cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-O0 -g -W -Wextra -Wall -Wnon-virtual-dtor -Werror" -DBUILD_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON -DBUILD_CODE_GEN=ON ..
     - name: configure-release
-      if: matrix.strategy == 'default' && matrix.os == 'ubuntu-20.04'
+      if: matrix.os == 'ubuntu-20.04'
       run: |
         mkdir build
         cd build
         cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-O3 -DNDEBUG -W -Wextra -Wall -Wnon-virtual-dtor -Werror" -DBUILD_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON -DBUILD_CODE_GEN=ON ..
     - name: configure-with-embedded-libsystemd
-      if: matrix.strategy == 'embedded-libsystemd'
+      if: matrix.libsystemd == 'build-static-embedded'
       run: |
         mkdir build
         cd build
-        #cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON -DBUILD_CODE_GEN=ON -DBUILD_LIBSYSTEMD=ON -DLIBSYSTEMD_VERSION=$(systemctl --version | grep systemd | cut -d' ' -f2) ..
         cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON -DBUILD_CODE_GEN=ON -DBUILD_LIBSYSTEMD=ON -DLIBSYSTEMD_VERSION=244 ..
     - name: make
       run: |
