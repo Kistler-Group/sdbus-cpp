@@ -1,7 +1,7 @@
 sdbus-c++
 =========
 
-![ci](https://github.com/Kistler-Group/sdbus-cpp/workflows/CI/badge.svg?branch=ci/add-github-actions)
+![ci](https://github.com/Kistler-Group/sdbus-cpp/workflows/CI/badge.svg)
 ![license](https://img.shields.io/github/license/Kistler-Group/sdbus-cpp)
 ![release](https://img.shields.io/github/v/release/Kistler-Group/sdbus-cpp)
 
