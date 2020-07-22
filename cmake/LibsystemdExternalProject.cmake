@@ -35,12 +35,12 @@ message(STATUS "Building with embedded libsystemd v${LIBSYSTEMD_VERSION}")
 include(ExternalProject)
 ExternalProject_Add(LibsystemdBuildProject
                     PREFIX libsystemd-v${LIBSYSTEMD_VERSION}
-                    GIT_REPOSITORY    https://github.com/systemd/systemd.git
-                    GIT_TAG           v${LIBSYSTEMD_VERSION}
+                    GIT_REPOSITORY    https://github.com/systemd/systemd-stable.git
+                    GIT_TAG           v${LIBSYSTEMD_VERSION}-stable
                     GIT_SHALLOW       1
                     UPDATE_COMMAND    ""
                     CONFIGURE_COMMAND ${CMAKE_COMMAND} -E remove <BINARY_DIR>/*
-                              COMMAND ${MESON} --prefix=<INSTALL_DIR> --buildtype=${LIBSYSTEMD_BUILD_TYPE} -Dstatic-libsystemd=pic <SOURCE_DIR> <BINARY_DIR>
+                              COMMAND ${MESON} --prefix=<INSTALL_DIR> --buildtype=${LIBSYSTEMD_BUILD_TYPE} -Dstatic-libsystemd=pic -Dselinux=false <SOURCE_DIR> <BINARY_DIR>
                     BUILD_COMMAND     ${BUILD_VERSION_H}
                           COMMAND     ${NINJA} -C <BINARY_DIR> libsystemd.a
                     BUILD_ALWAYS      0

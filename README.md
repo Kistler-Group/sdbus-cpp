@@ -1,6 +1,10 @@
 sdbus-c++
 =========
 
+![ci](https://github.com/Kistler-Group/sdbus-cpp/workflows/CI/badge.svg)
+![license](https://img.shields.io/github/license/Kistler-Group/sdbus-cpp)
+![release](https://img.shields.io/github/v/release/Kistler-Group/sdbus-cpp)
+
 sdbus-c++ is a high-level C++ D-Bus library for Linux designed to provide expressive, easy-to-use API in modern C++. It adds another layer of abstraction on top of sd-bus, a nice, fresh C D-Bus implementation by systemd.
 
 sdbus-c++ has been written primarily as a replacement of dbus-c++, which currently suffers from a number of (unresolved) bugs, concurrency issues and inherent design complexities and limitations. sdbus-c++ has learned from dbus-c++ and has chosen a different path, a path of simple yet powerful design that is intuitive and friendly to the user and inherently free of those bugs.
