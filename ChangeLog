@@ -160,3 +160,12 @@ v0.8.2
 - Fix integration test cases failing in specific situations
 - Fix build with clang 9.0.1 and libcxx
 - Fix potential data race in Proxy's condition variable
+
+v0.8.3
+- Fix build with gcc 8.3
+- Address a few inconsistencies and make code more idiomatic
+- Clean up integration tests
+- Remove non-virtual-dtor warnings by making classes final
+- Update CMake configuration flag names
+- Fix unused variable warning for release builds
+- Introduce CI workflow based on GitHub Actions
