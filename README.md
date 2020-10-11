@@ -77,7 +77,7 @@ Dependencies
 Licensing
 ---------
 
-The library is distributed under LGPLv2.1 license.
+The library is distributed under LGPLv2.1 license, with a specific exception for macro/template/inline code in library header files.
 
 References/documentation
 ------------------------
