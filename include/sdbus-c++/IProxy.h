@@ -271,6 +271,10 @@ namespace sdbus {
          * @brief Returns object path of the underlying DBus object
          */
         virtual const std::string& getObjectPath() const = 0;
+
+        using translate_error_hook_type = std::function<std::exception_ptr(const sdbus::Error&)>;
+
+        virtual void setTranslateErrorHook(translate_error_hook_type hook) = 0;
     };
 
     /********************************************//**

@@ -62,6 +62,8 @@ namespace sdbus::internal {
 
         const std::string& getObjectPath() const override;
 
+        void setTranslateErrorHook(IProxy::translate_error_hook_type hook) override;
+
     private:
         class SyncCallReplyData
         {
@@ -90,6 +92,7 @@ namespace sdbus::internal {
                        > connection_;
         std::string destination_;
         std::string objectPath_;
+        std::optional<translate_error_hook_type> error_hook_;
 
         using InterfaceName = std::string;
         struct InterfaceData

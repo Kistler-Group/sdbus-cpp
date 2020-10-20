@@ -34,6 +34,7 @@
 #include <systemd/sd-bus.h>
 #include <cassert>
 #include <chrono>
+#include <exception>
 #include <thread>
 
 namespace sdbus::internal {
@@ -42,6 +43,7 @@ Proxy::Proxy(sdbus::internal::IConnection& connection, std::string destination, 
     : connection_(&connection, [](sdbus::internal::IConnection *){ /* Intentionally left empty */ })
     , destination_(std::move(destination))
     , objectPath_(std::move(objectPath))
+    , error_hook_(std::nullopt)
 {
     // The connection is not ours only, it is owned and managed by the user and we just reference
     // it here, so we expect the client to manage the event loop upon this connection themselves.
@@ -53,6 +55,7 @@ Proxy::Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
     : connection_(std::move(connection))
     , destination_(std::move(destination))
     , objectPath_(std::move(objectPath))
+    , error_hook_(std::nullopt)
 {
     // The connection is ours only, i.e. it's us who has to manage the event loop upon this connection,
     // in order that we get and process signals, async call replies, and other messages from D-Bus.
@@ -85,12 +88,27 @@ MethodReply Proxy::callMethod(const MethodCall& message, uint64_t timeout)
 
     // If we are in the context of event loop thread, we can send the D-Bus call synchronously
     // and wait blockingly for the reply, because we are the exclusive listeners on the socket
-    auto reply = connection_->tryCallMethodSynchronously(message, timeout);
-    if (reply.isValid())
-        return reply;
+    try
+    {
+        auto reply = connection_->tryCallMethodSynchronously(message, timeout);
+        if (reply.isValid())
+            return reply;
 
-    // Otherwise we send the call asynchronously and do blocking wait for the reply from the event loop thread
-    return sendMethodCallMessageAndWaitForReply(message, timeout);
+        // Otherwise we send the call asynchronously and do blocking wait for the reply from the event loop thread
+        return sendMethodCallMessageAndWaitForReply(message, timeout);
+    }
+    catch (const sdbus::Error& err)
+    {
+        if (error_hook_.has_value())
+        {
+            auto escalation = (*error_hook_)(err);
+            if (escalation)
+            {
+                std::rethrow_exception(escalation); // no return
+            };
+        }
+        std::rethrow_exception(std::current_exception());
+    }
 }
 
 PendingAsyncCall Proxy::callMethod(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout)
@@ -107,6 +125,11 @@ PendingAsyncCall Proxy::callMethod(const MethodCall& message, async_reply_handle
     pendingAsyncCalls_.addCall(slotPtr, std::move(callData));
 
     return {weakData};
+}
+
+void Proxy::setTranslateErrorHook(IProxy::translate_error_hook_type hook)
+{
+    error_hook_ = hook;
 }
 
 MethodReply Proxy::sendMethodCallMessageAndWaitForReply(const MethodCall& message, uint64_t timeout)
