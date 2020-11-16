@@ -2,26 +2,44 @@
 # DOWNLOAD AND BUILD OF GOOGLETEST
 #-------------------------------
 
-include(FetchContent)
+set(GOOGLETEST_VERSION 1.10.0 CACHE STRING "Version of gmock to use")
+set(GOOGLETEST_GIT_REPO "https://github.com/google/googletest.git" CACHE STRING "A git repo to clone and build googletest from if gmock is not found in the system")
 
-message("Fetching googletest...")
-FetchContent_Declare(googletest
-                     GIT_REPOSITORY https://github.com/google/googletest.git
-                     GIT_TAG        master
-                     GIT_SHALLOW    1
-                     UPDATE_COMMAND "")
+find_package(GTest ${GOOGLETEST_VERSION} CONFIG)
+if (NOT TARGET GTest::gmock)
+    # Try pkg-config if GTest was not found through CMake config
+    find_package(PkgConfig)
+    if (PkgConfig_FOUND)
+        pkg_check_modules(GMock IMPORTED_TARGET GLOBAL gmock>=${GOOGLETEST_VERSION})
+        if(TARGET PkgConfig::GMock)
+            add_library(GTest::gmock ALIAS PkgConfig::GMock)
+        endif()
+    endif()
+    # GTest was not found in the system, build it on our own
+    if (NOT TARGET GTest::gmock)
+        include(FetchContent)
 
-#FetchContent_MakeAvailable(googletest) # Not available in CMake 3.13 :-( Let's do it manually:
-FetchContent_GetProperties(googletest)
-if(NOT googletest_POPULATED)
-    FetchContent_Populate(googletest)
-    set(gtest_force_shared_crt ON CACHE INTERNAL "" FORCE)
-    set(BUILD_GMOCK ON CACHE INTERNAL "" FORCE)
-    set(INSTALL_GTEST OFF CACHE INTERNAL "" FORCE)
-    set(BUILD_SHARED_LIBS_BAK ${BUILD_SHARED_LIBS})
-    set(BUILD_SHARED_LIBS OFF)
-    add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
-    set(BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS_BAK})
+        message("Fetching googletest...")
+        FetchContent_Declare(googletest
+                            GIT_REPOSITORY ${GOOGLETEST_GIT_REPO}
+                            GIT_TAG        release-${GOOGLETEST_VERSION}
+                            GIT_SHALLOW    1
+                            UPDATE_COMMAND "")
+
+        #FetchContent_MakeAvailable(googletest) # Not available in CMake 3.13 :-( Let's do it manually:
+        FetchContent_GetProperties(googletest)
+        if(NOT googletest_POPULATED)
+            FetchContent_Populate(googletest)
+            set(gtest_force_shared_crt ON CACHE INTERNAL "" FORCE)
+            set(BUILD_GMOCK ON CACHE INTERNAL "" FORCE)
+            set(INSTALL_GTEST OFF CACHE INTERNAL "" FORCE)
+            set(BUILD_SHARED_LIBS_BAK ${BUILD_SHARED_LIBS})
+            set(BUILD_SHARED_LIBS OFF)
+            add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
+            set(BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS_BAK})
+            add_library(GTest::gmock ALIAS gmock)
+        endif()
+    endif()
 endif()
 
 #-------------------------------
@@ -87,11 +105,11 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 add_executable(sdbus-c++-unit-tests ${UNITTESTS_SRCS})
 target_compile_definitions(sdbus-c++-unit-tests PRIVATE LIBSYSTEMD_VERSION=${LIBSYSTEMD_VERSION})
-target_link_libraries(sdbus-c++-unit-tests sdbus-c++-objlib gmock gmock_main)
+target_link_libraries(sdbus-c++-unit-tests sdbus-c++-objlib GTest::gmock)
 
 add_executable(sdbus-c++-integration-tests ${INTEGRATIONTESTS_SRCS})
 target_compile_definitions(sdbus-c++-integration-tests PRIVATE LIBSYSTEMD_VERSION=${LIBSYSTEMD_VERSION})
-target_link_libraries(sdbus-c++-integration-tests sdbus-c++ gmock gmock_main)
+target_link_libraries(sdbus-c++-integration-tests sdbus-c++ GTest::gmock)
 
 # Manual performance and stress tests
 option(ENABLE_PERF_TESTS "Build and install manual performance tests (default OFF)" OFF)
