@@ -195,7 +195,10 @@ void Proxy::registerSignalHandlers(sdbus::internal::IConnection& connection)
 void Proxy::unregister()
 {
     pendingAsyncCalls_.clear();
-    interfaces_.clear();
+    std::unique_lock lock(mutex_);
+    auto interfaces = std::move(interfaces_);
+    lock.unlock();
+    interfaces.clear();
 }
 
 const std::string& Proxy::getObjectPath() const
@@ -245,8 +248,12 @@ int Proxy::sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd
     auto message = Message::Factory::create<Signal>(sdbusMessage, &proxy->connection_->getSdBusInterface());
 
     // Note: The lookup can be optimized by using sorted vectors instead of associative containers
-    auto& callback = proxy->interfaces_[message.getInterfaceName()].signals_[message.getMemberName()].callback_;
-    assert(callback);
+    std::unique_lock lock(proxy->mutex_);
+    auto interface = proxy->interfaces_.find(message.getInterfaceName());
+    if (interface == proxy->interfaces_.end()) return 0;
+    auto signal = interface->second.signals_.find(message.getMemberName());
+    if (signal == interface->second.signals_.end()) return 0;
+    auto& callback = signal->second.callback_;
 
     callback(message);
 

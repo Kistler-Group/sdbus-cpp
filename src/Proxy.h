@@ -103,6 +103,7 @@ namespace sdbus::internal {
             std::map<SignalName, SignalData> signals_;
         };
         std::map<InterfaceName, InterfaceData> interfaces_;
+        std::mutex mutex_;
 
         // We need to keep track of pending async calls. When the proxy is being destructed, we must
         // remove all slots of these pending calls, otherwise in case when the connection outlives
