@@ -158,6 +158,7 @@ void Proxy::registerSignalHandler( const std::string& interfaceName
 {
     SDBUS_THROW_ERROR_IF(!signalHandler, "Invalid signal handler provided", EINVAL);
 
+    std::unique_lock lock(mutex_);
     auto& interface = interfaces_[interfaceName];
 
     InterfaceData::SignalData signalData{std::move(signalHandler), nullptr};
@@ -174,6 +175,7 @@ void Proxy::finishRegistration()
 
 void Proxy::registerSignalHandlers(sdbus::internal::IConnection& connection)
 {
+    // std::unique_lock lock(mutex_);
     for (auto& interfaceItem : interfaces_)
     {
         const auto& interfaceName = interfaceItem.first;
