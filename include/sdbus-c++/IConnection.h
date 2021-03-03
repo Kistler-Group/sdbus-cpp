@@ -31,6 +31,7 @@
 #include <memory>
 #include <chrono>
 #include <cstdint>
+#include <vector>
 
 namespace sdbus {
 
@@ -80,6 +81,13 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         virtual std::string getUniqueName() const = 0;
+
+        /*
+        virtual uid_t getCredsUid(std::string bus_name) const = 0;
+        virtual uid_t getCredsEuid(std::string bus_name) const = 0;
+        virtual gid_t getCredsGid(std::string bus_name) const = 0;
+        virtual std::vector<gid_t> getCredsSupplementaryGids(std::string bus_name) const = 0;
+        */
 
         /*!
          * @brief Enters I/O event loop on this bus connection

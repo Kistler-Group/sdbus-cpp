@@ -196,6 +196,44 @@ int SdBus::sd_bus_get_unique_name(sd_bus *bus, const char **name)
     return ::sd_bus_get_unique_name(bus, name);
 }
 
+
+sd_bus* SdBus::sd_bus_message_get_bus(sd_bus_message *m)
+{
+    return ::sd_bus_message_get_bus(m);
+}
+
+int SdBus::sd_bus_get_name_creds(sd_bus *bus, const char *name, uint64_t mask, sd_bus_creds **creds)
+{
+    std::lock_guard lock(sdbusMutex_);
+
+    return ::sd_bus_get_name_creds(bus, name, mask, creds);
+}
+
+sd_bus_creds* SdBus::sd_bus_creds_unref(sd_bus_creds *c)
+{
+    return ::sd_bus_creds_unref(c);
+}
+
+int SdBus::sd_bus_creds_get_uid(sd_bus_creds *c, uid_t *uid)
+{
+    return ::sd_bus_creds_get_uid(c, uid);
+}
+
+int SdBus::sd_bus_creds_get_euid(sd_bus_creds *c, uid_t *uid)
+{
+    return ::sd_bus_creds_get_euid(c, uid);
+}
+
+int SdBus::sd_bus_creds_get_gid(sd_bus_creds *c, gid_t *gid)
+{
+    return ::sd_bus_creds_get_gid(c, gid);
+}
+
+int SdBus::sd_bus_creds_get_supplementary_gids(sd_bus_creds *c, const gid_t **gids)
+{
+    return ::sd_bus_creds_get_supplementary_gids(c, gids);
+}
+
 int SdBus::sd_bus_add_object_vtable(sd_bus *bus, sd_bus_slot **slot, const char *path, const char *interface, const sd_bus_vtable *vtable, void *userdata)
 {
     std::lock_guard lock(sdbusMutex_);

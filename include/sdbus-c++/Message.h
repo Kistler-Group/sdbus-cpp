@@ -138,6 +138,11 @@ namespace sdbus {
         void seal();
         void rewind(bool complete);
 
+        uid_t getCredsUid(const std::string bus_name) const;
+        uid_t getCredsEuid(const std::string bus_name) const;
+        gid_t getCredsGid(const std::string bus_name) const;
+        std::vector<gid_t> getCredsSupplementaryGids(const std::string bus_name) const;
+
         class Factory;
 
     protected:

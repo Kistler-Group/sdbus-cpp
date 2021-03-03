@@ -616,6 +616,86 @@ bool Message::isEmpty() const
     return sd_bus_message_is_empty((sd_bus_message*)msg_) != 0;
 }
 
+
+uid_t Message::getCredsUid(const std::string bus_name) const
+{
+    uint64_t mask = SD_BUS_CREDS_UID | SD_BUS_CREDS_AUGMENT | SD_BUS_CREDS_PID;
+    sd_bus_creds *creds = nullptr;
+    uid_t uid = 65534;
+    sd_bus * bus_m = sdbus_->sd_bus_message_get_bus((sd_bus_message*)msg_);
+    SDBUS_THROW_ERROR_IF(bus_m == nullptr, "Failed to get bus from message", -1);
+    int r = sdbus_->sd_bus_get_name_creds(bus_m, bus_name.c_str(), mask, &creds);
+    if (r < 0) { sdbus_->sd_bus_creds_unref(creds); }
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus creds", -r);
+    r = sdbus_->sd_bus_creds_get_uid(creds, &uid);
+    sdbus_->sd_bus_creds_unref(creds);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus cred uid", -r);
+    return uid;
+}
+
+uid_t Message::getCredsEuid(const std::string bus_name) const
+{
+    uint64_t mask = SD_BUS_CREDS_EUID | SD_BUS_CREDS_AUGMENT | SD_BUS_CREDS_PID;
+    sd_bus_creds *creds = nullptr;
+    uid_t uid = 65534;
+    sd_bus * bus_m = sdbus_->sd_bus_message_get_bus((sd_bus_message*)msg_);
+    SDBUS_THROW_ERROR_IF(bus_m == nullptr, "Failed to get bus from message", -1);
+    int r = sdbus_->sd_bus_get_name_creds(bus_m, bus_name.c_str(), mask, &creds);
+    if (r < 0) { sdbus_->sd_bus_creds_unref(creds); }
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus creds", -r);
+
+    r = sdbus_->sd_bus_creds_get_euid(creds, &uid);
+    sdbus_->sd_bus_creds_unref(creds);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus cred euid", -r);
+    return uid;
+}
+
+gid_t Message::getCredsGid(const std::string bus_name) const
+{
+    uint64_t mask = SD_BUS_CREDS_GID | SD_BUS_CREDS_AUGMENT | SD_BUS_CREDS_PID;
+    sd_bus_creds *creds = nullptr;
+    gid_t gid = 65534;
+    sd_bus * bus_m = sdbus_->sd_bus_message_get_bus((sd_bus_message*)msg_);
+    SDBUS_THROW_ERROR_IF(bus_m == nullptr, "Failed to get bus from message", -1);
+    int r = sdbus_->sd_bus_get_name_creds(bus_m, bus_name.c_str(), mask, &creds);
+    if (r < 0) { sdbus_->sd_bus_creds_unref(creds); }
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus creds", -r);
+    r = sdbus_->sd_bus_creds_get_gid(creds, &gid);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus cred gid", -r);
+    sdbus_->sd_bus_creds_unref(creds);
+    return gid;
+}
+
+std::vector<gid_t> Message::getCredsSupplementaryGids(const std::string bus_name) const
+{
+    std::vector<gid_t> gidv{};
+    uint64_t mask = SD_BUS_CREDS_SUPPLEMENTARY_GIDS | SD_BUS_CREDS_AUGMENT | SD_BUS_CREDS_PID;
+    sd_bus_creds *creds = nullptr;
+    const gid_t *gids = nullptr;
+    int num_gids = 0;
+    sd_bus * bus_m = sdbus_->sd_bus_message_get_bus((sd_bus_message*)msg_);
+    SDBUS_THROW_ERROR_IF(bus_m == nullptr, "Failed to get bus from message", -1);
+    int r = sdbus_->sd_bus_get_name_creds(bus_m, bus_name.c_str(), mask, &creds);
+    if (r < 0) { sdbus_->sd_bus_creds_unref(creds); }
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus creds", -r);
+    num_gids = sdbus_->sd_bus_creds_get_supplementary_gids(creds, &gids);
+    sdbus_->sd_bus_creds_unref(creds);
+    SDBUS_THROW_ERROR_IF(num_gids < 0, "Failed to get bus cred supplemental gids", -r);
+    if (gids != nullptr) {
+        for (int i = 0; i < num_gids; i++) {
+            gidv.push_back(gids[i]);
+        }
+    }
+    return gidv;
+}
+
+
+
+
+
+
+
+
 void MethodCall::dontExpectReply()
 {
     auto r = sd_bus_message_set_expect_reply((sd_bus_message*)msg_, 0);

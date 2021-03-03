@@ -60,6 +60,12 @@ namespace sdbus::internal {
         void requestName(const std::string& name) override;
         void releaseName(const std::string& name) override;
         std::string getUniqueName() const override;
+
+        //uid_t getCredsUid(const std::string bus_name) const override;
+        //uid_t getCredsEuid(const std::string bus_name) const override;
+        //gid_t getCredsGid(const std::string bus_name) const override;
+        //std::vector<gid_t> getCredsSupplementaryGids(const std::string bus_name) const override;
+
         void enterEventLoop() override;
         void enterEventLoopAsync() override;
         void leaveEventLoop() override;
