@@ -616,6 +616,113 @@ bool Message::isEmpty() const
     return sd_bus_message_is_empty((sd_bus_message*)msg_) != 0;
 }
 
+pid_t Message::getCredsPid() const
+{
+    uint64_t mask = SD_BUS_CREDS_PID | SD_BUS_CREDS_AUGMENT;
+    sd_bus_creds *creds = nullptr;
+    SCOPE_EXIT{ sdbus_->sd_bus_creds_unref(creds); };
+
+    int r = sdbus_->sd_bus_query_sender_creds((sd_bus_message*)msg_, mask, &creds);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus creds", -r);
+
+    pid_t pid = 0;
+    r = sdbus_->sd_bus_creds_get_pid(creds, &pid);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus cred pid", -r);
+    return pid;
+}
+
+uid_t Message::getCredsUid() const
+{
+    uint64_t mask = SD_BUS_CREDS_UID | SD_BUS_CREDS_AUGMENT;
+    sd_bus_creds *creds = nullptr;
+    SCOPE_EXIT{ sdbus_->sd_bus_creds_unref(creds); };
+    int r = sdbus_->sd_bus_query_sender_creds((sd_bus_message*)msg_, mask, &creds);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus creds", -r);
+
+    uid_t uid = (uid_t)-1;
+    r = sdbus_->sd_bus_creds_get_uid(creds, &uid);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus cred uid", -r);
+    return uid;
+}
+
+uid_t Message::getCredsEuid() const
+{
+    uint64_t mask = SD_BUS_CREDS_EUID | SD_BUS_CREDS_AUGMENT;
+    sd_bus_creds *creds = nullptr;
+    SCOPE_EXIT{ sdbus_->sd_bus_creds_unref(creds); };
+    int r = sdbus_->sd_bus_query_sender_creds((sd_bus_message*)msg_, mask, &creds);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus creds", -r);
+
+    uid_t euid = (uid_t)-1;
+    r = sdbus_->sd_bus_creds_get_euid(creds, &euid);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus cred euid", -r);
+    return euid;
+}
+
+gid_t Message::getCredsGid() const
+{
+    uint64_t mask = SD_BUS_CREDS_GID | SD_BUS_CREDS_AUGMENT;
+    sd_bus_creds *creds = nullptr;
+    SCOPE_EXIT{ sdbus_->sd_bus_creds_unref(creds); };
+    int r = sdbus_->sd_bus_query_sender_creds((sd_bus_message*)msg_, mask, &creds);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus creds", -r);
+
+    gid_t gid = (gid_t)-1;
+    r = sdbus_->sd_bus_creds_get_gid(creds, &gid);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus cred gid", -r);
+    return gid;
+}
+
+gid_t Message::getCredsEgid() const
+{
+    uint64_t mask = SD_BUS_CREDS_EGID | SD_BUS_CREDS_AUGMENT;
+    sd_bus_creds *creds = nullptr;
+    SCOPE_EXIT{ sdbus_->sd_bus_creds_unref(creds); };
+    int r = sdbus_->sd_bus_query_sender_creds((sd_bus_message*)msg_, mask, &creds);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus creds", -r);
+
+    gid_t egid = (gid_t)-1;
+    r = sdbus_->sd_bus_creds_get_egid(creds, &egid);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus cred egid", -r);
+    return egid;
+}
+
+std::vector<gid_t> Message::getCredsSupplementaryGids() const
+{
+    uint64_t mask = SD_BUS_CREDS_SUPPLEMENTARY_GIDS | SD_BUS_CREDS_AUGMENT;
+    sd_bus_creds *creds = nullptr;
+    SCOPE_EXIT{ sdbus_->sd_bus_creds_unref(creds); };
+    int r = sdbus_->sd_bus_query_sender_creds((sd_bus_message*)msg_, mask, &creds);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus creds", -r);
+
+    const gid_t *cGids = nullptr;
+    r = sdbus_->sd_bus_creds_get_supplementary_gids(creds, &cGids);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus cred supplementary gids", -r);
+
+    std::vector<gid_t> gids{};
+    if (cGids != nullptr)
+    {
+        for (int i = 0; i < r; i++)
+            gids.push_back(cGids[i]);
+    }
+
+    return gids;
+}
+
+std::string Message::getSELinuxContext() const
+{
+    uint64_t mask = SD_BUS_CREDS_AUGMENT | SD_BUS_CREDS_SELINUX_CONTEXT;
+    sd_bus_creds *creds = nullptr;
+    SCOPE_EXIT{ sdbus_->sd_bus_creds_unref(creds); };
+    int r = sdbus_->sd_bus_query_sender_creds((sd_bus_message*)msg_, mask, &creds);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus creds", -r);
+
+    const char *cLabel = nullptr;
+    r = sdbus_->sd_bus_creds_get_selinux_context(creds, &cLabel);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus cred selinux context", -r);
+    return cLabel;
+}
+
 void MethodCall::dontExpectReply()
 {
     auto r = sd_bus_message_set_expect_reply((sd_bus_message*)msg_, 0);
@@ -716,5 +823,6 @@ PlainMessage createPlainMessage()
     static auto connection = internal::createConnection();
     return connection->createPlainMessage();
 }
+
 
 }

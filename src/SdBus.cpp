@@ -260,4 +260,67 @@ sd_bus* SdBus::sd_bus_flush_close_unref(sd_bus *bus)
     return ::sd_bus_flush_close_unref(bus);
 }
 
+int SdBus::sd_bus_query_sender_creds(sd_bus_message *m, uint64_t mask, sd_bus_creds **c)
+{
+    std::lock_guard lock(sdbusMutex_);
+
+    return ::sd_bus_query_sender_creds(m, mask, c);
+}
+
+sd_bus_creds* SdBus::sd_bus_creds_unref(sd_bus_creds *c)
+{
+    std::lock_guard lock(sdbusMutex_);
+
+    return ::sd_bus_creds_unref(c);
+}
+
+int SdBus::sd_bus_creds_get_pid(sd_bus_creds *c, pid_t *pid)
+{
+    std::lock_guard lock(sdbusMutex_);
+
+    return ::sd_bus_creds_get_pid(c, pid);
+}
+
+int SdBus::sd_bus_creds_get_uid(sd_bus_creds *c, uid_t *uid)
+{
+    std::lock_guard lock(sdbusMutex_);
+
+    return ::sd_bus_creds_get_uid(c, uid);
+}
+
+int SdBus::sd_bus_creds_get_euid(sd_bus_creds *c, uid_t *euid)
+{
+    std::lock_guard lock(sdbusMutex_);
+
+    return ::sd_bus_creds_get_euid(c, euid);
+}
+
+int SdBus::sd_bus_creds_get_gid(sd_bus_creds *c, gid_t *gid)
+{
+    std::lock_guard lock(sdbusMutex_);
+
+    return ::sd_bus_creds_get_gid(c, gid);
+}
+
+int SdBus::sd_bus_creds_get_egid(sd_bus_creds *c, uid_t *egid)
+{
+    std::lock_guard lock(sdbusMutex_);
+
+    return ::sd_bus_creds_get_egid(c, egid);
+}
+
+int SdBus::sd_bus_creds_get_supplementary_gids(sd_bus_creds *c, const gid_t **gids)
+{
+    std::lock_guard lock(sdbusMutex_);
+
+    return ::sd_bus_creds_get_supplementary_gids(c, gids);
+}
+
+int SdBus::sd_bus_creds_get_selinux_context(sd_bus_creds *c, const char **label)
+{
+    std::lock_guard lock(sdbusMutex_);
+
+    return ::sd_bus_creds_get_selinux_context(c, label);
+}
+
 }

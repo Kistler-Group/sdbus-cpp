@@ -73,6 +73,17 @@ public:
 
     MOCK_METHOD1(sd_bus_flush, int(sd_bus *bus));
     MOCK_METHOD1(sd_bus_flush_close_unref, sd_bus *(sd_bus *bus));
+
+    MOCK_METHOD3(sd_bus_query_sender_creds, int(sd_bus_message *, uint64_t, sd_bus_creds **));
+    MOCK_METHOD1(sd_bus_creds_unref, sd_bus_creds*(sd_bus_creds *));
+
+    MOCK_METHOD2(sd_bus_creds_get_pid, int(sd_bus_creds *, pid_t *));
+    MOCK_METHOD2(sd_bus_creds_get_uid, int(sd_bus_creds *, uid_t *));
+    MOCK_METHOD2(sd_bus_creds_get_euid, int(sd_bus_creds *, uid_t *));
+    MOCK_METHOD2(sd_bus_creds_get_gid, int(sd_bus_creds *, gid_t *));
+    MOCK_METHOD2(sd_bus_creds_get_egid, int(sd_bus_creds *, gid_t *));
+    MOCK_METHOD2(sd_bus_creds_get_supplementary_gids, int(sd_bus_creds *, const gid_t **));
+    MOCK_METHOD2(sd_bus_creds_get_selinux_context, int(sd_bus_creds *, const char **));
 };
 
 #endif //SDBUS_CXX_SDBUS_MOCK_H
