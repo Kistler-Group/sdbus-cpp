@@ -770,7 +770,7 @@ public:
         registerProxy();
     }
 
-    ~Concatenator()
+    ~ConcatenatorProxy()
     {
         unregisterProxy();
     }
