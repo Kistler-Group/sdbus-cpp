@@ -688,7 +688,7 @@ class Concatenator : public sdbus::AdaptorInterfaces<org::sdbuscpp::Concatenator
 {
 public:
     Concatenator(sdbus::IConnection& connection, std::string objectPath)
-        : sdbus::AdaptorInterfaces(connection, std::move(objectPath))
+        : AdaptorInterfaces(connection, std::move(objectPath))
     {
         registerAdaptor();
     }
@@ -765,7 +765,7 @@ class ConcatenatorProxy : public sdbus::ProxyInterfaces<org::sdbuscpp::Concatena
 {
 public:
     ConcatenatorProxy(std::string destination, std::string objectPath)
-        : sdbus::ProxyInterfaces(std::move(destination), std::move(objectPath))
+        : ProxyInterfaces(std::move(destination), std::move(objectPath))
     {
         registerProxy();
     }
