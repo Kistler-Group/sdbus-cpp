@@ -23,10 +23,9 @@ if(NOT BUILD_LIBSYSTEMD)
                             "and building libsystemd in as part of sdbus-c++ during configuration)")
     endif()
     add_library(Systemd::Libsystemd ALIAS PkgConfig::Systemd)
-	string(REGEX MATCHALL "([0-9]+)" SYSTEMD_VERSION_LIST "${Systemd_VERSION}")
-
-	list(GET SYSTEMD_VERSION_LIST 0 LIBSYSTEMD_VERSION)
-	message(STATUS "LIBSYSTEMD_VERSION is: ${LIBSYSTEMD_VERSION}")
+    string(REGEX MATCHALL "([0-9]+)" SYSTEMD_VERSION_LIST "${Systemd_VERSION}")
+    list(GET SYSTEMD_VERSION_LIST 0 LIBSYSTEMD_VERSION)
+    message(STATUS "Building with libsystemd v${LIBSYSTEMD_VERSION}")
 else()
     # Build static libsystemd library as an external project
     include(cmake/LibsystemdExternalProject.cmake)
