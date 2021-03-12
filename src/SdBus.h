@@ -75,6 +75,17 @@ public:
     virtual int sd_bus_flush(sd_bus *bus) override;
     virtual sd_bus *sd_bus_flush_close_unref(sd_bus *bus) override;
 
+    virtual int sd_bus_query_sender_creds(sd_bus_message *m, uint64_t mask, sd_bus_creds **c) override;
+    virtual sd_bus_creds* sd_bus_creds_unref(sd_bus_creds *c) override;
+
+    virtual int sd_bus_creds_get_pid(sd_bus_creds *c, pid_t *pid) override;
+    virtual int sd_bus_creds_get_uid(sd_bus_creds *c, uid_t *uid) override;
+    virtual int sd_bus_creds_get_euid(sd_bus_creds *c, uid_t *euid) override;
+    virtual int sd_bus_creds_get_gid(sd_bus_creds *c, gid_t *gid) override;
+    virtual int sd_bus_creds_get_egid(sd_bus_creds *c, gid_t *egid) override;
+    virtual int sd_bus_creds_get_supplementary_gids(sd_bus_creds *c, const gid_t **gids) override;
+    virtual int sd_bus_creds_get_selinux_context(sd_bus_creds *c, const char **label) override;
+
 private:
     std::recursive_mutex sdbusMutex_;
 };
