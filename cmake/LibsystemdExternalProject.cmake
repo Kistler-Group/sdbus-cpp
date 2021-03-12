@@ -45,7 +45,8 @@ ExternalProject_Add(LibsystemdBuildProject
                           COMMAND     ${NINJA} -C <BINARY_DIR> libsystemd.a
                     BUILD_ALWAYS      0
                     INSTALL_COMMAND   ${CMAKE_COMMAND} -E copy_directory <SOURCE_DIR>/src/systemd <INSTALL_DIR>/include/systemd
-                    LOG_DOWNLOAD 1 LOG_UPDATE 1 LOG_CONFIGURE 1 LOG_BUILD 1)
+                    LOG_DOWNLOAD 1 LOG_UPDATE 1 LOG_CONFIGURE 1 LOG_BUILD 1
+                    BUILD_BYPRODUCTS <BINARY_DIR>/libsystemd.a)
 
 ExternalProject_Get_property(LibsystemdBuildProject SOURCE_DIR)
 ExternalProject_Get_property(LibsystemdBuildProject BINARY_DIR)
