@@ -37,6 +37,7 @@
 #include <cstdint>
 #include <cassert>
 #include <functional>
+#include <sys/types.h>
 
 // Forward declarations
 namespace sdbus {
