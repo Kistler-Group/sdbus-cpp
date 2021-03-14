@@ -1,4 +1,4 @@
-Using sdbus-c++ library
+Using sdbus-c++ library     {#mainpage}
 =======================
 
 **Table of contents**
