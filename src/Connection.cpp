@@ -107,7 +107,17 @@ void Connection::enterEventLoop()
 void Connection::enterEventLoopAsync()
 {
     if (!asyncLoopThread_.joinable())
-        asyncLoopThread_ = std::thread([this](){ enterEventLoop(); });
+    {
+        asyncLoopThread_ = std::thread([this]()
+        {
+            try
+            {
+                enterEventLoop();
+            } catch (...) {
+                // Ignore unhandled exceptions
+            }
+        });
+    }
 }
 
 void Connection::leaveEventLoop()
