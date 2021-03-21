@@ -51,11 +51,13 @@ namespace sdbus::internal {
         struct system_bus_t{};
         struct session_bus_t{};
         struct remote_system_bus_t{};
+        struct custom_session_bus_t{};
 
         Connection(std::unique_ptr<ISdBus>&& interface, default_bus_t);
         Connection(std::unique_ptr<ISdBus>&& interface, system_bus_t);
         Connection(std::unique_ptr<ISdBus>&& interface, session_bus_t);
         Connection(std::unique_ptr<ISdBus>&& interface, remote_system_bus_t, const std::string& host);
+        Connection(std::unique_ptr<ISdBus>&& interface, custom_session_bus_t, const std::string& addr);
         ~Connection() override;
 
         void requestName(const std::string& name) override;

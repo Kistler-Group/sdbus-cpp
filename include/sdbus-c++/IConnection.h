@@ -440,6 +440,8 @@ namespace sdbus {
      */
     [[nodiscard]] std::unique_ptr<sdbus::IConnection> createSessionBusConnection(const std::string& name);
 
+    [[nodiscard]] std::unique_ptr<sdbus::IConnection> createSessionBusConnectionWithAddress(const std::string& addr);
+
     /*!
      * @brief Creates/opens D-Bus system connection on a remote host using ssh
      *

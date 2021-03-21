@@ -335,4 +335,29 @@ int SdBus::sd_bus_creds_get_selinux_context(sd_bus_creds *c, const char **label)
     return ::sd_bus_creds_get_selinux_context(c, label);
 }
 
+int SdBus::sd_bus_new(sd_bus **bus)
+{
+    return ::sd_bus_new(bus);
+}
+
+int SdBus::sd_bus_set_address(sd_bus *bus, const char *addr)
+{
+    return ::sd_bus_set_address(bus, addr);
+}
+
+int SdBus::sd_bus_set_bus_client(sd_bus *bus, int b)
+{
+    return ::sd_bus_set_bus_client(bus, b);
+}
+
+int SdBus::sd_bus_set_trusted(sd_bus *bus, int b)
+{
+    return ::sd_bus_set_trusted(bus, b);
+}
+
+int SdBus::sd_bus_start(sd_bus *bus)
+{
+    return ::sd_bus_start(bus);
+}
+
 }

@@ -96,6 +96,12 @@ namespace sdbus::internal {
         virtual int sd_bus_creds_get_egid(sd_bus_creds *c, gid_t *egid) = 0;
         virtual int sd_bus_creds_get_supplementary_gids(sd_bus_creds *c, const gid_t **gids) = 0;
         virtual int sd_bus_creds_get_selinux_context(sd_bus_creds *c, const char **label) = 0;
+
+        virtual int sd_bus_new(sd_bus **bus) = 0;
+        virtual int sd_bus_set_address(sd_bus *bus, const char *addr) = 0;
+        virtual int sd_bus_set_bus_client(sd_bus *bus, int b) = 0;
+        virtual int sd_bus_set_trusted(sd_bus *bus, int b) = 0;
+        virtual int sd_bus_start(sd_bus *bus) = 0;
     };
 
 }

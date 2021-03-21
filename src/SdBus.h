@@ -89,6 +89,12 @@ public:
     virtual int sd_bus_creds_get_supplementary_gids(sd_bus_creds *c, const gid_t **gids) override;
     virtual int sd_bus_creds_get_selinux_context(sd_bus_creds *c, const char **label) override;
 
+    virtual int sd_bus_new(sd_bus **bus) override;
+    virtual int sd_bus_set_address(sd_bus *bus, const char *addr) override;
+    virtual int sd_bus_set_bus_client(sd_bus *bus, int b) override;
+    virtual int sd_bus_set_trusted(sd_bus *bus, int b) override;
+    virtual int sd_bus_start(sd_bus *bus) override;
+
 private:
     std::recursive_mutex sdbusMutex_;
 };

@@ -39,6 +39,7 @@ using sdbus::internal::Connection;
 constexpr sdbus::internal::Connection::default_bus_t default_bus;
 constexpr sdbus::internal::Connection::system_bus_t system_bus;
 constexpr sdbus::internal::Connection::session_bus_t session_bus;
+constexpr sdbus::internal::Connection::custom_session_bus_t custom_session_bus;
 constexpr sdbus::internal::Connection::remote_system_bus_t remote_system_bus;
 
 class ConnectionCreationTest : public ::testing::Test
@@ -169,6 +170,14 @@ template<> void AConnectionNameRequest<Connection::session_bus_t>::setUpBusOpenE
 {
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_open_user(_)).WillOnce(DoAll(SetArgPointee<0>(fakeBusPtr_), Return(1)));
 }
+template<> void AConnectionNameRequest<Connection::custom_session_bus_t>::setUpBusOpenExpectation()
+{
+    EXPECT_CALL(*sdBusIntfMock_, sd_bus_new(_)).WillOnce(DoAll(SetArgPointee<0>(fakeBusPtr_), Return(1)));
+    ON_CALL(*sdBusIntfMock_, sd_bus_set_address(_, _)).WillByDefault(Return(1));
+    ON_CALL(*sdBusIntfMock_, sd_bus_set_bus_client(_, _)).WillByDefault(Return(1));
+    ON_CALL(*sdBusIntfMock_, sd_bus_set_trusted(_, _)).WillByDefault(Return(1));
+    ON_CALL(*sdBusIntfMock_, sd_bus_start(_)).WillByDefault(Return(1));
+}
 template<> void AConnectionNameRequest<Connection::remote_system_bus_t>::setUpBusOpenExpectation()
 {
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_open_system_remote(_, _)).WillOnce(DoAll(SetArgPointee<0>(fakeBusPtr_), Return(1)));
@@ -178,6 +187,10 @@ std::unique_ptr<Connection> AConnectionNameRequest<_BusTypeTag>::makeConnection(
 {
     return std::make_unique<Connection>(std::unique_ptr<NiceMock<SdBusMock>>(sdBusIntfMock_), _BusTypeTag{});
 }
+template<> std::unique_ptr<Connection> AConnectionNameRequest<Connection::custom_session_bus_t>::makeConnection()
+{
+    return std::make_unique<Connection>(std::unique_ptr<NiceMock<SdBusMock>>(sdBusIntfMock_), custom_session_bus, "custom session bus");
+}
 template<> std::unique_ptr<Connection> AConnectionNameRequest<Connection::remote_system_bus_t>::makeConnection()
 {
     return std::make_unique<Connection>(std::unique_ptr<NiceMock<SdBusMock>>(sdBusIntfMock_), remote_system_bus, "some host");
@@ -186,6 +199,7 @@ template<> std::unique_ptr<Connection> AConnectionNameRequest<Connection::remote
 typedef ::testing::Types< Connection::default_bus_t
                         , Connection::system_bus_t
                         , Connection::session_bus_t
+                        , Connection::custom_session_bus_t
                         , Connection::remote_system_bus_t
                         > BusTypeTags;
 
