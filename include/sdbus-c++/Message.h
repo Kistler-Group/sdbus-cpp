@@ -215,6 +215,7 @@ namespace sdbus {
 
     public:
         Signal() = default;
+        void setDestination(const std::string& destination);
         void send() const;
     };
 
