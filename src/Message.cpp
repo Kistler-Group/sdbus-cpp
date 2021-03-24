@@ -596,6 +596,12 @@ std::string Message::getSender() const
     return sd_bus_message_get_sender((sd_bus_message*)msg_);
 }
 
+std::string Message::getPath() const
+{
+    auto path = sd_bus_message_get_path((sd_bus_message*)msg_);
+    return path != nullptr ? path : "";
+}
+
 void Message::peekType(std::string& type, std::string& contents) const
 {
     char typeSig;
