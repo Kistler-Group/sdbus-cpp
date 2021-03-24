@@ -54,8 +54,8 @@ TEST(Connection, CanRequestRegisteredDbusName)
 {
     auto connection = sdbus::createConnection();
 
-    ASSERT_NO_THROW(connection->requestName(INTERFACE_NAME));
-    connection->releaseName(INTERFACE_NAME);
+    ASSERT_NO_THROW(connection->requestName(INTERFACE_NAME))
+        << "Perhaps you've forgotten to copy `org.sdbuscpp.integrationtests.conf` file to `/etc/dbus-1/system.d` directory before running the tests?";
 }
 
 TEST(Connection, CannotRequestNonregisteredDbusName)
@@ -87,6 +87,4 @@ TEST(Connection, CanEnterAndLeaveEventLoop)
     connection->leaveEventLoop();
 
     t.join();
-
-    connection->releaseName(INTERFACE_NAME);
 }

@@ -100,6 +100,19 @@ Tip: If you get `ERROR: Program or command 'getent' not found or not executable`
 
 Contributors willing to help with bringing sdbus-c++ to other popular package systems are welcome.
 
+Verifying sdbus-c++
+-------------------
+
+You can build and run sdbus-c++ unit and integration tests to verify sdbus-c++ build:
+
+```
+$ cd build
+$ cmake .. -DBUILD_TESTS=ON
+$ make
+$ sudo cp ../tests/integrationtests/files/org.sdbuscpp.integrationtests.conf /etc/dbus-1/system.d/
+$ make test
+```
+
 Header files and namespaces
 ---------------------------
 
