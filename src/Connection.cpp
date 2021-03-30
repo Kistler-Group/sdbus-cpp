@@ -289,7 +289,8 @@ void Connection::emitInterfacesRemovedSignal( const std::string& objectPath
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit InterfacesRemoved signal", -r);
 }
 
-SlotPtr Connection::registerSignalHandler( const std::string& objectPath
+SlotPtr Connection::registerSignalHandler( const std::string& sender
+                                         , const std::string& objectPath
                                          , const std::string& interfaceName
                                          , const std::string& signalName
                                          , sd_bus_message_handler_t callback
@@ -297,7 +298,9 @@ SlotPtr Connection::registerSignalHandler( const std::string& objectPath
 {
     sd_bus_slot *slot{};
 
-    auto filter = composeSignalMatchFilter(objectPath, interfaceName, signalName);
+    // alternatively to our own composeSignalMatchFilter() implementation, we could also use sd_bus_match_signal() from
+    // https://www.freedesktop.org/software/systemd/man/sd_bus_add_match.html#
+    auto filter = composeSignalMatchFilter(sender, objectPath, interfaceName, signalName);
     auto r = iface_->sd_bus_add_match(bus_.get(), &slot, filter.c_str(), callback, userData);
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to register signal handler", -r);
@@ -417,13 +420,15 @@ bool Connection::waitForNextRequest()
     return true;
 }
 
-std::string Connection::composeSignalMatchFilter( const std::string& objectPath
-                                                , const std::string& interfaceName
-                                                , const std::string& signalName )
+    std::string Connection::composeSignalMatchFilter(const std::string &sender,
+                                                     const std::string &objectPath,
+                                                     const std::string &interfaceName,
+                                                     const std::string &signalName)
 {
     std::string filter;
 
     filter += "type='signal',";
+    filter += "sender='" + sender + "',";
     filter += "interface='" + interfaceName + "',";
     filter += "member='" + signalName + "',";
     filter += "path='" + objectPath + "'";

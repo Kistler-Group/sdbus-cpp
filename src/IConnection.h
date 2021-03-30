@@ -82,7 +82,8 @@ namespace sdbus::internal {
 
         [[nodiscard]] virtual SlotPtr addObjectManager(const std::string& objectPath, void* /*dummy*/ = nullptr) = 0;
 
-        [[nodiscard]] virtual SlotPtr registerSignalHandler( const std::string& objectPath
+        [[nodiscard]] virtual SlotPtr registerSignalHandler( const std::string& sender
+                                                           , const std::string& objectPath
                                                            , const std::string& interfaceName
                                                            , const std::string& signalName
                                                            , sd_bus_message_handler_t callback
