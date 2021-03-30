@@ -67,6 +67,17 @@ TEST_F(SdbusTestObject, EmitsSimpleSignalToMultipleProxiesSuccesfully)
     ASSERT_TRUE(waitUntil(proxy2->m_gotSimpleSignal));
 }
 
+TEST_F(SdbusTestObject, ProxyDoesNotReceiveSignalFromOtherBusName)
+{
+    auto otherBusName = INTERFACE_NAME + "2";
+    auto connection2 = sdbus::createConnection(otherBusName);
+    auto adaptor2 = std::make_unique<TestAdaptor>(*connection2);
+
+    adaptor2->emitSimpleSignal();
+
+    ASSERT_FALSE(waitUntil(m_proxy->m_gotSimpleSignal, std::chrono::seconds(1)));
+}
+
 TEST_F(SdbusTestObject, EmitsSignalWithMapSuccesfully)
 {
     m_adaptor->emitSignalWithMap({{0, "zero"}, {1, "one"}});
