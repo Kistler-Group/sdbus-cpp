@@ -99,7 +99,8 @@ namespace sdbus::internal {
         void emitInterfacesRemovedSignal( const std::string& objectPath
                                         , const std::vector<std::string>& interfaces ) override;
 
-        SlotPtr registerSignalHandler( const std::string& objectPath
+        SlotPtr registerSignalHandler( const std::string& sender
+                                     , const std::string& objectPath
                                      , const std::string& interfaceName
                                      , const std::string& signalName
                                      , sd_bus_message_handler_t callback
@@ -115,9 +116,9 @@ namespace sdbus::internal {
         BusPtr openBus(const std::function<int(sd_bus**)>& busFactory);
         void finishHandshake(sd_bus* bus);
         bool waitForNextRequest();
-        static std::string composeSignalMatchFilter( const std::string& objectPath
-                                                   , const std::string& interfaceName
-                                                   , const std::string& signalName );
+        static std::string composeSignalMatchFilter(const std::string &sender, const std::string &objectPath,
+                                                    const std::string &interfaceName,
+                                                    const std::string &signalName);
         void notifyEventLoopToExit();
         void clearExitNotification();
         void joinWithEventLoop();
