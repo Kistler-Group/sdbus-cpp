@@ -169,3 +169,6 @@ v0.8.3
 - Update CMake configuration flag names
 - Fix unused variable warning for release builds
 - Introduce CI workflow based on GitHub Actions
+
+v0.8.4
+- fix issue #145: signals are not filtered by sender
