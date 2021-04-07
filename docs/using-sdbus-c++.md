@@ -53,6 +53,22 @@ PKG_CHECK_MODULES(SDBUSCPP, [sdbus-c++ >= 0.6],,
 
 Note: sdbus-c++ library uses a number of modern C++17 features. Please make certain you have a recent compiler (gcc >= 7, clang >= 6).
 
+If you intend to use stub generator (explained later) in your project to generate interface headers from XML, you can integrate that too with CMake or `pkg-config`:
+
+```cmake
+# First, find sdbus-c++-tools
+find_package(sdbus-c++-tools REQUIRED)
+
+# Use the sdbus-c++-xml2cpp in SDBusCpp namespace to generate the headers
+add_custom_command(
+    OUTPUT myproject-client-glue.h myproject-server-glue.h
+    COMMAND SDBusCpp::sdbus-c++-xml2cpp ${PROJECT_SOURCE_DIR}/dbus/myproject-bindings.xml
+        --proxy=myproject-client-glue.h --adaptor=myproject-server-glue.h
+    DEPENDS dbus/myproject-bindings.xml
+    COMMENT "Generating D-Bus interfaces for ${PROJECT_NAME}."
+)
+```
+
 Solving libsystemd dependency
 -----------------------------
 
@@ -207,7 +223,7 @@ This is how a simple Concatenator service implemented upon the basic sdbus-c++ A
 #include <vector>
 #include <string>
 
-// Yeah, global variable is ugly, but this is just an example and we want to access 
+// Yeah, global variable is ugly, but this is just an example and we want to access
 // the concatenator instance from within the concatenate method handler to be able
 // to emit signals.
 sdbus::IObject* g_concatenator{};
@@ -217,26 +233,26 @@ void concatenate(sdbus::MethodCall call)
     // Deserialize the collection of numbers from the message
     std::vector<int> numbers;
     call >> numbers;
-    
+
     // Deserialize separator from the message
     std::string separator;
     call >> separator;
-    
+
     // Return error if there are no numbers in the collection
     if (numbers.empty())
         throw sdbus::Error("org.sdbuscpp.Concatenator.Error", "No numbers provided");
-    
+
     std::string result;
     for (auto number : numbers)
     {
         result += (result.empty() ? std::string() : separator) + std::to_string(number);
     }
-    
+
     // Serialize resulting string to the reply and send the reply to the caller
     auto reply = call.createReply();
     reply << result;
     reply.send();
-    
+
     // Emit 'concatenated' signal
     const char* interfaceName = "org.sdbuscpp.Concatenator";
     auto signal = g_concatenator->createSignal(interfaceName, "concatenated");
@@ -253,9 +269,9 @@ int main(int argc, char *argv[])
     // Create concatenator D-Bus object.
     const char* objectPath = "/org/sdbuscpp/concatenator";
     auto concatenator = sdbus::createObject(*connection, objectPath);
-    
+
     g_concatenator = concatenator.get();
-    
+
     // Register D-Bus methods and signals on the concatenator object, and exports the object.
     const char* interfaceName = "org.sdbuscpp.Concatenator";
     concatenator->registerMethod(interfaceName, "concatenate", "ais", "s", &concatenate);
@@ -286,7 +302,7 @@ void onConcatenated(sdbus::Signal& signal)
 {
     std::string concatenatedString;
     signal >> concatenatedString;
-    
+
     std::cout << "Received signal with concatenated string " << concatenatedString << std::endl;
 }
 
@@ -298,15 +314,15 @@ int main(int argc, char *argv[])
     const char* destinationName = "org.sdbuscpp.concatenator";
     const char* objectPath = "/org/sdbuscpp/concatenator";
     auto concatenatorProxy = sdbus::createProxy(destinationName, objectPath);
-    
+
     // Let's subscribe for the 'concatenated' signals
     const char* interfaceName = "org.sdbuscpp.Concatenator";
     concatenatorProxy->registerSignalHandler(interfaceName, "concatenated", &onConcatenated);
     concatenatorProxy->finishRegistration();
-    
+
     std::vector<int> numbers = {1, 2, 3};
     std::string separator = ":";
-    
+
     // Invoke concatenate on given interface of the object
     {
         auto method = concatenatorProxy->createMethodCall(interfaceName, "concatenate");
@@ -316,7 +332,7 @@ int main(int argc, char *argv[])
         reply >> result;
         assert(result == "1:2:3");
     }
-    
+
     // Invoke concatenate again, this time with no numbers and we shall get an error
     {
         auto method = concatenatorProxy->createMethodCall(interfaceName, "concatenate");
@@ -331,10 +347,10 @@ int main(int argc, char *argv[])
             std::cerr << "Got concatenate error " << e.getName() << " with message " << e.getMessage() << std::endl;
         }
     }
-    
+
     // Give sufficient time to receive 'concatenated' signal from the first concatenate invocation
     sleep(1);
-    
+
     return 0;
 }
 ```
@@ -378,9 +394,9 @@ Of course, at any time before or after running the event loop on the connection,
 On the **client** side we have more options when creating D-Bus proxies. That corresponds to three overloads of the `createProxy()` factory:
 
   * In case we (the application) already maintain a D-Bus connection, e.g. because we a D-Bus service anyway, the simple and typical approach is to create proxy upon that connection. The proxy will share the connection with others. So we pass connection reference to proxy factory. With this approach we must of course ensure that the connection exists as long as the proxy exists.
-  
+
   * Or -- and this is typical when we have a simple D-Bus client application -- we have another option: we let proxy maintain its own connection (and an associated thread):
-  
+
     * We either create the connection ourselves and `std::move` it to the proxy object factory. The proxy becomes an owner of this connection, and will run the event loop on that connection. This had the advantage that we may choose the type of connection (system, session, remote).
 
     * Or we don't bother about any connection at all when creating a proxy (the factory overload with no connection parameter). Under the hood, the proxy creates its own *system bus* connection, creates a separate thread and runs an event loop in it. This is **the simplest approach** for non-complex D-Bus clients. For more complex ones, with big number of proxies, this hurts scalability but may improve concurrency (see discussion higher above), so we should make a conscious choice.
@@ -412,7 +428,7 @@ The code written using this layer expresses in a declarative way *what* it does,
 #include <vector>
 #include <string>
 
-// Yeah, global variable is ugly, but this is just an example and we want to access 
+// Yeah, global variable is ugly, but this is just an example and we want to access
 // the concatenator instance from within the concatenate method handler to be able
 // to emit signals.
 sdbus::IObject* g_concatenator{};
@@ -422,17 +438,17 @@ std::string concatenate(const std::vector<int> numbers, const std::string& separ
     // Return error if there are no numbers in the collection
     if (numbers.empty())
         throw sdbus::Error("org.sdbuscpp.Concatenator.Error", "No numbers provided");
-    
+
     std::string result;
     for (auto number : numbers)
     {
         result += (result.empty() ? std::string() : separator) + std::to_string(number);
     }
-    
+
     // Emit 'concatenated' signal
     const char* interfaceName = "org.sdbuscpp.Concatenator";
     g_concatenator->emitSignal("concatenated").onInterface(interfaceName).withArguments(result);
-    
+
     return result;
 }
 
@@ -445,9 +461,9 @@ int main(int argc, char *argv[])
     // Create concatenator D-Bus object.
     const char* objectPath = "/org/sdbuscpp/concatenator";
     auto concatenator = sdbus::createObject(*connection, objectPath);
-    
+
     g_concatenator = concatenator.get();
-    
+
     // Register D-Bus methods and signals on the concatenator object, and exports the object.
     const char* interfaceName = "org.sdbuscpp.Concatenator";
     concatenator->registerMethod("concatenate").onInterface(interfaceName).implementedAs(&concatenate);
@@ -479,22 +495,22 @@ int main(int argc, char *argv[])
     const char* destinationName = "org.sdbuscpp.concatenator";
     const char* objectPath = "/org/sdbuscpp/concatenator";
     auto concatenatorProxy = sdbus::createProxy(destinationName, objectPath);
-    
+
     // Let's subscribe for the 'concatenated' signals
     const char* interfaceName = "org.sdbuscpp.Concatenator";
     concatenatorProxy->uponSignal("concatenated").onInterface(interfaceName).call([](const std::string& str){ onConcatenated(str); });
     concatenatorProxy->finishRegistration();
-    
+
     std::vector<int> numbers = {1, 2, 3};
     std::string separator = ":";
-    
+
     // Invoke concatenate on given interface of the object
     {
         std::string concatenatedString;
         concatenatorProxy->callMethod("concatenate").onInterface(interfaceName).withArguments(numbers, separator).storeResultsTo(concatenatedString);
         assert(concatenatedString == "1:2:3");
     }
-    
+
     // Invoke concatenate again, this time with no numbers and we shall get an error
     {
         try
@@ -507,10 +523,10 @@ int main(int argc, char *argv[])
             std::cerr << "Got concatenate error " << e.getName() << " with message " << e.getMessage() << std::endl;
         }
     }
-    
+
     // Give sufficient time to receive 'concatenated' signal from the first concatenate invocation
     sleep(1);
-    
+
     return 0;
 }
 ```
@@ -704,17 +720,17 @@ protected:
         // Return error if there are no numbers in the collection
         if (numbers.empty())
             throw sdbus::Error("org.sdbuscpp.Concatenator.Error", "No numbers provided");
-        
+
         // Concatenate the numbers
         std::string result;
         for (auto number : numbers)
         {
             result += (result.empty() ? std::string() : separator) + std::to_string(number);
         }
-        
+
         // Emit the 'concatenated' signal with the resulting string
         emitConcatenated(result);
-        
+
         // Return the resulting string
         return result;
     }
@@ -802,11 +818,11 @@ int main(int argc, char *argv[])
 
     std::vector<int> numbers = {1, 2, 3};
     std::string separator = ":";
-    
+
     // Invoke concatenate with some numbers
     auto concatenatedString = concatenatorProxy.concatenate(numbers, separator);
     assert(concatenatedString == "1:2:3");
-    
+
     // Invoke concatenate again, this time with no numbers and we shall get an error
     try
     {
@@ -817,10 +833,10 @@ int main(int argc, char *argv[])
     {
         std::cerr << "Got concatenate error " << e.getName() << " with message " << e.getMessage() << std::endl;
     }
-    
+
     // Give sufficient time to receive 'concatenated' signal from the first concatenate invocation
     sleep(1);
-    
+
     return 0;
 }
 ```
@@ -840,11 +856,11 @@ void concatenate(sdbus::MethodCall call)
     // Deserialize the collection of numbers from the message
     std::vector<int> numbers;
     call >> numbers;
-    
+
     // Deserialize separator from the message
     std::string separator;
     call >> separator;
-    
+
     // Launch a thread for async execution...
     std::thread([numbers = std::move(numbers), separator = std::move(separator), call = std::move(call)]()
     {
@@ -856,18 +872,18 @@ void concatenate(sdbus::MethodCall call)
             reply.send();
             return;
         }
-        
+
         std::string result;
         for (auto number : numbers)
         {
             result += (result.empty() ? std::string() : separator) + std::to_string(number);
         }
-        
+
         // Let's send the reply message back to the client
         auto reply = call.createReply();
         reply << result;
         reply.send();
-        
+
         // Emit 'concatenated' signal (creating and emitting signals is thread-safe)
         const char* interfaceName = "org.sdbuscpp.Concatenator";
         auto signal = g_concatenator->createSignal(interfaceName, "concatenated");
@@ -905,16 +921,16 @@ void concatenate(sdbus::Result<std::string>&& result, std::vector<int32_t> numbe
             methodResult.returnError({"org.sdbuscpp.Concatenator.Error", "No numbers provided"});
             return;
         }
-        
+
         std::string result;
         for (auto number : numbers)
         {
             result += (result.empty() ? std::string() : separator) + std::to_string(number);
         }
-        
+
         // Let's send the reply message back to the client
         methodResult.returnReply(result);
-        
+
         // Emit the 'concatenated' signal with the resulting string
         this->emitConcatenated(result);
     }).detach();
@@ -962,7 +978,7 @@ Considering the Concatenator example based on lower-level API, if we wanted to c
 int main(int argc, char *argv[])
 {
     /* ...  */
-    
+
     auto callback = [](MethodReply& reply, const sdbus::Error* error)
     {
         if (error == nullptr) // No error
@@ -984,7 +1000,7 @@ int main(int argc, char *argv[])
         concatenatorProxy->callMethod(method, callback);
         // When the reply comes, we shall get "Got concatenate result 1:2:3" on the standard output
     }
-    
+
     // Invoke concatenate again, this time with no numbers and we shall get an error
     {
         auto method = concatenatorProxy->createMethodCall(interfaceName, "concatenate");
@@ -1009,7 +1025,7 @@ On the convenience API level, the call statement starts with `callMethodAsync()`
 int main(int argc, char *argv[])
 {
     /* ...  */
-    
+
     auto callback = [](const sdbus::Error* error, const std::string& concatenatedString)
     {
         if (error == nullptr) // No error
@@ -1036,7 +1052,7 @@ int main(int argc, char *argv[])
 }
 ```
 
-When the `Error` pointer is zero, it means that no D-Bus error occurred while making the call, and subsequent arguments are valid D-Bus method return values. Non-zero `Error` pointer, however, points to the valid `Error` instance, meaning that an error occurred during the call (and subsequent arguments are simply default-constructed). Error name and message can then be read out by the client from `Error` instance. 
+When the `Error` pointer is zero, it means that no D-Bus error occurred while making the call, and subsequent arguments are valid D-Bus method return values. Non-zero `Error` pointer, however, points to the valid `Error` instance, meaning that an error occurred during the call (and subsequent arguments are simply default-constructed). Error name and message can then be read out by the client from `Error` instance.
 
 ### Marking client-side async methods in the IDL
 
@@ -1061,7 +1077,7 @@ sdbus-c++ stub generator can generate stub code for client-side async methods. W
 ```
 
 For each client-side async method, a corresponding `on<MethodName>Reply` pure virtual function, where <MethodName> is capitalized D-Bus method name, is generated in the generated proxy class. This function is the callback invoked when the D-Bus method reply arrives, and must be provided a body by overriding it in the implementation class.
-    
+
 So in the specific example above, the stub generator will generate a `Concatenator_proxy` class similar to one shown in a [dedicated section above](#concatenator-client-glueh), with the difference that it will also generate an additional `virtual void onConcatenateReply(const sdbus::Error* error, const std::string& concatenatedString);` method, which we shall override in derived `ConcatenatorProxy`.
 
 For a real example of a client-side asynchronous D-Bus method, please look at sdbus-c++ [stress tests](/tests/stresstests).
