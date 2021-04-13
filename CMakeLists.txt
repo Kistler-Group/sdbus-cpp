@@ -31,7 +31,6 @@ else()
     include(cmake/LibsystemdExternalProject.cmake)
 endif()
 
-# Required for std::thread
 find_package(Threads REQUIRED)
 
 #-------------------------------
@@ -112,8 +111,10 @@ endif()
 if(BUILD_LIBSYSTEMD)
     add_dependencies(sdbus-c++-objlib LibsystemdBuildProject)
 endif()
-target_link_libraries(sdbus-c++-objlib PUBLIC Systemd::Libsystemd)
-target_link_libraries(sdbus-c++-objlib PUBLIC Threads::Threads)
+target_link_libraries(sdbus-c++-objlib
+        PUBLIC
+            Systemd::Libsystemd
+            Threads::Threads)
 
 add_library(sdbus-c++)
 target_include_directories(sdbus-c++ PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
