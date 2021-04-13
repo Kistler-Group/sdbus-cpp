@@ -298,8 +298,9 @@ SlotPtr Connection::registerSignalHandler( const std::string& sender
 {
     sd_bus_slot *slot{};
 
-    // alternatively to our own composeSignalMatchFilter() implementation, we could also use sd_bus_match_signal() from
-    // https://www.freedesktop.org/software/systemd/man/sd_bus_add_match.html#
+    // Alternatively to our own composeSignalMatchFilter() implementation, we could use sd_bus_match_signal() from
+    // https://www.freedesktop.org/software/systemd/man/sd_bus_add_match.html .
+    // But this would require libsystemd v237 or higher.
     auto filter = composeSignalMatchFilter(sender, objectPath, interfaceName, signalName);
     auto r = iface_->sd_bus_add_match(bus_.get(), &slot, filter.c_str(), callback, userData);
 
