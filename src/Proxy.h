@@ -158,8 +158,8 @@ namespace sdbus::internal {
             }
 
         private:
-            std::unordered_map<void*, std::shared_ptr<CallData>> calls_;
             std::mutex mutex_;
+            std::unordered_map<void*, std::shared_ptr<CallData>> calls_;
         } pendingAsyncCalls_;
     };
 
