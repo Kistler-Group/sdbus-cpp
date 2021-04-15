@@ -149,6 +149,7 @@ namespace sdbus::internal {
             {
                 std::unique_lock lock(mutex_);
                 auto asyncCallSlots = std::move(calls_);
+                calls_ = {};
                 lock.unlock();
 
                 // Releasing call slot pointer acquires global sd-bus mutex. We have to perform the release
