@@ -158,12 +158,9 @@ void Proxy::registerSignalHandler( const std::string& interfaceName
 {
     SDBUS_THROW_ERROR_IF(!signalHandler, "Invalid signal handler provided", EINVAL);
 
-    auto& interface = interfaces_[interfaceName];
-
     InterfaceData::SignalData signalData{std::move(signalHandler), nullptr};
-    auto insertionResult = interface.signals_.emplace(signalName, std::move(signalData));
+    auto inserted = interfaces_.emplaceSignalData(interfaceName, signalName, std::move(signalData));
 
-    auto inserted = insertionResult.second;
     SDBUS_THROW_ERROR_IF(!inserted, "Failed to register signal handler: handler already exists", EINVAL);
 }
 
@@ -174,10 +171,9 @@ void Proxy::finishRegistration()
 
 void Proxy::registerSignalHandlers(sdbus::internal::IConnection& connection)
 {
-    for (auto& interfaceItem : interfaces_)
+    interfaces_.forEach([this, &connection](const auto& interfaceName, auto& interfaceData)
     {
-        const auto& interfaceName = interfaceItem.first;
-        auto& signalsOnInterface = interfaceItem.second.signals_;
+        auto& signalsOnInterface = interfaceData.signals_;
 
         for (auto& signalItem : signalsOnInterface)
         {
@@ -190,7 +186,7 @@ void Proxy::registerSignalHandlers(sdbus::internal::IConnection& connection)
                                                    , &Proxy::sdbus_signal_handler
                                                    , this );
         }
-    }
+    });
 }
 
 void Proxy::unregister()
@@ -244,13 +240,7 @@ int Proxy::sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd
     assert(proxy != nullptr);
 
     auto message = Message::Factory::create<Signal>(sdbusMessage, &proxy->connection_->getSdBusInterface());
-
-    // Note: The lookup can be optimized by using sorted vectors instead of associative containers
-    auto& callback = proxy->interfaces_[message.getInterfaceName()].signals_[message.getMemberName()].callback_;
-    assert(callback);
-
-    callback(message);
-
+    proxy->interfaces_.callHandler(message);
     return 0;
 }
 

@@ -102,7 +102,58 @@ namespace sdbus::internal {
             };
             std::map<SignalName, SignalData> signals_;
         };
-        std::map<InterfaceName, InterfaceData> interfaces_;
+
+        class InterfaceContainer
+        {
+        public:
+            ~InterfaceContainer() {
+                clear();
+            }
+
+            void forEach(const std::function<void(const InterfaceName& name, InterfaceData& data)> function) {
+                //std::lock_guard lock(mutex_);//FIXME
+                for (auto& [name, data] : interfaces_) {
+                    function(name, data);
+                }
+            }
+
+            bool emplaceSignalData(const InterfaceName& interfaceName, const InterfaceData::SignalName& signalName,
+                                   InterfaceData::SignalData&& signalData) {
+                std::lock_guard lock(mutex_);
+                auto& interface = interfaces_[interfaceName];
+
+                auto insertionResult = interface.signals_.emplace(signalName, std::move(signalData));
+                return insertionResult.second;
+            }
+
+            void clear()
+            {
+                std::unique_lock lock(mutex_);
+                auto interfaces = std::move(interfaces_);
+                interfaces_ = std::map<InterfaceName, InterfaceData>{};
+                lock.unlock();
+            }
+
+            void callHandler(Signal& signal)
+            {
+                std::lock_guard lock(mutex_);
+                const auto& interface = interfaces_.find(signal.getInterfaceName());
+                if (interface == interfaces_.end()) {
+                    return;
+                }
+                const auto& sig = interface->second.signals_.find(signal.getMemberName());
+                if (sig == interface->second.signals_.end()) {
+                    return;
+                }
+                auto& callback = sig->second.callback_;
+                assert(callback);
+                callback(signal);
+            }
+
+        private:
+            std::mutex mutex_;
+            std::map<InterfaceName, InterfaceData> interfaces_;
+        } interfaces_;
 
         // We need to keep track of pending async calls. When the proxy is being destructed, we must
         // remove all slots of these pending calls, otherwise in case when the connection outlives
