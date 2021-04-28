@@ -20,8 +20,8 @@ The library is built using CMake:
 $ mkdir build
 $ cd build
 $ cmake .. -DCMAKE_BUILD_TYPE=Release ${OTHER_CONFIG_FLAGS}
-$ make
-$ sudo make install
+$ cmake --build .
+$ sudo cmake --build . --target install
 ```
 
 ### CMake configuration flags for sdbus-c++
@@ -36,7 +36,7 @@ $ sudo make install
 
     * `BUILD_DOXYGEN_DOC` [boolean]
 
-      Option for building Doxygen documentation of sdbus-c++ API. If enabled, the documentation must still be built explicitly through `make doc`. Default value: `OFF`. Use `-DBUILD_DOXYGEN_DOC=OFF` to disable searching for Doxygen and building Doxygen documentation of sdbus-c++ API.
+      Option for building Doxygen documentation of sdbus-c++ API. If enabled, the documentation must still be built explicitly through `cmake --build . --target doc`. Default value: `OFF`. Use `-DBUILD_DOXYGEN_DOC=OFF` to disable searching for Doxygen and building Doxygen documentation of sdbus-c++ API.
 
 * `BUILD_TESTS` [boolean]
 
