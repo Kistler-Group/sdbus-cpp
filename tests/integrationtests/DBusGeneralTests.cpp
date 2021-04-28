@@ -51,6 +51,4 @@ TEST(AdaptorAndProxy, CanBeConstructedSuccesfully)
 
     ASSERT_NO_THROW(TestAdaptor adaptor(*connection));
     ASSERT_NO_THROW(TestProxy proxy(INTERFACE_NAME, OBJECT_PATH));
-
-    connection->releaseName(INTERFACE_NAME);
 }

@@ -116,6 +116,18 @@ Tip: If you get `ERROR: Program or command 'getent' not found or not executable`
 
 Contributors willing to help with bringing sdbus-c++ to other popular package systems are welcome.
 
+Verifying sdbus-c++
+-------------------
+
+You can build and run sdbus-c++ unit and integration tests to verify sdbus-c++ build:
+
+```
+$ cd build
+$ cmake .. -DBUILD_TESTS=ON
+$ sudo cp ../tests/integrationtests/files/org.sdbuscpp.integrationtests.conf /etc/dbus-1/system.d/
+$ cmake --build . --target test
+```
+
 Header files and namespaces
 ---------------------------
 
@@ -1172,11 +1184,13 @@ sdbus-c++ provides support for standard D-Bus interfaces. These are:
 
 The implementation of methods that these interfaces define is provided by the library. `Peer`, `Introspectable` and `Properties` are automatically part of interfaces of every D-Bus object. `ObjectManager` is not automatically present and has to be enabled by the client when using `IObject` API. When using generated `ObjectManager_adaptor`, `ObjectManager` is enabled automatically in its constructor.
 
-Pre-generated `*_proxy` and `*_adaptor` convenience classes for these standard interfaces are located in `sdbus-c++/StandardInterfaces.h`. We add them simply as additional parameters of `sdbus::ProxyInterfaces` or `sdbus::AdaptorInterfaces` class template, and our proxy or adaptor class inherits convenience functions from those interface classes.
+Pre-generated `*_proxy` and `*_adaptor` convenience classes for these standard interfaces are located in `sdbus-c++/StandardInterfaces.h`. To use them, we simply have to add them as additional parameters of `sdbus::ProxyInterfaces` or `sdbus::AdaptorInterfaces` class template, and our proxy or adaptor class inherits convenience functions from those interface classes.
 
-For example, to conveniently emit a `PropertyChanged` signal under `org.freedesktop.DBus.Properties` interface, we just issue `emitPropertiesChangedSignal` function of our adaptor object.
+For example, for our `Concatenator` example above in this tutorial, we may want to conveniently emit a `PropertyChanged` signal under `org.freedesktop.DBus.Properties` interface. First, we must augment our `Concatenator` class to also inherit from `org.freedesktop.DBus.Properties` interface: `class Concatenator : public sdbus::AdaptorInterfaces<org::sdbuscpp::Concatenator_adaptor, sdbus::Properties_adaptor> {...};`, and then we just issue `emitPropertiesChangedSignal` function of our adaptor object.
 
 Note that signals of afore-mentioned standard D-Bus interfaces are not emitted by the library automatically. It's clients who are supposed to emit them.
+
+Working examples of using standard D-Bus interfaces can be found in [sdbus-c++ integration tests](/tests/integrationtests/DBusStandardInterfacesTests.cpp).
 
 Conclusion
 ----------

@@ -20,8 +20,8 @@ The library is built using CMake:
 $ mkdir build
 $ cd build
 $ cmake .. -DCMAKE_BUILD_TYPE=Release ${OTHER_CONFIG_FLAGS}
-$ make
-$ sudo make install
+$ cmake --build .
+$ sudo cmake --build . --target install
 ```
 
 ### CMake configuration flags for sdbus-c++
@@ -36,11 +36,11 @@ $ sudo make install
 
     * `BUILD_DOXYGEN_DOC` [boolean]
 
-      Option for building Doxygen documentation of sdbus-c++ API. If enabled, the documentation must still be built explicitly through `make doc`. Default value: `OFF`. Use `-DBUILD_DOXYGEN_DOC=OFF` to disable searching for Doxygen and building Doxygen documentation of sdbus-c++ API.
+      Option for building Doxygen documentation of sdbus-c++ API. If enabled, the documentation must still be built explicitly through `cmake --build . --target doc`. Default value: `OFF`. Use `-DBUILD_DOXYGEN_DOC=OFF` to disable searching for Doxygen and building Doxygen documentation of sdbus-c++ API.
 
 * `BUILD_TESTS` [boolean]
 
-  Option for building sdbus-c++ unit and integration tests, invokable by `make test`. That incorporates downloading and building static libraries of Google Test. Default value: `OFF`. Use `-DBUILD_TESTS=ON` to enable building the tests. With this option turned on, you may also enable/disable the following options:
+  Option for building sdbus-c++ unit and integration tests, invokable by `cmake --build . --target test` (Note: before invoking `cmake --build . --target test`, make sure you copy `tests/integrationtests/files/org.sdbuscpp.integrationtests.conf` file to `/etc/dbus-1/system.d` directory). That incorporates downloading and building static libraries of Google Test. Default value: `OFF`. Use `-DBUILD_TESTS=ON` to enable building the tests. With this option turned on, you may also enable/disable the following options:
 
     * `ENABLE_PERF_TESTS` [boolean]
 
