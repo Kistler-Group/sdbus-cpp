@@ -108,9 +108,8 @@ You can build and run sdbus-c++ unit and integration tests to verify sdbus-c++ b
 ```
 $ cd build
 $ cmake .. -DBUILD_TESTS=ON
-$ make
 $ sudo cp ../tests/integrationtests/files/org.sdbuscpp.integrationtests.conf /etc/dbus-1/system.d/
-$ make test
+$ cmake --build . --target test
 ```
 
 Header files and namespaces
