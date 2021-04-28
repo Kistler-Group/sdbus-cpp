@@ -95,9 +95,10 @@ namespace sdbus::internal {
         struct InterfaceData
         {
             using SignalName = std::string;
+            using Callback = std::function<int(sd_bus_message *sdbusMessage)>;
             struct SignalData
             {
-                signal_handler callback_;
+                Callback callback_;
                 SlotPtr slot_;
             };
             std::map<SignalName, SignalData> signals_;
@@ -111,7 +112,7 @@ namespace sdbus::internal {
             }
 
             void forEach(const std::function<void(const InterfaceName& name, InterfaceData& data)> function) {
-                //std::lock_guard lock(mutex_);//FIXME
+                std::lock_guard lock(mutex_);
                 for (auto& [name, data] : interfaces_) {
                     function(name, data);
                 }
@@ -132,22 +133,6 @@ namespace sdbus::internal {
                 auto interfaces = std::move(interfaces_);
                 interfaces_ = std::map<InterfaceName, InterfaceData>{};
                 lock.unlock();
-            }
-
-            void callHandler(Signal& signal)
-            {
-                std::lock_guard lock(mutex_);
-                const auto& interface = interfaces_.find(signal.getInterfaceName());
-                if (interface == interfaces_.end()) {
-                    return;
-                }
-                const auto& sig = interface->second.signals_.find(signal.getMemberName());
-                if (sig == interface->second.signals_.end()) {
-                    return;
-                }
-                auto& callback = sig->second.callback_;
-                assert(callback);
-                callback(signal);
             }
 
         private:

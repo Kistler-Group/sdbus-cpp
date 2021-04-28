@@ -158,7 +158,13 @@ void Proxy::registerSignalHandler( const std::string& interfaceName
 {
     SDBUS_THROW_ERROR_IF(!signalHandler, "Invalid signal handler provided", EINVAL);
 
-    InterfaceData::SignalData signalData{std::move(signalHandler), nullptr};
+    auto& sdbus = connection_->getSdBusInterface();
+    InterfaceData::Callback callback = [signalHandler, &sdbus] (sd_bus_message *sdbusMessage) {
+        auto message = Message::Factory::create<Signal>(sdbusMessage, &sdbus);
+        signalHandler(message);
+        return 0;
+    };
+    InterfaceData::SignalData signalData{std::move(callback), nullptr};
     auto inserted = interfaces_.emplaceSignalData(interfaceName, signalName, std::move(signalData));
 
     SDBUS_THROW_ERROR_IF(!inserted, "Failed to register signal handler: handler already exists", EINVAL);
@@ -178,13 +184,14 @@ void Proxy::registerSignalHandlers(sdbus::internal::IConnection& connection)
         for (auto& signalItem : signalsOnInterface)
         {
             const auto& signalName = signalItem.first;
-            auto& slot = signalItem.second.slot_;
-            slot = connection.registerSignalHandler( destination_
+            auto& signalData = signalItem.second;
+            auto& slot = signalData.slot_;
+            slot = connection.registerSignalHandler(destination_
                                                    , objectPath_
                                                    , interfaceName
                                                    , signalName
                                                    , &Proxy::sdbus_signal_handler
-                                                   , this );
+                                                   , &signalData);
         }
     });
 }
@@ -236,11 +243,10 @@ int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userDat
 
 int Proxy::sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error */*retError*/)
 {
-    auto* proxy = static_cast<Proxy*>(userData);
-    assert(proxy != nullptr);
+    auto* signalData = static_cast<InterfaceData::SignalData*>(userData);
+    assert(signalData != nullptr);
 
-    auto message = Message::Factory::create<Signal>(sdbusMessage, &proxy->connection_->getSdBusInterface());
-    proxy->interfaces_.callHandler(message);
+    signalData->callback_(sdbusMessage);
     return 0;
 }
 
