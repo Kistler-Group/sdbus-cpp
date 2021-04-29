@@ -75,6 +75,8 @@ public:
     virtual int sd_bus_flush(sd_bus *bus) override;
     virtual sd_bus *sd_bus_flush_close_unref(sd_bus *bus) override;
 
+    virtual int sd_bus_message_set_destination(sd_bus_message *m, const char *destination) override;
+
     virtual int sd_bus_query_sender_creds(sd_bus_message *m, uint64_t mask, sd_bus_creds **c) override;
     virtual sd_bus_creds* sd_bus_creds_unref(sd_bus_creds *c) override;
 

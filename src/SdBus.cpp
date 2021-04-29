@@ -260,6 +260,13 @@ sd_bus* SdBus::sd_bus_flush_close_unref(sd_bus *bus)
     return ::sd_bus_flush_close_unref(bus);
 }
 
+int SdBus::sd_bus_message_set_destination(sd_bus_message *m, const char *destination)
+{
+    std::lock_guard lock(sdbusMutex_);
+
+    return ::sd_bus_message_set_destination(m, destination);
+}
+
 int SdBus::sd_bus_query_sender_creds(sd_bus_message *m, uint64_t mask, sd_bus_creds **c)
 {
     std::lock_guard lock(sdbusMutex_);

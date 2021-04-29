@@ -74,6 +74,8 @@ public:
     MOCK_METHOD1(sd_bus_flush, int(sd_bus *bus));
     MOCK_METHOD1(sd_bus_flush_close_unref, sd_bus *(sd_bus *bus));
 
+    MOCK_METHOD2(sd_bus_message_set_destination, int(sd_bus_message *m, const char *destination));
+
     MOCK_METHOD3(sd_bus_query_sender_creds, int(sd_bus_message *, uint64_t, sd_bus_creds **));
     MOCK_METHOD1(sd_bus_creds_unref, sd_bus_creds*(sd_bus_creds *));
 

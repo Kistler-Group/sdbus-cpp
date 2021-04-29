@@ -820,7 +820,7 @@ void Signal::send() const
 
 void Signal::setDestination(const std::string& destination)
 {
-    auto r = sd_bus_message_set_destination((sd_bus_message*)msg_, destination.c_str());
+    auto r = sdbus_->sd_bus_message_set_destination((sd_bus_message*)msg_, destination.c_str());
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to set signal destination", -r);
 }
 
