@@ -66,6 +66,10 @@ $ sudo cmake --build . --target install
 
   This is a CMake-builtin option. Set to `Release` to build sdbus-c++ for production use. Set to `Debug` if you want to help further develop (and debug) the library :)
 
+* `BUILD_SHARED_LIBS` [boolean]
+
+  This is a global CMake flag, promoted in sdbus-c++ project to a CMake option. Use this to control whether sdbus-c++ is built as either a shared or static library. Default value: `ON`.
+
 Dependencies
 ------------
 
