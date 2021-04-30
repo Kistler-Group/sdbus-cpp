@@ -34,7 +34,7 @@
 #include <systemd/sd-bus.h>
 #include <cassert>
 #include <chrono>
-#include <thread>
+#include <utility>
 
 namespace sdbus::internal {
 
@@ -164,9 +164,13 @@ void Proxy::registerSignalHandler( const std::string& interfaceName
         signalHandler(message);
         return 0;
     };
-    InterfaceData::SignalData signalData{std::move(callback), nullptr};
-    auto inserted = interfaces_.emplaceSignalData(interfaceName, signalName, std::move(signalData));
 
+    auto& interface = interfaces_[interfaceName];
+
+    InterfaceData::SignalData signalData{std::move(callback), nullptr};
+    auto insertionResult = interface.signals_.emplace(signalName, std::move(signalData));
+
+    auto inserted = insertionResult.second;
     SDBUS_THROW_ERROR_IF(!inserted, "Failed to register signal handler: handler already exists", EINVAL);
 }
 
@@ -177,9 +181,10 @@ void Proxy::finishRegistration()
 
 void Proxy::registerSignalHandlers(sdbus::internal::IConnection& connection)
 {
-    interfaces_.forEach([this, &connection](const auto& interfaceName, auto& interfaceData)
+    for (auto& interfaceItem : interfaces_)
     {
-        auto& signalsOnInterface = interfaceData.signals_;
+        const auto& interfaceName = interfaceItem.first;
+        auto& signalsOnInterface = interfaceItem.second.signals_;
 
         for (auto& signalItem : signalsOnInterface)
         {
@@ -193,7 +198,7 @@ void Proxy::registerSignalHandlers(sdbus::internal::IConnection& connection)
                                                    , &Proxy::sdbus_signal_handler
                                                    , &signalData);
         }
-    });
+    }
 }
 
 void Proxy::unregister()
@@ -245,6 +250,7 @@ int Proxy::sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd
 {
     auto* signalData = static_cast<InterfaceData::SignalData*>(userData);
     assert(signalData != nullptr);
+    assert(signalData->callback_);
 
     signalData->callback_(sdbusMessage);
     return 0;

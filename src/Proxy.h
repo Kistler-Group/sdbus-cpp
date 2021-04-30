@@ -99,46 +99,15 @@ namespace sdbus::internal {
             struct SignalData
             {
                 Callback callback_;
+                // slot_ must be listed after callback_ to ensure that slot_ is destructed first.
+                // Destructing the slot_ will sd_bus_slot_unref() the callback.
+                // Only after sd_bus_slot_unref(), we can safely delete the callback. The bus mutex (SdBus::sdbusMutex_)
+                // ensures that sd_bus_slot_unref() and the callback execute sequentially.
                 SlotPtr slot_;
             };
             std::map<SignalName, SignalData> signals_;
         };
-
-        class InterfaceContainer
-        {
-        public:
-            ~InterfaceContainer() {
-                clear();
-            }
-
-            void forEach(const std::function<void(const InterfaceName& name, InterfaceData& data)> function) {
-                std::lock_guard lock(mutex_);
-                for (auto& [name, data] : interfaces_) {
-                    function(name, data);
-                }
-            }
-
-            bool emplaceSignalData(const InterfaceName& interfaceName, const InterfaceData::SignalName& signalName,
-                                   InterfaceData::SignalData&& signalData) {
-                std::lock_guard lock(mutex_);
-                auto& interface = interfaces_[interfaceName];
-
-                auto insertionResult = interface.signals_.emplace(signalName, std::move(signalData));
-                return insertionResult.second;
-            }
-
-            void clear()
-            {
-                std::unique_lock lock(mutex_);
-                auto interfaces = std::move(interfaces_);
-                interfaces_ = std::map<InterfaceName, InterfaceData>{};
-                lock.unlock();
-            }
-
-        private:
-            std::mutex mutex_;
-            std::map<InterfaceName, InterfaceData> interfaces_;
-        } interfaces_;
+        std::map<InterfaceName, InterfaceData> interfaces_;
 
         // We need to keep track of pending async calls. When the proxy is being destructed, we must
         // remove all slots of these pending calls, otherwise in case when the connection outlives
