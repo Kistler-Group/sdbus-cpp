@@ -60,6 +60,7 @@ namespace sdbus::internal {
         void finishRegistration() override;
         void unregister() override;
 
+        sdbus::IConnection& getConnection() const override;
         const std::string& getObjectPath() const override;
 
     private:

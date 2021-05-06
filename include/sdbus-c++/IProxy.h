@@ -268,6 +268,13 @@ namespace sdbus {
         [[nodiscard]] PropertySetter setProperty(const std::string& propertyName);
 
         /*!
+         * @brief Provides D-Bus connection used by the proxy
+         *
+         * @return Reference to the D-Bus connection
+         */
+        virtual sdbus::IConnection& getConnection() const = 0;
+
+        /*!
          * @brief Returns object path of the underlying DBus object
          */
         virtual const std::string& getObjectPath() const = 0;
