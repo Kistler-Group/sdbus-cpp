@@ -132,6 +132,7 @@ namespace sdbus {
         std::string getMemberName() const;
         std::string getSender() const;
         std::string getPath() const;
+        std::string getDestination() const;
         void peekType(std::string& type, std::string& contents) const;
         bool isValid() const;
         bool isEmpty() const;
