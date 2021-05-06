@@ -286,6 +286,8 @@ namespace sdbus {
     class PendingAsyncCall
     {
     public:
+        PendingAsyncCall() = default;
+
         /*!
          * @brief Cancels the delivery of the pending asynchronous call result
          *
