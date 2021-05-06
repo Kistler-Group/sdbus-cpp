@@ -199,6 +199,11 @@ void Proxy::unregister()
     interfaces_.clear();
 }
 
+sdbus::IConnection& Proxy::getConnection() const
+{
+    return dynamic_cast<sdbus::IConnection&>(*connection_);
+}
+
 const std::string& Proxy::getObjectPath() const
 {
     return objectPath_;
