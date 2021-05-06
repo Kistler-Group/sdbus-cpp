@@ -583,12 +583,14 @@ void Message::rewind(bool complete)
 
 std::string Message::getInterfaceName() const
 {
-    return sd_bus_message_get_interface((sd_bus_message*)msg_);
+    auto interface = sd_bus_message_get_interface((sd_bus_message*)msg_);
+    return interface != nullptr ? interface : "";
 }
 
 std::string Message::getMemberName() const
 {
-    return sd_bus_message_get_member((sd_bus_message*)msg_);
+    auto member = sd_bus_message_get_member((sd_bus_message*)msg_);
+    return member != nullptr ? member : "";
 }
 
 std::string Message::getSender() const
