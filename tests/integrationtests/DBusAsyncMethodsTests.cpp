@@ -201,6 +201,22 @@ TEST_F(SdbusTestObject, AnswersThatAsyncCallIsNotPendingAfterItHasBeenCompleted)
     ASSERT_TRUE(waitUntil([&call](){ return !call.isPending(); }));
 }
 
+TEST_F(SdbusTestObject, AnswersThatDefaultConstructedAsyncCallIsNotPending)
+{
+    sdbus::PendingAsyncCall call;
+
+    ASSERT_FALSE(call.isPending());
+}
+
+TEST_F(SdbusTestObject, SupportsAsyncCallCopyAssignment)
+{
+    sdbus::PendingAsyncCall call;
+
+    call = m_proxy->doOperationClientSideAsync(100);
+
+    ASSERT_TRUE(call.isPending());
+}
+
 TEST_F(SdbusTestObject, InvokesErroneousMethodAsynchronouslyOnClientSide)
 {
     std::promise<uint32_t> promise;
