@@ -583,17 +583,31 @@ void Message::rewind(bool complete)
 
 std::string Message::getInterfaceName() const
 {
-    return sd_bus_message_get_interface((sd_bus_message*)msg_);
+    auto interface = sd_bus_message_get_interface((sd_bus_message*)msg_);
+    return interface != nullptr ? interface : "";
 }
 
 std::string Message::getMemberName() const
 {
-    return sd_bus_message_get_member((sd_bus_message*)msg_);
+    auto member = sd_bus_message_get_member((sd_bus_message*)msg_);
+    return member != nullptr ? member : "";
 }
 
 std::string Message::getSender() const
 {
     return sd_bus_message_get_sender((sd_bus_message*)msg_);
+}
+
+std::string Message::getPath() const
+{
+    auto path = sd_bus_message_get_path((sd_bus_message*)msg_);
+    return path != nullptr ? path : "";
+}
+
+std::string Message::getDestination() const
+{
+    auto destination = sd_bus_message_get_destination((sd_bus_message*)msg_);
+    return destination != nullptr ? destination : "";
 }
 
 void Message::peekType(std::string& type, std::string& contents) const
