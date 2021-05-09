@@ -161,6 +161,11 @@ int SdBus::sd_bus_emit_interfaces_removed_strv(sd_bus *bus, const char *path, ch
     return ::sd_bus_emit_interfaces_removed_strv(bus, path, interfaces);
 }
 
+int SdBus::sd_bus_open(sd_bus **ret)
+{
+    return ::sd_bus_open(ret);
+}
+
 int SdBus::sd_bus_open_user(sd_bus **ret)
 {
     return ::sd_bus_open_user(ret);
