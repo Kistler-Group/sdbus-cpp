@@ -36,6 +36,7 @@ using ::testing::SetArgPointee;
 using ::testing::Return;
 using ::testing::NiceMock;
 using sdbus::internal::Connection;
+constexpr sdbus::internal::Connection::default_bus_t default_bus;
 constexpr sdbus::internal::Connection::system_bus_t system_bus;
 constexpr sdbus::internal::Connection::session_bus_t session_bus;
 constexpr sdbus::internal::Connection::remote_system_bus_t remote_system_bus;
@@ -49,8 +50,16 @@ protected:
     sd_bus* fakeBusPtr_ = reinterpret_cast<sd_bus*>(1);
 };
 
+using ADefaultBusConnection = ConnectionCreationTest;
 using ASystemBusConnection = ConnectionCreationTest;
 using ASessionBusConnection = ConnectionCreationTest;
+
+TEST_F(ADefaultBusConnection, OpensAndFlushesBusWhenCreated)
+{
+    EXPECT_CALL(*sdBusIntfMock_, sd_bus_open(_)).WillOnce(DoAll(SetArgPointee<0>(fakeBusPtr_), Return(1)));
+    EXPECT_CALL(*sdBusIntfMock_, sd_bus_flush(_)).Times(1);
+    Connection(std::move(sdBusIntfMock_), default_bus);
+}
 
 TEST_F(ASystemBusConnection, OpensAndFlushesBusWhenCreated)
 {
@@ -66,11 +75,18 @@ TEST_F(ASessionBusConnection, OpensAndFlushesBusWhenCreated)
     Connection(std::move(sdBusIntfMock_), session_bus);
 }
 
+TEST_F(ADefaultBusConnection, ClosesAndUnrefsBusWhenDestructed)
+{
+    ON_CALL(*sdBusIntfMock_, sd_bus_open(_)).WillByDefault(DoAll(SetArgPointee<0>(fakeBusPtr_), Return(1)));
+    EXPECT_CALL(*sdBusIntfMock_, sd_bus_flush_close_unref(_)).Times(1);
+    Connection(std::move(sdBusIntfMock_), default_bus);
+}
+
 TEST_F(ASystemBusConnection, ClosesAndUnrefsBusWhenDestructed)
 {
-    ON_CALL(*sdBusIntfMock_, sd_bus_open_user(_)).WillByDefault(DoAll(SetArgPointee<0>(fakeBusPtr_), Return(1)));
+    ON_CALL(*sdBusIntfMock_, sd_bus_open_system(_)).WillByDefault(DoAll(SetArgPointee<0>(fakeBusPtr_), Return(1)));
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_flush_close_unref(_)).Times(1);
-    Connection(std::move(sdBusIntfMock_), session_bus);
+    Connection(std::move(sdBusIntfMock_), system_bus);
 }
 
 TEST_F(ASessionBusConnection, ClosesAndUnrefsBusWhenDestructed)
@@ -78,6 +94,12 @@ TEST_F(ASessionBusConnection, ClosesAndUnrefsBusWhenDestructed)
     ON_CALL(*sdBusIntfMock_, sd_bus_open_user(_)).WillByDefault(DoAll(SetArgPointee<0>(fakeBusPtr_), Return(1)));
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_flush_close_unref(_)).Times(1);
     Connection(std::move(sdBusIntfMock_), session_bus);
+}
+
+TEST_F(ADefaultBusConnection, ThrowsErrorWhenOpeningTheBusFailsDuringConstruction)
+{
+    ON_CALL(*sdBusIntfMock_, sd_bus_open(_)).WillByDefault(DoAll(SetArgPointee<0>(fakeBusPtr_), Return(-1)));
+    ASSERT_THROW(Connection(std::move(sdBusIntfMock_), default_bus), sdbus::Error);
 }
 
 TEST_F(ASystemBusConnection, ThrowsErrorWhenOpeningTheBusFailsDuringConstruction)
@@ -90,6 +112,13 @@ TEST_F(ASessionBusConnection, ThrowsErrorWhenOpeningTheBusFailsDuringConstructio
 {
     ON_CALL(*sdBusIntfMock_, sd_bus_open_user(_)).WillByDefault(DoAll(SetArgPointee<0>(fakeBusPtr_), Return(-1)));
     ASSERT_THROW(Connection(std::move(sdBusIntfMock_), session_bus), sdbus::Error);
+}
+
+TEST_F(ADefaultBusConnection, ThrowsErrorWhenFlushingTheBusFailsDuringConstruction)
+{
+    ON_CALL(*sdBusIntfMock_, sd_bus_open(_)).WillByDefault(DoAll(SetArgPointee<0>(fakeBusPtr_), Return(1)));
+    ON_CALL(*sdBusIntfMock_, sd_bus_flush(_)).WillByDefault(Return(-1));
+    ASSERT_THROW(Connection(std::move(sdBusIntfMock_), default_bus), sdbus::Error);
 }
 
 TEST_F(ASystemBusConnection, ThrowsErrorWhenFlushingTheBusFailsDuringConstruction)
@@ -128,6 +157,10 @@ protected:
     std::unique_ptr<Connection> con_;
 };
 
+template<> void AConnectionNameRequest<Connection::default_bus_t>::setUpBusOpenExpectation()
+{
+    EXPECT_CALL(*sdBusIntfMock_, sd_bus_open(_)).WillOnce(DoAll(SetArgPointee<0>(fakeBusPtr_), Return(1)));
+}
 template<> void AConnectionNameRequest<Connection::system_bus_t>::setUpBusOpenExpectation()
 {
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_open_system(_)).WillOnce(DoAll(SetArgPointee<0>(fakeBusPtr_), Return(1)));
@@ -150,7 +183,8 @@ template<> std::unique_ptr<Connection> AConnectionNameRequest<Connection::remote
     return std::make_unique<Connection>(std::unique_ptr<NiceMock<SdBusMock>>(sdBusIntfMock_), remote_system_bus, "some host");
 }
 
-typedef ::testing::Types< Connection::system_bus_t
+typedef ::testing::Types< Connection::default_bus_t
+                        , Connection::system_bus_t
                         , Connection::session_bus_t
                         , Connection::remote_system_bus_t
                         > BusTypeTags;

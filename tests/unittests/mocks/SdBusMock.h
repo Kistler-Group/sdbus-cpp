@@ -57,6 +57,7 @@ public:
     MOCK_METHOD3(sd_bus_emit_interfaces_added_strv, int(sd_bus *bus, const char *path, char **interfaces));
     MOCK_METHOD3(sd_bus_emit_interfaces_removed_strv, int(sd_bus *bus, const char *path, char **interfaces));
 
+    MOCK_METHOD1(sd_bus_open, int(sd_bus **ret));
     MOCK_METHOD1(sd_bus_open_user, int(sd_bus **ret));
     MOCK_METHOD1(sd_bus_open_system, int(sd_bus **ret));
     MOCK_METHOD2(sd_bus_open_system_remote, int(sd_bus **ret, const char *host));

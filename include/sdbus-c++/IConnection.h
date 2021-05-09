@@ -266,6 +266,27 @@ namespace sdbus {
     [[nodiscard]] std::unique_ptr<sdbus::IConnection> createConnection(const std::string& name);
 
     /*!
+     * @brief Creates/opens D-Bus user connection when in a user context,
+     * and a system connection, otherwise.
+     *
+     * @return Connection instance
+     *
+     * @throws sdbus::Error in case of failure
+     */
+    [[nodiscard]] std::unique_ptr<sdbus::IConnection> createDefaultBusConnection();
+
+    /*!
+     * @brief Creates/opens D-Bus user connection with a name when in a user
+     * context, and a system connection with a name, otherwise.
+     *
+     * @param[in] name Name to request on the connection after its opening
+     * @return Connection instance
+     *
+     * @throws sdbus::Error in case of failure
+     */
+    [[nodiscard]] std::unique_ptr<sdbus::IConnection> createDefaultBusConnection(const std::string& name);
+
+    /*!
      * @brief Creates/opens D-Bus system connection
      *
      * @return Connection instance

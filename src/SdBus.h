@@ -58,6 +58,7 @@ public:
     virtual int sd_bus_emit_interfaces_added_strv(sd_bus *bus, const char *path, char **interfaces) override;
     virtual int sd_bus_emit_interfaces_removed_strv(sd_bus *bus, const char *path, char **interfaces) override;
 
+    virtual int sd_bus_open(sd_bus **ret) override;
     virtual int sd_bus_open_user(sd_bus **ret) override;
     virtual int sd_bus_open_system(sd_bus **ret) override;
     virtual int sd_bus_open_system_remote(sd_bus **ret, const char* hsot) override;
