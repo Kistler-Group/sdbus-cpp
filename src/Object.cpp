@@ -31,6 +31,7 @@
 #include <sdbus-c++/Error.h>
 #include <sdbus-c++/MethodResult.h>
 #include <sdbus-c++/Flags.h>
+#include "ScopeGuard.h"
 #include "IConnection.h"
 #include "VTableUtils.h"
 #include <systemd/sd-bus.h>
@@ -230,6 +231,11 @@ const std::string& Object::getObjectPath() const
     return objectPath_;
 }
 
+const Message* Object::getCurrentlyProcessedMessage() const
+{
+    return m_CurrentlyProcessedMessage.load(std::memory_order_relaxed);
+}
+
 const std::vector<sd_bus_vtable>& Object::createInterfaceVTable(InterfaceData& interfaceData)
 {
     auto& vtable = interfaceData.vtable;
@@ -317,13 +323,19 @@ int Object::sdbus_method_callback(sd_bus_message *sdbusMessage, void *userData, 
 
     auto message = Message::Factory::create<MethodCall>(sdbusMessage, &object->connection_.getSdBusInterface());
 
+    object->m_CurrentlyProcessedMessage.store(&message, std::memory_order_relaxed);
+    SCOPE_EXIT
+    {
+        object->m_CurrentlyProcessedMessage.store(nullptr, std::memory_order_relaxed);
+    };
+
     // Note: The lookup can be optimized by using sorted vectors instead of associative containers
     auto& callback = object->interfaces_[message.getInterfaceName()].methods[message.getMemberName()].callback;
     assert(callback);
 
     try
     {
-        callback(std::move(message));
+        callback(message);
     }
     catch (const sdbus::Error& e)
     {
@@ -383,6 +395,12 @@ int Object::sdbus_property_set_callback( sd_bus */*bus*/
     assert(callback);
 
     auto value = Message::Factory::create<PropertySetCall>(sdbusValue, &object->connection_.getSdBusInterface());
+
+    object->m_CurrentlyProcessedMessage.store(&value, std::memory_order_relaxed);
+    SCOPE_EXIT
+    {
+        object->m_CurrentlyProcessedMessage.store(nullptr, std::memory_order_relaxed);
+    };
 
     try
     {

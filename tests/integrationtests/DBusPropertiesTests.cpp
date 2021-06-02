@@ -45,6 +45,9 @@ using ::testing::Gt;
 using ::testing::AnyOf;
 using ::testing::ElementsAre;
 using ::testing::SizeIs;
+using ::testing::NotNull;
+using ::testing::Not;
+using ::testing::IsEmpty;
 using namespace std::chrono_literals;
 using namespace sdbus::test;
 
@@ -71,4 +74,12 @@ TEST_F(SdbusTestObject, WritesAndReadsReadWritePropertySuccesfully)
     m_proxy->action(newActionValue);
 
     ASSERT_THAT(m_proxy->action(), Eq(newActionValue));
+}
+
+TEST_F(SdbusTestObject, CanAccessAssociatedPropertySetMessageInPropertySetHandler)
+{
+    m_proxy->blocking(true); // This will save pointer to property get message on server side
+
+    ASSERT_THAT(m_adaptor->m_propertySetMsg, NotNull());
+    ASSERT_THAT(m_adaptor->m_propertySetSender, Not(IsEmpty()));
 }

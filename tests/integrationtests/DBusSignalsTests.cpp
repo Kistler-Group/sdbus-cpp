@@ -39,6 +39,7 @@ using ::testing::Gt;
 using ::testing::AnyOf;
 using ::testing::ElementsAre;
 using ::testing::SizeIs;
+using ::testing::NotNull;
 using namespace std::chrono_literals;
 using namespace sdbus::test;
 
@@ -102,4 +103,14 @@ TEST_F(SdbusTestObject, EmitsSignalWithoutRegistrationSuccesfully)
 
     ASSERT_TRUE(waitUntil(m_proxy->m_gotSignalWithSignature));
     ASSERT_THAT(m_proxy->m_signatureFromSignal["platform"], Eq("av"));
+}
+
+TEST_F(SdbusTestObject, CanAccessAssociatedSignalMessageInSignalHandler)
+{
+    m_adaptor->emitSimpleSignal();
+
+    waitUntil(m_proxy->m_gotSimpleSignal);
+
+    ASSERT_THAT(m_proxy->m_signalMsg, NotNull());
+    ASSERT_THAT(m_proxy->m_signalMemberName, Eq("simpleSignal"));
 }

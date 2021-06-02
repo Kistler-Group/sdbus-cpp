@@ -45,6 +45,7 @@ using ::testing::Gt;
 using ::testing::AnyOf;
 using ::testing::ElementsAre;
 using ::testing::SizeIs;
+using ::testing::NotNull;
 using namespace std::chrono_literals;
 using namespace sdbus::test;
 
@@ -236,6 +237,22 @@ TEST_F(SdbusTestObject, CanReceiveSignalWhileMakingMethodCall)
 
     ASSERT_TRUE(waitUntil(m_proxy->m_gotSimpleSignal));
     ASSERT_TRUE(waitUntil(m_proxy->m_gotSignalWithMap));
+}
+
+TEST_F(SdbusTestObject, CanAccessAssociatedMethodCallMessageInMethodCallHandler)
+{
+    m_proxy->doOperation(10); // This will save pointer to method call message on server side
+
+    ASSERT_THAT(m_adaptor->m_methodCallMsg, NotNull());
+    ASSERT_THAT(m_adaptor->m_methodCallMemberName, Eq("doOperation"));
+}
+
+TEST_F(SdbusTestObject, CanAccessAssociatedMethodCallMessageInAsyncMethodCallHandler)
+{
+    m_proxy->doOperationAsync(10); // This will save pointer to method call message on server side
+
+    ASSERT_THAT(m_adaptor->m_methodCallMsg, NotNull());
+    ASSERT_THAT(m_adaptor->m_methodCallMemberName, Eq("doOperationAsync"));
 }
 
 #if LIBSYSTEMD_VERSION>=240
