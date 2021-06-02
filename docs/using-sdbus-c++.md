@@ -433,7 +433,7 @@ Thus, in the end of the day, the code written using the convenience API is:
   - significantly shorter,
   - almost as fast as one written using the basic API layer.
 
-The code written using this layer expresses in a declarative way *what* it does, rather then *how*. Let's look at code samples.
+The code written using this layer expresses in a declarative way *what* it does, rather than *how*. Let's look at code samples.
 
 ### Server side
 
@@ -441,30 +441,6 @@ The code written using this layer expresses in a declarative way *what* it does,
 #include <sdbus-c++/sdbus-c++.h>
 #include <vector>
 #include <string>
-
-// Yeah, global variable is ugly, but this is just an example and we want to access
-// the concatenator instance from within the concatenate method handler to be able
-// to emit signals.
-sdbus::IObject* g_concatenator{};
-
-std::string concatenate(const std::vector<int> numbers, const std::string& separator)
-{
-    // Return error if there are no numbers in the collection
-    if (numbers.empty())
-        throw sdbus::Error("org.sdbuscpp.Concatenator.Error", "No numbers provided");
-
-    std::string result;
-    for (auto number : numbers)
-    {
-        result += (result.empty() ? std::string() : separator) + std::to_string(number);
-    }
-
-    // Emit 'concatenated' signal
-    const char* interfaceName = "org.sdbuscpp.Concatenator";
-    g_concatenator->emitSignal("concatenated").onInterface(interfaceName).withArguments(result);
-
-    return result;
-}
 
 int main(int argc, char *argv[])
 {
@@ -475,12 +451,29 @@ int main(int argc, char *argv[])
     // Create concatenator D-Bus object.
     const char* objectPath = "/org/sdbuscpp/concatenator";
     auto concatenator = sdbus::createObject(*connection, objectPath);
+    
+    auto concatenate = [&concatenator](const std::vector<int> numbers, const std::string& separator)
+    {
+        // Return error if there are no numbers in the collection
+        if (numbers.empty())
+            throw sdbus::Error("org.sdbuscpp.Concatenator.Error", "No numbers provided");
 
-    g_concatenator = concatenator.get();
+        std::string result;
+        for (auto number : numbers)
+        {
+            result += (result.empty() ? std::string() : separator) + std::to_string(number);
+        }
+
+        // Emit 'concatenated' signal
+        const char* interfaceName = "org.sdbuscpp.Concatenator";
+        concatenator->emitSignal("concatenated").onInterface(interfaceName).withArguments(result);
+
+        return result;
+    };
 
     // Register D-Bus methods and signals on the concatenator object, and exports the object.
     const char* interfaceName = "org.sdbuscpp.Concatenator";
-    concatenator->registerMethod("concatenate").onInterface(interfaceName).implementedAs(&concatenate);
+    concatenator->registerMethod("concatenate").onInterface(interfaceName).implementedAs(std::move(concatenate));
     concatenator->registerSignal("concatenated").onInterface(interfaceName).withParameters<std::string>();
     concatenator->finishRegistration();
 
@@ -554,6 +547,30 @@ Tip: When registering a D-Bus object, we can additionally provide names of input
 ```c++
     concatenator->registerMethod("concatenate").onInterface(interfaceName).withInputParamNames("numbers", "separator").withOutputParamNames("concatenatedString").implementedAs(&concatenate);
     concatenator->registerSignal("concatenated").onInterface(interfaceName).withParameters<std::string>("concatenatedString");
+```
+
+### Accessing a corresponding D-Bus message
+
+The convenience API hides away the level of D-Bus messages. But the messages carry with them additional information that may need in some implementations. For example, a name of a method call sender; or info on credentials. Is there a way to access a corresponding D-Bus message in a high-level callback handler?
+
+Yes, there is -- we can access the corresponding D-Bus message in:
+
+* method implementation callback handlers (server side),
+* property set implementation callback handlers (server side),
+* signal callback handlers (client side).
+
+Both `IObject` and `IProxy` provide the `getCurrentlyProcessedMessage()` method. This method is meant to be called from within a callback handler. It returns a pointer to the corresponding D-Bus message that caused invocation of the handler. The pointer is only valid (dereferencable) as long as the flow of execution does not leave the callback handler. When called from other contexts/threads, the pointer may be both zero or non-zero, and its dereferencing is undefined behavior.
+
+An excerpt of the above example of concatenator modified to print out a name of the sender of method call:
+
+```c++
+    auto concatenate = [&concatenator](const std::vector<int> numbers, const std::string& separator)
+    {
+        const auto* methodCallMsg = concatenator->getCurrentlyProcessedMessage();
+        std::cout << "Sender of this method call: " << methodCallMsg.getSender() << std::endl;
+
+        /*...*/
+    };
 ```
 
 Implementing the Concatenator example using sdbus-c++-generated stubs
@@ -751,6 +768,8 @@ protected:
 };
 ```
 
+Tip: By inheriting from `sdbus::AdaptorInterfaces`, we get access to the protected `getObject()` method. We can call this method inside our adaptor implementation class to access the underlying `IObject` object.
+
 That's it. We now have an implementation of a D-Bus object implementing `org.sdbuscpp.Concatenator` interface. Let's now create a service publishing the object.
 
 ```cpp
@@ -813,6 +832,8 @@ protected:
 };
 ```
 
+Tip: By inheriting from `sdbus::ProxyInterfaces`, we get access to the protected `getProxy()` method. We can call this method inside our proxy implementation class to access the underlying `IProxy` object.
+
 In the above example, a proxy is created that creates and maintains its own system bus connection. However, there are `ProxyInterfaces` class template constructor overloads that also take the connection from the user as the first parameter, and pass that connection over to the underlying proxy. The connection instance is used by all interfaces listed in the `ProxyInterfaces` template parameter list.
 
 Note however that there are multiple `ProxyInterfaces` constructor overloads, and they differ in how the proxy behaves towards the D-Bus connection. These overloads precisely map the `sdbus::createProxy` overloads, as they are actually implemented on top of them. See [Proxy and D-Bus connection](#Proxy-and-D-Bus-connection) for more info. We can even create a `IProxy` instance on our own, and inject it into our proxy class -- there is a constructor overload for it in `ProxyInterfaces`. This can help if we need to provide mocked implementations in our unit tests.
@@ -853,6 +874,27 @@ int main(int argc, char *argv[])
 
     return 0;
 }
+```
+
+### Accessing a corresponding D-Bus message
+
+Simply combine `getObject()`/`getProxy()` and `getCurrentlyProcessedMessage()` methods. Both were already discussed above. An example:
+
+```c++
+class Concatenator : public sdbus::AdaptorInterfaces</*...*/>
+{
+public:
+    /*...*/
+
+protected:
+    std::string concatenate(const std::vector<int32_t>& numbers, const std::string& separator) override
+    {
+        const auto* methodCallMsg = getObject().getCurrentlyProcessedMessage();
+        std::cout << "Sender of this method call: " << methodCallMsg.getSender() << std::endl;
+
+        /*...*/
+    }
+};
 ```
 
 Asynchronous server-side methods

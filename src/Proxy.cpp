@@ -209,6 +209,11 @@ const std::string& Proxy::getObjectPath() const
     return objectPath_;
 }
 
+const Message* Proxy::getCurrentlyProcessedMessage() const
+{
+    return m_CurrentlyProcessedMessage.load(std::memory_order_relaxed);
+}
+
 int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error */*retError*/)
 {
     auto* asyncCallData = static_cast<AsyncCalls::CallData*>(userData);
@@ -228,6 +233,12 @@ int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userDat
     };
 
     auto message = Message::Factory::create<MethodReply>(sdbusMessage, &proxy.connection_->getSdBusInterface());
+
+    proxy.m_CurrentlyProcessedMessage.store(&message, std::memory_order_relaxed);
+    SCOPE_EXIT
+    {
+        proxy.m_CurrentlyProcessedMessage.store(nullptr, std::memory_order_relaxed);
+    };
 
     const auto* error = sd_bus_message_get_error(sdbusMessage);
     if (error == nullptr)
@@ -250,6 +261,13 @@ int Proxy::sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd
     assert(signalData->callback);
 
     auto message = Message::Factory::create<Signal>(sdbusMessage, &signalData->proxy.connection_->getSdBusInterface());
+
+    signalData->proxy.m_CurrentlyProcessedMessage.store(&message, std::memory_order_relaxed);
+    SCOPE_EXIT
+    {
+        signalData->proxy.m_CurrentlyProcessedMessage.store(nullptr, std::memory_order_relaxed);
+    };
+
     signalData->callback(message);
     return 0;
 }

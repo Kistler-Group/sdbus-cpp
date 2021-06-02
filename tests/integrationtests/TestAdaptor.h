@@ -86,6 +86,11 @@ public: // for tests
     mutable std::atomic<bool> m_wasMultiplyCalled{false};
     mutable double m_multiplyResult{};
     mutable std::atomic<bool> m_wasThrowErrorCalled{false};
+
+    const Message* m_methodCallMsg{};
+    std::string m_methodCallMemberName;
+    const Message* m_propertySetMsg{};
+    std::string m_propertySetSender;
 };
 
 }}

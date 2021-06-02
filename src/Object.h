@@ -35,6 +35,7 @@
 #include <vector>
 #include <functional>
 #include <memory>
+#include <atomic>
 #include <cassert>
 
 namespace sdbus::internal {
@@ -102,6 +103,7 @@ namespace sdbus::internal {
 
         sdbus::IConnection& getConnection() const override;
         const std::string& getObjectPath() const override;
+        const Message* getCurrentlyProcessedMessage() const override;
 
     private:
         using InterfaceName = std::string;
@@ -170,6 +172,7 @@ namespace sdbus::internal {
         std::string objectPath_;
         std::map<InterfaceName, InterfaceData> interfaces_;
         SlotPtr objectManagerSlot_;
+        std::atomic<const Message*> m_CurrentlyProcessedMessage{nullptr};
     };
 
 }

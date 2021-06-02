@@ -35,6 +35,7 @@
 #include <map>
 #include <unordered_map>
 #include <mutex>
+#include <atomic>
 #include <condition_variable>
 
 namespace sdbus::internal {
@@ -62,6 +63,7 @@ namespace sdbus::internal {
 
         sdbus::IConnection& getConnection() const override;
         const std::string& getObjectPath() const override;
+        const Message* getCurrentlyProcessedMessage() const override;
 
     private:
         class SyncCallReplyData
@@ -173,6 +175,8 @@ namespace sdbus::internal {
             std::mutex mutex_;
             std::unordered_map<void*, std::shared_ptr<CallData>> calls_;
         } pendingAsyncCalls_;
+
+        std::atomic<const Message*> m_CurrentlyProcessedMessage{nullptr};
     };
 
 }
