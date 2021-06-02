@@ -158,16 +158,9 @@ void Proxy::registerSignalHandler( const std::string& interfaceName
 {
     SDBUS_THROW_ERROR_IF(!signalHandler, "Invalid signal handler provided", EINVAL);
 
-    auto& sdbus = connection_->getSdBusInterface();
-    InterfaceData::Callback callback = [signalHandler, &sdbus] (sd_bus_message *sdbusMessage) {
-        auto message = Message::Factory::create<Signal>(sdbusMessage, &sdbus);
-        signalHandler(message);
-        return 0;
-    };
-
     auto& interface = interfaces_[interfaceName];
 
-    InterfaceData::SignalData signalData{std::move(callback), nullptr};
+    InterfaceData::SignalData signalData{*this, std::move(signalHandler), nullptr};
     auto insertionResult = interface.signals_.emplace(signalName, std::move(signalData));
 
     auto inserted = insertionResult.second;
@@ -252,7 +245,8 @@ int Proxy::sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd
     assert(signalData != nullptr);
     assert(signalData->callback_);
 
-    signalData->callback_(sdbusMessage);
+    auto message = Message::Factory::create<Signal>(sdbusMessage, &signalData->proxy.connection_->getSdBusInterface());
+    signalData->callback_(message);
     return 0;
 }
 

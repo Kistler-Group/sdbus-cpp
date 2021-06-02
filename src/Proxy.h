@@ -95,10 +95,10 @@ namespace sdbus::internal {
         struct InterfaceData
         {
             using SignalName = std::string;
-            using Callback = std::function<int(sd_bus_message *sdbusMessage)>;
             struct SignalData
             {
-                Callback callback_;
+                Proxy& proxy;
+                signal_handler callback_;
                 // slot_ must be listed after callback_ to ensure that slot_ is destructed first.
                 // Destructing the slot_ will sd_bus_slot_unref() the callback.
                 // Only after sd_bus_slot_unref(), we can safely delete the callback. The bus mutex (SdBus::sdbusMutex_)
