@@ -182,14 +182,14 @@ void Proxy::registerSignalHandlers(sdbus::internal::IConnection& connection)
         for (auto& signalItem : signalsOnInterface)
         {
             const auto& signalName = signalItem.first;
-            auto& signalData = signalItem.second;
+            auto* signalData = signalItem.second.get();
             auto& slot = signalData->slot_;
             slot = connection.registerSignalHandler(destination_
                                                    , objectPath_
                                                    , interfaceName
                                                    , signalName
                                                    , &Proxy::sdbus_signal_handler
-                                                   , signalData.get());
+                                                   , signalData);
         }
     }
 }
