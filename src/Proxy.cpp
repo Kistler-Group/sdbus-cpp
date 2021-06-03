@@ -183,13 +183,12 @@ void Proxy::registerSignalHandlers(sdbus::internal::IConnection& connection)
         {
             const auto& signalName = signalItem.first;
             auto* signalData = signalItem.second.get();
-            auto& slot = signalData->slot_;
-            slot = connection.registerSignalHandler(destination_
-                                                   , objectPath_
-                                                   , interfaceName
-                                                   , signalName
-                                                   , &Proxy::sdbus_signal_handler
-                                                   , signalData);
+            signalData->slot = connection.registerSignalHandler( destination_
+                                                               , objectPath_
+                                                               , interfaceName
+                                                               , signalName
+                                                               , &Proxy::sdbus_signal_handler
+                                                               , signalData);
         }
     }
 }
@@ -243,10 +242,10 @@ int Proxy::sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd
 {
     auto* signalData = static_cast<InterfaceData::SignalData*>(userData);
     assert(signalData != nullptr);
-    assert(signalData->callback_);
+    assert(signalData->callback);
 
-    auto message = Message::Factory::create<Signal>(sdbusMessage, &signalData->proxy_.connection_->getSdBusInterface());
-    signalData->callback_(message);
+    auto message = Message::Factory::create<Signal>(sdbusMessage, &signalData->proxy.connection_->getSdBusInterface());
+    signalData->callback(message);
     return 0;
 }
 

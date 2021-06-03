@@ -98,17 +98,17 @@ namespace sdbus::internal {
             struct SignalData
             {
                 SignalData(Proxy& proxy, signal_handler callback, SlotPtr slot)
-                    : proxy_(proxy)
-                    , callback_(std::move(callback))
-                    , slot_(std::move(slot))
+                    : proxy(proxy)
+                    , callback(std::move(callback))
+                    , slot(std::move(slot))
                 {}
-                Proxy& proxy_;
-                signal_handler callback_;
+                Proxy& proxy;
+                signal_handler callback;
                 // slot_ must be listed after callback_ to ensure that slot_ is destructed first.
                 // Destructing the slot_ will sd_bus_slot_unref() the callback.
                 // Only after sd_bus_slot_unref(), we can safely delete the callback. The bus mutex (SdBus::sdbusMutex_)
                 // ensures that sd_bus_slot_unref() and the callback execute sequentially.
-                SlotPtr slot_;
+                SlotPtr slot;
             };
             std::map<SignalName, std::unique_ptr<SignalData>> signals_;
         };
