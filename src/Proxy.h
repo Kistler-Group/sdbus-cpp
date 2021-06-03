@@ -97,7 +97,7 @@ namespace sdbus::internal {
             using SignalName = std::string;
             struct SignalData
             {
-                Proxy& proxy;
+                Proxy& proxy_;
                 signal_handler callback_;
                 // slot_ must be listed after callback_ to ensure that slot_ is destructed first.
                 // Destructing the slot_ will sd_bus_slot_unref() the callback.

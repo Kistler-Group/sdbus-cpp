@@ -245,7 +245,7 @@ int Proxy::sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd
     assert(signalData != nullptr);
     assert(signalData->callback_);
 
-    auto message = Message::Factory::create<Signal>(sdbusMessage, &signalData->proxy.connection_->getSdBusInterface());
+    auto message = Message::Factory::create<Signal>(sdbusMessage, &signalData->proxy_.connection_->getSdBusInterface());
     signalData->callback_(message);
     return 0;
 }
