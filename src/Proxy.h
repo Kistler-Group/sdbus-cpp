@@ -98,10 +98,20 @@ namespace sdbus::internal {
             using SignalName = std::string;
             struct SignalData
             {
-                signal_handler callback_;
-                SlotPtr slot_;
+                SignalData(Proxy& proxy, signal_handler callback, SlotPtr slot)
+                    : proxy(proxy)
+                    , callback(std::move(callback))
+                    , slot(std::move(slot))
+                {}
+                Proxy& proxy;
+                signal_handler callback;
+                // slot_ must be listed after callback_ to ensure that slot_ is destructed first.
+                // Destructing the slot_ will sd_bus_slot_unref() the callback.
+                // Only after sd_bus_slot_unref(), we can safely delete the callback. The bus mutex (SdBus::sdbusMutex_)
+                // ensures that sd_bus_slot_unref() and the callback execute sequentially.
+                SlotPtr slot;
             };
-            std::map<SignalName, SignalData> signals_;
+            std::map<SignalName, std::unique_ptr<SignalData>> signals_;
         };
         std::map<InterfaceName, InterfaceData> interfaces_;
 
@@ -150,6 +160,7 @@ namespace sdbus::internal {
             {
                 std::unique_lock lock(mutex_);
                 auto asyncCallSlots = std::move(calls_);
+                calls_ = {};
                 lock.unlock();
 
                 // Releasing call slot pointer acquires global sd-bus mutex. We have to perform the release
@@ -159,8 +170,8 @@ namespace sdbus::internal {
             }
 
         private:
-            std::unordered_map<void*, std::shared_ptr<CallData>> calls_;
             std::mutex mutex_;
+            std::unordered_map<void*, std::shared_ptr<CallData>> calls_;
         } pendingAsyncCalls_;
     };
 

@@ -34,7 +34,7 @@
 #include <systemd/sd-bus.h>
 #include <cassert>
 #include <chrono>
-#include <thread>
+#include <utility>
 
 namespace sdbus::internal {
 
@@ -160,7 +160,7 @@ void Proxy::registerSignalHandler( const std::string& interfaceName
 
     auto& interface = interfaces_[interfaceName];
 
-    InterfaceData::SignalData signalData{std::move(signalHandler), nullptr};
+    auto signalData = std::make_unique<InterfaceData::SignalData>(*this, std::move(signalHandler), nullptr);
     auto insertionResult = interface.signals_.emplace(signalName, std::move(signalData));
 
     auto inserted = insertionResult.second;
@@ -182,13 +182,13 @@ void Proxy::registerSignalHandlers(sdbus::internal::IConnection& connection)
         for (auto& signalItem : signalsOnInterface)
         {
             const auto& signalName = signalItem.first;
-            auto& slot = signalItem.second.slot_;
-            slot = connection.registerSignalHandler( destination_
-                                                   , objectPath_
-                                                   , interfaceName
-                                                   , signalName
-                                                   , &Proxy::sdbus_signal_handler
-                                                   , this );
+            auto* signalData = signalItem.second.get();
+            signalData->slot = connection.registerSignalHandler( destination_
+                                                               , objectPath_
+                                                               , interfaceName
+                                                               , signalName
+                                                               , &Proxy::sdbus_signal_handler
+                                                               , signalData);
         }
     }
 }
@@ -245,17 +245,12 @@ int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userDat
 
 int Proxy::sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error */*retError*/)
 {
-    auto* proxy = static_cast<Proxy*>(userData);
-    assert(proxy != nullptr);
+    auto* signalData = static_cast<InterfaceData::SignalData*>(userData);
+    assert(signalData != nullptr);
+    assert(signalData->callback);
 
-    auto message = Message::Factory::create<Signal>(sdbusMessage, &proxy->connection_->getSdBusInterface());
-
-    // Note: The lookup can be optimized by using sorted vectors instead of associative containers
-    auto& callback = proxy->interfaces_[message.getInterfaceName()].signals_[message.getMemberName()].callback_;
-    assert(callback);
-
-    callback(message);
-
+    auto message = Message::Factory::create<Signal>(sdbusMessage, &signalData->proxy.connection_->getSdBusInterface());
+    signalData->callback(message);
     return 0;
 }
 
