@@ -160,7 +160,7 @@ void Proxy::registerSignalHandler( const std::string& interfaceName
 
     auto& interface = interfaces_[interfaceName];
 
-    InterfaceData::SignalData signalData{*this, std::move(signalHandler), nullptr};
+    auto signalData = std::make_unique<InterfaceData::SignalData>(*this, std::move(signalHandler), nullptr);
     auto insertionResult = interface.signals_.emplace(signalName, std::move(signalData));
 
     auto inserted = insertionResult.second;
@@ -183,13 +183,13 @@ void Proxy::registerSignalHandlers(sdbus::internal::IConnection& connection)
         {
             const auto& signalName = signalItem.first;
             auto& signalData = signalItem.second;
-            auto& slot = signalData.slot_;
+            auto& slot = signalData->slot_;
             slot = connection.registerSignalHandler(destination_
                                                    , objectPath_
                                                    , interfaceName
                                                    , signalName
                                                    , &Proxy::sdbus_signal_handler
-                                                   , &signalData);
+                                                   , signalData.get());
         }
     }
 }

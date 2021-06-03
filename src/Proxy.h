@@ -97,6 +97,11 @@ namespace sdbus::internal {
             using SignalName = std::string;
             struct SignalData
             {
+                SignalData(Proxy& proxy, signal_handler callback, SlotPtr slot)
+                    : proxy_(proxy)
+                    , callback_(std::move(callback))
+                    , slot_(std::move(slot))
+                {}
                 Proxy& proxy_;
                 signal_handler callback_;
                 // slot_ must be listed after callback_ to ensure that slot_ is destructed first.
@@ -105,7 +110,7 @@ namespace sdbus::internal {
                 // ensures that sd_bus_slot_unref() and the callback execute sequentially.
                 SlotPtr slot_;
             };
-            std::map<SignalName, SignalData> signals_;
+            std::map<SignalName, std::unique_ptr<SignalData>> signals_;
         };
         std::map<InterfaceName, InterfaceData> interfaces_;
 
