@@ -136,9 +136,9 @@ endif()
 
 install(TARGETS ${EXPORT_SET}
         EXPORT sdbus-c++-targets
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT libraries
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT libraries
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT static_libraries
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT runtime
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT runtime
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT dev
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${SDBUSCPP_INCLUDE_SUBDIR} COMPONENT dev)
 
 #----------------------------------
@@ -174,7 +174,7 @@ if(BUILD_DOC)
     message(STATUS "Building with documentation")
     option(BUILD_DOXYGEN_DOC "Build doxygen documentation for sdbus-c++ API" OFF)
     add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/docs")
-    install(FILES README README.md NEWS COPYING ChangeLog AUTHORS DESTINATION ${CMAKE_INSTALL_DOCDIR})
+    install(FILES README README.md NEWS COPYING ChangeLog AUTHORS DESTINATION ${CMAKE_INSTALL_DOCDIR} COMPONENT doc)
 endif()
 
 #----------------------------------
@@ -199,3 +199,23 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/sdbus-c++-config.cmake
 configure_file(pkgconfig/sdbus-c++.pc.in pkgconfig/sdbus-c++.pc @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/sdbus-c++.pc
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig COMPONENT dev)
+
+#----------------------------------
+# CPack
+#----------------------------------
+set(CPACK_PACKAGE_VENDOR "Kistler")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "high-level C++ D-Bus library")
+set(CPACK_PACKAGE_CONTACT "info@kistler.com")
+set(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/README.md")
+set(CPACK_COMPONENT_DEV_DEPENDS "runtime")
+
+# specific for DEB generator
+set(CPACK_DEB_COMPONENT_INSTALL ON)
+set(CPACK_DEBIAN_RUNTIME_DEBUGINFO_PACKAGE ON)
+set(CPACK_DEBIAN_RUNTIME_PACKAGE_NAME ${PROJECT_NAME})
+set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+set(CPACK_DEBIAN_PACKAGE_SECTION "libs")
+set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+set(CPACK_DEBIAN_ENABLE_COMPONENT_DEPENDS ON)
+
+include(CPack)
