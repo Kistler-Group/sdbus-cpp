@@ -16,7 +16,7 @@ if(BUILD_DOXYGEN_DOC)
         add_custom_command(TARGET doc POST_BUILD
           COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/sdbus-c++-class-diagram.png ${CMAKE_CURRENT_BINARY_DIR}/html/.)
         
-        install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/html DESTINATION ${CMAKE_INSTALL_DOCDIR} OPTIONAL)
+        install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/html DESTINATION ${CMAKE_INSTALL_DOCDIR} OPTIONAL COMPONENT doc)
     else()
         message(WARNING "Documentation enabled, but Doxygen cannot be found")
     endif()
@@ -26,4 +26,4 @@ install(FILES sdbus-c++-class-diagram.png
               sdbus-c++-class-diagram.uml
               systemd-dbus-config.md
               using-sdbus-c++.md
-        DESTINATION ${CMAKE_INSTALL_DOCDIR})
+        DESTINATION ${CMAKE_INSTALL_DOCDIR} COMPONENT doc)

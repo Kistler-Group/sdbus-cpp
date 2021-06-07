@@ -49,7 +49,7 @@ target_include_directories(sdbus-c++-xml2cpp PRIVATE ${EXPAT_INCLUDE_DIRS})
 # INSTALLATION
 #----------------------------------
 
-install(TARGETS sdbus-c++-xml2cpp EXPORT sdbus-c++-tools-targets DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS sdbus-c++-xml2cpp EXPORT sdbus-c++-tools-targets DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT dev)
 
 #----------------------------------
 # CMAKE CONFIG & PACKAGE CONFIG
