@@ -238,3 +238,29 @@ TEST(AMessage, CanCarryAComplexType)
 
     ASSERT_THAT(dataRead, Eq(dataWritten));
 }
+
+TEST(AMessage, CanPeekASimpleType)
+{
+    auto msg = sdbus::createPlainMessage();
+    msg << 123;
+    msg.seal();
+
+    std::string type;
+    std::string contents;
+    msg.peekType(type, contents);
+    ASSERT_THAT(type, "i");
+    ASSERT_THAT(contents, "");
+}
+
+TEST(AMessage, CanPeekContainerContents)
+{
+    auto msg = sdbus::createPlainMessage();
+    msg << std::map<int, std::string>{{1, "one"}, {2, "two"}};
+    msg.seal();
+
+    std::string type;
+    std::string contents;
+    msg.peekType(type, contents);
+    ASSERT_THAT(type, "a");
+    ASSERT_THAT(contents, "{is}");
+}
