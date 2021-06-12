@@ -617,7 +617,7 @@ void Message::peekType(std::string& type, std::string& contents) const
     auto r = sd_bus_message_peek_type((sd_bus_message*)msg_, &typeSig, &contentsSig);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to peek message type", -r);
     type = typeSig;
-    contents = contentsSig;
+    contents = contentsSig ? contentsSig : "";
 }
 
 bool Message::isValid() const
