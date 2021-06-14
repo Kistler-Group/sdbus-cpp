@@ -98,6 +98,10 @@ There are Yocto recipes for sdbus-c++ available in the [`meta-oe`](https://githu
 
 Tip: If you get `ERROR: Program or command 'getent' not found or not executable` when building sdbus-c++ in Yocto, please make sure you've added `getent` to `HOSTTOOLS`. For example, you can add `HOSTTOOLS_NONFATAL += "getent"` into your local.conf file.
 
+### Conan
+
+sdbus-c++ recipe is available in ConanCenter repository as [`sdbus-cpp`](https://conan.io/center/sdbus-cpp).
+
 Contributors willing to help with bringing sdbus-c++ to other popular package systems are welcome.
 
 Header files and namespaces
