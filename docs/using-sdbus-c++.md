@@ -546,6 +546,15 @@ When registering methods, calling methods or emitting signals, multiple lines of
 
 sdbus-c++ users shall prefer the convenience API to the lower level, basic API. When feasible, using generated adaptor and proxy stubs is even better. These stubs provide yet another, higher API level built on top of the convenience API. They are described in the following section.
 
+> **_Note_:** By default, signal callback handlers are not invoked (i.e., the signal is silently dropped) if there is a signal signature mismatch. If clients want to be informed of such situations, they can prepend `const sdbus::Error*` parameter to their signal callback handler's parameter list. This argument will be `nullptr` in normal cases, and will provide access to the corresponding `sdbus::Error` object in case of deserialization failures. An example of a handler with the signature (`int`) different from the real signal contents (`string`):
+> ```c++
+>     void onConcatenated(const sdbus::Error* e, int wrongParameter)
+>     {
+>         assert(e);
+>         assert(e->getMessage() == "Failed to deserialize a int32 value");
+>     }
+> ```
+
 > **_Tip_:** When registering a D-Bus object, we can additionally provide names of input and output parameters of its methods and names of parameters of its signals. When the object is introspected, these names are listed in the resulting introspection XML, which improves the description of object's interfaces:
 > ```c++
 >    concatenator->registerMethod("concatenate")
