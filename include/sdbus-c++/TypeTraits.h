@@ -378,12 +378,14 @@ namespace sdbus {
         : public function_traits_base<_ReturnType, _Args...>
     {
         static constexpr bool is_async = false;
+        static constexpr bool has_error_param = false;
     };
 
     template <typename... _Args>
     struct function_traits<void(const Error*, _Args...)>
         : public function_traits_base<void, _Args...>
     {
+        static constexpr bool has_error_param = true;
     };
 
     template <typename... _Args, typename... _Results>
@@ -442,6 +444,9 @@ namespace sdbus {
 
     template <class _Function>
     constexpr auto is_async_method_v = function_traits<_Function>::is_async;
+
+    template <class _Function>
+    constexpr auto has_error_param_v = function_traits<_Function>::has_error_param;
 
     template <typename _FunctionType>
     using function_arguments_t = typename function_traits<_FunctionType>::arguments_type;

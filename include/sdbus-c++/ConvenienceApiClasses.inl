@@ -640,11 +640,34 @@ namespace sdbus {
             // as a storage for the argument values deserialized from the signal message.
             tuple_of_function_input_arg_types_t<_Function> signalArgs;
 
-            // Deserialize input arguments from the signal message into the tuple
-            signal >> signalArgs;
+            // The signal handler can take pure signal parameters only, or an additional `const Error*` as its first
+            // parameter. In the former case, if the deserialization fails (e.g. due to signature mismatch),
+            // the failure is ignored (and signal simply dropped). In the latter case, the deserialization failure
+            // will be communicated as a non-zero Error pointer to the client's signal handler.
+            if constexpr (has_error_param_v<_Function>)
+            {
+                // Deserialize input arguments from the signal message into the tuple
+                try
+                {
+                    signal >> signalArgs;
+                }
+                catch (const sdbus::Error& e)
+                {
+                    // Invoke callback with error argument and input arguments from the tuple.
+                    sdbus::apply(callback, &e, signalArgs);
+                }
 
-            // Invoke callback with input arguments from the tuple.
-            sdbus::apply(callback, signalArgs);
+                // Invoke callback with no error and input arguments from the tuple.
+                sdbus::apply(callback, nullptr, signalArgs);
+            }
+            else
+            {
+                // Deserialize input arguments from the signal message into the tuple
+                signal >> signalArgs;
+
+                // Invoke callback with input arguments from the tuple.
+                sdbus::apply(callback, signalArgs);
+            }
         });
     }
 
