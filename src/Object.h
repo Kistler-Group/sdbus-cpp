@@ -109,6 +109,8 @@ namespace sdbus::internal {
         using InterfaceName = std::string;
         struct InterfaceData
         {
+            InterfaceData(Object& object) : object(object) {}
+
             using MethodName = std::string;
             struct MethodData
             {
@@ -116,7 +118,7 @@ namespace sdbus::internal {
                 const std::string outputArgs;
                 const std::string paramNames;
                 method_callback callback;
-                Flags flags_;
+                Flags flags;
             };
             std::map<MethodName, MethodData> methods;
             using SignalName = std::string;
@@ -138,10 +140,14 @@ namespace sdbus::internal {
             std::map<PropertyName, PropertyData> properties;
             std::vector<sd_bus_vtable> vtable;
             Flags flags;
+            Object& object;
 
+            // This is intentionally the last member, because it must be destructed first,
+            // releasing callbacks above before the callbacks themselves are destructed.
             SlotPtr slot;
         };
 
+        InterfaceData& getInterface(const std::string& interfaceName);
         static const std::vector<sd_bus_vtable>& createInterfaceVTable(InterfaceData& interfaceData);
         static void registerMethodsToVTable(const InterfaceData& interfaceData, std::vector<sd_bus_vtable>& vtable);
         static void registerSignalsToVTable(const InterfaceData& interfaceData, std::vector<sd_bus_vtable>& vtable);
