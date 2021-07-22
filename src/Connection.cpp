@@ -92,6 +92,7 @@ std::string Connection::getUniqueName() const
 void Connection::enterEventLoop()
 {
     loopThreadId_ = std::this_thread::get_id();
+    SCOPE_EXIT{ loopThreadId_ = std::thread::id{}; };
 
     std::lock_guard guard(loopMutex_);
 
@@ -105,8 +106,6 @@ void Connection::enterEventLoop()
         if (!success)
             break; // Exit I/O event loop
     }
-
-    loopThreadId_ = std::thread::id{};
 }
 
 void Connection::enterEventLoopAsync()
