@@ -593,7 +593,7 @@ namespace sdbus {
                 {
                     reply >> args;
                 }
-                catch (const sdbus::Error& e)
+                catch (const Error& e)
                 {
                     // Catch message unpack exceptions and pass them to the callback
                     // in the expected manner to avoid propagating them up the call
@@ -641,17 +641,7 @@ namespace sdbus {
             tuple_of_function_input_arg_types_t<_Function> signalArgs;
 
             // Deserialize input arguments from the signal message into the tuple
-            try
-            {
-                signal >> signalArgs;
-            }
-            catch (const sdbus::Error& e)
-            {
-                // The convenience API callback cannot handle an incoming signal with
-                // an unexpected payload, so catch and ignore this exception to avoid
-                // propagating it up the call stack to the event loop.
-                return;
-            }
+            signal >> signalArgs;
 
             // Invoke callback with input arguments from the tuple.
             sdbus::apply(callback, signalArgs);
