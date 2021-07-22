@@ -73,7 +73,7 @@ void Object::registerMethod( const std::string& interfaceName
 {
     SDBUS_THROW_ERROR_IF(!methodCallback, "Invalid method callback provided", EINVAL);
 
-    auto& interface = interfaces_[interfaceName];
+    auto& interface = getInterface(interfaceName);
     InterfaceData::MethodData methodData{ std::move(inputSignature)
                                         , std::move(outputSignature)
                                         , paramNamesToString(inputNames) + paramNamesToString(outputNames)
@@ -98,7 +98,7 @@ void Object::registerSignal( const std::string& interfaceName
                            , const std::vector<std::string>& paramNames
                            , Flags flags )
 {
-    auto& interface = interfaces_[interfaceName];
+    auto& interface = getInterface(interfaceName);
 
     InterfaceData::SignalData signalData{std::move(signature), paramNamesToString(paramNames), std::move(flags)};
     auto inserted = interface.signals.emplace(std::move(signalName), std::move(signalData)).second;
@@ -129,12 +129,12 @@ void Object::registerProperty( const std::string& interfaceName
 {
     SDBUS_THROW_ERROR_IF(!getCallback && !setCallback, "Invalid property callbacks provided", EINVAL);
 
-    auto& interface = interfaces_[interfaceName];
+    auto& interface = getInterface(interfaceName);
 
     InterfaceData::PropertyData propertyData{ std::move(signature)
                                             , std::move(getCallback)
                                             , std::move(setCallback)
-                                            , std::move(flags)};
+                                            , std::move(flags) };
     auto inserted = interface.properties.emplace(std::move(propertyName), std::move(propertyData)).second;
 
     SDBUS_THROW_ERROR_IF(!inserted, "Failed to register property: property already exists", EINVAL);
@@ -142,7 +142,7 @@ void Object::registerProperty( const std::string& interfaceName
 
 void Object::setInterfaceFlags(const std::string& interfaceName, Flags flags)
 {
-    auto& interface = interfaces_[interfaceName];
+    auto& interface = getInterface(interfaceName);
     interface.flags = flags;
 }
 
@@ -236,6 +236,11 @@ const Message* Object::getCurrentlyProcessedMessage() const
     return m_CurrentlyProcessedMessage.load(std::memory_order_relaxed);
 }
 
+Object::InterfaceData& Object::getInterface(const std::string& interfaceName)
+{
+    return interfaces_.emplace(interfaceName, *this).first->second;
+}
+
 const std::vector<sd_bus_vtable>& Object::createInterfaceVTable(InterfaceData& interfaceData)
 {
     auto& vtable = interfaceData.vtable;
@@ -262,7 +267,7 @@ void Object::registerMethodsToVTable(const InterfaceData& interfaceData, std::ve
                                                , methodData.outputArgs.c_str()
                                                , methodData.paramNames.c_str()
                                                , &Object::sdbus_method_callback
-                                               , methodData.flags_.toSdBusMethodFlags() ));
+                                               , methodData.flags.toSdBusMethodFlags() ));
     }
 }
 
@@ -305,7 +310,7 @@ void Object::activateInterfaceVTable( const std::string& interfaceName
                                     , InterfaceData& interfaceData
                                     , const std::vector<sd_bus_vtable>& vtable )
 {
-    interfaceData.slot = connection_.addObjectVTable(objectPath_, interfaceName, &vtable[0], this);
+    interfaceData.slot = connection_.addObjectVTable(objectPath_, interfaceName, &vtable[0], &interfaceData);
 }
 
 std::string Object::paramNamesToString(const std::vector<std::string>& paramNames)
@@ -318,19 +323,19 @@ std::string Object::paramNamesToString(const std::vector<std::string>& paramName
 
 int Object::sdbus_method_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError)
 {
-    auto* object = static_cast<Object*>(userData);
-    assert(object != nullptr);
+    auto* interfaceData = static_cast<InterfaceData*>(userData);
+    assert(interfaceData != nullptr);
+    auto& object = interfaceData->object;
 
-    auto message = Message::Factory::create<MethodCall>(sdbusMessage, &object->connection_.getSdBusInterface());
+    auto message = Message::Factory::create<MethodCall>(sdbusMessage, &object.connection_.getSdBusInterface());
 
-    object->m_CurrentlyProcessedMessage.store(&message, std::memory_order_relaxed);
+    object.m_CurrentlyProcessedMessage.store(&message, std::memory_order_relaxed);
     SCOPE_EXIT
     {
-        object->m_CurrentlyProcessedMessage.store(nullptr, std::memory_order_relaxed);
+        object.m_CurrentlyProcessedMessage.store(nullptr, std::memory_order_relaxed);
     };
 
-    // Note: The lookup can be optimized by using sorted vectors instead of associative containers
-    auto& callback = object->interfaces_[message.getInterfaceName()].methods[message.getMemberName()].callback;
+    auto& callback = interfaceData->methods[message.getMemberName()].callback;
     assert(callback);
 
     try
@@ -347,17 +352,17 @@ int Object::sdbus_method_callback(sd_bus_message *sdbusMessage, void *userData, 
 
 int Object::sdbus_property_get_callback( sd_bus */*bus*/
                                        , const char */*objectPath*/
-                                       , const char *interface
+                                       , const char */*interface*/
                                        , const char *property
                                        , sd_bus_message *sdbusReply
                                        , void *userData
                                        , sd_bus_error *retError )
 {
-    auto* object = static_cast<Object*>(userData);
-    assert(object != nullptr);
+    auto* interfaceData = static_cast<InterfaceData*>(userData);
+    assert(interfaceData != nullptr);
+    auto& object = interfaceData->object;
 
-    // Note: The lookup can be optimized by using sorted vectors instead of associative containers
-    auto& callback = object->interfaces_[interface].properties[property].getCallback;
+    auto& callback = interfaceData->properties[property].getCallback;
     // Getter can be empty - the case of "write-only" property
     if (!callback)
     {
@@ -365,7 +370,7 @@ int Object::sdbus_property_get_callback( sd_bus */*bus*/
         return 1;
     }
 
-    auto reply = Message::Factory::create<PropertyGetReply>(sdbusReply, &object->connection_.getSdBusInterface());
+    auto reply = Message::Factory::create<PropertyGetReply>(sdbusReply, &object.connection_.getSdBusInterface());
 
     try
     {
@@ -381,25 +386,25 @@ int Object::sdbus_property_get_callback( sd_bus */*bus*/
 
 int Object::sdbus_property_set_callback( sd_bus */*bus*/
                                        , const char */*objectPath*/
-                                       , const char *interface
+                                       , const char */*interface*/
                                        , const char *property
                                        , sd_bus_message *sdbusValue
                                        , void *userData
                                        , sd_bus_error *retError )
 {
-    auto* object = static_cast<Object*>(userData);
-    assert(object != nullptr);
+    auto* interfaceData = static_cast<InterfaceData*>(userData);
+    assert(interfaceData != nullptr);
+    auto& object = interfaceData->object;
 
-    // Note: The lookup can be optimized by using sorted vectors instead of associative containers
-    auto& callback = object->interfaces_[interface].properties[property].setCallback;
+    auto& callback = interfaceData->properties[property].setCallback;
     assert(callback);
 
-    auto value = Message::Factory::create<PropertySetCall>(sdbusValue, &object->connection_.getSdBusInterface());
+    auto value = Message::Factory::create<PropertySetCall>(sdbusValue, &object.connection_.getSdBusInterface());
 
-    object->m_CurrentlyProcessedMessage.store(&value, std::memory_order_relaxed);
+    object.m_CurrentlyProcessedMessage.store(&value, std::memory_order_relaxed);
     SCOPE_EXIT
     {
-        object->m_CurrentlyProcessedMessage.store(nullptr, std::memory_order_relaxed);
+        object.m_CurrentlyProcessedMessage.store(nullptr, std::memory_order_relaxed);
     };
 
     try
