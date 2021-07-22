@@ -51,7 +51,7 @@ PKG_CHECK_MODULES(SDBUSCPP, [sdbus-c++ >= 0.6],,
 )
 ```
 
-Note: sdbus-c++ library uses a number of modern C++17 features. Please make certain you have a recent compiler (gcc >= 7, clang >= 6).
+> **_Note_:** sdbus-c++ library uses a number of modern C++17 features. Please make certain you have a recent compiler (gcc >= 7, clang >= 6).
 
 If you intend to use stub generator (explained later) in your project to generate interface headers from XML, you can integrate that too with CMake or `pkg-config`:
 
@@ -112,7 +112,7 @@ There are Yocto recipes for sdbus-c++ available in the [`meta-oe`](https://githu
   * One for sdbus-c++ itself. It detects whether systemd feature is turned on in the poky linux configuration. If so, it simply depends on systemd and makes use of libsystemd shared library available in the target system. Otherwise it automatically downloads and builds libsystemd static library and links it into the sdbus-c++ shared library. The recipe also supports ptest.
   * One for sdbus-c++ native tools, namely sdbus-c++ code generator to generate C++ adaptor and proxy binding classes.
 
-Tip: If you get `ERROR: Program or command 'getent' not found or not executable` when building sdbus-c++ in Yocto, please make sure you've added `getent` to `HOSTTOOLS`. For example, you can add `HOSTTOOLS_NONFATAL += "getent"` into your local.conf file.
+> **_Tip_:** If you get `ERROR: Program or command 'getent' not found or not executable` when building sdbus-c++ in Yocto, please make sure you've added `getent` to `HOSTTOOLS`. For example, you can add `HOSTTOOLS_NONFATAL += "getent"` into your local.conf file.
 
 ### Conan
 
@@ -221,7 +221,7 @@ Let's have an object `/org/sdbuscpp/concatenator` that implements the `org.sdbus
 
 In the following sections, we will elaborate on the ways of implementing such an object on both the server and the client side.
 
-**Note:** In order to be able to call methods of your system bus-based D-Bus service, a D-Bus security policy file has to be put in place for that service. See [dbus-daemon documentation](https://dbus.freedesktop.org/doc/dbus-daemon.1.html), sections *INTEGRATING SYSTEM SERVICES* and *CONFIGURATION FILE*. As an example, you may look at the [policy file for sdbus-c++ integration tests](/tests/integrationtests/files/org.sdbuscpp.integrationtests.conf).
+> **_Note_:** In order to be able to call methods of your system bus-based D-Bus service, a D-Bus security policy file has to be put in place for that service. See [dbus-daemon documentation](https://dbus.freedesktop.org/doc/dbus-daemon.1.html), sections *INTEGRATING SYSTEM SERVICES* and *CONFIGURATION FILE*. As an example, you may look at the [policy file for sdbus-c++ integration tests](/tests/integrationtests/files/org.sdbuscpp.integrationtests.conf).
 
 Implementing the Concatenator example using basic sdbus-c++ API layer
 ---------------------------------------------------------------------
@@ -546,12 +546,17 @@ When registering methods, calling methods or emitting signals, multiple lines of
 
 sdbus-c++ users shall prefer the convenience API to the lower level, basic API. When feasible, using generated adaptor and proxy stubs is even better. These stubs provide yet another, higher API level built on top of the convenience API. They are described in the following section.
 
-Tip: When registering a D-Bus object, we can additionally provide names of input and output parameters of its methods and names of parameters of its signals. When the object is introspected, these names are listed in the resulting introspection XML, which improves the description of object's interfaces:
-
-```c++
-    concatenator->registerMethod("concatenate").onInterface(interfaceName).withInputParamNames("numbers", "separator").withOutputParamNames("concatenatedString").implementedAs(&concatenate);
-    concatenator->registerSignal("concatenated").onInterface(interfaceName).withParameters<std::string>("concatenatedString");
-```
+> **_Tip_:** When registering a D-Bus object, we can additionally provide names of input and output parameters of its methods and names of parameters of its signals. When the object is introspected, these names are listed in the resulting introspection XML, which improves the description of object's interfaces:
+> ```c++
+>    concatenator->registerMethod("concatenate")
+>                 .onInterface(interfaceName)
+>                 .withInputParamNames("numbers", "separator")
+>                 .withOutputParamNames("concatenatedString")
+>                 .implementedAs(&concatenate);
+>    concatenator->registerSignal("concatenated")
+>                 .onInterface(interfaceName)
+>                 .withParameters<std::string>("concatenatedString");
+> ```
 
 ### Accessing a corresponding D-Bus message
 
@@ -772,7 +777,7 @@ protected:
 };
 ```
 
-Tip: By inheriting from `sdbus::AdaptorInterfaces`, we get access to the protected `getObject()` method. We can call this method inside our adaptor implementation class to access the underlying `IObject` object.
+> **_Tip_:** By inheriting from `sdbus::AdaptorInterfaces`, we get access to the protected `getObject()` method. We can call this method inside our adaptor implementation class to access the underlying `IObject` object.
 
 That's it. We now have an implementation of a D-Bus object implementing `org.sdbuscpp.Concatenator` interface. Let's now create a service publishing the object.
 
@@ -836,7 +841,7 @@ protected:
 };
 ```
 
-Tip: By inheriting from `sdbus::ProxyInterfaces`, we get access to the protected `getProxy()` method. We can call this method inside our proxy implementation class to access the underlying `IProxy` object.
+> **_Tip_:** By inheriting from `sdbus::ProxyInterfaces`, we get access to the protected `getProxy()` method. We can call this method inside our proxy implementation class to access the underlying `IProxy` object.
 
 In the above example, a proxy is created that creates and maintains its own system bus connection. However, there are `ProxyInterfaces` class template constructor overloads that also take the connection from the user as the first parameter, and pass that connection over to the underlying proxy. The connection instance is used by all interfaces listed in the `ProxyInterfaces` template parameter list.
 
