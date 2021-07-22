@@ -240,15 +240,22 @@ int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userDat
         proxy.m_CurrentlyProcessedMessage.store(nullptr, std::memory_order_relaxed);
     };
 
-    const auto* error = sd_bus_message_get_error(sdbusMessage);
-    if (error == nullptr)
+    try
     {
-        asyncCallData->callback(message, nullptr);
+        const auto* error = sd_bus_message_get_error(sdbusMessage);
+        if (error == nullptr)
+        {
+            asyncCallData->callback(message, nullptr);
+        }
+        else
+        {
+            Error exception(error->name, error->message);
+            asyncCallData->callback(message, &exception);
+        }
     }
-    else
+    catch (const Error&)
     {
-        sdbus::Error exception(error->name, error->message);
-        asyncCallData->callback(message, &exception);
+        // Intentionally left blank -- sdbus-c++ exceptions shall not bubble up to the underlying C sd-bus library
     }
 
     return 1;
@@ -268,7 +275,15 @@ int Proxy::sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd
         signalData->proxy.m_CurrentlyProcessedMessage.store(nullptr, std::memory_order_relaxed);
     };
 
-    signalData->callback(message);
+    try
+    {
+        signalData->callback(message);
+    }
+    catch (const Error&)
+    {
+        // Intentionally left blank -- sdbus-c++ exceptions shall not bubble up to the underlying C sd-bus library
+    }
+
     return 0;
 }
 

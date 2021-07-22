@@ -337,7 +337,7 @@ int Object::sdbus_method_callback(sd_bus_message *sdbusMessage, void *userData, 
     {
         callback(message);
     }
-    catch (const sdbus::Error& e)
+    catch (const Error& e)
     {
         sd_bus_error_set(retError, e.getName().c_str(), e.getMessage().c_str());
     }
@@ -371,7 +371,7 @@ int Object::sdbus_property_get_callback( sd_bus */*bus*/
     {
         callback(reply);
     }
-    catch (const sdbus::Error& e)
+    catch (const Error& e)
     {
         sd_bus_error_set(retError, e.getName().c_str(), e.getMessage().c_str());
     }
@@ -406,7 +406,7 @@ int Object::sdbus_property_set_callback( sd_bus */*bus*/
     {
         callback(value);
     }
-    catch (const sdbus::Error& e)
+    catch (const Error& e)
     {
         sd_bus_error_set(retError, e.getName().c_str(), e.getMessage().c_str());
     }
