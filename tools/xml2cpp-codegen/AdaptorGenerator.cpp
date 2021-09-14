@@ -131,7 +131,7 @@ std::string AdaptorGenerator::processInterface(Node& interface) const
                        << propertyRegistration
          << tab << "}" << endl << endl;
 
-    body << tab << "~" << className << "() = default;" << endl << endl;
+    body << tab << "virtual ~" << className << "() = default;" << endl << endl;
 
     if (!signalMethods.empty())
     {
