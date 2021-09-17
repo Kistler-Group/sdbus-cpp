@@ -1,5 +1,6 @@
 find_program(MESON meson)
 find_program(NINJA ninja)
+find_program(GPERF gperf)
 
 if((NOT MESON) OR (NOT NINJA))
     message(FATAL_ERROR "Meson and Ninja are required to build libsystemd")
