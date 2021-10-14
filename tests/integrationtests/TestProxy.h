@@ -35,11 +35,41 @@
 
 namespace sdbus { namespace test {
 
+class ObjectManagerTestProxy : public sdbus::ProxyInterfaces< sdbus::ObjectManager_proxy >
+{
+public:
+    ObjectManagerTestProxy(sdbus::IConnection& connection, std::string destination, std::string objectPath)
+        : ProxyInterfaces(connection, std::move(destination), std::move(objectPath))
+    {
+        registerProxy();
+    }
+
+    ~ObjectManagerTestProxy()
+    {
+        unregisterProxy();
+    }
+protected:
+    void onInterfacesAdded(const sdbus::ObjectPath& objectPath, const std::map<std::string, std::map<std::string, sdbus::Variant>>& interfacesAndProperties) override
+    {
+        if (m_onInterfacesAddedHandler)
+            m_onInterfacesAddedHandler(objectPath, interfacesAndProperties);
+    }
+
+    void onInterfacesRemoved(const sdbus::ObjectPath& objectPath, const std::vector<std::string>& interfaces) override
+    {
+        if (m_onInterfacesRemovedHandler)
+            m_onInterfacesRemovedHandler(objectPath, interfaces);
+    }
+
+public: // for tests
+    std::function<void(const sdbus::ObjectPath&, const std::map<std::string, std::map<std::string, sdbus::Variant>>&)> m_onInterfacesAddedHandler;
+    std::function<void(const sdbus::ObjectPath&, const std::vector<std::string>&)> m_onInterfacesRemovedHandler;
+};
+
 class TestProxy final : public sdbus::ProxyInterfaces< org::sdbuscpp::integrationtests_proxy
                                                      , sdbus::Peer_proxy
                                                      , sdbus::Introspectable_proxy
-                                                     , sdbus::Properties_proxy
-                                                     , sdbus::ObjectManager_proxy >
+                                                     , sdbus::Properties_proxy >
 {
 public:
     TestProxy(std::string destination, std::string objectPath);
@@ -58,9 +88,6 @@ protected:
     void onPropertiesChanged( const std::string& interfaceName
                             , const std::map<std::string, sdbus::Variant>& changedProperties
                             , const std::vector<std::string>& invalidatedProperties ) override;
-    void onInterfacesAdded( const sdbus::ObjectPath& objectPath
-                          , const std::map<std::string, std::map<std::string, sdbus::Variant>>& interfacesAndProperties) override;
-    void onInterfacesRemoved( const sdbus::ObjectPath& objectPath, const std::vector<std::string>& interfaces) override;
 
 public:
     void installDoOperationClientSideAsyncReplyHandler(std::function<void(uint32_t res, const sdbus::Error* err)> handler);
@@ -85,8 +112,6 @@ public: // for tests
 
     std::function<void(uint32_t res, const sdbus::Error* err)> m_DoOperationClientSideAsyncReplyHandler;
     std::function<void(const std::string&, const std::map<std::string, sdbus::Variant>&, const std::vector<std::string>&)> m_onPropertiesChangedHandler;
-    std::function<void(const sdbus::ObjectPath&, const std::map<std::string, std::map<std::string, sdbus::Variant>>&)> m_onInterfacesAddedHandler;
-    std::function<void(const sdbus::ObjectPath&, const std::vector<std::string>&)> m_onInterfacesRemovedHandler;
 
     const Message* m_signalMsg{};
     std::string m_signalMemberName;

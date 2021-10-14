@@ -49,6 +49,6 @@ TEST(AdaptorAndProxy, CanBeConstructedSuccesfully)
     auto connection = sdbus::createConnection();
     connection->requestName(INTERFACE_NAME);
 
-    ASSERT_NO_THROW(TestAdaptor adaptor(*connection));
+    ASSERT_NO_THROW(TestAdaptor adaptor(*connection, OBJECT_PATH));
     ASSERT_NO_THROW(TestProxy proxy(INTERFACE_NAME, OBJECT_PATH));
 }

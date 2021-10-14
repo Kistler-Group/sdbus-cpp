@@ -32,15 +32,31 @@
 #include <thread>
 #include <chrono>
 #include <atomic>
+#include <utility>
 
 namespace sdbus { namespace test {
 
-class TestAdaptor final : public sdbus::AdaptorInterfaces< org::sdbuscpp::integrationtests_adaptor
-                                                         , sdbus::Properties_adaptor
-                                                         , sdbus::ObjectManager_adaptor >
+class ObjectManagerTestAdaptor : public sdbus::AdaptorInterfaces< sdbus::ObjectManager_adaptor >
 {
 public:
-    TestAdaptor(sdbus::IConnection& connection);
+    ObjectManagerTestAdaptor(sdbus::IConnection& connection, std::string path) :
+        AdaptorInterfaces(connection, std::move(path))
+    {
+        registerAdaptor();
+    }
+
+    ~ObjectManagerTestAdaptor()
+    {
+        unregisterAdaptor();
+    }
+};
+
+class TestAdaptor final : public sdbus::AdaptorInterfaces< org::sdbuscpp::integrationtests_adaptor
+                                                         , sdbus::Properties_adaptor
+                                                         , sdbus::ManagedObject_adaptor >
+{
+public:
+    TestAdaptor(sdbus::IConnection& connection, const std::string& path);
     ~TestAdaptor();
 
 protected:

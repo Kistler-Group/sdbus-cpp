@@ -187,8 +187,8 @@ namespace sdbus {
     };
 
     // Adaptors for the above-listed standard D-Bus interfaces are not necessary because the functionality
-    // is provided by underlying libsystemd implementation. The exception is Properties_adaptor and
-    // ObjectManager_adaptor, which provide convenience functionality to emit signals.
+    // is provided by underlying libsystemd implementation. The exception is Properties_adaptor,
+    // ObjectManager_adaptor and ManagedObject_adaptor, which provide convenience functionality to emit signals.
 
     // Adaptor for properties
     class Properties_adaptor
@@ -218,13 +218,22 @@ namespace sdbus {
         sdbus::IObject& object_;
     };
 
-    // Adaptor for object manager
+    /*!
+     * @brief Object Manager Convenience Adaptor
+     *
+     * Adding this class as _Interfaces.. template parameter of class AdaptorInterfaces
+     * implements the *GetManagedObjects()* method of the [org.freedesktop.DBus.ObjectManager.GetManagedObjects](https://dbus.freedesktop.org/doc/dbus-specification.html#standard-interfaces-objectmanager)
+     * interface.
+     *
+     * Note that there can be multiple object managers in a path hierarchy. InterfacesAdded/InterfacesRemoved
+     * signals are sent from the closest object manager at either the same path or the closest parent path of an object.
+     */
     class ObjectManager_adaptor
     {
         static constexpr const char* INTERFACE_NAME = "org.freedesktop.DBus.ObjectManager";
 
     protected:
-        ObjectManager_adaptor(sdbus::IObject& object)
+        explicit ObjectManager_adaptor(sdbus::IObject& object)
             : object_(object)
         {
             object_.addObjectManager();
@@ -232,22 +241,66 @@ namespace sdbus {
 
         ~ObjectManager_adaptor() = default;
 
+    private:
+        sdbus::IObject& object_;
+    };
+
+    /*!
+     * @brief Managed Object Convenience Adaptor
+     *
+     * Adding this class as _Interfaces.. template parameter of class AdaptorInterfaces
+     * will extend the resulting object adaptor with emitInterfacesAddedSignal()/emitInterfacesRemovedSignal()
+     * according to org.freedesktop.DBus.ObjectManager.InterfacesAdded/.InterfacesRemoved.
+     *
+     * Note that objects which implement this adaptor require an object manager (e.g via ObjectManager_adaptor) to be
+     * instantiated on one of it's parent object paths or the same path. InterfacesAdded/InterfacesRemoved
+     * signals are sent from the closest object manager at either the same path or the closest parent path of an object.
+     */
+    class ManagedObject_adaptor
+    {
+    protected:
+        explicit ManagedObject_adaptor(sdbus::IObject& object) : object_(object)
+        {
+        }
+
+        ~ManagedObject_adaptor() = default;
+
     public:
+        /*!
+         * @brief Emits InterfacesAdded signal for this object path
+         *
+         * See IObject::emitInterfacesAddedSignal().
+         */
         void emitInterfacesAddedSignal()
         {
             object_.emitInterfacesAddedSignal();
         }
 
+        /*!
+         * @brief Emits InterfacesAdded signal for this object path
+         *
+         * See IObject::emitInterfacesAddedSignal().
+         */
         void emitInterfacesAddedSignal(const std::vector<std::string>& interfaces)
         {
             object_.emitInterfacesAddedSignal(interfaces);
         }
 
+        /*!
+         * @brief Emits InterfacesRemoved signal for this object path
+         *
+         * See IObject::emitInterfacesRemovedSignal().
+         */
         void emitInterfacesRemovedSignal()
         {
             object_.emitInterfacesRemovedSignal();
         }
 
+        /*!
+         * @brief Emits InterfacesRemoved signal for this object path
+         *
+         * See IObject::emitInterfacesRemovedSignal().
+         */
         void emitInterfacesRemovedSignal(const std::vector<std::string>& interfaces)
         {
             object_.emitInterfacesRemovedSignal(interfaces);
