@@ -70,6 +70,10 @@ $ sudo cmake --build . --target install
 
   This is a global CMake flag, promoted in sdbus-c++ project to a CMake option. Use this to control whether sdbus-c++ is built as either a shared or static library. Default value: `ON`.
 
+* `BUILD_EXAMPLES` [boolean]
+
+  Build example programs which are located in the _example_ directory. Examples are not installed. Default value: `OFF`
+
 Dependencies
 ------------
 

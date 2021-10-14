@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node>
+    <interface name="org.sdbuscpp.ExampleManager.Planet1">
+
+        <!--
+          @brief get the population of this planet
+          @param [out] population of the planet
+        -->
+        <method name="GetPopulation">
+            <arg name="population" type="t" direction="out" />
+        </method>
+
+        <!--
+          @brief This planet's name
+        -->
+        <property name="Name" type="s" access="read"/>
+
+    </interface>
+</node>
