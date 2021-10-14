@@ -58,8 +58,8 @@ TEST_F(SdbusTestObject, EmitsSimpleSignalSuccesfully)
 
 TEST_F(SdbusTestObject, EmitsSimpleSignalToMultipleProxiesSuccesfully)
 {
-    auto proxy1 = std::make_unique<TestProxy>(*s_adaptorConnection, INTERFACE_NAME, OBJECT_PATH);
-    auto proxy2 = std::make_unique<TestProxy>(*s_adaptorConnection, INTERFACE_NAME, OBJECT_PATH);
+    auto proxy1 = std::make_unique<TestProxy>(*s_adaptorConnection, BUS_NAME, OBJECT_PATH);
+    auto proxy2 = std::make_unique<TestProxy>(*s_adaptorConnection, BUS_NAME, OBJECT_PATH);
 
     m_adaptor->emitSimpleSignal();
 
@@ -70,7 +70,7 @@ TEST_F(SdbusTestObject, EmitsSimpleSignalToMultipleProxiesSuccesfully)
 
 TEST_F(SdbusTestObject, ProxyDoesNotReceiveSignalFromOtherBusName)
 {
-    auto otherBusName = INTERFACE_NAME + "2";
+    auto otherBusName = BUS_NAME + "2";
     auto connection2 = sdbus::createConnection(otherBusName);
     auto adaptor2 = std::make_unique<TestAdaptor>(*connection2, OBJECT_PATH);
 

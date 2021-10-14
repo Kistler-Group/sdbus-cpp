@@ -47,14 +47,14 @@ public:
     static void SetUpTestCase()
     {
         s_proxyConnection->enterEventLoopAsync();
-        s_adaptorConnection->requestName(INTERFACE_NAME);
+        s_adaptorConnection->requestName(BUS_NAME);
         s_adaptorConnection->enterEventLoopAsync();
         std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Give time for the proxy connection to start listening to signals
     }
 
     static void TearDownTestCase()
     {
-        s_adaptorConnection->releaseName(INTERFACE_NAME);
+        s_adaptorConnection->releaseName(BUS_NAME);
         s_adaptorConnection->leaveEventLoop();
         s_proxyConnection->leaveEventLoop();
     }
@@ -84,8 +84,8 @@ public:
 private:
     void SetUp() override
     {
-        m_objectManagerProxy = std::make_unique<ObjectManagerTestProxy>(*s_proxyConnection, INTERFACE_NAME, MANAGER_PATH);
-        m_proxy = std::make_unique<TestProxy>(*s_proxyConnection, INTERFACE_NAME, OBJECT_PATH);
+        m_objectManagerProxy = std::make_unique<ObjectManagerTestProxy>(*s_proxyConnection, BUS_NAME, MANAGER_PATH);
+        m_proxy = std::make_unique<TestProxy>(*s_proxyConnection, BUS_NAME, OBJECT_PATH);
 
         m_objectManagerAdaptor = std::make_unique<ObjectManagerTestAdaptor>(*s_adaptorConnection, MANAGER_PATH);
         m_adaptor = std::make_unique<TestAdaptor>(*s_adaptorConnection, OBJECT_PATH);

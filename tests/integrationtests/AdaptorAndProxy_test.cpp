@@ -57,12 +57,12 @@ using SdbusTestObject = TestFixture;
 TEST(AdaptorAndProxy, CanBeConstructedSuccesfully)
 {
     auto connection = sdbus::createConnection();
-    connection->requestName(INTERFACE_NAME);
+    connection->requestName(BUS_NAME);
 
     ASSERT_NO_THROW(TestAdaptor adaptor(*connection));
-    ASSERT_NO_THROW(TestProxy proxy(INTERFACE_NAME, OBJECT_PATH));
+    ASSERT_NO_THROW(TestProxy proxy(BUS_NAME, OBJECT_PATH));
 
-    connection->releaseName(INTERFACE_NAME);
+    connection->releaseName(BUS_NAME);
 }
 
 // Methods
@@ -260,7 +260,7 @@ TEST_F(SdbusTestObject, RunsServerSideAsynchoronousMethodAsynchronously)
     std::atomic<int> startedCount{};
     auto call = [&](uint32_t param)
     {
-        TestProxy proxy{INTERFACE_NAME, OBJECT_PATH};
+        TestProxy proxy{BUS_NAME, OBJECT_PATH};
         ++startedCount;
         while (!invoke) ;
         auto result = proxy.doOperationAsync(param);
@@ -283,7 +283,7 @@ TEST_F(SdbusTestObject, HandlesCorrectlyABulkOfParallelServerSideAsyncMethods)
     std::atomic<int> startedCount{};
     auto call = [&]()
     {
-        TestProxy proxy{INTERFACE_NAME, OBJECT_PATH};
+        TestProxy proxy{BUS_NAME, OBJECT_PATH};
         ++startedCount;
         while (!invoke) ;
 
@@ -403,7 +403,7 @@ TEST_F(SdbusTestObject, FailsCallingMethodOnNonexistentDestination)
 
 TEST_F(SdbusTestObject, FailsCallingMethodOnNonexistentObject)
 {
-    TestProxy proxy(INTERFACE_NAME, "/sdbuscpp/path/that/does/not/exist");
+    TestProxy proxy(BUS_NAME, "/sdbuscpp/path/that/does/not/exist");
     ASSERT_THROW(proxy.getInt(), sdbus::Error);
 }
 
@@ -440,8 +440,8 @@ TEST_F(SdbusTestObject, EmitsSimpleSignalSuccesfully)
 
 TEST_F(SdbusTestObject, EmitsSimpleSignalToMultipleProxiesSuccesfully)
 {
-    auto proxy1 = std::make_unique<TestProxy>(*s_connection, INTERFACE_NAME, OBJECT_PATH);
-    auto proxy2 = std::make_unique<TestProxy>(*s_connection, INTERFACE_NAME, OBJECT_PATH);
+    auto proxy1 = std::make_unique<TestProxy>(*s_connection, BUS_NAME, OBJECT_PATH);
+    auto proxy2 = std::make_unique<TestProxy>(*s_connection, BUS_NAME, OBJECT_PATH);
 
     m_adaptor->emitSimpleSignal();
 
