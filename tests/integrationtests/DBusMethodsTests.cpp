@@ -227,7 +227,7 @@ TEST_F(SdbusTestObject, FailsCallingMethodOnNonexistentDestination)
 
 TEST_F(SdbusTestObject, FailsCallingMethodOnNonexistentObject)
 {
-    TestProxy proxy(INTERFACE_NAME, "/sdbuscpp/path/that/does/not/exist");
+    TestProxy proxy(BUS_NAME, "/sdbuscpp/path/that/does/not/exist");
     ASSERT_THROW(proxy.getInt(), sdbus::Error);
 }
 

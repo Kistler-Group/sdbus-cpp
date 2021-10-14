@@ -93,7 +93,7 @@ TEST_F(SdbusTestObject, RunsServerSideAsynchoronousMethodAsynchronously)
     std::atomic<int> startedCount{};
     auto call = [&](uint32_t param)
     {
-        TestProxy proxy{INTERFACE_NAME, OBJECT_PATH};
+        TestProxy proxy{BUS_NAME, OBJECT_PATH};
         ++startedCount;
         while (!invoke) ;
         auto result = proxy.doOperationAsync(param);
@@ -116,7 +116,7 @@ TEST_F(SdbusTestObject, HandlesCorrectlyABulkOfParallelServerSideAsyncMethods)
     std::atomic<int> startedCount{};
     auto call = [&]()
     {
-        TestProxy proxy{INTERFACE_NAME, OBJECT_PATH};
+        TestProxy proxy{BUS_NAME, OBJECT_PATH};
         ++startedCount;
         while (!invoke) ;
 

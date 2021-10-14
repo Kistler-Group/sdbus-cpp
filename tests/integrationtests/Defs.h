@@ -32,6 +32,7 @@
 namespace sdbus { namespace test {
 
 const std::string INTERFACE_NAME{"org.sdbuscpp.integrationtests"};
+const std::string BUS_NAME = INTERFACE_NAME;
 const std::string MANAGER_PATH {"/org/sdbuscpp/integrationtests"};
 const std::string OBJECT_PATH  {"/org/sdbuscpp/integrationtests/ObjectA1"};
 const std::string OBJECT_PATH_2{"/org/sdbuscpp/integrationtests/ObjectB1"};
