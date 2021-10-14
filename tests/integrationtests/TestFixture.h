@@ -46,14 +46,17 @@ class TestFixture : public ::testing::Test
 public:
     static void SetUpTestCase()
     {
-        s_connection->requestName(INTERFACE_NAME);
-        s_connection->enterEventLoopAsync();
+        s_proxyConnection->enterEventLoopAsync();
+        s_adaptorConnection->requestName(INTERFACE_NAME);
+        s_adaptorConnection->enterEventLoopAsync();
+        std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Give time for the proxy connection to start listening to signals
     }
 
     static void TearDownTestCase()
     {
-        s_connection->leaveEventLoop();
-        s_connection->releaseName(INTERFACE_NAME);
+        s_adaptorConnection->releaseName(INTERFACE_NAME);
+        s_adaptorConnection->leaveEventLoop();
+        s_proxyConnection->leaveEventLoop();
     }
 
     template <typename _Fnc>
@@ -81,9 +84,11 @@ public:
 private:
     void SetUp() override
     {
-        m_adaptor = std::make_unique<TestAdaptor>(*s_connection);
-        m_proxy = std::make_unique<TestProxy>(INTERFACE_NAME, OBJECT_PATH);
-        std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Give time for the proxy to start listening to signals
+        m_objectManagerProxy = std::make_unique<ObjectManagerTestProxy>(*s_proxyConnection, INTERFACE_NAME, MANAGER_PATH);
+        m_proxy = std::make_unique<TestProxy>(*s_proxyConnection, INTERFACE_NAME, OBJECT_PATH);
+
+        m_objectManagerAdaptor = std::make_unique<ObjectManagerTestAdaptor>(*s_adaptorConnection, MANAGER_PATH);
+        m_adaptor = std::make_unique<TestAdaptor>(*s_adaptorConnection, OBJECT_PATH);
     }
 
     void TearDown() override
@@ -93,8 +98,10 @@ private:
     }
 
 public:
-    static std::unique_ptr<sdbus::IConnection> s_connection;
-
+    static std::unique_ptr<sdbus::IConnection> s_adaptorConnection;
+    static std::unique_ptr<sdbus::IConnection> s_proxyConnection;
+    std::unique_ptr<ObjectManagerTestAdaptor> m_objectManagerAdaptor;
+    std::unique_ptr<ObjectManagerTestProxy> m_objectManagerProxy;
     std::unique_ptr<TestAdaptor> m_adaptor;
     std::unique_ptr<TestProxy> m_proxy;
 };

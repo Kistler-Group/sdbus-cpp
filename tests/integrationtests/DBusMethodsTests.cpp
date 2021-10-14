@@ -258,13 +258,13 @@ TEST_F(SdbusTestObject, CanAccessAssociatedMethodCallMessageInAsyncMethodCallHan
 #if LIBSYSTEMD_VERSION>=240
 TEST_F(SdbusTestObject, CanSetGeneralMethodTimeoutWithLibsystemdVersionGreaterThan239)
 {
-    s_connection->setMethodCallTimeout(5000000);
-    ASSERT_THAT(s_connection->getMethodCallTimeout(), Eq(5000000));
+    s_adaptorConnection->setMethodCallTimeout(5000000);
+    ASSERT_THAT(s_adaptorConnection->getMethodCallTimeout(), Eq(5000000));
 }
 #else
 TEST_F(SdbusTestObject, CannotSetGeneralMethodTimeoutWithLibsystemdVersionLessThan240)
 {
-    ASSERT_THROW(s_connection->setMethodCallTimeout(5000000), sdbus::Error);
-    ASSERT_THROW(s_connection->getMethodCallTimeout(), sdbus::Error);
+    ASSERT_THROW(s_adaptorConnection->setMethodCallTimeout(5000000), sdbus::Error);
+    ASSERT_THROW(s_adaptorConnection->getMethodCallTimeout(), sdbus::Error);
 }
 #endif

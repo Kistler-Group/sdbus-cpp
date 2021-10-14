@@ -143,32 +143,31 @@ TEST_F(SdbusTestObject, EmitsPropertyChangedSignalForAllProperties)
 
 TEST_F(SdbusTestObject, GetsZeroManagedObjectsIfHasNoSubPathObjects)
 {
-    const auto objectsInterfacesAndProperties = m_proxy->GetManagedObjects();
+    m_adaptor.reset();
+    const auto objectsInterfacesAndProperties = m_objectManagerProxy->GetManagedObjects();
 
     ASSERT_THAT(objectsInterfacesAndProperties, SizeIs(0));
 }
 
 TEST_F(SdbusTestObject, GetsManagedObjectsSuccessfully)
 {
-    auto subObject1 = sdbus::createObject(*s_connection, "/sub/path1");
-    subObject1->registerProperty("aProperty1").onInterface("org.sdbuscpp.integrationtests.iface1").withGetter([]{return uint8_t{123};});
-    subObject1->finishRegistration();
-    auto subObject2 = sdbus::createObject(*s_connection, "/sub/path2");
-    subObject2->registerProperty("aProperty2").onInterface("org.sdbuscpp.integrationtests.iface2").withGetter([]{return "hi";});
-    subObject2->finishRegistration();
-
-    const auto objectsInterfacesAndProperties = m_proxy->GetManagedObjects();
+    auto adaptor2 = std::make_unique<TestAdaptor>(*s_adaptorConnection, OBJECT_PATH_2);
+    const auto objectsInterfacesAndProperties = m_objectManagerProxy->GetManagedObjects();
 
     ASSERT_THAT(objectsInterfacesAndProperties, SizeIs(2));
-    EXPECT_THAT(objectsInterfacesAndProperties.at("/sub/path1").at("org.sdbuscpp.integrationtests.iface1").at("aProperty1").get<uint8_t>(), Eq(123));
-    EXPECT_THAT(objectsInterfacesAndProperties.at("/sub/path2").at("org.sdbuscpp.integrationtests.iface2").at("aProperty2").get<std::string>(), Eq("hi"));
+    EXPECT_THAT(objectsInterfacesAndProperties.at(OBJECT_PATH)
+        .at(org::sdbuscpp::integrationtests_adaptor::INTERFACE_NAME)
+        .at("action").get<uint32_t>(), Eq(DEFAULT_ACTION_VALUE));
+    EXPECT_THAT(objectsInterfacesAndProperties.at(OBJECT_PATH_2)
+        .at(org::sdbuscpp::integrationtests_adaptor::INTERFACE_NAME)
+        .at("action").get<uint32_t>(), Eq(DEFAULT_ACTION_VALUE));
 }
 
 TEST_F(SdbusTestObject, EmitsInterfacesAddedSignalForSelectedObjectInterfaces)
 {
     std::atomic<bool> signalReceived{false};
-    m_proxy->m_onInterfacesAddedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
-                                                           , const std::map<std::string, std::map<std::string, sdbus::Variant>>& interfacesAndProperties )
+    m_objectManagerProxy->m_onInterfacesAddedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
+            , const std::map<std::string, std::map<std::string, sdbus::Variant>>& interfacesAndProperties )
     {
         EXPECT_THAT(objectPath, Eq(OBJECT_PATH));
         EXPECT_THAT(interfacesAndProperties, SizeIs(1));
@@ -198,8 +197,8 @@ TEST_F(SdbusTestObject, EmitsInterfacesAddedSignalForSelectedObjectInterfaces)
 TEST_F(SdbusTestObject, EmitsInterfacesAddedSignalForAllObjectInterfaces)
 {
     std::atomic<bool> signalReceived{false};
-    m_proxy->m_onInterfacesAddedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
-                                                           , const std::map<std::string, std::map<std::string, sdbus::Variant>>& interfacesAndProperties )
+    m_objectManagerProxy->m_onInterfacesAddedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
+            , const std::map<std::string, std::map<std::string, sdbus::Variant>>& interfacesAndProperties )
     {
         EXPECT_THAT(objectPath, Eq(OBJECT_PATH));
         EXPECT_THAT(interfacesAndProperties, SizeIs(5)); // INTERFACE_NAME + 4 standard interfaces
@@ -228,8 +227,8 @@ TEST_F(SdbusTestObject, EmitsInterfacesAddedSignalForAllObjectInterfaces)
 TEST_F(SdbusTestObject, EmitsInterfacesRemovedSignalForSelectedObjectInterfaces)
 {
     std::atomic<bool> signalReceived{false};
-    m_proxy->m_onInterfacesRemovedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
-                                                             , const std::vector<std::string>& interfaces )
+    m_objectManagerProxy->m_onInterfacesRemovedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
+                                                                          , const std::vector<std::string>& interfaces )
     {
         EXPECT_THAT(objectPath, Eq(OBJECT_PATH));
         ASSERT_THAT(interfaces, SizeIs(1));
@@ -245,8 +244,8 @@ TEST_F(SdbusTestObject, EmitsInterfacesRemovedSignalForSelectedObjectInterfaces)
 TEST_F(SdbusTestObject, EmitsInterfacesRemovedSignalForAllObjectInterfaces)
 {
     std::atomic<bool> signalReceived{false};
-    m_proxy->m_onInterfacesRemovedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
-                                                             , const std::vector<std::string>& interfaces )
+    m_objectManagerProxy->m_onInterfacesRemovedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
+                                                                          , const std::vector<std::string>& interfaces )
     {
         EXPECT_THAT(objectPath, Eq(OBJECT_PATH));
         ASSERT_THAT(interfaces, SizeIs(5)); // INTERFACE_NAME + 4 standard interfaces

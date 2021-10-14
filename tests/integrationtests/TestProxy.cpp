@@ -92,18 +92,6 @@ void TestProxy::onPropertiesChanged( const std::string& interfaceName
         m_onPropertiesChangedHandler(interfaceName, changedProperties, invalidatedProperties);
 }
 
-void TestProxy::onInterfacesAdded(const sdbus::ObjectPath& objectPath, const std::map<std::string, std::map<std::string, sdbus::Variant>>& interfacesAndProperties)
-{
-    if (m_onInterfacesAddedHandler)
-        m_onInterfacesAddedHandler(objectPath, interfacesAndProperties);
-}
-
-void TestProxy::onInterfacesRemoved(const sdbus::ObjectPath& objectPath, const std::vector<std::string>& interfaces)
-{
-    if (m_onInterfacesRemovedHandler)
-        m_onInterfacesRemovedHandler(objectPath, interfaces);
-}
-
 void TestProxy::installDoOperationClientSideAsyncReplyHandler(std::function<void(uint32_t res, const sdbus::Error* err)> handler)
 {
     m_DoOperationClientSideAsyncReplyHandler = std::move(handler);

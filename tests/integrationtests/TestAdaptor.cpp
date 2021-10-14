@@ -31,8 +31,8 @@
 
 namespace sdbus { namespace test {
     
-TestAdaptor::TestAdaptor(sdbus::IConnection& connection) :
-    AdaptorInterfaces(connection, OBJECT_PATH)
+TestAdaptor::TestAdaptor(sdbus::IConnection& connection, const std::string& path) :
+    AdaptorInterfaces(connection, path)
 {
     registerAdaptor();
 }
