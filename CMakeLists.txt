@@ -165,6 +165,17 @@ if(BUILD_CODE_GEN)
 endif()
 
 #----------------------------------
+# EXAMPLES
+#----------------------------------
+
+option(BUILD_EXAMPLES "Build example programs (default OFF)" OFF)
+
+if(BUILD_EXAMPLES)
+    message(STATUS "Building with examples")
+    add_subdirectory(examples)
+endif()
+
+#----------------------------------
 # DOCUMENTATION
 #----------------------------------
 

@@ -1252,7 +1252,7 @@ For example, for our `Concatenator` example above in this tutorial, we may want 
 
 Note that signals of afore-mentioned standard D-Bus interfaces are not emitted by the library automatically. It's clients who are supposed to emit them.
 
-Working examples of using standard D-Bus interfaces can be found in [sdbus-c++ integration tests](/tests/integrationtests/DBusStandardInterfacesTests.cpp).
+Working examples of using standard D-Bus interfaces can be found in [sdbus-c++ integration tests](/tests/integrationtests/DBusStandardInterfacesTests.cpp) or the [examples](/examples) directory.
 
 Conclusion
 ----------
