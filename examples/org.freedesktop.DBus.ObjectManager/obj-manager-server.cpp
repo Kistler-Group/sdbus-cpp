@@ -34,7 +34,7 @@ public:
     }
 };
 
-class PlanetAdaptor : public sdbus::AdaptorInterfaces< org::sdbuscpp::ExampleManager::Planet1_adaptor,
+class PlanetAdaptor final : public sdbus::AdaptorInterfaces< org::sdbuscpp::ExampleManager::Planet1_adaptor,
                                                 sdbus::ManagedObject_adaptor,
                                                 sdbus::Properties_adaptor >
 {

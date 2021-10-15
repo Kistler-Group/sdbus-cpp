@@ -35,7 +35,7 @@
 
 namespace sdbus { namespace test {
 
-class ObjectManagerTestProxy : public sdbus::ProxyInterfaces< sdbus::ObjectManager_proxy >
+class ObjectManagerTestProxy final : public sdbus::ProxyInterfaces< sdbus::ObjectManager_proxy >
 {
 public:
     ObjectManagerTestProxy(sdbus::IConnection& connection, std::string destination, std::string objectPath)
