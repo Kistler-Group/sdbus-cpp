@@ -172,3 +172,23 @@ v0.8.3
 
 v0.8.4
 - fix issue #145: signals are not filtered by sender
+
+v0.9.0
+- Provide CMake config and PkgConfig files for tools
+- Provide access to D-Bus message in high-level API
+- Add API to set signal destination
+- Add IProxy::getConnection() method
+- Add README and sdbus-c++ tutorial as additional pages in doxydocs
+- Enable default construction of PendingAsyncCall
+- Add API to get message path and message destination
+- Avoid propagating msg unpack exceptions to the event loop
+- Fix race condition in Proxy and Object destructor
+- Fix seg fault in Message::peekType()
+- Add information to documentation about conan recipe
+- Add cpack to build debian packages, split the packages by components
+- Catch sdbus-c++ exceptions flying from Proxy callbacks to libsystemd
+- Add createDefaultBusConnection() method
+- Make resetting loop thread ID exception-safe
+- Support Error parameter in signal handlers
+- Add specific sections for tips and notes in the tutorial
+- A few additional documentation and test updates and improvements
