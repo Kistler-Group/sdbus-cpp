@@ -36,7 +36,7 @@
 
 namespace sdbus { namespace test {
 
-class ObjectManagerTestAdaptor : public sdbus::AdaptorInterfaces< sdbus::ObjectManager_adaptor >
+class ObjectManagerTestAdaptor final : public sdbus::AdaptorInterfaces< sdbus::ObjectManager_adaptor >
 {
 public:
     ObjectManagerTestAdaptor(sdbus::IConnection& connection, std::string path) :

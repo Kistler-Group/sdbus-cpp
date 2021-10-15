@@ -14,7 +14,7 @@
 #include <iostream>
 #include <thread>
 
-class PlanetProxy : public sdbus::ProxyInterfaces< org::sdbuscpp::ExampleManager::Planet1_proxy >
+class PlanetProxy final : public sdbus::ProxyInterfaces< org::sdbuscpp::ExampleManager::Planet1_proxy >
 {
 public:
     PlanetProxy(sdbus::IConnection& connection, std::string destination, std::string path)
@@ -29,7 +29,7 @@ public:
     }
 };
 
-class ManagerProxy : public sdbus::ProxyInterfaces< sdbus::ObjectManager_proxy >
+class ManagerProxy final : public sdbus::ProxyInterfaces< sdbus::ObjectManager_proxy >
 {
 public:
     ManagerProxy(sdbus::IConnection& connection, const std::string& destination, std::string path)
