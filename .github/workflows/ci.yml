@@ -72,10 +72,10 @@ jobs:
         cd build
         cpack -G DEB
     - name: 'Upload Artifact'
-      if: matrix.build == 'shared-libsystemd' && matrix.os == 'ubuntu-20.04'
+      if: matrix.build == 'shared-libsystemd' && matrix.os == 'ubuntu-20.04' && matrix.compiler == 'g++'
       uses: actions/upload-artifact@v2
       with:
-        name: "debian-packages-${{ matrix.os }}"
+        name: "debian-packages-${{ matrix.os }}-${{ matrix.compiler }}"
         path: |
           build/sdbus-c++*.deb
           build/sdbus-c++*.ddeb
