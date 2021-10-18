@@ -170,9 +170,6 @@ v0.8.3
 - Fix unused variable warning for release builds
 - Introduce CI workflow based on GitHub Actions
 
-v0.8.4
-- fix issue #145: signals are not filtered by sender
-
 v0.9.0
 - Provide CMake config and PkgConfig files for tools
 - Provide access to D-Bus message in high-level API
@@ -182,6 +179,7 @@ v0.9.0
 - Enable default construction of PendingAsyncCall
 - Add API to get message path and message destination
 - Avoid propagating msg unpack exceptions to the event loop
+- Fix issue #145: signals are not filtered by sender
 - Fix race condition in Proxy and Object destructor
 - Fix seg fault in Message::peekType()
 - Add information to documentation about conan recipe
