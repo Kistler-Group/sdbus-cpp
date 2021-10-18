@@ -50,7 +50,7 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-O3 -DNDEBUG -W -Wextra -Wall -Wnon-virtual-dtor -Werror" -DBUILD_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON -DBUILD_CODE_GEN=ON ..
+        cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_FLAGS="-O3 -DNDEBUG -W -Wextra -Wall -Wnon-virtual-dtor -Werror" -DBUILD_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON -DBUILD_CODE_GEN=ON ..
     - name: configure-with-embedded-libsystemd
       if: matrix.build == 'embedded-static-libsystemd'
       run: |
@@ -66,3 +66,17 @@ jobs:
         cd build
         sudo cmake --build . --target install
         ctest
+    - name: pack
+      if: matrix.build == 'shared-libsystemd' && matrix.os == 'ubuntu-20.04'
+      run: |
+        cd build
+        cpack -G DEB
+    - name: 'Upload Artifact'
+      if: matrix.build == 'shared-libsystemd' && matrix.os == 'ubuntu-20.04'
+      uses: actions/upload-artifact@v2
+      with:
+        name: "debian-packages-${{ matrix.os }}"
+        path: |
+          build/sdbus-c++*.deb
+          build/sdbus-c++*.ddeb
+        retention-days: 10
