@@ -60,9 +60,9 @@ jobs:
     - name: make
       run: |
         cd build
-        make -j2
+        cmake --build . -j2
     - name: verify
       run: |
         cd build
-        sudo make install
+        sudo cmake --build . --target install
         ctest
