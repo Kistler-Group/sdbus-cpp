@@ -33,6 +33,7 @@
 #include <cstdlib>
 #include <algorithm>
 #include <iterator>
+#include <regex>
 
 using std::endl;
 
@@ -130,6 +131,8 @@ std::string ProxyGenerator::processInterface(Node& interface) const
 
 std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes& methods) const
 {
+    const std::regex patternTimeout{R"(^(\d+)(min|s|ms|us)?$)"};
+
     std::ostringstream definitionSS, asyncDeclarationSS;
 
     for (const auto& method : methods)
@@ -143,6 +146,7 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes&
         bool dontExpectReply{false};
         bool async{false};
         std::string timeoutValue;
+        std::smatch smTimeout;
 
         Nodes annotations = (*method)["annotation"];
         for (const auto& annotation : annotations)
@@ -165,6 +169,13 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes&
         {
             std::cerr << "Function: " << name << ": ";
             std::cerr << "Option 'org.freedesktop.DBus.Method.Timeout' not allowed for 'NoReply' methods! Option ignored..." << std::endl;
+            timeoutValue.clear();
+        }
+
+        if (!timeoutValue.empty() && !std::regex_match(timeoutValue, smTimeout, patternTimeout))
+        {
+            std::cerr << "Function: " << name << ": ";
+            std::cerr << "Option 'org.freedesktop.DBus.Method.Timeout' has unsupported timeout value! Option ignored..." << std::endl;
             timeoutValue.clear();
         }
 
@@ -193,7 +204,9 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes&
 
         if (!timeoutValue.empty())
         {
-            definitionSS << ".withTimeout(" << timeoutValue << "us)";
+            const auto val = smTimeout.str(1);
+            const auto unit = smTimeout.str(2);
+            definitionSS << ".withTimeout(" << val << (unit.empty() ? "us" : unit) << ")";
         }
 
         if (inArgs.size() > 0)
