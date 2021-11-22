@@ -1017,7 +1017,7 @@ Registraion (`implementedAs()`) doesn't change. Nothing else needs to change.
 
 ### Marking server-side async methods in the IDL
 
-sdbus-c++ stub generator can generate stub code for server-side async methods. We just need to annotate the method with the `annotate` element having the "org.freedesktop.DBus.Method.Async" name. The element value must be either "server" (async method on server-side only) or "clientserver" (async method on both client- and server-side):
+sdbus-c++ stub generator can generate stub code for server-side async methods. We just need to annotate the method with `org.freedesktop.DBus.Method.Async`. The annotation element value must be either `server` (async method on server-side only) or `clientserver` (async method on both client- and server-side):
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -1130,7 +1130,7 @@ When the `Error` pointer is zero, it means that no D-Bus error occurred while ma
 
 ### Marking client-side async methods in the IDL
 
-sdbus-c++ stub generator can generate stub code for client-side async methods. We just need to annotate the method with the `annotate` element having the "org.freedesktop.DBus.Method.Async" name. The element value must be either "client" (async on the client-side only) or "clientserver" (async method on both client- and server-side):
+sdbus-c++ stub generator can generate stub code for client-side async methods. We just need to annotate the method with `org.freedesktop.DBus.Method.Async`. The annotation element value must be either `client` (async on the client-side only) or `clientserver` (async method on both client- and server-side):
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -1150,7 +1150,7 @@ sdbus-c++ stub generator can generate stub code for client-side async methods. W
 </node>
 ```
 
-For each client-side async method, a corresponding `on<MethodName>Reply` pure virtual function, where <MethodName> is capitalized D-Bus method name, is generated in the generated proxy class. This function is the callback invoked when the D-Bus method reply arrives, and must be provided a body by overriding it in the implementation class.
+For each client-side async method, a corresponding `on<MethodName>Reply` pure virtual function, where `<MethodName>` is the capitalized D-Bus method name, is generated in the generated proxy class. This function is the callback invoked when the D-Bus method reply arrives, and must be provided a body by overriding it in the implementation class.
 
 So in the specific example above, the stub generator will generate a `Concatenator_proxy` class similar to one shown in a [dedicated section above](#concatenator-client-glueh), with the difference that it will also generate an additional `virtual void onConcatenateReply(const sdbus::Error* error, const std::string& concatenatedString);` method, which we shall override in derived `ConcatenatorProxy`.
 
