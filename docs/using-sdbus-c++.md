@@ -1003,7 +1003,7 @@ void concatenate(sdbus::Result<std::string>&& result, std::vector<int32_t> numbe
         }
 
         // Let's send the reply message back to the client
-        methodResult.returnReply(result);
+        methodResult.returnResults(result);
 
         // Emit the 'concatenated' signal with the resulting string
         this->emitConcatenated(result);
@@ -1011,7 +1011,7 @@ void concatenate(sdbus::Result<std::string>&& result, std::vector<int32_t> numbe
 }
 ```
 
-The `Result` is a convenience class that represents a future method result, and it is where we write the results (`returnReply()`) or an error (`returnError()`) which we want to send back to the client.
+The `Result` is a convenience class that represents a future method result, and it is where we write the results (`returnResults()`) or an error (`returnError()`) which we want to send back to the client.
 
 Registraion (`implementedAs()`) doesn't change. Nothing else needs to change.
 
