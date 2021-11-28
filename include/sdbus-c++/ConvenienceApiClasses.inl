@@ -671,6 +671,21 @@ namespace sdbus {
         });
     }
 
+    /*** ------------------ ***/
+    /*** SignalUnsubscriber ***/
+    /*** ------------------ ***/
+
+    inline SignalUnsubscriber::SignalUnsubscriber(IProxy& proxy, const std::string& signalName)
+        : proxy_(proxy)
+        , signalName_(signalName)
+    {
+    }
+
+    inline void SignalUnsubscriber::onInterface(std::string interfaceName)
+    {
+        proxy_.unregisterSignalHandler(interfaceName, signalName_);
+    }
+
     /*** -------------- ***/
     /*** PropertyGetter ***/
     /*** -------------- ***/

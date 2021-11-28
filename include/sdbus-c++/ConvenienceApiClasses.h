@@ -216,6 +216,17 @@ namespace sdbus {
         std::string interfaceName_;
     };
 
+    class SignalUnsubscriber
+    {
+    public:
+        SignalUnsubscriber(IProxy& proxy, const std::string& signalName);
+        void onInterface(std::string interfaceName);
+
+    private:
+        IProxy& proxy_;
+        const std::string& signalName_;
+    };
+
     class PropertyGetter
     {
     public:
