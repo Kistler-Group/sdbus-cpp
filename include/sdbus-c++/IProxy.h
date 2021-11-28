@@ -144,6 +144,17 @@ namespace sdbus {
                                           , signal_handler signalHandler ) = 0;
 
         /*!
+         * @brief Unregisters the handler of the desired signal
+         *
+         * @param[in] interfaceName Name of an interface that the signal belongs to
+         * @param[in] signalName Name of the signal
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual void unregisterSignalHandler( const std::string& interfaceName
+                                            , const std::string& signalName ) = 0;
+
+        /*!
          * @brief Finishes the registration of signal handlers
          *
          * The method physically subscribes to the desired signals.
@@ -228,6 +239,23 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         [[nodiscard]] SignalSubscriber uponSignal(const std::string& signalName);
+
+        /*!
+         * @brief Unregisters signal handler of a given signal of the proxied D-Bus object
+         *
+         * @param[in] signalName Name of the signal
+         * @return A helper object for convenient unregistration of the signal handler
+         *
+         * This is a high-level, convenience way of unregistering a D-Bus signal's handler.
+         *
+         * Example of use:
+         * @code
+         * object_.muteSignal("fooSignal").onInterface("com.kistler.foo");
+         * @endcode
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] SignalUnsubscriber muteSignal(const std::string& signalName);
 
         /*!
          * @brief Gets value of a property of the proxied D-Bus object
@@ -367,6 +395,11 @@ namespace sdbus {
     inline SignalSubscriber IProxy::uponSignal(const std::string& signalName)
     {
         return SignalSubscriber(*this, signalName);
+    }
+
+    inline SignalUnsubscriber IProxy::muteSignal(const std::string& signalName)
+    {
+        return SignalUnsubscriber(*this, signalName);
     }
 
     inline PropertyGetter IProxy::getProperty(const std::string& propertyName)

@@ -114,3 +114,50 @@ TEST_F(SdbusTestObject, CanAccessAssociatedSignalMessageInSignalHandler)
     ASSERT_THAT(m_proxy->m_signalMsg, NotNull());
     ASSERT_THAT(m_proxy->m_signalMemberName, Eq("simpleSignal"));
 }
+
+TEST_F(SdbusTestObject, UnregisterSignalHandler)
+{
+    ASSERT_NO_THROW(m_proxy->unregisterSimpleSignalHandler());
+
+    m_adaptor->emitSimpleSignal();
+
+    ASSERT_FALSE(waitUntil(m_proxy->m_gotSimpleSignal));
+}
+
+TEST_F(SdbusTestObject, UnregisterSignalHandlerForSomeProxies)
+{
+    auto proxy1 = std::make_unique<TestProxy>(*s_adaptorConnection, BUS_NAME, OBJECT_PATH);
+    auto proxy2 = std::make_unique<TestProxy>(*s_adaptorConnection, BUS_NAME, OBJECT_PATH);
+
+    ASSERT_NO_THROW(m_proxy->unregisterSimpleSignalHandler());
+
+    m_adaptor->emitSimpleSignal();
+
+    ASSERT_TRUE(waitUntil(proxy1->m_gotSimpleSignal));
+    ASSERT_TRUE(waitUntil(proxy2->m_gotSimpleSignal));
+    ASSERT_FALSE(waitUntil(m_proxy->m_gotSimpleSignal));
+}
+
+TEST_F(SdbusTestObject, FailsUnregisterSignalHandlerTwice)
+{
+    ASSERT_NO_THROW(m_proxy->unregisterSimpleSignalHandler());
+
+    ASSERT_THROW(m_proxy->unregisterSimpleSignalHandler(), sdbus::Error);
+}
+
+TEST_F(SdbusTestObject, ReRegisterSignalHandler)
+{
+    // unregister simple-signal handler
+    ASSERT_NO_THROW(m_proxy->unregisterSimpleSignalHandler());
+
+    m_adaptor->emitSimpleSignal();
+
+    ASSERT_FALSE(waitUntil(m_proxy->m_gotSimpleSignal));
+
+    // re-register simple-signal handler
+    ASSERT_NO_THROW(m_proxy->reRegisterSimpleSignalHandler());
+
+    m_adaptor->emitSimpleSignal();
+
+    ASSERT_TRUE(waitUntil(m_proxy->m_gotSimpleSignal));
+}
