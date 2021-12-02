@@ -122,7 +122,7 @@ namespace sdbus::internal {
                                                     const std::string &interfaceName,
                                                     const std::string &signalName);
         void notifyEventLoopToExit();
-        void clearExitNotification();
+        void clearNotification(int fd);
         void joinWithEventLoop();
         static std::vector</*const */char*> to_strv(const std::vector<std::string>& strings);
 
