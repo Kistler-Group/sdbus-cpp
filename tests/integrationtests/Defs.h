@@ -28,6 +28,8 @@
 #define SDBUS_CPP_INTEGRATIONTESTS_DEFS_H_
 
 #include "sdbus-c++/Types.h"
+#include <chrono>
+#include <ostream>
 
 namespace sdbus { namespace test {
 
@@ -54,6 +56,20 @@ const bool DEFAULT_BLOCKING_VALUE{true};
 
 constexpr const double DOUBLE_VALUE{3.24L};
 
+/** Duration stream operator for human readable gtest value output.
+ *
+ * Note that the conversion to double is lossy if the input type has 64 or more bits.
+ * This is ok for our integration tests because they don't have very
+ * accurate timing requirements.
+ *
+ * @return human readable duration in seconds
+ */
+template< class Rep, class Period >
+static std::ostream& operator<<(std::ostream& os, const std::chrono::duration<Rep, Period>& d)
+{
+    auto seconds = std::chrono::duration_cast<std::chrono::duration<double>>(d);
+    return os << seconds.count() << " s";
+}
 }}
 
 #endif /* SDBUS_CPP_INTEGRATIONTESTS_DEFS_H_ */

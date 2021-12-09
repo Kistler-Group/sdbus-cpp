@@ -42,6 +42,7 @@
 using ::testing::Eq;
 using ::testing::DoubleEq;
 using ::testing::Gt;
+using ::testing::Le;
 using ::testing::AnyOf;
 using ::testing::ElementsAre;
 using ::testing::SizeIs;
@@ -162,21 +163,24 @@ TEST_F(SdbusTestObject, CallsMultiplyMethodWithNoReplyFlag)
 
 TEST_F(SdbusTestObject, CallsMethodWithCustomTimeoutSuccessfully)
 {
-    auto res = m_proxy->doOperationWith500msTimeout(20); // The operation will take 20ms, but the timeout is 500ms, so we are fine
+    auto res = m_proxy->doOperationWithTimeout(500ms, 20); // The operation will take 20ms, but the timeout is 500ms, so we are fine
     ASSERT_THAT(res, Eq(20));
 }
 
 TEST_F(SdbusTestObject, ThrowsTimeoutErrorWhenMethodTimesOut)
 {
+    auto start = std::chrono::steady_clock::now();
     try
     {
-        m_proxy->doOperationWith500msTimeout(1000); // The operation will take 1s, but the timeout is 500ms, so we should time out
+        m_proxy->doOperationWithTimeout(1us, 1000); // The operation will take 1s, but the timeout is 1us, so we should time out
         FAIL() << "Expected sdbus::Error exception";
     }
     catch (const sdbus::Error& e)
     {
         ASSERT_THAT(e.getName(), AnyOf("org.freedesktop.DBus.Error.Timeout", "org.freedesktop.DBus.Error.NoReply"));
         ASSERT_THAT(e.getMessage(), AnyOf("Connection timed out", "Method call timed out"));
+        auto measuredTimeout = std::chrono::steady_clock::now() - start;
+        ASSERT_THAT(measuredTimeout, Le(50ms));
     }
     catch(...)
     {

@@ -91,10 +91,10 @@ protected:
 
 public:
     void installDoOperationClientSideAsyncReplyHandler(std::function<void(uint32_t res, const sdbus::Error* err)> handler);
-    uint32_t doOperationWith500msTimeout(uint32_t param);
+    uint32_t doOperationWithTimeout(const std::chrono::microseconds &timeout, uint32_t param);
     sdbus::PendingAsyncCall doOperationClientSideAsync(uint32_t param);
     void doErroneousOperationClientSideAsync();
-    void doOperationClientSideAsyncWith500msTimeout(uint32_t param);
+    void doOperationClientSideAsyncWithTimeout(const std::chrono::microseconds &timeout, uint32_t param);
     int32_t callNonexistentMethod();
     int32_t callMethodOnNonexistentInterface();
     void setStateProperty(const std::string& value);
