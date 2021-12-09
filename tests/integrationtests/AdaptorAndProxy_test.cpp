@@ -42,7 +42,6 @@
 using ::testing::Eq;
 using ::testing::DoubleEq;
 using ::testing::Gt;
-using ::testing::Le;
 using ::testing::AnyOf;
 using ::testing::ElementsAre;
 using ::testing::SizeIs;
@@ -181,18 +180,15 @@ TEST_F(SdbusTestObject, CallsMethodWithCustomTimeoutSuccessfully)
 
 TEST_F(SdbusTestObject, ThrowsTimeoutErrorWhenMethodTimesOut)
 {
-    auto start = std::chrono::steady_clock::now();
     try
     {
-        m_proxy->doOperationWith500msTimeout(2000); // The operation will take 2s, but the timeout is 500ms, so we should time out
+        m_proxy->doOperationWith500msTimeout(1000); // The operation will take 1s, but the timeout is 500ms, so we should time out
         FAIL() << "Expected sdbus::Error exception";
     }
     catch (const sdbus::Error& e)
     {
         ASSERT_THAT(e.getName(), AnyOf("org.freedesktop.DBus.Error.Timeout", "org.freedesktop.DBus.Error.NoReply"));
         ASSERT_THAT(e.getMessage(), AnyOf("Connection timed out", "Method call timed out"));
-        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
-        ASSERT_THAT(ms.count(), Le(1000));
     }
     catch(...)
     {

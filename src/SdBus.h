@@ -30,7 +30,6 @@
 
 #include "ISdBus.h"
 #include <mutex>
-#include <unordered_map>
 
 namespace sdbus::internal {
 
@@ -91,12 +90,7 @@ public:
     virtual int sd_bus_creds_get_selinux_context(sd_bus_creds *c, const char **label) override;
 
 private:
-    void allocEventFd(sd_bus* bus);
-    void notifyEventFdLocked(sd_bus* bus);
-    void dropEventFd(sd_bus* bus);
-
     std::recursive_mutex sdbusMutex_;
-    std::unordered_map<sd_bus*, int> eventFds_;
 };
 
 }

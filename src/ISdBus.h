@@ -40,8 +40,6 @@ namespace sdbus::internal {
             int fd;
             short int events;
             uint64_t timeout_usec;
-
-            int eventFd = -1; // -1 if not used
         };
 
         virtual ~ISdBus() = default;
