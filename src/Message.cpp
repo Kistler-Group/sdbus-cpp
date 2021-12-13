@@ -737,6 +737,15 @@ std::string Message::getSELinuxContext() const
     return cLabel;
 }
 
+
+MethodCall::MethodCall(void *msg, internal::ISdBus *sdbus, internal::IConnection *connection,
+                       adopt_message_t) noexcept
+   : Message(msg, sdbus, adopt_message)
+   , connection_(connection)
+{
+    assert(connection_ != nullptr);
+}
+
 void MethodCall::dontExpectReply()
 {
     auto r = sd_bus_message_set_expect_reply((sd_bus_message*)msg_, 0);
@@ -771,6 +780,10 @@ MethodReply MethodCall::sendWithReply(uint64_t timeout) const
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method", -r);
 
+    if (connection_) {
+        connection_->notifyEventLoopNewTimeout();
+    }
+
     return Factory::create<MethodReply>(sdbusReply, sdbus_, adopt_message);
 }
 
@@ -786,6 +799,9 @@ void MethodCall::send(void* callback, void* userData, uint64_t timeout, dont_req
 {
     auto r = sdbus_->sd_bus_call_async(nullptr, nullptr, (sd_bus_message*)msg_, (sd_bus_message_handler_t)callback, userData, timeout);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method", -r);
+    if (connection_) {
+        connection_->notifyEventLoopNewTimeout();
+    }
 }
 
 MethodCall::Slot MethodCall::send(void* callback, void* userData, uint64_t timeout) const
@@ -794,6 +810,9 @@ MethodCall::Slot MethodCall::send(void* callback, void* userData, uint64_t timeo
 
     auto r = sdbus_->sd_bus_call_async(nullptr, &slot, (sd_bus_message*)msg_, (sd_bus_message_handler_t)callback, userData, timeout);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method asynchronously", -r);
+    if (connection_) {
+        connection_->notifyEventLoopNewTimeout();
+    }
 
     return Slot{slot, [sdbus_ = sdbus_](void *slot){ sdbus_->sd_bus_slot_unref((sd_bus_slot*)slot); }};
 }

@@ -91,7 +91,7 @@ namespace sdbus::internal {
 
         virtual void enterEventLoopAsync() = 0;
         virtual void leaveEventLoop() = 0;
-
+        virtual void notifyEventLoopNewTimeout() const = 0;
         virtual MethodReply tryCallMethodSynchronously(const MethodCall& message, uint64_t timeout) = 0;
     };
 

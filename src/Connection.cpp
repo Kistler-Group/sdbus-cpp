@@ -122,11 +122,11 @@ void Connection::leaveEventLoop()
 
 Connection::PollData Connection::getEventLoopPollData() const
 {
-    ISdBus::PollData pollData;
+    ISdBus::PollData pollData{};
     auto r = iface_->sd_bus_get_poll_data(bus_.get(), &pollData);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus poll data", -r);
 
-    return {pollData.fd, pollData.events, pollData.timeout_usec};
+    return {pollData.fd, pollData.events, eventFd_.fd, POLLIN, pollData.timeout_usec};
 }
 
 const ISdBus& Connection::getSdBusInterface() const
@@ -221,7 +221,7 @@ MethodCall Connection::createMethodCall( const std::string& destination
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create method call", -r);
 
-    return Message::Factory::create<MethodCall>(sdbusMsg, iface_.get(), adopt_message);
+    return Message::Factory::create<MethodCall>(sdbusMsg, iface_.get(), (sdbus::internal::IConnection*)this, adopt_message);
 }
 
 Signal Connection::createSignal( const std::string& objectPath
@@ -366,19 +366,32 @@ void Connection::finishHandshake(sd_bus* bus)
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to flush bus on opening", -r);
 }
 
-void Connection::notifyEventLoopToExit()
+void Connection::notifyEventLoop(int fd) const
 {
-    assert(loopExitFd_.fd >= 0);
+    assert(fd >= 0);
 
     uint64_t value = 1;
-    auto r = write(loopExitFd_.fd, &value, sizeof(value));
+    auto r = write(fd, &value, sizeof(value));
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to notify event loop", -errno);
 }
 
-void Connection::clearExitNotification()
+void Connection::notifyEventLoopToExit() const
+{
+    notifyEventLoop(loopExitFd_.fd);
+}
+
+void Connection::notifyEventLoopNewTimeout() const {
+    // alternatively use ::sd_bus_get_timeout(..)
+    auto sdbusPollData = getEventLoopPollData();
+    if (sdbusPollData.timeout_usec < activeTimeout_) {
+        notifyEventLoop(eventFd_.fd);
+    }
+}
+
+void Connection::clearEventLoopNotification(int fd) const
 {
     uint64_t value{};
-    auto r = read(loopExitFd_.fd, &value, sizeof(value));
+    auto r = read(fd, &value, sizeof(value));
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to read from the event descriptor", -errno);
 }
 
@@ -402,13 +415,18 @@ bool Connection::processPendingRequest()
 bool Connection::waitForNextRequest()
 {
     assert(bus_ != nullptr);
-    assert(loopExitFd_.fd != 0);
+    assert(eventFd_.fd != 0);
 
     auto sdbusPollData = getEventLoopPollData();
-    struct pollfd fds[] = {{sdbusPollData.fd, sdbusPollData.events, 0}, {loopExitFd_.fd, POLLIN, 0}};
+    struct pollfd fds[] = {
+            {sdbusPollData.fd, sdbusPollData.events, 0},
+            {sdbusPollData.fd2, sdbusPollData.events2, 0},
+            {loopExitFd_.fd, POLLIN, 0}
+    };
     auto fdsCount = sizeof(fds)/sizeof(fds[0]);
 
     auto timeout = sdbusPollData.getPollTimeout();
+    activeTimeout_ = sdbusPollData.timeout_usec;
     auto r = poll(fds, fdsCount, timeout);
 
     if (r < 0 && errno == EINTR)
@@ -416,9 +434,15 @@ bool Connection::waitForNextRequest()
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to wait on the bus", -errno);
 
+    // new timeout notification
     if (fds[1].revents & POLLIN)
     {
-        clearExitNotification();
+        clearEventLoopNotification(fds[1].fd);
+    }
+    // loop exit notification
+    if (fds[2].revents & POLLIN)
+    {
+        clearEventLoopNotification(fds[2].fd);
         return false;
     }
 
@@ -450,13 +474,13 @@ std::vector</*const */char*> Connection::to_strv(const std::vector<std::string>&
     return strv;
 }
 
-Connection::LoopExitEventFd::LoopExitEventFd()
+Connection::EventFd::EventFd()
 {
-    fd = eventfd(0, EFD_SEMAPHORE | EFD_CLOEXEC | EFD_NONBLOCK);
+    fd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
     SDBUS_THROW_ERROR_IF(fd < 0, "Failed to create event object", -errno);
 }
 
-Connection::LoopExitEventFd::~LoopExitEventFd()
+Connection::EventFd::~EventFd()
 {
     assert(fd >= 0);
     close(fd);
