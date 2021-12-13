@@ -408,7 +408,7 @@ bool Connection::waitForNextRequest()
     struct pollfd fds[] = {{sdbusPollData.fd, sdbusPollData.events, 0}, {loopExitFd_.fd, POLLIN, 0}};
     auto fdsCount = sizeof(fds)/sizeof(fds[0]);
 
-    auto timeout = sdbusPollData.timeout_usec == (uint64_t) -1 ? (uint64_t)-1 : (sdbusPollData.timeout_usec+999)/1000;
+    auto timeout = sdbusPollData.getPollTimeout();
     auto r = poll(fds, fdsCount, timeout);
 
     if (r < 0 && errno == EINTR)
@@ -537,4 +537,38 @@ std::unique_ptr<sdbus::IConnection> createRemoteSystemBusConnection(const std::s
     return std::make_unique<sdbus::internal::Connection>(std::move(interface), remote_system_bus, host);
 }
 
+} // namespace sdbus::inernal
+
+namespace sdbus {
+
+std::optional<std::chrono::microseconds> IConnection::PollData::getRelativeTimeout() const
+{
+    constexpr auto zero =std::chrono::microseconds::zero();
+    if (timeout_usec == 0) {
+        return zero;
+    }
+    else if (timeout_usec == UINT64_MAX) {
+        return std::nullopt;
+    }
+
+    // We need CLOCK_MONOTONIC so that we use the same clock as the underlying sd-bus lib.
+    // We use POSIX's clock_gettime in favour of std::chrono::steady_clock to ensure this.
+    struct timespec ts{};
+    auto r = clock_gettime(CLOCK_MONOTONIC, &ts);
+    SDBUS_THROW_ERROR_IF(r < 0, "clock_gettime failed: ", -errno);
+    auto now = std::chrono::nanoseconds(ts.tv_nsec) + std::chrono::seconds(ts.tv_sec);
+    auto absTimeout = std::chrono::microseconds(timeout_usec);
+    auto result = std::chrono::duration_cast<std::chrono::microseconds>(absTimeout - now);
+    return std::max(result, zero);
 }
+
+int IConnection::PollData::getPollTimeout() const
+{
+    auto timeout = getRelativeTimeout();
+    if (!timeout) {
+        return -1;
+    }
+    return (int) std::chrono::ceil<std::chrono::milliseconds>(timeout.value()).count();
+}
+
+} // namespace sdbus

@@ -31,6 +31,7 @@
 #include <memory>
 #include <chrono>
 #include <cstdint>
+#include <optional>
 
 namespace sdbus {
 
@@ -52,6 +53,32 @@ namespace sdbus {
             int fd;
             short int events;
             uint64_t timeout_usec;
+
+            /**
+             * Get the event poll timeout.
+             *
+             * The timeout is an absolute value based of CLOCK_MONOTONIC.
+             *
+             * @return a duration since the CLOCK_MONOTONIC epoch started.
+             */
+            [[nodiscard]] std::chrono::microseconds getAbsoluteTimeout() const {
+                return std::chrono::microseconds(timeout_usec);
+            }
+
+            /**
+             * Get the timeout as relative value from now
+             *
+             * @return std::nullopt if the timeout is indefinite. A duration otherwise.
+             */
+            [[nodiscard]] std::optional<std::chrono::microseconds> getRelativeTimeout() const;
+
+            /**
+             * Get a converted, relative timeout which can be passed as argument 'timeout' to poll(2)
+             *
+             * @return -1 if the timeout is indefinite. 0 if the poll(2) shouldn't block. An integer in milli
+             * seconds otherwise.
+             */
+            [[nodiscard]] int getPollTimeout() const;
         };
 
         virtual ~IConnection() = default;

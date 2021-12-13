@@ -37,9 +37,11 @@
 
 // STL
 #include <thread>
+#include <chrono>
 
 using ::testing::Eq;
 using namespace sdbus::test;
+using namespace std::chrono_literals;
 
 /*-------------------------------------*/
 /* --          TEST CASES           -- */
@@ -87,4 +89,45 @@ TEST(Connection, CanEnterAndLeaveEventLoop)
     connection->leaveEventLoop();
 
     t.join();
+}
+
+TEST(Connection, PollDataGetZeroTimeout)
+{
+    sdbus::IConnection::PollData pd{};
+    pd.timeout_usec = 0;
+    ASSERT_TRUE(pd.getRelativeTimeout().has_value());
+    EXPECT_THAT(pd.getRelativeTimeout().value(), Eq(std::chrono::microseconds::zero()));
+    EXPECT_THAT(pd.getPollTimeout(), Eq(0));
+}
+
+TEST(Connection, PollDataGetInfiniteTimeout)
+{
+    sdbus::IConnection::PollData pd{};
+    pd.timeout_usec = UINT64_MAX;
+    ASSERT_FALSE(pd.getRelativeTimeout().has_value());
+    EXPECT_THAT(pd.getPollTimeout(), Eq(-1));
+}
+
+TEST(Connection, PollDataGetZeroRelativeTimeoutForPast)
+{
+    sdbus::IConnection::PollData pd{};
+    auto past = std::chrono::steady_clock::now() - 10s;
+    pd.timeout_usec = std::chrono::duration_cast<std::chrono::microseconds>(past.time_since_epoch()).count();
+    ASSERT_TRUE(pd.getRelativeTimeout().has_value());
+    EXPECT_THAT(pd.getRelativeTimeout().value(), Eq(0us));
+    EXPECT_THAT(pd.getPollTimeout(), Eq(0));
+}
+
+TEST(Connection, PollDataGetRelativeTimeoutInTolerance)
+{
+    sdbus::IConnection::PollData pd{};
+    constexpr auto TIMEOUT = 1s;
+    constexpr auto TOLERANCE = 100ms;
+    auto future = std::chrono::steady_clock::now() + TIMEOUT;
+    pd.timeout_usec = std::chrono::duration_cast<std::chrono::microseconds>(future.time_since_epoch()).count();
+    ASSERT_TRUE(pd.getRelativeTimeout().has_value());
+    EXPECT_GE(pd.getRelativeTimeout().value(), TIMEOUT - TOLERANCE);
+    EXPECT_LE(pd.getRelativeTimeout().value(), TIMEOUT + TOLERANCE);
+    EXPECT_GE(pd.getPollTimeout(), 900);
+    EXPECT_LE(pd.getPollTimeout(), 1100);
 }
