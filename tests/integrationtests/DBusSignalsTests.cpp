@@ -32,6 +32,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <string>
+#include <chrono>
 
 using ::testing::Eq;
 using ::testing::DoubleEq;
@@ -76,7 +77,7 @@ TEST_F(SdbusTestObject, ProxyDoesNotReceiveSignalFromOtherBusName)
 
     adaptor2->emitSimpleSignal();
 
-    ASSERT_FALSE(waitUntil(m_proxy->m_gotSimpleSignal, std::chrono::seconds(1)));
+    ASSERT_FALSE(waitUntil(m_proxy->m_gotSimpleSignal, 2s));
 }
 
 TEST_F(SdbusTestObject, EmitsSignalWithMapSuccesfully)
@@ -115,16 +116,16 @@ TEST_F(SdbusTestObject, CanAccessAssociatedSignalMessageInSignalHandler)
     ASSERT_THAT(m_proxy->m_signalMemberName, Eq("simpleSignal"));
 }
 
-TEST_F(SdbusTestObject, UnregisterSignalHandler)
+TEST_F(SdbusTestObject, UnregistersSignalHandler)
 {
     ASSERT_NO_THROW(m_proxy->unregisterSimpleSignalHandler());
 
     m_adaptor->emitSimpleSignal();
 
-    ASSERT_FALSE(waitUntil(m_proxy->m_gotSimpleSignal));
+    ASSERT_FALSE(waitUntil(m_proxy->m_gotSimpleSignal, 2s));
 }
 
-TEST_F(SdbusTestObject, UnregisterSignalHandlerForSomeProxies)
+TEST_F(SdbusTestObject, UnregistersSignalHandlerForSomeProxies)
 {
     auto proxy1 = std::make_unique<TestProxy>(*s_adaptorConnection, BUS_NAME, OBJECT_PATH);
     auto proxy2 = std::make_unique<TestProxy>(*s_adaptorConnection, BUS_NAME, OBJECT_PATH);
@@ -135,24 +136,17 @@ TEST_F(SdbusTestObject, UnregisterSignalHandlerForSomeProxies)
 
     ASSERT_TRUE(waitUntil(proxy1->m_gotSimpleSignal));
     ASSERT_TRUE(waitUntil(proxy2->m_gotSimpleSignal));
-    ASSERT_FALSE(waitUntil(m_proxy->m_gotSimpleSignal));
+    ASSERT_FALSE(waitUntil(m_proxy->m_gotSimpleSignal, 2s));
 }
 
-TEST_F(SdbusTestObject, FailsUnregisterSignalHandlerTwice)
-{
-    ASSERT_NO_THROW(m_proxy->unregisterSimpleSignalHandler());
-
-    ASSERT_THROW(m_proxy->unregisterSimpleSignalHandler(), sdbus::Error);
-}
-
-TEST_F(SdbusTestObject, ReRegisterSignalHandler)
+TEST_F(SdbusTestObject, ReRegistersSignalHandler)
 {
     // unregister simple-signal handler
     ASSERT_NO_THROW(m_proxy->unregisterSimpleSignalHandler());
 
     m_adaptor->emitSimpleSignal();
 
-    ASSERT_FALSE(waitUntil(m_proxy->m_gotSimpleSignal));
+    ASSERT_FALSE(waitUntil(m_proxy->m_gotSimpleSignal, 2s));
 
     // re-register simple-signal handler
     ASSERT_NO_THROW(m_proxy->reRegisterSimpleSignalHandler());
