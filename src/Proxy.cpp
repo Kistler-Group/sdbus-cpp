@@ -170,11 +170,10 @@ void Proxy::registerSignalHandler( const std::string& interfaceName
 void Proxy::unregisterSignalHandler( const std::string& interfaceName
                                    , const std::string& signalName )
 {
-    auto& interface = interfaces_[interfaceName];
+    auto it = interfaces_.find(interfaceName);
 
-    auto removeResult = interface.signals_.erase(signalName);
-
-    SDBUS_THROW_ERROR_IF(removeResult == 0, "Failed to unregister signal handler: handler not exists", EINVAL);
+    if (it != interfaces_.end())
+        it->second.signals_.erase(signalName);
 }
 
 void Proxy::finishRegistration()
