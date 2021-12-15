@@ -73,23 +73,6 @@ namespace sdbus {
             short int events;
 
             /*!
-             * An extra read fd to be monitored by the event loop.
-             *
-             * If your custom event loop is fully synchronous (only one thread), then
-             * you can safely ignore fd2 and events2.
-             *
-             * Sdbus-c++ allows to call methods asynchronously. This can cause new timeouts
-             * to be introduced asynchronously. If a newly introduced timeout appears earlier than
-             * the active timeout, fd2 will wake the event loop which causes an update of the timeout
-             * value.
-             */
-            int fd2;
-            /*!
-             * The events to use for poll(2) alongside fd2.
-             */
-            short int events2;
-
-            /*!
              * Absolute timeout value in micro seconds and based of CLOCK_MONOTONIC.
              */
             uint64_t timeout_usec;

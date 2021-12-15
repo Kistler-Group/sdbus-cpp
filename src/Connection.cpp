@@ -126,7 +126,7 @@ Connection::PollData Connection::getEventLoopPollData() const
     auto r = iface_->sd_bus_get_poll_data(bus_.get(), &pollData);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus poll data", -r);
 
-    return {pollData.fd, pollData.events, eventFd_.fd, POLLIN, pollData.timeout_usec};
+    return {pollData.fd, pollData.events, pollData.timeout_usec};
 }
 
 const ISdBus& Connection::getSdBusInterface() const
@@ -420,7 +420,7 @@ bool Connection::waitForNextRequest()
     auto sdbusPollData = getEventLoopPollData();
     struct pollfd fds[] = {
             {sdbusPollData.fd, sdbusPollData.events, 0},
-            {sdbusPollData.fd2, sdbusPollData.events2, 0},
+            {eventFd_.fd, POLLIN, 0},
             {loopExitFd_.fd, POLLIN, 0}
     };
     auto fdsCount = sizeof(fds)/sizeof(fds[0]);
