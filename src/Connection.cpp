@@ -381,6 +381,12 @@ void Connection::notifyEventLoopToExit() const
 }
 
 void Connection::notifyEventLoopNewTimeout() const {
+    // The extra notifications for new timeouts are only needed if calls are made asynchronously to the event loop.
+    // Are we in the same thread as the event loop? Note that it's ok to fail this check because the event loop isn't yet started.
+    if (loopThreadId_.load(std::memory_order_relaxed) == std::this_thread::get_id()) {
+        return;
+    }
+
     // alternatively use ::sd_bus_get_timeout(..)
     auto sdbusPollData = getEventLoopPollData();
     if (sdbusPollData.timeout_usec < activeTimeout_) {
