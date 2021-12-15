@@ -167,6 +167,16 @@ void Proxy::registerSignalHandler( const std::string& interfaceName
     SDBUS_THROW_ERROR_IF(!inserted, "Failed to register signal handler: handler already exists", EINVAL);
 }
 
+void Proxy::unregisterSignalHandler( const std::string& interfaceName
+                                   , const std::string& signalName )
+{
+    auto& interface = interfaces_[interfaceName];
+
+    auto removeResult = interface.signals_.erase(signalName);
+
+    SDBUS_THROW_ERROR_IF(removeResult == 0, "Failed to unregister signal handler: handler not exists", EINVAL);
+}
+
 void Proxy::finishRegistration()
 {
     registerSignalHandlers(*connection_);

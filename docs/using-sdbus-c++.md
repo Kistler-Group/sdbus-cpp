@@ -1156,6 +1156,27 @@ So in the specific example above, the stub generator will generate a `Concatenat
 
 For a real example of a client-side asynchronous D-Bus method, please look at sdbus-c++ [stress tests](/tests/stresstests).
 
+## Method call timeout
+
+Annotate the element with `org.freedesktop.DBus.Method.Timeout` in order to specify the timeout value for the method call. The value should be a number of microseconds or number with duration literal (`us`/`ms`/`s`/`min`). Optionally combine it with `org.freedesktop.DBus.Method.Async`.
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<node>
+  <interface name="org.bluez.Device1">
+    <method name="Connect">
+      <annotation name="org.freedesktop.DBus.Method.Async" value="client"/>
+      <annotation name="org.freedesktop.DBus.Method.Timeout" value="3000ms"/>
+    </method>
+    <method name="Disconnect">
+      <annotation name="org.freedesktop.DBus.Method.Async" value="client"/>
+      <annotation name="org.freedesktop.DBus.Method.Timeout" value="2000000"/> <!-- 2000000us -->
+    </method>
+  </interface>
+</node>
+
+```
+
 Using D-Bus properties
 ----------------------
 

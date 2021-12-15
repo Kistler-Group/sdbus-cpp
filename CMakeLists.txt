@@ -19,8 +19,10 @@ if(NOT BUILD_LIBSYSTEMD)
     pkg_check_modules(Systemd IMPORTED_TARGET GLOBAL libsystemd>=236)
     if(NOT TARGET PkgConfig::Systemd)
         message(FATAL_ERROR "libsystemd of version at least 236 is required, but was not found "
-                            "(you may turn BUILD_LIBSYSTEMD on for sdbus-c++ to try downloading "
-                            "and building libsystemd in as part of sdbus-c++ during configuration)")
+                            "(if you have systemd in your OS, you may want to install package containing pkgconfig "
+                            " files for libsystemd library. On Ubuntu, that is libsystemd-dev. "
+                            " Alternatively, you may turn BUILD_LIBSYSTEMD on for sdbus-c++ to download, build "
+                            "and incorporate libsystemd as embedded library within sdbus-c++)")
     endif()
     add_library(Systemd::Libsystemd ALIAS PkgConfig::Systemd)
     string(REGEX MATCHALL "([0-9]+)" SYSTEMD_VERSION_LIST "${Systemd_VERSION}")

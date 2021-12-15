@@ -58,6 +58,9 @@ namespace sdbus::internal {
         void registerSignalHandler( const std::string& interfaceName
                                   , const std::string& signalName
                                   , signal_handler signalHandler ) override;
+        void unregisterSignalHandler( const std::string& interfaceName
+                                    , const std::string& signalName ) override;
+
         void finishRegistration() override;
         void unregister() override;
 

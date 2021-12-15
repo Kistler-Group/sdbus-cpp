@@ -169,6 +169,17 @@ public:
         proxy_.callMethod("emitTwoSimpleSignals").onInterface(INTERFACE_NAME);
     }
 
+    void unregisterSimpleSignalHandler()
+    {
+        proxy_.muteSignal("simpleSignal").onInterface(INTERFACE_NAME);
+    }
+
+    void reRegisterSimpleSignalHandler()
+    {
+        proxy_.uponSignal("simpleSignal").onInterface(INTERFACE_NAME).call([this](){ this->onSimpleSignal(); });
+        proxy_.finishRegistration();
+    }
+
 public:
     uint32_t action()
     {
