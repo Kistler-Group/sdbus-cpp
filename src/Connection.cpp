@@ -221,7 +221,8 @@ MethodCall Connection::createMethodCall( const std::string& destination
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create method call", -r);
 
-    return Message::Factory::create<MethodCall>(sdbusMsg, iface_.get(), (sdbus::internal::IConnection*)this, adopt_message);
+    return Message::Factory::create<MethodCall>(sdbusMsg, iface_.get(),
+                                                static_cast<const sdbus::internal::IConnection*>(this), adopt_message);
 }
 
 Signal Connection::createSignal( const std::string& objectPath

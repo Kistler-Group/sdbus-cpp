@@ -738,7 +738,7 @@ std::string Message::getSELinuxContext() const
 }
 
 
-MethodCall::MethodCall(void *msg, internal::ISdBus *sdbus, internal::IConnection *connection,
+MethodCall::MethodCall(void *msg, internal::ISdBus *sdbus, const internal::IConnection *connection,
                        adopt_message_t) noexcept
    : Message(msg, sdbus, adopt_message)
    , connection_(connection)

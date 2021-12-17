@@ -59,7 +59,7 @@ namespace sdbus
         }
 
         template<typename _Msg>
-        static _Msg create(void *msg, internal::ISdBus* sdbus, internal::IConnection* connection, adopt_message_t)
+        static _Msg create(void *msg, internal::ISdBus* sdbus, const internal::IConnection* connection, adopt_message_t)
         {
             return _Msg{msg, sdbus, connection, adopt_message};
         }

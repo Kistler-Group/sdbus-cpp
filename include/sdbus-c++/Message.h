@@ -197,12 +197,12 @@ namespace sdbus {
         bool doesntExpectReply() const;
 
     protected:
-        MethodCall(void *msg, internal::ISdBus* sdbus, internal::IConnection* connection, adopt_message_t) noexcept;
+        MethodCall(void *msg, internal::ISdBus* sdbus, const internal::IConnection* connection, adopt_message_t) noexcept;
 
     private:
         MethodReply sendWithReply(uint64_t timeout = 0) const;
         MethodReply sendWithNoReply() const;
-        internal::IConnection* connection_{};
+        const internal::IConnection* connection_{};
     };
 
     class MethodReply : public Message
