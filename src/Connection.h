@@ -121,15 +121,19 @@ namespace sdbus::internal {
         static std::string composeSignalMatchFilter(const std::string &sender, const std::string &objectPath,
                                                     const std::string &interfaceName,
                                                     const std::string &signalName);
-        void notifyEventLoopToExit();
-        void clearExitNotification();
+        void notifyEventLoop(int fd) const;
+        void notifyEventLoopToExit() const;
+        void clearEventLoopNotification(int fd) const;
+        void notifyEventLoopNewTimeout() const override;
+
+    private:
         void joinWithEventLoop();
         static std::vector</*const */char*> to_strv(const std::vector<std::string>& strings);
 
-        struct LoopExitEventFd
+        struct EventFd
         {
-            LoopExitEventFd();
-            ~LoopExitEventFd();
+            EventFd();
+            ~EventFd();
             int fd;
         };
 
@@ -139,7 +143,9 @@ namespace sdbus::internal {
         std::thread asyncLoopThread_;
         std::atomic<std::thread::id> loopThreadId_;
         std::mutex loopMutex_;
-        LoopExitEventFd loopExitFd_;
+        EventFd loopExitFd_;
+        EventFd eventFd_;
+        std::atomic<uint64_t> activeTimeout_{};
     };
 
 }

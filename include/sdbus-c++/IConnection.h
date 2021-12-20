@@ -31,6 +31,7 @@
 #include <memory>
 #include <chrono>
 #include <cstdint>
+#include <optional>
 
 namespace sdbus {
 
@@ -47,11 +48,60 @@ namespace sdbus {
     class IConnection
     {
     public:
+        /*!
+         * Poll Data for external event loop implementations.
+         *
+         * To integrate sdbus with your app's own custom event handling system
+         * you can use this method to query which file descriptors, poll events
+         * and timeouts you should add to your app's poll(2), or select(2)
+         * call in your main event loop.
+         *
+         * If you are unsure what this all means then use
+         * enterEventLoop() or enterEventLoopAsync() instead.
+         *
+         * See: getEventLoopPollData()
+         */
         struct PollData
         {
+            /*!
+             * The read fd to be monitored by the event loop.
+             */
             int fd;
+            /*!
+             * The events to use for poll(2) alongside fd.
+             */
             short int events;
+
+            /*!
+             * Absolute timeout value in micro seconds and based of CLOCK_MONOTONIC.
+             */
             uint64_t timeout_usec;
+
+            /*!
+             * Get the event poll timeout.
+             *
+             * The timeout is an absolute value based of CLOCK_MONOTONIC.
+             *
+             * @return a duration since the CLOCK_MONOTONIC epoch started.
+             */
+            [[nodiscard]] std::chrono::microseconds getAbsoluteTimeout() const {
+                return std::chrono::microseconds(timeout_usec);
+            }
+
+            /*!
+             * Get the timeout as relative value from now
+             *
+             * @return std::nullopt if the timeout is indefinite. A duration otherwise.
+             */
+            [[nodiscard]] std::optional<std::chrono::microseconds> getRelativeTimeout() const;
+
+            /*!
+             * Get a converted, relative timeout which can be passed as argument 'timeout' to poll(2)
+             *
+             * @return -1 if the timeout is indefinite. 0 if the poll(2) shouldn't block. An integer in milli
+             * seconds otherwise.
+             */
+            [[nodiscard]] int getPollTimeout() const;
         };
 
         virtual ~IConnection() = default;

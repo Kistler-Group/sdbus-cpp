@@ -42,6 +42,7 @@
 using ::testing::Eq;
 using ::testing::DoubleEq;
 using ::testing::Gt;
+using ::testing::Le;
 using ::testing::AnyOf;
 using ::testing::ElementsAre;
 using ::testing::SizeIs;
@@ -56,6 +57,7 @@ using SdbusTestObject = TestFixture;
 
 TEST_F(SdbusTestObject, ThrowsTimeoutErrorWhenClientSideAsyncMethodTimesOut)
 {
+    std::chrono::time_point<std::chrono::steady_clock> start;
     try
     {
         std::promise<uint32_t> promise;
@@ -68,7 +70,8 @@ TEST_F(SdbusTestObject, ThrowsTimeoutErrorWhenClientSideAsyncMethodTimesOut)
                 promise.set_exception(std::make_exception_ptr(*err));
         });
 
-        m_proxy->doOperationClientSideAsyncWith500msTimeout(1000); // The operation will take 1s, but the timeout is 500ms, so we should time out
+        start = std::chrono::steady_clock::now();
+        m_proxy->doOperationClientSideAsyncWithTimeout(1us, 1000); // The operation will take 1s, but the timeout is 500ms, so we should time out
         future.get();
 
         FAIL() << "Expected sdbus::Error exception";
@@ -77,6 +80,8 @@ TEST_F(SdbusTestObject, ThrowsTimeoutErrorWhenClientSideAsyncMethodTimesOut)
     {
         ASSERT_THAT(e.getName(), AnyOf("org.freedesktop.DBus.Error.Timeout", "org.freedesktop.DBus.Error.NoReply"));
         ASSERT_THAT(e.getMessage(), AnyOf("Connection timed out", "Method call timed out"));
+        auto measuredTimeout = std::chrono::steady_clock::now() - start;
+        ASSERT_THAT(measuredTimeout, Le(50ms));
     }
     catch(...)
     {

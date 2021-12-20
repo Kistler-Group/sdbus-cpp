@@ -97,11 +97,11 @@ void TestProxy::installDoOperationClientSideAsyncReplyHandler(std::function<void
     m_DoOperationClientSideAsyncReplyHandler = std::move(handler);
 }
 
-uint32_t TestProxy::doOperationWith500msTimeout(uint32_t param)
+uint32_t TestProxy::doOperationWithTimeout(const std::chrono::microseconds &timeout, uint32_t param)
 {
     using namespace std::chrono_literals;
     uint32_t result;
-    getProxy().callMethod("doOperation").onInterface(sdbus::test::INTERFACE_NAME).withTimeout(500000us).withArguments(param).storeResultsTo(result);
+    getProxy().callMethod("doOperation").onInterface(sdbus::test::INTERFACE_NAME).withTimeout(timeout).withArguments(param).storeResultsTo(result);
     return result;
 }
 
@@ -126,12 +126,12 @@ void TestProxy::doErroneousOperationClientSideAsync()
                                });
 }
 
-void TestProxy::doOperationClientSideAsyncWith500msTimeout(uint32_t param)
+void TestProxy::doOperationClientSideAsyncWithTimeout(const std::chrono::microseconds &timeout, uint32_t param)
 {
     using namespace std::chrono_literals;
     getProxy().callMethodAsync("doOperation")
               .onInterface(sdbus::test::INTERFACE_NAME)
-              .withTimeout(500000us)
+              .withTimeout(timeout)
               .withArguments(param)
               .uponReplyInvoke([this](const sdbus::Error* error, uint32_t returnValue)
                                {
