@@ -738,8 +738,10 @@ std::string Message::getSELinuxContext() const
 }
 
 
-MethodCall::MethodCall(void *msg, internal::ISdBus *sdbus, const internal::IConnection *connection,
-                       adopt_message_t) noexcept
+MethodCall::MethodCall( void *msg
+                      , internal::ISdBus *sdbus
+                      , const internal::IConnection *connection
+                      , adopt_message_t) noexcept
    : Message(msg, sdbus, adopt_message)
    , connection_(connection)
 {
@@ -780,10 +782,6 @@ MethodReply MethodCall::sendWithReply(uint64_t timeout) const
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method", -r);
 
-    if (connection_) {
-        connection_->notifyEventLoopNewTimeout();
-    }
-
     return Factory::create<MethodReply>(sdbusReply, sdbus_, adopt_message);
 }
 
@@ -799,9 +797,10 @@ void MethodCall::send(void* callback, void* userData, uint64_t timeout, dont_req
 {
     auto r = sdbus_->sd_bus_call_async(nullptr, nullptr, (sd_bus_message*)msg_, (sd_bus_message_handler_t)callback, userData, timeout);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method", -r);
-    if (connection_) {
-        connection_->notifyEventLoopNewTimeout();
-    }
+
+    // Force event loop to re-enter polling with the async call timeout if that is less than the one used in current poll
+    SDBUS_THROW_ERROR_IF(connection_ == nullptr, "Invalid use of MethodCall API", ENOTSUP);
+    connection_->notifyEventLoopNewTimeout();
 }
 
 MethodCall::Slot MethodCall::send(void* callback, void* userData, uint64_t timeout) const
@@ -810,9 +809,10 @@ MethodCall::Slot MethodCall::send(void* callback, void* userData, uint64_t timeo
 
     auto r = sdbus_->sd_bus_call_async(nullptr, &slot, (sd_bus_message*)msg_, (sd_bus_message_handler_t)callback, userData, timeout);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method asynchronously", -r);
-    if (connection_) {
-        connection_->notifyEventLoopNewTimeout();
-    }
+
+    // Force event loop to re-enter polling with the async call timeout if that is less than the one used in current poll
+    SDBUS_THROW_ERROR_IF(connection_ == nullptr, "Invalid use of MethodCall API", ENOTSUP);
+    connection_->notifyEventLoopNewTimeout();
 
     return Slot{slot, [sdbus_ = sdbus_](void *slot){ sdbus_->sd_bus_slot_unref((sd_bus_slot*)slot); }};
 }

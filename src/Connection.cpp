@@ -221,8 +221,7 @@ MethodCall Connection::createMethodCall( const std::string& destination
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create method call", -r);
 
-    return Message::Factory::create<MethodCall>(sdbusMsg, iface_.get(),
-                                                static_cast<const sdbus::internal::IConnection*>(this), adopt_message);
+    return Message::Factory::create<MethodCall>(sdbusMsg, iface_.get(), this, adopt_message);
 }
 
 Signal Connection::createSignal( const std::string& objectPath
@@ -381,18 +380,17 @@ void Connection::notifyEventLoopToExit() const
     notifyEventLoop(loopExitFd_.fd);
 }
 
-void Connection::notifyEventLoopNewTimeout() const {
+void Connection::notifyEventLoopNewTimeout() const
+{
     // The extra notifications for new timeouts are only needed if calls are made asynchronously to the event loop.
     // Are we in the same thread as the event loop? Note that it's ok to fail this check because the event loop isn't yet started.
-    if (loopThreadId_.load(std::memory_order_relaxed) == std::this_thread::get_id()) {
+    if (loopThreadId_.load(std::memory_order_relaxed) == std::this_thread::get_id())
         return;
-    }
 
-    // alternatively use ::sd_bus_get_timeout(..)
+    // Get the new timeout from sd-bus
     auto sdbusPollData = getEventLoopPollData();
-    if (sdbusPollData.timeout_usec < activeTimeout_) {
+    if (sdbusPollData.timeout_usec < activeTimeout_.load(std::memory_order_relaxed))
         notifyEventLoop(eventFd_.fd);
-    }
 }
 
 void Connection::clearEventLoopNotification(int fd) const
@@ -433,7 +431,7 @@ bool Connection::waitForNextRequest()
     auto fdsCount = sizeof(fds)/sizeof(fds[0]);
 
     auto timeout = sdbusPollData.getPollTimeout();
-    activeTimeout_ = sdbusPollData.timeout_usec;
+    activeTimeout_.store(sdbusPollData.timeout_usec, std::memory_order_relaxed);
     auto r = poll(fds, fdsCount, timeout);
 
     if (r < 0 && errno == EINTR)
@@ -493,7 +491,36 @@ Connection::EventFd::~EventFd()
     close(fd);
 }
 
+} // namespace sdbus::internal
+
+namespace sdbus {
+
+std::optional<std::chrono::microseconds> IConnection::PollData::getRelativeTimeout() const
+{
+    constexpr auto zero = std::chrono::microseconds::zero();
+    if (timeout_usec == 0)
+        return zero;
+    else if (timeout_usec == UINT64_MAX)
+        return std::nullopt;
+
+    // We need C so that we use the same clock as the underlying sd-bus lib.
+    // We use POSIX's clock_gettime in favour of std::chrono::steady_clock to ensure this.
+    struct timespec ts{};
+    auto r = clock_gettime(CLOCK_MONOTONIC, &ts);
+    SDBUS_THROW_ERROR_IF(r < 0, "clock_gettime failed: ", -errno);
+    auto now = std::chrono::nanoseconds(ts.tv_nsec) + std::chrono::seconds(ts.tv_sec);
+    auto absTimeout = std::chrono::microseconds(timeout_usec);
+    auto result = std::chrono::duration_cast<std::chrono::microseconds>(absTimeout - now);
+    return std::max(result, zero);
 }
+
+int IConnection::PollData::getPollTimeout() const
+{
+    auto timeout = getRelativeTimeout();
+    return timeout ? static_cast<int>(std::chrono::ceil<std::chrono::milliseconds>(timeout.value()).count()) : -1;
+}
+
+} // namespace sdbus
 
 namespace sdbus::internal {
 
@@ -505,7 +532,7 @@ std::unique_ptr<sdbus::internal::IConnection> createConnection()
     return std::unique_ptr<sdbus::internal::IConnection>(connectionInternal);
 }
 
-}
+} // namespace sdbus::internal
 
 namespace sdbus {
 
@@ -566,40 +593,6 @@ std::unique_ptr<sdbus::IConnection> createRemoteSystemBusConnection(const std::s
     auto interface = std::make_unique<sdbus::internal::SdBus>();
     constexpr sdbus::internal::Connection::remote_system_bus_t remote_system_bus;
     return std::make_unique<sdbus::internal::Connection>(std::move(interface), remote_system_bus, host);
-}
-
-} // namespace sdbus::inernal
-
-namespace sdbus {
-
-std::optional<std::chrono::microseconds> IConnection::PollData::getRelativeTimeout() const
-{
-    constexpr auto zero =std::chrono::microseconds::zero();
-    if (timeout_usec == 0) {
-        return zero;
-    }
-    else if (timeout_usec == UINT64_MAX) {
-        return std::nullopt;
-    }
-
-    // We need CLOCK_MONOTONIC so that we use the same clock as the underlying sd-bus lib.
-    // We use POSIX's clock_gettime in favour of std::chrono::steady_clock to ensure this.
-    struct timespec ts{};
-    auto r = clock_gettime(CLOCK_MONOTONIC, &ts);
-    SDBUS_THROW_ERROR_IF(r < 0, "clock_gettime failed: ", -errno);
-    auto now = std::chrono::nanoseconds(ts.tv_nsec) + std::chrono::seconds(ts.tv_sec);
-    auto absTimeout = std::chrono::microseconds(timeout_usec);
-    auto result = std::chrono::duration_cast<std::chrono::microseconds>(absTimeout - now);
-    return std::max(result, zero);
-}
-
-int IConnection::PollData::getPollTimeout() const
-{
-    auto timeout = getRelativeTimeout();
-    if (!timeout) {
-        return -1;
-    }
-    return (int) std::chrono::ceil<std::chrono::milliseconds>(timeout.value()).count();
 }
 
 } // namespace sdbus
