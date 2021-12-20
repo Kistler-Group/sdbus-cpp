@@ -84,7 +84,8 @@ namespace sdbus {
              *
              * @return a duration since the CLOCK_MONOTONIC epoch started.
              */
-            [[nodiscard]] std::chrono::microseconds getAbsoluteTimeout() const {
+            [[nodiscard]] std::chrono::microseconds getAbsoluteTimeout() const
+            {
                 return std::chrono::microseconds(timeout_usec);
             }
 
