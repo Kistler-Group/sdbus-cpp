@@ -195,3 +195,9 @@ v1.0.0
 - [[Breaking API change]] Fixed the API to send org.freedesktop.DBus.ObjectManager.InterfacesAdded and org.freedesktop.DBus.ObjectManager.InterfacesRemoved signals via the generated stubs layer.
   - StandardInterfaces.h: Split ObjectManager_adaptor and ManagedObject_adaptor.
 - New examples directory. First example covers the object manager. Further examples might follow.
+
+v1.1.0
+- Fix timeout handling for asynchronous method calls
+- Add support for unregistering signal handler
+- Add support for chrono literals in sdbus-c++-xml2cpp generator
+- Additional little fixes and improvements in code, build system, and documentation
