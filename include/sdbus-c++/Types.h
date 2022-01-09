@@ -155,7 +155,9 @@ namespace sdbus {
         using std::string::string;
         ObjectPath() = default; // Fixes gcc 6.3 error (default c-tor is not imported in above using declaration)
         ObjectPath(const ObjectPath&) = default; // Fixes gcc 8.3 error (deleted copy constructor)
+        ObjectPath(ObjectPath&&) = default; // Enable move - user-declared copy ctor prevents implicit creation
         ObjectPath& operator = (const ObjectPath&) = default; // Fixes gcc 8.3 error (deleted copy assignment)
+        ObjectPath& operator = (ObjectPath&&) = default; // Enable move - user-declared copy assign prevents implicit creation
         ObjectPath(std::string path)
             : std::string(std::move(path))
         {}
@@ -174,7 +176,9 @@ namespace sdbus {
         using std::string::string;
         Signature() = default; // Fixes gcc 6.3 error (default c-tor is not imported in above using declaration)
         Signature(const Signature&) = default; // Fixes gcc 8.3 error (deleted copy constructor)
+        Signature(Signature&&) = default; // Enable move - user-declared copy ctor prevents implicit creation
         Signature& operator = (const Signature&) = default; // Fixes gcc 8.3 error (deleted copy assignment)
+        Signature& operator = (Signature&&) = default; // Enable move - user-declared copy assign prevents implicit creation
         Signature(std::string path)
             : std::string(std::move(path))
         {}
