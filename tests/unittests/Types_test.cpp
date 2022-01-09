@@ -230,6 +230,15 @@ TEST(AnObjectPath, CanBeConstructedFromStdString)
     ASSERT_THAT(sdbus::ObjectPath{aPath}, Eq(aPath));
 }
 
+TEST(AnObjectPath, CanBeMovedLikeAStdString)
+{
+    std::string aPath{"/some/very/long/path/longer/than/sso"};
+    sdbus::ObjectPath oPath{aPath};
+
+    ASSERT_THAT(sdbus::ObjectPath{std::move(oPath)}, Eq(sdbus::ObjectPath(std::move(aPath))));
+    ASSERT_THAT(std::string(oPath), Eq(aPath));
+}
+
 TEST(ASignature, CanBeConstructedFromCString)
 {
     const char* aSignature = "us";
@@ -242,6 +251,15 @@ TEST(ASignature, CanBeConstructedFromStdString)
     std::string aSignature{"us"};
 
     ASSERT_THAT(sdbus::Signature{aSignature}, Eq(aSignature));
+}
+
+TEST(ASignature, CanBeMovedLikeAStdString)
+{
+    std::string aSignature{"us"};
+    sdbus::Signature oSignature{aSignature};
+
+    ASSERT_THAT(sdbus::Signature{std::move(oSignature)}, Eq(sdbus::Signature(std::move(aSignature))));
+    ASSERT_THAT(std::string(oSignature), Eq(aSignature));
 }
 
 TEST(AUnixFd, DuplicatesAndOwnsFdUponStandardConstruction)
