@@ -344,3 +344,21 @@ TEST(AUnixFd, TakesOverNewFdAndClosesOriginalFdOnAdoptingReset)
     EXPECT_THAT(unixFd.get(), Eq(newFd));
     EXPECT_THAT(::close(fd), Eq(-1));
 }
+
+TEST(AnError, CanBeConstructedFromANameAndAMessage)
+{
+    auto error = sdbus::Error("name", "message");
+    EXPECT_THAT(error.getName(), Eq<std::string>("name"));
+    EXPECT_THAT(error.getMessage(), Eq<std::string>("message"));
+}
+
+TEST(AnError, CanBeConstructedFromANameOnly)
+{
+    auto error1 = sdbus::Error("name");
+    auto error2 = sdbus::Error("name", nullptr);
+    EXPECT_THAT(error1.getName(), Eq<std::string>("name"));
+    EXPECT_THAT(error2.getName(), Eq<std::string>("name"));
+
+    EXPECT_THAT(error1.getMessage(), Eq<std::string>(""));
+    EXPECT_THAT(error2.getMessage(), Eq<std::string>(""));
+}

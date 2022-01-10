@@ -43,6 +43,11 @@ namespace sdbus {
         : public std::runtime_error
     {
     public:
+        explicit Error(const std::string& name, const char* message = nullptr)
+            : Error(name, std::string(message ? message : ""))
+        {
+        }
+
         Error(const std::string& name, const std::string& message)
             : std::runtime_error("[" + name + "] " + message)
             , name_(name)
