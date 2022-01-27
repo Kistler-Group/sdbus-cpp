@@ -19,7 +19,7 @@ if (NOT TARGET GTest::gmock)
     if (NOT TARGET GTest::gmock)
         include(FetchContent)
 
-        message("Fetching googletest...")
+        message("Fetching googletest v${GOOGLETEST_VERSION}...")
         FetchContent_Declare(googletest
                             GIT_REPOSITORY ${GOOGLETEST_GIT_REPO}
                             GIT_TAG        release-${GOOGLETEST_VERSION}
