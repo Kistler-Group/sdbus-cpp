@@ -27,6 +27,7 @@
 #include "Proxy.h"
 #include "IConnection.h"
 #include "MessageUtils.h"
+#include "Utils.h"
 #include "sdbus-c++/Message.h"
 #include "sdbus-c++/IConnection.h"
 #include "sdbus-c++/Error.h"
@@ -43,6 +44,9 @@ Proxy::Proxy(sdbus::internal::IConnection& connection, std::string destination, 
     , destination_(std::move(destination))
     , objectPath_(std::move(objectPath))
 {
+    SDBUS_CHECK_SERVICE_NAME(destination_);
+    SDBUS_CHECK_OBJECT_PATH(objectPath_);
+
     // The connection is not ours only, it is owned and managed by the user and we just reference
     // it here, so we expect the client to manage the event loop upon this connection themselves.
 }
@@ -54,6 +58,9 @@ Proxy::Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
     , destination_(std::move(destination))
     , objectPath_(std::move(objectPath))
 {
+    SDBUS_CHECK_SERVICE_NAME(destination_);
+    SDBUS_CHECK_OBJECT_PATH(objectPath_);
+
     // The connection is ours only, i.e. it's us who has to manage the event loop upon this connection,
     // in order that we get and process signals, async call replies, and other messages from D-Bus.
     connection_->enterEventLoopAsync();
@@ -156,6 +163,8 @@ void Proxy::registerSignalHandler( const std::string& interfaceName
                                  , const std::string& signalName
                                  , signal_handler signalHandler )
 {
+    SDBUS_CHECK_INTERFACE_NAME(interfaceName);
+    SDBUS_CHECK_MEMBER_NAME(signalName);
     SDBUS_THROW_ERROR_IF(!signalHandler, "Invalid signal handler provided", EINVAL);
 
     auto& interface = interfaces_[interfaceName];

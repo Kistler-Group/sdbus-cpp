@@ -58,6 +58,7 @@ set(SDBUSCPP_HDR_SRCS
     ${SDBUSCPP_SOURCE_DIR}/Connection.h
     ${SDBUSCPP_SOURCE_DIR}/IConnection.h
     ${SDBUSCPP_SOURCE_DIR}/MessageUtils.h
+    ${SDBUSCPP_SOURCE_DIR}/Utils.h
     ${SDBUSCPP_SOURCE_DIR}/Object.h
     ${SDBUSCPP_SOURCE_DIR}/Proxy.h
     ${SDBUSCPP_SOURCE_DIR}/ScopeGuard.h

@@ -33,6 +33,7 @@
 #include <sdbus-c++/Flags.h>
 #include "ScopeGuard.h"
 #include "IConnection.h"
+#include "Utils.h"
 #include "VTableUtils.h"
 #include <systemd/sd-bus.h>
 #include <utility>
@@ -43,6 +44,7 @@ namespace sdbus::internal {
 Object::Object(sdbus::internal::IConnection& connection, std::string objectPath)
     : connection_(connection), objectPath_(std::move(objectPath))
 {
+    SDBUS_CHECK_OBJECT_PATH(objectPath_);
 }
 
 void Object::registerMethod( const std::string& interfaceName
@@ -71,6 +73,8 @@ void Object::registerMethod( const std::string& interfaceName
                            , method_callback methodCallback
                            , Flags flags )
 {
+    SDBUS_CHECK_INTERFACE_NAME(interfaceName);
+    SDBUS_CHECK_MEMBER_NAME(methodName);
     SDBUS_THROW_ERROR_IF(!methodCallback, "Invalid method callback provided", EINVAL);
 
     auto& interface = getInterface(interfaceName);
@@ -98,6 +102,9 @@ void Object::registerSignal( const std::string& interfaceName
                            , const std::vector<std::string>& paramNames
                            , Flags flags )
 {
+    SDBUS_CHECK_INTERFACE_NAME(interfaceName);
+    SDBUS_CHECK_MEMBER_NAME(signalName);
+
     auto& interface = getInterface(interfaceName);
 
     InterfaceData::SignalData signalData{std::move(signature), paramNamesToString(paramNames), std::move(flags)};
@@ -127,6 +134,8 @@ void Object::registerProperty( const std::string& interfaceName
                              , property_set_callback setCallback
                              , Flags flags )
 {
+    SDBUS_CHECK_INTERFACE_NAME(interfaceName);
+    SDBUS_CHECK_MEMBER_NAME(propertyName);
     SDBUS_THROW_ERROR_IF(!getCallback && !setCallback, "Invalid property callbacks provided", EINVAL);
 
     auto& interface = getInterface(interfaceName);
