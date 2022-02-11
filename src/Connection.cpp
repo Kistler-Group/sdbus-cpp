@@ -73,6 +73,7 @@ Connection::~Connection()
 void Connection::requestName(const std::string& name)
 {
     SDBUS_CHECK_SERVICE_NAME(name);
+    
     auto r = iface_->sd_bus_request_name(bus_.get(), name.c_str(), 0);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to request bus name", -r);
 }
