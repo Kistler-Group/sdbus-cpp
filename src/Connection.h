@@ -134,7 +134,7 @@ namespace sdbus::internal {
         {
             EventFd();
             ~EventFd();
-            int fd;
+            int fd{-1};
         };
 
     private:
