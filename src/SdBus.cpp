@@ -208,10 +208,18 @@ int SdBus::sd_bus_add_object_vtable(sd_bus *bus, sd_bus_slot **slot, const char 
     return ::sd_bus_add_object_vtable(bus, slot, path, interface,  vtable, userdata);
 }
 
+static int enumerator_callback(sd_bus *bus, const char *path, void *userdata, char ***nodes, sd_bus_error *error) {
+    // is free()d by the caller
+    *nodes = (char **)calloc(2, sizeof(char *));
+    *nodes[0] = strdup(path);
+    return 1;
+}
+
 int SdBus::sd_bus_add_object_manager(sd_bus *bus, sd_bus_slot **slot, const char *path)
 {
     std::lock_guard lock(sdbusMutex_);
 
+    ::sd_bus_add_node_enumerator(bus, NULL, path, enumerator_callback, NULL);
     return ::sd_bus_add_object_manager(bus, slot, path);
 }
 
