@@ -118,6 +118,10 @@ There are Yocto recipes for sdbus-c++ available in the [`meta-oe`](https://githu
 
 sdbus-c++ recipe is available in ConanCenter repository as [`sdbus-cpp`](https://conan.io/center/sdbus-cpp).
 
+### Buildroot
+
+There is the Buildroot package [`sdbus-cpp`](https://git.buildroot.net/buildroot/tree/package/sdbus-cpp?h=2022.02) to build sdbus-c++ library itself without a code generation tool.
+
 Contributors willing to help with bringing sdbus-c++ to other popular package systems are welcome.
 
 Verifying sdbus-c++
