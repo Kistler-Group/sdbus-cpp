@@ -61,6 +61,9 @@ namespace sdbus::internal {
         void requestName(const std::string& name) override;
         void releaseName(const std::string& name) override;
         std::string getUniqueName() const override;
+        void attachSdEventLoop(sd_event *ev, int priority = 0) override;
+        void detachSdEventLoop() override;
+        sd_event *getSdEventLoop() override;
         void enterEventLoop() override;
         void enterEventLoopAsync() override;
         void leaveEventLoop() override;

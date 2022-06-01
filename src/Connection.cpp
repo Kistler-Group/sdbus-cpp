@@ -92,6 +92,24 @@ std::string Connection::getUniqueName() const
     return unique;
 }
 
+void Connection::attachSdEventLoop(sd_event *ev, int priority)
+{
+    auto r = iface_->sd_bus_attach_event(bus_.get(), ev, priority);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to attach to event loop", -r);
+}
+
+void Connection::detachSdEventLoop()
+{
+    auto r = iface_->sd_bus_detach_event(bus_.get());
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to detach from event loop", -r);
+}
+
+sd_event *Connection::getSdEventLoop()
+{
+    return iface_->sd_bus_get_event(bus_.get());
+}
+
+
 void Connection::enterEventLoop()
 {
     loopThreadId_ = std::this_thread::get_id();

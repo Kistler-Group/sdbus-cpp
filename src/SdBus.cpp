@@ -335,4 +335,19 @@ int SdBus::sd_bus_creds_get_selinux_context(sd_bus_creds *c, const char **label)
     return ::sd_bus_creds_get_selinux_context(c, label);
 }
 
+int SdBus::sd_bus_attach_event(sd_bus *bus, sd_event *e, int priority)
+{
+    return ::sd_bus_attach_event(bus, e, priority);
+}
+
+int SdBus::sd_bus_detach_event(sd_bus *bus)
+{
+    return ::sd_bus_detach_event(bus);
+}
+
+sd_event *SdBus::sd_bus_get_event(sd_bus *bus)
+{
+    return ::sd_bus_get_event(bus);
+}
+
 }

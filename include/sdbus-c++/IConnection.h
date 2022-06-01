@@ -34,6 +34,8 @@
 #include <cstdint>
 #include <optional>
 
+struct sd_event;
+
 namespace sdbus {
 
     /********************************************//**
@@ -132,6 +134,25 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         virtual std::string getUniqueName() const = 0;
+
+        /*!
+         * @brief Attach the bus connection to an sd-event event loop
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual void attachSdEventLoop(sd_event *ev, int priority = 0) = 0;
+
+        /*!
+         * @brief Detach the bus connection from an sd-event event loop
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual void detachSdEventLoop() = 0;
+
+        /*!
+         * @brief Get current sd-event event loop for the bus connection
+         */
+        virtual sd_event *getSdEventLoop() = 0;
 
         /*!
          * @brief Enters I/O event loop on this bus connection
