@@ -221,7 +221,7 @@ Let's have an object `/org/sdbuscpp/concatenator` that implements the `org.sdbus
 
 In the following sections, we will elaborate on the ways of implementing such an object on both the server and the client side.
 
-> **_Note_:** In order to be able to call methods of your system bus-based D-Bus service, a D-Bus security policy file has to be put in place for that service. See [dbus-daemon documentation](https://dbus.freedesktop.org/doc/dbus-daemon.1.html), sections *INTEGRATING SYSTEM SERVICES* and *CONFIGURATION FILE*. As an example, you may look at the [policy file for sdbus-c++ integration tests](/tests/integrationtests/files/org.sdbuscpp.integrationtests.conf).
+> **Before running Concatenator example in your system:** In order for your service to be allowed to provide a D-Bus API on system bus, a D-Bus security policy file has to be put in place for that service. Otherwise the service will fail to start (you'll get `[org.freedesktop.DBus.Error.AccessDenied] Failed to request bus name (Permission denied)`, for example). To make the Concatenator example work in your system, [look in this section of systemd configuration](systemd-dbus-config.md#dbus-configuration) for how to name the file, where to place it, how to populate it. For further information, consult [dbus-daemon documentation](https://dbus.freedesktop.org/doc/dbus-daemon.1.html), sections *INTEGRATING SYSTEM SERVICES* and *CONFIGURATION FILE*. As an example used for sdbus-c++ integration tests, you may look at the [policy file for sdbus-c++ integration tests](/tests/integrationtests/files/org.sdbuscpp.integrationtests.conf).
 
 Implementing the Concatenator example using basic sdbus-c++ API layer
 ---------------------------------------------------------------------
