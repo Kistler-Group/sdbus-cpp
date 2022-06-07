@@ -1,4 +1,4 @@
-Systemd and dbus configuration
+Systemd and D-Bus configuration
 =======================
 
 **Table of contents**
@@ -10,15 +10,13 @@ Systemd and dbus configuration
 Introduction
 ------------
 
-To run executable as a systemd service you may need some additional setup. For example, you may need explicitly allow 
-the usage of your service. Following chapters contain template configurations.
+To run executable as a systemd service you may need some additional setup. For example, you may need explicitly allow the usage of your service. Following chapters contain template configurations.
 
 
 Systemd configuration
 ---------------------------------------
 
-Filename should use `.service` extension. It also must be placed in configuration directory (/etc/systemd/system in
-Ubuntu 18.04.1 LTS) 
+Filename should use `.service` extension. It also must be placed in configuration directory (/etc/systemd/system in Ubuntu 18.04.1 LTS)
 
 ```
 [Unit]
@@ -31,12 +29,10 @@ ExecStart=/path/to/executable
 WantedBy=multi-user.target
 ```
 
-Dbus configuration
+D-Bus configuration
 ------------------
 
-Typical default D-Bus configuration does not allow to register services except explicitly allowed. Filename should 
-contain name of your service, e.g `/etc/dbus-1/system.d/org.sdbuscpp.concatenator.conf`. So, here is template
-configuration to use dbus interface under root:
+Typical default D-Bus configuration does not allow to register services except explicitly allowed. To allow a service to register its D-Bus API, we must place an appropriate conf file in `/etc/dbus-1/system.d/` directory. The conf file name must be `<service-name>.conf`. I.e., full file path for Concatenator example from sdbus-c++ tutorial would be `/etc/dbus-1/system.d/org.sdbuscpp.concatenator.conf`. And here is template configuration to use its D-Bus interface under root:
 
 ```
 <!DOCTYPE busconfig PUBLIC
@@ -51,4 +47,4 @@ configuration to use dbus interface under root:
 </busconfig>
 ```
 
-If you need access from other user `root` should be substituted by desired username. For more refer to `man dbus-daemon`.
+If you need access from other user then `root` should be substituted by desired username. Or you can simply use policy `<policy context="default">` like [conf file](/tests/integrationtests/files/org.sdbuscpp.integrationtests.conf) for sdbus-c++ integration tests is doing it. For more information refer to `man dbus-daemon`.
