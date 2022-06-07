@@ -117,7 +117,8 @@ endif()
 target_link_libraries(sdbus-c++-objlib
         PUBLIC
             Systemd::Libsystemd
-            Threads::Threads)
+            Threads::Threads
+            atomic)
 
 add_library(sdbus-c++)
 target_include_directories(sdbus-c++ PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
