@@ -166,6 +166,12 @@ namespace sdbus {
          * the connection. This is a convenient way to interrogate a connection
          * to see what objects it has.
          *
+         * This call creates a floating registration. The ObjectManager will
+         * be there for the object path until the connection is destroyed.
+         *
+         * Another, recommended way to add object managers is directly through
+         * IObject API.
+         *
          * @throws sdbus::Error in case of failure
          */
         virtual void addObjectManager(const std::string& objectPath) = 0;

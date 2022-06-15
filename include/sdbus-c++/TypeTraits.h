@@ -33,6 +33,7 @@
 #include <map>
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <tuple>
 
 // Forward declarations
@@ -53,12 +54,30 @@ namespace sdbus {
 
 namespace sdbus {
 
+    // Callbacks from sdbus-c++
     using method_callback = std::function<void(MethodCall msg)>;
     using async_reply_handler = std::function<void(MethodReply& reply, const Error* error)>;
     using signal_handler = std::function<void(Signal& signal)>;
     using property_set_callback = std::function<void(PropertySetCall& msg)>;
     using property_get_callback = std::function<void(PropertyGetReply& reply)>;
 
+    // Type-erased RAII-style handle to callbacks/subscriptions registered to sdbus-c++
+    using Slot = std::unique_ptr<void, std::function<void(void*)>>;
+
+    // Tag specifying that an owning slot handle shall be returned from the function
+    struct request_slot_t { explicit request_slot_t() = default; };
+    inline constexpr request_slot_t request_slot{};
+    // Tag specifying that the library shall own the slot resulting from the call of the function (so-called floating slot)
+    struct dont_request_slot_t { explicit dont_request_slot_t() = default; };
+    inline constexpr dont_request_slot_t dont_request_slot{};
+    // Tag denoting the assumption that the caller has already obtained message ownership
+    struct adopt_message_t { explicit adopt_message_t() = default; };
+    inline constexpr adopt_message_t adopt_message{};
+    // Tag denoting the assumption that the caller has already obtained fd ownership
+    struct adopt_fd_t { explicit adopt_fd_t() = default; };
+    inline constexpr adopt_fd_t adopt_fd{};
+
+    // Template specializations for getting D-Bus signatures from C++ types
     template <typename _T>
     struct signature_of
     {

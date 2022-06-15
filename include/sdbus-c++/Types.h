@@ -185,9 +185,6 @@ namespace sdbus {
         using std::string::operator=;
     };
 
-    struct adopt_fd_t { explicit adopt_fd_t() = default; };
-    inline constexpr adopt_fd_t adopt_fd{};
-
     /********************************************//**
      * @struct UnixFd
      *

@@ -27,6 +27,7 @@
 #ifndef SDBUS_CXX_INTERNAL_ICONNECTION_H_
 #define SDBUS_CXX_INTERNAL_ICONNECTION_H_
 
+#include <sdbus-c++/IConnection.h>
 #include <systemd/sd-bus.h>
 #include <string>
 #include <memory>
@@ -46,20 +47,19 @@ namespace sdbus {
 
 namespace sdbus::internal {
 
-    using SlotPtr = std::unique_ptr<void, std::function<void(void*)>>;
-
     class IConnection
+        : public ::sdbus::IConnection
     {
     public:
-        virtual ~IConnection() = default;
+        ~IConnection() override = default;
 
         virtual const ISdBus& getSdBusInterface() const = 0;
         virtual ISdBus& getSdBusInterface() = 0;
 
-        [[nodiscard]] virtual SlotPtr addObjectVTable( const std::string& objectPath
-                                                     , const std::string& interfaceName
-                                                     , const sd_bus_vtable* vtable
-                                                     , void* userData ) = 0;
+        [[nodiscard]] virtual Slot addObjectVTable( const std::string& objectPath
+                                                  , const std::string& interfaceName
+                                                  , const sd_bus_vtable* vtable
+                                                  , void* userData ) = 0;
 
         virtual PlainMessage createPlainMessage() const = 0;
         virtual MethodCall createMethodCall( const std::string& destination
@@ -80,17 +80,16 @@ namespace sdbus::internal {
         virtual void emitInterfacesRemovedSignal( const std::string& objectPath
                                                 , const std::vector<std::string>& interfaces ) = 0;
 
-        [[nodiscard]] virtual SlotPtr addObjectManager(const std::string& objectPath, void* /*dummy*/ = nullptr) = 0;
+        using sdbus::IConnection::addObjectManager;
+        [[nodiscard]] virtual Slot addObjectManager(const std::string& objectPath, request_slot_t) = 0;
 
-        [[nodiscard]] virtual SlotPtr registerSignalHandler( const std::string& sender
-                                                           , const std::string& objectPath
-                                                           , const std::string& interfaceName
-                                                           , const std::string& signalName
-                                                           , sd_bus_message_handler_t callback
-                                                           , void* userData ) = 0;
+        [[nodiscard]] virtual Slot registerSignalHandler( const std::string& sender
+                                                        , const std::string& objectPath
+                                                        , const std::string& interfaceName
+                                                        , const std::string& signalName
+                                                        , sd_bus_message_handler_t callback
+                                                        , void* userData ) = 0;
 
-        virtual void enterEventLoopAsync() = 0;
-        virtual void leaveEventLoop() = 0;
         virtual void notifyEventLoopNewTimeout() const = 0;
         virtual MethodReply tryCallMethodSynchronously(const MethodCall& message, uint64_t timeout) = 0;
     };

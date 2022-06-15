@@ -144,7 +144,7 @@ namespace sdbus::internal {
 
             // This is intentionally the last member, because it must be destructed first,
             // releasing callbacks above before the callbacks themselves are destructed.
-            SlotPtr slot;
+            Slot slot;
         };
 
         InterfaceData& getInterface(const std::string& interfaceName);
@@ -177,7 +177,7 @@ namespace sdbus::internal {
         sdbus::internal::IConnection& connection_;
         std::string objectPath_;
         std::map<InterfaceName, InterfaceData> interfaces_;
-        SlotPtr objectManagerSlot_;
+        Slot objectManagerSlot_;
         std::atomic<const Message*> m_CurrentlyProcessedMessage{nullptr};
     };
 
