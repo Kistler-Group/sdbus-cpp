@@ -217,7 +217,7 @@ void Object::emitInterfacesRemovedSignal(const std::vector<std::string>& interfa
 
 void Object::addObjectManager()
 {
-    objectManagerSlot_ = connection_.addObjectManager(objectPath_);
+    objectManagerSlot_ = connection_.addObjectManager(objectPath_, request_slot);
 }
 
 void Object::removeObjectManager()
@@ -232,7 +232,7 @@ bool Object::hasObjectManager() const
 
 sdbus::IConnection& Object::getConnection() const
 {
-    return dynamic_cast<sdbus::IConnection&>(connection_);
+    return connection_;
 }
 
 const std::string& Object::getObjectPath() const

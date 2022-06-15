@@ -803,7 +803,7 @@ void MethodCall::send(void* callback, void* userData, uint64_t timeout, dont_req
     connection_->notifyEventLoopNewTimeout();
 }
 
-MethodCall::Slot MethodCall::send(void* callback, void* userData, uint64_t timeout) const
+Slot MethodCall::send(void* callback, void* userData, uint64_t timeout) const
 {
     sd_bus_slot* slot;
 
@@ -814,7 +814,7 @@ MethodCall::Slot MethodCall::send(void* callback, void* userData, uint64_t timeo
     SDBUS_THROW_ERROR_IF(connection_ == nullptr, "Invalid use of MethodCall API", ENOTSUP);
     connection_->notifyEventLoopNewTimeout();
 
-    return Slot{slot, [sdbus_ = sdbus_](void *slot){ sdbus_->sd_bus_slot_unref((sd_bus_slot*)slot); }};
+    return {slot, [sdbus_ = sdbus_](void *slot){ sdbus_->sd_bus_slot_unref((sd_bus_slot*)slot); }};
 }
 
 MethodReply MethodCall::createReply() const

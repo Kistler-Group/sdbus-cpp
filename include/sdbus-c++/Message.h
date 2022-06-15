@@ -32,7 +32,6 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <memory>
 #include <utility>
 #include <cstdint>
 #include <cassert>
@@ -55,16 +54,11 @@ namespace sdbus {
 
 namespace sdbus {
 
-    // Assume the caller has already obtained message ownership
-    struct adopt_message_t { explicit adopt_message_t() = default; };
-    inline constexpr adopt_message_t adopt_message{};
-
     /********************************************//**
      * @class Message
      *
      * Message represents a D-Bus message, which can be either method call message,
-     * method reply message, signal message, or a plain message serving as a storage
-     * for serialized data.
+     * method reply message, signal message, or a plain message.
      *
      * Serialization and deserialization functions are provided for types supported
      * by D-Bus.
@@ -173,17 +167,12 @@ namespace sdbus {
         mutable bool ok_{true};
     };
 
-    struct dont_request_slot_t { explicit dont_request_slot_t() = default; };
-    inline constexpr dont_request_slot_t dont_request_slot{};
-
     class MethodCall : public Message
     {
         using Message::Message;
         friend Factory;
 
     public:
-        using Slot = std::unique_ptr<void, std::function<void(void*)>>;
-
         MethodCall() = default;
 
         MethodReply send(uint64_t timeout) const;
@@ -244,6 +233,7 @@ namespace sdbus {
         PropertyGetReply() = default;
     };
 
+    // Represents any of the above message types, or just a message that serves as a container for data
     class PlainMessage : public Message
     {
         using Message::Message;

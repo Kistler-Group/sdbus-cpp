@@ -144,16 +144,16 @@ ISdBus& Connection::getSdBusInterface()
 
 void Connection::addObjectManager(const std::string& objectPath)
 {
-    Connection::addObjectManager(objectPath, nullptr);
+    auto r = iface_->sd_bus_add_object_manager(bus_.get(), nullptr, objectPath.c_str());
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to add object manager", -r);
 }
 
-SlotPtr Connection::addObjectManager(const std::string& objectPath, void* /*dummy*/)
+Slot Connection::addObjectManager(const std::string& objectPath, request_slot_t)
 {
     sd_bus_slot *slot{};
 
-    auto r = iface_->sd_bus_add_object_manager( bus_.get()
-                                              , &slot
-                                              , objectPath.c_str() );
+    auto r = iface_->sd_bus_add_object_manager(bus_.get(), &slot, objectPath.c_str());
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to add object manager", -r);
 
@@ -178,10 +178,10 @@ uint64_t Connection::getMethodCallTimeout() const
     return timeout;
 }
 
-SlotPtr Connection::addObjectVTable( const std::string& objectPath
-                                   , const std::string& interfaceName
-                                   , const sd_bus_vtable* vtable
-                                   , void* userData )
+Slot Connection::addObjectVTable( const std::string& objectPath
+                                , const std::string& interfaceName
+                                , const sd_bus_vtable* vtable
+                                , void* userData )
 {
     sd_bus_slot *slot{};
 
@@ -296,12 +296,12 @@ void Connection::emitInterfacesRemovedSignal( const std::string& objectPath
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit InterfacesRemoved signal", -r);
 }
 
-SlotPtr Connection::registerSignalHandler( const std::string& sender
-                                         , const std::string& objectPath
-                                         , const std::string& interfaceName
-                                         , const std::string& signalName
-                                         , sd_bus_message_handler_t callback
-                                         , void* userData )
+Slot Connection::registerSignalHandler( const std::string& sender
+                                      , const std::string& objectPath
+                                      , const std::string& interfaceName
+                                      , const std::string& signalName
+                                      , sd_bus_message_handler_t callback
+                                      , void* userData )
 {
     sd_bus_slot *slot{};
 
@@ -457,10 +457,10 @@ bool Connection::waitForNextRequest()
     return true;
 }
 
-    std::string Connection::composeSignalMatchFilter(const std::string &sender,
-                                                     const std::string &objectPath,
-                                                     const std::string &interfaceName,
-                                                     const std::string &signalName)
+std::string Connection::composeSignalMatchFilter( const std::string &sender
+                                                , const std::string &objectPath
+                                                , const std::string &interfaceName
+                                                , const std::string &signalName )
 {
     std::string filter;
 

@@ -43,8 +43,7 @@
 namespace sdbus::internal {
 
     class Connection final
-        : public sdbus::IConnection           // External, public interface
-        , public sdbus::internal::IConnection // Internal, private interface
+        : public sdbus::internal::IConnection
     {
     public:
         // Bus type tags
@@ -69,7 +68,7 @@ namespace sdbus::internal {
         bool processPendingRequest() override;
 
         void addObjectManager(const std::string& objectPath) override;
-        SlotPtr addObjectManager(const std::string& objectPath, void* /*dummy*/) override;
+        Slot addObjectManager(const std::string& objectPath, request_slot_t) override;
 
         void setMethodCallTimeout(uint64_t timeout) override;
         uint64_t getMethodCallTimeout() const override;
@@ -77,10 +76,10 @@ namespace sdbus::internal {
         const ISdBus& getSdBusInterface() const override;
         ISdBus& getSdBusInterface() override;
 
-        SlotPtr addObjectVTable( const std::string& objectPath
-                               , const std::string& interfaceName
-                               , const sd_bus_vtable* vtable
-                               , void* userData ) override;
+        Slot addObjectVTable( const std::string& objectPath
+                            , const std::string& interfaceName
+                            , const sd_bus_vtable* vtable
+                            , void* userData ) override;
 
         PlainMessage createPlainMessage() const override;
         MethodCall createMethodCall( const std::string& destination
@@ -101,12 +100,12 @@ namespace sdbus::internal {
         void emitInterfacesRemovedSignal( const std::string& objectPath
                                         , const std::vector<std::string>& interfaces ) override;
 
-        SlotPtr registerSignalHandler( const std::string& sender
-                                     , const std::string& objectPath
-                                     , const std::string& interfaceName
-                                     , const std::string& signalName
-                                     , sd_bus_message_handler_t callback
-                                     , void* userData ) override;
+        Slot registerSignalHandler( const std::string& sender
+                                  , const std::string& objectPath
+                                  , const std::string& interfaceName
+                                  , const std::string& signalName
+                                  , sd_bus_message_handler_t callback
+                                  , void* userData ) override;
 
         MethodReply tryCallMethodSynchronously(const MethodCall& message, uint64_t timeout) override;
 
@@ -118,9 +117,10 @@ namespace sdbus::internal {
         BusPtr openBus(const std::function<int(sd_bus**)>& busFactory);
         void finishHandshake(sd_bus* bus);
         bool waitForNextRequest();
-        static std::string composeSignalMatchFilter(const std::string &sender, const std::string &objectPath,
-                                                    const std::string &interfaceName,
-                                                    const std::string &signalName);
+        static std::string composeSignalMatchFilter( const std::string &sender
+                                                   , const std::string &objectPath
+                                                   , const std::string &interfaceName
+                                                   , const std::string &signalName);
         void notifyEventLoop(int fd) const;
         void notifyEventLoopToExit() const;
         void clearEventLoopNotification(int fd) const;
