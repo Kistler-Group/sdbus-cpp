@@ -276,7 +276,7 @@ int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userDat
         // Intentionally left blank -- sdbus-c++ exceptions shall not bubble up to the underlying C sd-bus library
     }
 
-    return 1;
+    return 0;
 }
 
 int Proxy::sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error */*retError*/)

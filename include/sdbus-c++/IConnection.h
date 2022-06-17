@@ -266,6 +266,47 @@ namespace sdbus {
         virtual void addObjectManager(const std::string& objectPath, floating_slot_t) = 0;
 
         /*!
+         * @brief Adds a match rule for incoming message dispatching
+         *
+         * @param[in] match Match expression to filter incoming D-Bus message
+         * @param[in] callback Callback handler to be called upon incoming D-Bus message matching the rule
+         * @return RAII-style slot handle representing the ownership of the subscription
+         *
+         * The method installs a match rule for messages received on the specified bus connection.
+         * The syntax of the match rule expression passed in match is described in the D-Bus specification.
+         * The specified handler function callback is called for each incoming message matching the specified
+         * expression. The match is installed synchronously when connected to a bus broker, i.e. the call
+         * sends a control message requested the match to be added to the broker and waits until the broker
+         * confirms the match has been installed successfully.
+         *
+         * Simply let go of the slot instance to uninstall the match rule from the bus connection. The slot
+         * must not outlive the connection for the slot is associated with it.
+         *
+         * For more information, consult `man sd_bus_add_match`.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] virtual Slot addMatch(const std::string& match, message_handler callback) = 0;
+
+        /*!
+         * @brief Adds a floating match rule for incoming message dispatching
+         *
+         * @param[in] match Match expression to filter incoming D-Bus message
+         * @param[in] callback Callback handler to be called upon incoming D-Bus message matching the rule
+         * @param[in] Floating slot tag
+         *
+         * The method installs a floating match rule for messages received on the specified bus connection.
+         * Floating means that the bus connection object owns the match rule, i.e. lifetime of the match rule
+         * is bound to the lifetime of the bus connection.
+         *
+         * Refer to the @c addMatch(const std::string& match, message_handler callback) documentation for more
+         * information.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual void addMatch(const std::string& match, message_handler callback, floating_slot_t) = 0;
+
+        /*!
          * @copydoc IConnection::enterEventLoop()
          *
          * @deprecated This function has been replaced by enterEventLoop()

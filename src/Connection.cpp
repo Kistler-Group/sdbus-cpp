@@ -183,6 +183,34 @@ uint64_t Connection::getMethodCallTimeout() const
     return timeout;
 }
 
+Slot Connection::addMatch(const std::string& match, message_handler callback)
+{
+    auto matchInfo = std::make_unique<MatchInfo>(MatchInfo{std::move(callback), *this, {}});
+
+    auto messageHandler = [](sd_bus_message *sdbusMessage, void *userData, sd_bus_error */*retError*/) -> int
+    {
+        auto* matchInfo = static_cast<MatchInfo*>(userData);
+        auto message = Message::Factory::create<PlainMessage>(sdbusMessage, &matchInfo->connection.getSdBusInterface());
+        matchInfo->callback(message);
+        return 0;
+    };
+
+    auto r = iface_->sd_bus_add_match(bus_.get(), &matchInfo->slot, match.c_str(), std::move(messageHandler), matchInfo.get());
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to add match", -r);
+
+    return {matchInfo.release(), [this](void *ptr)
+    {
+        auto* matchInfo = static_cast<MatchInfo*>(ptr);
+        iface_->sd_bus_slot_unref(matchInfo->slot);
+        std::default_delete<MatchInfo>{}(matchInfo);
+    }};
+}
+
+void Connection::addMatch(const std::string& match, message_handler callback, floating_slot_t)
+{
+    floatingMatchRules_.push_back(addMatch(match, std::move(callback)));
+}
+
 Slot Connection::addObjectVTable( const std::string& objectPath
                                 , const std::string& interfaceName
                                 , const sd_bus_vtable* vtable

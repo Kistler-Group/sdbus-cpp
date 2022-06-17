@@ -26,6 +26,7 @@
 
 #include "TestAdaptor.h"
 #include "TestProxy.h"
+#include "TestFixture.h"
 #include "sdbus-c++/sdbus-c++.h"
 
 #include <gtest/gtest.h>
@@ -38,7 +39,12 @@
 #include <future>
 #include <unistd.h>
 
+using ::testing::ElementsAre;
+using ::testing::Eq;
+using namespace std::chrono_literals;
 using namespace sdbus::test;
+
+using AConnection = TestFixture;
 
 /*-------------------------------------*/
 /* --          TEST CASES           -- */
@@ -51,4 +57,76 @@ TEST(AdaptorAndProxy, CanBeConstructedSuccesfully)
 
     ASSERT_NO_THROW(TestAdaptor adaptor(*connection, OBJECT_PATH));
     ASSERT_NO_THROW(TestProxy proxy(BUS_NAME, OBJECT_PATH));
+}
+
+TEST_F(AConnection, WillCallCallbackHandlerForIncomingMessageMatchingMatchRule)
+{
+    auto matchRule = "sender='" + BUS_NAME + "',path='" + OBJECT_PATH + "'";
+    std::atomic<bool> matchingMessageReceived{false};
+    auto slot = s_proxyConnection->addMatch(matchRule, [&](sdbus::Message& msg)
+    {
+        if(msg.getPath() == OBJECT_PATH)
+            matchingMessageReceived = true;
+    });
+
+    m_adaptor->emitSimpleSignal();
+
+    ASSERT_TRUE(waitUntil(matchingMessageReceived));
+}
+
+TEST_F(AConnection, WillUnsubscribeMatchRuleWhenClientDestroysTheAssociatedSlot)
+{
+    auto matchRule = "sender='" + BUS_NAME + "',path='" + OBJECT_PATH + "'";
+    std::atomic<bool> matchingMessageReceived{false};
+    auto slot = s_proxyConnection->addMatch(matchRule, [&](sdbus::Message& msg)
+    {
+        if(msg.getPath() == OBJECT_PATH)
+            matchingMessageReceived = true;
+    });
+    slot.reset();
+
+    m_adaptor->emitSimpleSignal();
+
+    ASSERT_FALSE(waitUntil(matchingMessageReceived, 2s));
+}
+
+TEST_F(AConnection, CanAddFloatingMatchRule)
+{
+    auto matchRule = "sender='" + BUS_NAME + "',path='" + OBJECT_PATH + "'";
+    std::atomic<bool> matchingMessageReceived{false};
+    auto con = sdbus::createSystemBusConnection();
+    con->enterEventLoopAsync();
+    auto callback = [&](sdbus::Message& msg)
+    {
+        if(msg.getPath() == OBJECT_PATH)
+            matchingMessageReceived = true;
+    };
+    con->addMatch(matchRule, std::move(callback), sdbus::floating_slot);
+    m_adaptor->emitSimpleSignal();
+    assert(waitUntil(matchingMessageReceived, 2s));
+    matchingMessageReceived = false;
+
+    con.reset();
+    m_adaptor->emitSimpleSignal();
+
+    ASSERT_FALSE(waitUntil(matchingMessageReceived, 2s));
+}
+
+TEST_F(AConnection, WillNotPassToMatchCallbackMessagesThatDoNotMatchTheRule)
+{
+    auto matchRule = "type='signal',interface='" + INTERFACE_NAME + "',member='simpleSignal'";
+    std::atomic<size_t> numberOfMatchingMessages{};
+    auto slot = s_proxyConnection->addMatch(matchRule, [&](sdbus::Message& msg)
+    {
+        if(msg.getMemberName() == "simpleSignal")
+            numberOfMatchingMessages++;
+    });
+    auto adaptor2 = std::make_unique<TestAdaptor>(*s_adaptorConnection, OBJECT_PATH_2);
+
+    m_adaptor->emitSignalWithMap({});
+    adaptor2->emitSimpleSignal();
+    m_adaptor->emitSimpleSignal();
+
+    ASSERT_TRUE(waitUntil([&](){ return numberOfMatchingMessages == 2; }));
+    ASSERT_FALSE(waitUntil([&](){ return numberOfMatchingMessages > 2; }, 1s));
 }
