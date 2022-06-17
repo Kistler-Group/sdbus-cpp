@@ -46,6 +46,7 @@ namespace sdbus {
     class MethodCall;
     class MethodReply;
     class Signal;
+    class Message;
     class PropertySetCall;
     class PropertyGetReply;
     template <typename... _Results> class Result;
@@ -58,6 +59,7 @@ namespace sdbus {
     using method_callback = std::function<void(MethodCall msg)>;
     using async_reply_handler = std::function<void(MethodReply& reply, const Error* error)>;
     using signal_handler = std::function<void(Signal& signal)>;
+    using message_handler = std::function<void(Message& msg)>;
     using property_set_callback = std::function<void(PropertySetCall& msg)>;
     using property_get_callback = std::function<void(PropertyGetReply& reply)>;
 

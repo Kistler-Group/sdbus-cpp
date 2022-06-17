@@ -74,6 +74,9 @@ namespace sdbus::internal {
         void setMethodCallTimeout(uint64_t timeout) override;
         uint64_t getMethodCallTimeout() const override;
 
+        [[nodiscard]] Slot addMatch(const std::string& match, message_handler callback) override;
+        void addMatch(const std::string& match, message_handler callback, floating_slot_t) override;
+
         const ISdBus& getSdBusInterface() const override;
         ISdBus& getSdBusInterface() override;
 
@@ -138,6 +141,13 @@ namespace sdbus::internal {
             int fd{-1};
         };
 
+        struct MatchInfo
+        {
+            message_handler callback;
+            Connection& connection;
+            sd_bus_slot *slot;
+        };
+
     private:
         std::unique_ptr<ISdBus> iface_;
         BusPtr bus_;
@@ -147,6 +157,7 @@ namespace sdbus::internal {
         EventFd loopExitFd_;
         EventFd eventFd_;
         std::atomic<uint64_t> activeTimeout_{};
+        std::vector<Slot> floatingMatchRules_;
     };
 
 }

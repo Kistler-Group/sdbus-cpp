@@ -19,7 +19,8 @@ Using sdbus-c++ library
 14. [Asynchronous client-side methods](#asynchronous-client-side-methods)
 15. [Using D-Bus properties](#using-d-bus-properties)
 16. [Standard D-Bus interfaces](#standard-d-bus-interfaces)
-17. [Conclusion](#conclusion)
+17. [Support for match rules](#support-for-match-rules)
+18. [Conclusion](#conclusion)
 
 Introduction
 ------------
@@ -1278,6 +1279,11 @@ For example, for our `Concatenator` example above in this tutorial, we may want 
 Note that signals of afore-mentioned standard D-Bus interfaces are not emitted by the library automatically. It's clients who are supposed to emit them.
 
 Working examples of using standard D-Bus interfaces can be found in [sdbus-c++ integration tests](/tests/integrationtests/DBusStandardInterfacesTests.cpp) or the [examples](/examples) directory.
+
+Support for match rules
+-----------------------
+
+`IConnection` class provides `addMatch` method that you can use to install match rules. An associated callback handler will be called upon an incoming message matching given match rule. There is support for both client-owned and floating (library-owned) match rules. Consult `IConnection` header or sdbus-c++ doxygen documentation for more information.
 
 Conclusion
 ----------
