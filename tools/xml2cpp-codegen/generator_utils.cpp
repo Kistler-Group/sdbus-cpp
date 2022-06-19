@@ -85,6 +85,15 @@ static void _parse_signature(const std::string &signature, std::string &type, un
 
                         break;
                     }
+                    case '\0':
+                    {
+                        std::cerr << 
+                            "Invalid array definition. Type is missing after '" << signature
+                            << "'."
+                            << std::endl;
+                        exit(-1);
+                    }
+
                     default:
                     {
                         type += "std::vector<";
