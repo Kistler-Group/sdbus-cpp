@@ -127,7 +127,7 @@ MethodReply Proxy::sendMethodCallMessageAndWaitForReply(const MethodCall& messag
     auto callback = (void*)&Proxy::sdbus_async_reply_handler;
     AsyncCalls::CallData callData{*this, std::move(asyncReplyCallback), {}};
 
-    message.send(callback, &callData, timeout, dont_request_slot);
+    message.send(callback, &callData, timeout, floating_slot);
 
     return syncCallReplyData.waitForMethodReply();
 }

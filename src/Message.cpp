@@ -795,6 +795,11 @@ MethodReply MethodCall::sendWithNoReply() const
 
 void MethodCall::send(void* callback, void* userData, uint64_t timeout, dont_request_slot_t) const
 {
+    MethodCall::send(callback, userData, timeout, floating_slot);
+}
+
+void MethodCall::send(void* callback, void* userData, uint64_t timeout, floating_slot_t) const
+{
     auto r = sdbus_->sd_bus_call_async(nullptr, nullptr, (sd_bus_message*)msg_, (sd_bus_message_handler_t)callback, userData, timeout);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method", -r);
 

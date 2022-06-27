@@ -68,8 +68,11 @@ namespace sdbus {
     struct request_slot_t { explicit request_slot_t() = default; };
     inline constexpr request_slot_t request_slot{};
     // Tag specifying that the library shall own the slot resulting from the call of the function (so-called floating slot)
+    struct floating_slot_t { explicit floating_slot_t() = default; };
+    inline constexpr floating_slot_t floating_slot{};
+    // Deprecated name for the above -- a floating slot
     struct dont_request_slot_t { explicit dont_request_slot_t() = default; };
-    inline constexpr dont_request_slot_t dont_request_slot{};
+    [[deprecated("Replaced by floating_slot")]] inline constexpr dont_request_slot_t dont_request_slot{};
     // Tag denoting the assumption that the caller has already obtained message ownership
     struct adopt_message_t { explicit adopt_message_t() = default; };
     inline constexpr adopt_message_t adopt_message{};

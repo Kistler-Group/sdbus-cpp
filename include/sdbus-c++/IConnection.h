@@ -27,6 +27,7 @@
 #ifndef SDBUS_CXX_ICONNECTION_H_
 #define SDBUS_CXX_ICONNECTION_H_
 
+#include <sdbus-c++/TypeTraits.h>
 #include <string>
 #include <memory>
 #include <chrono>
@@ -174,7 +175,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void addObjectManager(const std::string& objectPath) = 0;
+        [[deprecated("Use one of other addObjectManager overloads")]] virtual void addObjectManager(const std::string& objectPath) = 0;
 
         /*!
          * @brief Returns fd, I/O events and timeout data you can pass to poll
@@ -246,6 +247,23 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         virtual uint64_t getMethodCallTimeout() const = 0;
+
+        /*!
+         * @brief Adds an ObjectManager at the specified D-Bus object path
+         *
+         * Creates an ObjectManager interface at the specified object path on
+         * the connection. This is a convenient way to interrogate a connection
+         * to see what objects it has.
+         *
+         * This call creates a floating registration. The ObjectManager will
+         * be there for the object path until the connection is destroyed.
+         *
+         * Another, recommended way to add object managers is directly through
+         * IObject API.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual void addObjectManager(const std::string& objectPath, floating_slot_t) = 0;
 
         /*!
          * @copydoc IConnection::enterEventLoop()

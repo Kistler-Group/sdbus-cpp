@@ -68,6 +68,7 @@ namespace sdbus::internal {
         bool processPendingRequest() override;
 
         void addObjectManager(const std::string& objectPath) override;
+        void addObjectManager(const std::string& objectPath, floating_slot_t) override;
         Slot addObjectManager(const std::string& objectPath, request_slot_t) override;
 
         void setMethodCallTimeout(uint64_t timeout) override;

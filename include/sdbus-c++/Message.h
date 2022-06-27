@@ -176,7 +176,8 @@ namespace sdbus {
         MethodCall() = default;
 
         MethodReply send(uint64_t timeout) const;
-        void send(void* callback, void* userData, uint64_t timeout, dont_request_slot_t) const;
+        [[deprecated("Use send overload with floating_slot instead")]] void send(void* callback, void* userData, uint64_t timeout, dont_request_slot_t) const;
+        void send(void* callback, void* userData, uint64_t timeout, floating_slot_t) const;
         [[nodiscard]] Slot send(void* callback, void* userData, uint64_t timeout) const;
 
         MethodReply createReply() const;
