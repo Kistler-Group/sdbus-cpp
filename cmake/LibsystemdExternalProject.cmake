@@ -6,6 +6,10 @@ if((NOT MESON) OR (NOT NINJA))
     message(FATAL_ERROR "Meson and Ninja are required to build libsystemd")
 endif()
 
+if(NOT GPERF)
+    message(WARNING "gperf was not found, libsystemd configuration may fail")
+endif()
+
 find_library(GLIBC_RT_LIBRARY rt)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(MOUNT mount)
@@ -15,6 +19,7 @@ if (NOT CAP_FOUND)
 endif()
 
 set(LIBSYSTEMD_VERSION "242" CACHE STRING "libsystemd version (>=239) to build and incorporate into libsdbus-c++")
+set(LIBSYSTEMD_EXTRA_CONFIG_OPTS "" CACHE STRING "Additional configuration options to be passed as-is to libsystemd build system")
 
 if(NOT CMAKE_BUILD_TYPE)
     set(LIBSYSTEMD_BUILD_TYPE "plain")
@@ -41,7 +46,7 @@ ExternalProject_Add(LibsystemdBuildProject
                     GIT_SHALLOW       1
                     UPDATE_COMMAND    ""
                     CONFIGURE_COMMAND ${CMAKE_COMMAND} -E remove <BINARY_DIR>/*
-                              COMMAND ${MESON} --prefix=<INSTALL_DIR> --buildtype=${LIBSYSTEMD_BUILD_TYPE} -Dstatic-libsystemd=pic -Dselinux=false <SOURCE_DIR> <BINARY_DIR>
+                              COMMAND ${MESON} --prefix=<INSTALL_DIR> --buildtype=${LIBSYSTEMD_BUILD_TYPE} -Dstatic-libsystemd=pic -Dselinux=false <SOURCE_DIR> <BINARY_DIR> ${LIBSYSTEMD_EXTRA_CONFIG_OPTS}
                     BUILD_COMMAND     ${BUILD_VERSION_H}
                           COMMAND     ${NINJA} -C <BINARY_DIR> libsystemd.a
                     BUILD_ALWAYS      0
