@@ -62,6 +62,10 @@ $ sudo cmake --build . --target install
 
       Defines version of systemd to be downloaded, built and integrated into sdbus-c++. Default value: `242`.
 
+    * `LIBSYSTEMD_EXTRA_CONFIG_OPTS` [string]
+
+      Additional options to be passed as-is to the libsystemd build system (meson for systemd v242) in its configure step. Can be used for passing e.g. toolchain file path in case of cross builds. Default value: empty.
+
 * `CMAKE_BUILD_TYPE` [string]
 
   This is a CMake-builtin option. Set to `Release` to build sdbus-c++ for production use. Set to `Debug` if you want to help further develop (and debug) the library :)
