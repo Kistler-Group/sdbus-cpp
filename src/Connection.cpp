@@ -384,6 +384,8 @@ Connection::BusPtr Connection::openBus(const BusFactory& busFactory)
     int r = busFactory(&bus);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to open bus", -r);
 
+    test;
+
     BusPtr busPtr{bus, [this](sd_bus* bus){ return iface_->sd_bus_flush_close_unref(bus); }};
     finishHandshake(busPtr.get());
     return busPtr;
