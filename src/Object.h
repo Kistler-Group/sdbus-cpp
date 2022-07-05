@@ -1,6 +1,6 @@
 /**
- * (C) 2016 - 2017 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
- * (C) 2016 - 2019 Stanislav Angelovic <angelovic.s@gmail.com>
+ * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2022 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
  * @file Object.h
  *
