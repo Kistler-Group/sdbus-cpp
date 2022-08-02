@@ -73,6 +73,7 @@ class TestProxy final : public sdbus::ProxyInterfaces< org::sdbuscpp::integratio
 {
 public:
     TestProxy(std::string destination, std::string objectPath);
+    TestProxy(std::string destination, std::string objectPath, dont_run_event_loop_thread_t);
     TestProxy(sdbus::IConnection& connection, std::string destination, std::string objectPath);
     ~TestProxy();
 

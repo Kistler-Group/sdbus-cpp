@@ -272,3 +272,12 @@ TEST_F(SdbusTestObject, CannotSetGeneralMethodTimeoutWithLibsystemdVersionLessTh
     ASSERT_THROW(s_adaptorConnection->getMethodCallTimeout(), sdbus::Error);
 }
 #endif
+
+TEST_F(SdbusTestObject, CanCallMethodSynchronouslyWithoutAnEventLoopThread)
+{
+    auto proxy = std::make_unique<TestProxy>(BUS_NAME, OBJECT_PATH, sdbus::dont_run_event_loop_thread);
+
+    auto multiplyRes = proxy->multiply(INT64_VALUE, DOUBLE_VALUE);
+
+    ASSERT_THAT(multiplyRes, Eq(INT64_VALUE * DOUBLE_VALUE));
+}

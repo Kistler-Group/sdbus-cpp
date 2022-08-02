@@ -39,6 +39,13 @@ TestProxy::TestProxy(std::string destination, std::string objectPath)
     registerProxy();
 }
 
+TestProxy::TestProxy(std::string destination, std::string objectPath, dont_run_event_loop_thread_t)
+    : ProxyInterfaces(std::move(destination), std::move(objectPath), dont_run_event_loop_thread)
+{
+    // It doesn't make sense to register any signals here since proxy upon a D-Bus connection with no event loop thread
+    // will not receive any incoming messages except replies to synchronous D-Bus calls.
+}
+
 TestProxy::TestProxy(sdbus::IConnection& connection, std::string destination, std::string objectPath)
     : ProxyInterfaces(connection, std::move(destination), std::move(objectPath))
 {

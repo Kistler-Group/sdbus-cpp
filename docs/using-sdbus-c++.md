@@ -411,19 +411,23 @@ On the **server** side, we generally need to create D-Bus objects and publish th
   * or in a non-blocking async way, through `enterEventLoopAsync()`,
   * or, when we have our own implementation of an event loop (e.g. we are using sd-event event loop), we can ask the connection for its underlying fd, I/O events and timeouts through `getEventLoopPollData()` and use that data in our event loop mechanism.
 
+The object takes the D-Bus connection as a reference in its constructor. This is the only way to wire connection and object together. We must make sure the connection exists as long as objects using it exist. 
+
 Of course, at any time before or after running the event loop on the connection, we can create and "hook", as well as remove, objects and proxies upon that connection.
 
 #### Using D-Bus connections on the client side
 
-On the **client** side we have more options when creating D-Bus proxies. That corresponds to three overloads of the `createProxy()` factory:
+On the **client** side we likewise need a connection -- just that unlike on the server side, we don't need to request a unique bus name on it. We have more options here when creating a proxy:
 
-  * In case we (the application) already maintain a D-Bus connection, e.g. because we a D-Bus service anyway, the simple and typical approach is to create proxy upon that connection. The proxy will share the connection with others. So we pass connection reference to proxy factory. With this approach we must of course ensure that the connection exists as long as the proxy exists.
+  * Pass an already existing connection as a reference. This is the typical approach when the application already maintains a D-Bus connection (maybe it provide D-Bus API on it, and/or it already has some proxies hooked on it). The proxy will share the connection with others. With this approach we must of course ensure that the connection exists as long as the proxy exists.
 
-  * Or -- and this is typical when we have a simple D-Bus client application -- we have another option: we let proxy maintain its own connection (and an associated thread):
+  * Or -- and this is typical when we have a simple D-Bus client application -- we have another option: we let the proxy maintain its own connection (and potentially an associated event loop thread, see below):
 
     * We either create the connection ourselves and `std::move` it to the proxy object factory. The proxy becomes an owner of this connection, and will run the event loop on that connection. This had the advantage that we may choose the type of connection (system, session, remote).
 
-    * Or we don't bother about any connection at all when creating a proxy (the factory overload with no connection parameter). Under the hood, the proxy creates its own *system bus* connection, creates a separate thread and runs an event loop in it. This is **the simplest approach** for non-complex D-Bus clients. For more complex ones, with big number of proxies, this hurts scalability but may improve concurrency (see discussion higher above), so we should make a conscious choice.
+    * Or we don't bother about any connection at all when creating a proxy (the factory overload with no connection parameter). Under the hood, the proxy creates its own *system bus* connection, creates a separate thread and runs an event loop in it. Quite **simple**, but as you can see, this hurts scalability in case of many proxies, as each would spawn and maintain its own event loop thread (see discussion higher above). But we don't necessarily need an event loop thread, in case our proxy doesn't need to listen to signals or async method call replies. Read on. 
+
+    It's also possible in this case to instruct the proxy to **not spawn an event loop thread** for its connection. There are many situations that we want to quickly create a proxy, carry out one or a few (synchronous) D-Bus calls, and let go of proxy. We call them light-weight proxies. For that purpose, spawning a new event loop thread comes with time and resource penalty, for nothing. To create such **a light-weight proxy**, use the factory/constructor overload with `dont_run_event_loop_thread_t`. All in above two bullet sub-points holds; the proxy just won't spawn a thread with an event loop in it. Note that such a proxy can be used only for synchronous D-Bus calls; it may not receive signals or async call replies. 
 
 #### Stopping I/O event loops graciously
 
