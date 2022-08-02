@@ -412,6 +412,11 @@ namespace sdbus {
         return PropertySetter(*this, propertyName);
     }
 
+    // Tag specifying that the proxy shall not run an event loop thread on its D-Bus connection.
+    // Such proxies are typically created to carry out a simple synchronous D-Bus call(s) and then are destroyed.
+    struct dont_run_event_loop_thread_t { explicit dont_run_event_loop_thread_t() = default; };
+    inline constexpr dont_run_event_loop_thread_t dont_run_event_loop_thread{};
+
     /*!
      * @brief Creates a proxy object for a specific remote D-Bus object
      *
@@ -461,12 +466,37 @@ namespace sdbus {
     /*!
      * @brief Creates a proxy object for a specific remote D-Bus object
      *
+     * @param[in] connection D-Bus connection to be used by the proxy object
+     * @param[in] destination Bus name that provides the remote D-Bus object
+     * @param[in] objectPath Path of the remote D-Bus object
+     * @param[in] dont_run_event_loop_thread tag to specify the behavior regarding running an event loop thread
+     * @return Pointer to the object proxy instance
+     *
+     * The provided connection will be used by the proxy to issue calls against the object.
+     * The Object proxy becomes an exclusive owner of this connection, but will not start an event loop
+     * thread on this connection. This is cheap construction and is suitable for short-lived proxies
+     * created just to execute simple synchronous D-Bus calls and then destroyed. Such blocking request-reply
+     * calls will work without an event loop (but signals, async calls, etc. won't).
+     *
+     * Code example:
+     * @code
+     * auto proxy = sdbus::createProxy(std::move(connection), "com.kistler.foo", "/com/kistler/foo", sdbus::dont_run_event_loop_thread);
+     * @endcode
+     */
+    [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( std::unique_ptr<sdbus::IConnection>&& connection
+                                                            , std::string destination
+                                                            , std::string objectPath
+                                                            , dont_run_event_loop_thread_t );
+
+    /*!
+     * @brief Creates a proxy object for a specific remote D-Bus object
+     *
      * @param[in] destination Bus name that provides the remote D-Bus object
      * @param[in] objectPath Path of the remote D-Bus object
      * @return Pointer to the object proxy instance
      *
      * No D-Bus connection is provided here, so the object proxy will create and manage
-     * his own connection, and will automatically start a procesing loop upon that connection
+     * his own connection, and will automatically start an event loop upon that connection
      * in a separate internal thread. Handlers for incoming signals and asynchronous
      * method replies will be executed in the context of that thread.
      *
@@ -477,6 +507,29 @@ namespace sdbus {
      */
     [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( std::string destination
                                                             , std::string objectPath );
+
+    /*!
+     * @brief Creates a proxy object for a specific remote D-Bus object
+     *
+     * @param[in] destination Bus name that provides the remote D-Bus object
+     * @param[in] objectPath Path of the remote D-Bus object
+     * @param[in] dont_run_event_loop_thread tag to specify the behavior regarding running an event loop thread
+     * @return Pointer to the object proxy instance
+     *
+     * No D-Bus connection is provided here, so the object proxy will create and manage
+     * his own connection, but it will not start an event loop thread. This is cheap
+     * construction and is suitable for short-lived proxies created just to execute simple
+     * synchronous D-Bus calls and then destroyed. Such blocking request-reply calls
+     * will work without an event loop (but signals, async calls, etc. won't).
+     *
+     * Code example:
+     * @code
+     * auto proxy = sdbus::createProxy("com.kistler.foo", "/com/kistler/foo", sdbus::dont_run_event_loop_thread );
+     * @endcode
+     */
+    [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( std::string destination
+                                                            , std::string objectPath
+                                                            , dont_run_event_loop_thread_t );
 
 }
 

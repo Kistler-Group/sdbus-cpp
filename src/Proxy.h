@@ -50,6 +50,10 @@ namespace sdbus::internal {
         Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
              , std::string destination
              , std::string objectPath );
+        Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
+             , std::string destination
+             , std::string objectPath
+             , dont_run_event_loop_thread_t );
 
         MethodCall createMethodCall(const std::string& interfaceName, const std::string& methodName) override;
         MethodReply callMethod(const MethodCall& message, uint64_t timeout) override;

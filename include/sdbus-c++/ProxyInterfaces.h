@@ -112,6 +112,22 @@ namespace sdbus {
         /*!
          * @brief Creates native-like proxy object instance
          *
+         * @param[in] destination Bus name that provides a D-Bus object
+         * @param[in] objectPath Path of the D-Bus object
+         * @param[in] dont_run_event_loop_thread tag to specify the behavior regarding running an event loop thread
+         *
+         * This constructor overload creates a proxy that manages its own D-Bus connection(s).
+         * For more information on its behavior, consult @ref createProxy(std::string,std::string,sdbus::dont_run_event_loop_thread_t)
+         */
+        ProxyInterfaces(std::string destination, std::string objectPath, dont_run_event_loop_thread_t)
+            : ProxyObjectHolder(createProxy(std::move(destination), std::move(objectPath), dont_run_event_loop_thread))
+            , _Interfaces(getProxy())...
+        {
+        }
+
+        /*!
+         * @brief Creates native-like proxy object instance
+         *
          * @param[in] connection D-Bus connection to be used by the proxy object
          * @param[in] destination Bus name that provides a D-Bus object
          * @param[in] objectPath Path of the D-Bus object
@@ -138,6 +154,23 @@ namespace sdbus {
         ProxyInterfaces(std::unique_ptr<sdbus::IConnection>&& connection, std::string destination, std::string objectPath)
             : ProxyObjectHolder(createProxy(std::move(connection), std::move(destination), std::move(objectPath)))
             , _Interfaces(getProxy())...
+        {
+        }
+
+        /*!
+         * @brief Creates native-like proxy object instance
+         *
+         * @param[in] connection D-Bus connection to be used by the proxy object
+         * @param[in] destination Bus name that provides a D-Bus object
+         * @param[in] objectPath Path of the D-Bus object
+         * @param[in] dont_run_event_loop_thread tag to specify the behavior regarding running an event loop thread
+         *
+         * The proxy created this way becomes an owner of the connection.
+         * For more information on its behavior, consult @ref createProxy(std::unique_ptr<sdbus::IConnection>&&,std::string,std::string,sdbus::dont_run_event_loop_thread_t)
+         */
+        ProxyInterfaces(std::unique_ptr<sdbus::IConnection>&& connection, std::string destination, std::string objectPath, dont_run_event_loop_thread_t)
+                : ProxyObjectHolder(createProxy(std::move(connection), std::move(destination), std::move(objectPath), dont_run_event_loop_thread))
+                , _Interfaces(getProxy())...
         {
         }
 
