@@ -70,11 +70,15 @@ public:
     MOCK_METHOD5(sd_bus_add_match, int(sd_bus *bus, sd_bus_slot **slot, const char *match, sd_bus_message_handler_t callback, void *userdata));
     MOCK_METHOD1(sd_bus_slot_unref, sd_bus_slot*(sd_bus_slot *slot));
 
+    MOCK_METHOD1(sd_bus_new, int(sd_bus **ret));
+    MOCK_METHOD1(sd_bus_start, int(sd_bus *bus));
+
     MOCK_METHOD2(sd_bus_process, int(sd_bus *bus, sd_bus_message **r));
     MOCK_METHOD2(sd_bus_get_poll_data, int(sd_bus *bus, PollData* data));
 
     MOCK_METHOD1(sd_bus_flush, int(sd_bus *bus));
     MOCK_METHOD1(sd_bus_flush_close_unref, sd_bus *(sd_bus *bus));
+    MOCK_METHOD1(sd_bus_close_unref, sd_bus *(sd_bus *bus));
 
     MOCK_METHOD2(sd_bus_message_set_destination, int(sd_bus_message *m, const char *destination));
 

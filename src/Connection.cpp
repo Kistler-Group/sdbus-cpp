@@ -70,6 +70,13 @@ Connection::Connection(std::unique_ptr<ISdBus>&& interface, remote_system_bus_t,
 {
 }
 
+Connection::Connection(std::unique_ptr<ISdBus>&& interface, pseudo_bus_t)
+    : iface_(std::move(interface))
+    , bus_(openPseudoBus())
+{
+    assert(iface_ != nullptr);
+}
+
 Connection::~Connection()
 {
     Connection::leaveEventLoop();
@@ -394,6 +401,23 @@ Connection::BusPtr Connection::openBus(const BusFactory& busFactory)
     return busPtr;
 }
 
+Connection::BusPtr Connection::openPseudoBus()
+{
+    sd_bus* bus{};
+
+    int r = iface_->sd_bus_new(&bus);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to open pseudo bus", -r);
+
+    (void)iface_->sd_bus_start(bus);
+    // It is expected that sd_bus_start has failed here, returning -EINVAL, due to having
+    // not set a bus address, but it will leave the bus in an OPENING state, which enables
+    // us to create plain D-Bus messages as a local data storage (for Variant, for example),
+    // without dependency on real IPC communication with the D-Bus broker daemon.
+    SDBUS_THROW_ERROR_IF(r < 0 && r != -EINVAL, "Failed to start pseudo bus", -r);
+
+    return {bus, [this](sd_bus* bus){ return iface_->sd_bus_close_unref(bus); }};
+}
+
 void Connection::finishHandshake(sd_bus* bus)
 {
     // Process all requests that are part of the initial handshake,
@@ -571,6 +595,12 @@ std::unique_ptr<sdbus::internal::IConnection> createConnection()
     SCOPE_EXIT{ connection.release(); };
     auto connectionInternal = dynamic_cast<sdbus::internal::IConnection*>(connection.get());
     return std::unique_ptr<sdbus::internal::IConnection>(connectionInternal);
+}
+
+std::unique_ptr<sdbus::internal::IConnection> createPseudoConnection()
+{
+    auto interface = std::make_unique<sdbus::internal::SdBus>();
+    return std::make_unique<sdbus::internal::Connection>(std::move(interface), Connection::pseudo_bus);
 }
 
 } // namespace sdbus::internal

@@ -864,9 +864,13 @@ void Signal::setDestination(const std::string& destination)
 
 PlainMessage createPlainMessage()
 {
-    static auto connection = internal::createConnection();
+    //static auto connection = internal::createConnection();
+    // Let's create a pseudo connection -- one that does not really connect to the real bus.
+    // This is a bit of a hack, but it enables use to work with D-Bus message locally without
+    // the need of D-Bus daemon. This is especially useful in unit tests of both sdbus-c++ and client code.
+    // Additionally, it's light-weight and fast solution.
+    static auto connection = internal::createPseudoConnection();
     return connection->createPlainMessage();
 }
-
 
 }

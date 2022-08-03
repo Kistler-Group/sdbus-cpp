@@ -173,6 +173,12 @@ template<> void AConnectionNameRequest<Connection::remote_system_bus_t>::setUpBu
 {
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_open_system_remote(_, _)).WillOnce(DoAll(SetArgPointee<0>(fakeBusPtr_), Return(1)));
 }
+template<> void AConnectionNameRequest<Connection::pseudo_bus_t>::setUpBusOpenExpectation()
+{
+    EXPECT_CALL(*sdBusIntfMock_, sd_bus_new(_)).WillOnce(DoAll(SetArgPointee<0>(fakeBusPtr_), Return(1)));
+    // `sd_bus_start` for pseudo connection shall return an error value, remember this is a fake connection...
+    EXPECT_CALL(*sdBusIntfMock_, sd_bus_start(fakeBusPtr_)).WillOnce(Return(-EINVAL));
+}
 template <typename _BusTypeTag>
 std::unique_ptr<Connection> AConnectionNameRequest<_BusTypeTag>::makeConnection()
 {
@@ -192,6 +198,7 @@ typedef ::testing::Types< Connection::default_bus_t
                         , Connection::session_bus_t
                         , Connection::custom_session_bus_t
                         , Connection::remote_system_bus_t
+                        , Connection::pseudo_bus_t
                         > BusTypeTags;
 
 TYPED_TEST_SUITE(AConnectionNameRequest, BusTypeTags);
