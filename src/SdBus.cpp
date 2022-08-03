@@ -261,6 +261,16 @@ sd_bus_slot* SdBus::sd_bus_slot_unref(sd_bus_slot *slot)
     return ::sd_bus_slot_unref(slot);
 }
 
+int SdBus::sd_bus_new(sd_bus **ret)
+{
+    return ::sd_bus_new(ret);
+}
+
+int SdBus::sd_bus_start(sd_bus *bus)
+{
+    return ::sd_bus_start(bus);
+}
+
 int SdBus::sd_bus_process(sd_bus *bus, sd_bus_message **r)
 {
     std::lock_guard lock(sdbusMutex_);
@@ -295,6 +305,16 @@ int SdBus::sd_bus_flush(sd_bus *bus)
 sd_bus* SdBus::sd_bus_flush_close_unref(sd_bus *bus)
 {
     return ::sd_bus_flush_close_unref(bus);
+}
+
+sd_bus* SdBus::sd_bus_close_unref(sd_bus *bus)
+{
+#if LIBSYSTEMD_VERSION>=241
+    return ::sd_bus_close_unref(bus);
+#else
+    ::sd_bus_close(bus);
+    return ::sd_bus_unref(bus);
+#endif
 }
 
 int SdBus::sd_bus_message_set_destination(sd_bus_message *m, const char *destination)

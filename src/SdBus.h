@@ -71,11 +71,15 @@ public:
     virtual int sd_bus_add_match(sd_bus *bus, sd_bus_slot **slot, const char *match, sd_bus_message_handler_t callback, void *userdata) override;
     virtual sd_bus_slot* sd_bus_slot_unref(sd_bus_slot *slot) override;
 
+    virtual int sd_bus_new(sd_bus **ret) override;
+    virtual int sd_bus_start(sd_bus *bus) override;
+
     virtual int sd_bus_process(sd_bus *bus, sd_bus_message **r) override;
     virtual int sd_bus_get_poll_data(sd_bus *bus, PollData* data) override;
 
     virtual int sd_bus_flush(sd_bus *bus) override;
     virtual sd_bus *sd_bus_flush_close_unref(sd_bus *bus) override;
+    virtual sd_bus *sd_bus_close_unref(sd_bus *bus) override;
 
     virtual int sd_bus_message_set_destination(sd_bus_message *m, const char *destination) override;
 
