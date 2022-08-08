@@ -60,48 +60,16 @@ Connection::Connection(std::unique_ptr<ISdBus>&& interface, session_bus_t)
 {
 }
 
+Connection::Connection(std::unique_ptr<ISdBus>&& interface, custom_session_bus_t, const std::string& address)
+        : Connection(std::move(interface), [&](sd_bus** bus) { return iface_->sd_bus_open_user_with_address(bus, address.c_str()); })
+{
+}
+
 Connection::Connection(std::unique_ptr<ISdBus>&& interface, remote_system_bus_t, const std::string& host)
     : Connection(std::move(interface), [this, &host](sd_bus** bus){ return iface_->sd_bus_open_system_remote(bus, host.c_str()); })
 {
 }
 
-Connection::Connection(std::unique_ptr<ISdBus>&& interface, custom_session_bus_t, const std::string& addr)
-    : Connection(std::move(interface), [this, &addr](sd_bus** bus) noexcept -> int {
-        sd_bus* b = nullptr;
-        int r = iface_->sd_bus_new(&b);
-        if (r < 0) {
-            return r;
-        }
-
-        r = iface_->sd_bus_set_address(b, addr.c_str());
-        if (r < 0) {
-            return r;
-        }
-
-        r = iface_->sd_bus_set_bus_client(b, true);
-        if (r < 0) {
-            return r;
-        }
-
-        // Copying behavior from
-        // https://github.com/systemd/systemd/blob/fee6441601c979165ebcbb35472036439f8dad5f/src/libsystemd/sd-bus/sd-bus.c#L1381
-        // Here, we make the bus as trusted
-        r = iface_->sd_bus_set_trusted(b, true);
-        if (r < 0) {
-            return r;
-        }
-
-        r = iface_->sd_bus_start(b);
-        if (r < 0) {
-            return r;
-        }
-
-        *bus = b;
-        return 0;
-    })
-{
-
-}
 Connection::~Connection()
 {
     Connection::leaveEventLoop();
@@ -609,6 +577,8 @@ std::unique_ptr<sdbus::internal::IConnection> createConnection()
 
 namespace sdbus {
 
+using internal::Connection;
+
 std::unique_ptr<sdbus::IConnection> createConnection()
 {
     return createSystemBusConnection();
@@ -622,8 +592,7 @@ std::unique_ptr<sdbus::IConnection> createConnection(const std::string& name)
 std::unique_ptr<sdbus::IConnection> createDefaultBusConnection()
 {
     auto interface = std::make_unique<sdbus::internal::SdBus>();
-    constexpr sdbus::internal::Connection::default_bus_t default_bus;
-    return std::make_unique<sdbus::internal::Connection>(std::move(interface), default_bus);
+    return std::make_unique<sdbus::internal::Connection>(std::move(interface), Connection::default_bus);
 }
 
 std::unique_ptr<sdbus::IConnection> createDefaultBusConnection(const std::string& name)
@@ -636,8 +605,7 @@ std::unique_ptr<sdbus::IConnection> createDefaultBusConnection(const std::string
 std::unique_ptr<sdbus::IConnection> createSystemBusConnection()
 {
     auto interface = std::make_unique<sdbus::internal::SdBus>();
-    constexpr sdbus::internal::Connection::system_bus_t system_bus;
-    return std::make_unique<sdbus::internal::Connection>(std::move(interface), system_bus);
+    return std::make_unique<sdbus::internal::Connection>(std::move(interface), Connection::system_bus);
 }
 
 std::unique_ptr<sdbus::IConnection> createSystemBusConnection(const std::string& name)
@@ -650,8 +618,7 @@ std::unique_ptr<sdbus::IConnection> createSystemBusConnection(const std::string&
 std::unique_ptr<sdbus::IConnection> createSessionBusConnection()
 {
     auto interface = std::make_unique<sdbus::internal::SdBus>();
-    constexpr sdbus::internal::Connection::session_bus_t session_bus;
-    return std::make_unique<sdbus::internal::Connection>(std::move(interface), session_bus);
+    return std::make_unique<sdbus::internal::Connection>(std::move(interface), Connection::session_bus);
 }
 
 std::unique_ptr<sdbus::IConnection> createSessionBusConnection(const std::string& name)
@@ -661,19 +628,17 @@ std::unique_ptr<sdbus::IConnection> createSessionBusConnection(const std::string
     return conn;
 }
 
-std::unique_ptr<sdbus::IConnection> createSessionBusConnectionWithAddress(const std::string &addr)
+std::unique_ptr<sdbus::IConnection> createSessionBusConnectionWithAddress(const std::string &address)
 {
     auto interface = std::make_unique<sdbus::internal::SdBus>();
     assert(interface != nullptr);
-    constexpr sdbus::internal::Connection::custom_session_bus_t custom_session_bus;
-    return std::make_unique<sdbus::internal::Connection>(std::move(interface), custom_session_bus, addr);
+    return std::make_unique<sdbus::internal::Connection>(std::move(interface), Connection::custom_session_bus, address);
 }
 
 std::unique_ptr<sdbus::IConnection> createRemoteSystemBusConnection(const std::string& host)
 {
     auto interface = std::make_unique<sdbus::internal::SdBus>();
-    constexpr sdbus::internal::Connection::remote_system_bus_t remote_system_bus;
-    return std::make_unique<sdbus::internal::Connection>(std::move(interface), remote_system_bus, host);
+    return std::make_unique<sdbus::internal::Connection>(std::move(interface), Connection::remote_system_bus, host);
 }
 
 } // namespace sdbus

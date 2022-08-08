@@ -48,16 +48,21 @@ namespace sdbus::internal {
     public:
         // Bus type tags
         struct default_bus_t{};
+        inline static constexpr default_bus_t default_bus{};
         struct system_bus_t{};
+        inline static constexpr system_bus_t system_bus{};
         struct session_bus_t{};
-        struct remote_system_bus_t{};
+        inline static constexpr session_bus_t session_bus{};
         struct custom_session_bus_t{};
+        inline static constexpr custom_session_bus_t custom_session_bus{};
+        struct remote_system_bus_t{};
+        inline static constexpr remote_system_bus_t remote_system_bus{};
 
         Connection(std::unique_ptr<ISdBus>&& interface, default_bus_t);
         Connection(std::unique_ptr<ISdBus>&& interface, system_bus_t);
         Connection(std::unique_ptr<ISdBus>&& interface, session_bus_t);
+        Connection(std::unique_ptr<ISdBus>&& interface, custom_session_bus_t, const std::string& address);
         Connection(std::unique_ptr<ISdBus>&& interface, remote_system_bus_t, const std::string& host);
-        Connection(std::unique_ptr<ISdBus>&& interface, custom_session_bus_t, const std::string& addr);
         ~Connection() override;
 
         void requestName(const std::string& name) override;

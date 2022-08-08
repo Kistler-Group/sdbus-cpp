@@ -59,8 +59,9 @@ public:
     virtual int sd_bus_emit_interfaces_removed_strv(sd_bus *bus, const char *path, char **interfaces) override;
 
     virtual int sd_bus_open(sd_bus **ret) override;
-    virtual int sd_bus_open_user(sd_bus **ret) override;
     virtual int sd_bus_open_system(sd_bus **ret) override;
+    virtual int sd_bus_open_user(sd_bus **ret) override;
+    virtual int sd_bus_open_user_with_address(sd_bus **ret, const char* address) override;
     virtual int sd_bus_open_system_remote(sd_bus **ret, const char* hsot) override;
     virtual int sd_bus_request_name(sd_bus *bus, const char *name, uint64_t flags) override;
     virtual int sd_bus_release_name(sd_bus *bus, const char *name) override;
@@ -88,12 +89,6 @@ public:
     virtual int sd_bus_creds_get_egid(sd_bus_creds *c, gid_t *egid) override;
     virtual int sd_bus_creds_get_supplementary_gids(sd_bus_creds *c, const gid_t **gids) override;
     virtual int sd_bus_creds_get_selinux_context(sd_bus_creds *c, const char **label) override;
-
-    virtual int sd_bus_new(sd_bus **bus) override;
-    virtual int sd_bus_set_address(sd_bus *bus, const char *addr) override;
-    virtual int sd_bus_set_bus_client(sd_bus *bus, int b) override;
-    virtual int sd_bus_set_trusted(sd_bus *bus, int b) override;
-    virtual int sd_bus_start(sd_bus *bus) override;
 
 private:
     std::recursive_mutex sdbusMutex_;
