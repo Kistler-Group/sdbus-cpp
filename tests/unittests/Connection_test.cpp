@@ -35,11 +35,7 @@ using ::testing::DoAll;
 using ::testing::SetArgPointee;
 using ::testing::Return;
 using ::testing::NiceMock;
-using sdbus::internal::Connection;
-constexpr sdbus::internal::Connection::default_bus_t default_bus;
-constexpr sdbus::internal::Connection::system_bus_t system_bus;
-constexpr sdbus::internal::Connection::session_bus_t session_bus;
-constexpr sdbus::internal::Connection::remote_system_bus_t remote_system_bus;
+using ::sdbus::internal::Connection;
 
 class ConnectionCreationTest : public ::testing::Test
 {
@@ -58,81 +54,81 @@ TEST_F(ADefaultBusConnection, OpensAndFlushesBusWhenCreated)
 {
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_open(_)).WillOnce(DoAll(SetArgPointee<0>(fakeBusPtr_), Return(1)));
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_flush(_)).Times(1);
-    Connection(std::move(sdBusIntfMock_), default_bus);
+    Connection(std::move(sdBusIntfMock_), Connection::default_bus);
 }
 
 TEST_F(ASystemBusConnection, OpensAndFlushesBusWhenCreated)
 {
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_open_system(_)).WillOnce(DoAll(SetArgPointee<0>(fakeBusPtr_), Return(1)));
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_flush(_)).Times(1);
-    Connection(std::move(sdBusIntfMock_), system_bus);
+    Connection(std::move(sdBusIntfMock_), Connection::system_bus);
 }
 
 TEST_F(ASessionBusConnection, OpensAndFlushesBusWhenCreated)
 {
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_open_user(_)).WillOnce(DoAll(SetArgPointee<0>(fakeBusPtr_), Return(1)));
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_flush(_)).Times(1);
-    Connection(std::move(sdBusIntfMock_), session_bus);
+    Connection(std::move(sdBusIntfMock_), Connection::session_bus);
 }
 
 TEST_F(ADefaultBusConnection, ClosesAndUnrefsBusWhenDestructed)
 {
     ON_CALL(*sdBusIntfMock_, sd_bus_open(_)).WillByDefault(DoAll(SetArgPointee<0>(fakeBusPtr_), Return(1)));
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_flush_close_unref(_)).Times(1);
-    Connection(std::move(sdBusIntfMock_), default_bus);
+    Connection(std::move(sdBusIntfMock_), Connection::default_bus);
 }
 
 TEST_F(ASystemBusConnection, ClosesAndUnrefsBusWhenDestructed)
 {
     ON_CALL(*sdBusIntfMock_, sd_bus_open_system(_)).WillByDefault(DoAll(SetArgPointee<0>(fakeBusPtr_), Return(1)));
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_flush_close_unref(_)).Times(1);
-    Connection(std::move(sdBusIntfMock_), system_bus);
+    Connection(std::move(sdBusIntfMock_), Connection::system_bus);
 }
 
 TEST_F(ASessionBusConnection, ClosesAndUnrefsBusWhenDestructed)
 {
     ON_CALL(*sdBusIntfMock_, sd_bus_open_user(_)).WillByDefault(DoAll(SetArgPointee<0>(fakeBusPtr_), Return(1)));
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_flush_close_unref(_)).Times(1);
-    Connection(std::move(sdBusIntfMock_), session_bus);
+    Connection(std::move(sdBusIntfMock_), Connection::session_bus);
 }
 
 TEST_F(ADefaultBusConnection, ThrowsErrorWhenOpeningTheBusFailsDuringConstruction)
 {
     ON_CALL(*sdBusIntfMock_, sd_bus_open(_)).WillByDefault(DoAll(SetArgPointee<0>(fakeBusPtr_), Return(-1)));
-    ASSERT_THROW(Connection(std::move(sdBusIntfMock_), default_bus), sdbus::Error);
+    ASSERT_THROW(Connection(std::move(sdBusIntfMock_), Connection::default_bus), sdbus::Error);
 }
 
 TEST_F(ASystemBusConnection, ThrowsErrorWhenOpeningTheBusFailsDuringConstruction)
 {
     ON_CALL(*sdBusIntfMock_, sd_bus_open_system(_)).WillByDefault(DoAll(SetArgPointee<0>(fakeBusPtr_), Return(-1)));
-    ASSERT_THROW(Connection(std::move(sdBusIntfMock_), system_bus), sdbus::Error);
+    ASSERT_THROW(Connection(std::move(sdBusIntfMock_), Connection::system_bus), sdbus::Error);
 }
 
 TEST_F(ASessionBusConnection, ThrowsErrorWhenOpeningTheBusFailsDuringConstruction)
 {
     ON_CALL(*sdBusIntfMock_, sd_bus_open_user(_)).WillByDefault(DoAll(SetArgPointee<0>(fakeBusPtr_), Return(-1)));
-    ASSERT_THROW(Connection(std::move(sdBusIntfMock_), session_bus), sdbus::Error);
+    ASSERT_THROW(Connection(std::move(sdBusIntfMock_), Connection::session_bus), sdbus::Error);
 }
 
 TEST_F(ADefaultBusConnection, ThrowsErrorWhenFlushingTheBusFailsDuringConstruction)
 {
     ON_CALL(*sdBusIntfMock_, sd_bus_open(_)).WillByDefault(DoAll(SetArgPointee<0>(fakeBusPtr_), Return(1)));
     ON_CALL(*sdBusIntfMock_, sd_bus_flush(_)).WillByDefault(Return(-1));
-    ASSERT_THROW(Connection(std::move(sdBusIntfMock_), default_bus), sdbus::Error);
+    ASSERT_THROW(Connection(std::move(sdBusIntfMock_), Connection::default_bus), sdbus::Error);
 }
 
 TEST_F(ASystemBusConnection, ThrowsErrorWhenFlushingTheBusFailsDuringConstruction)
 {
     ON_CALL(*sdBusIntfMock_, sd_bus_open_system(_)).WillByDefault(DoAll(SetArgPointee<0>(fakeBusPtr_), Return(1)));
     ON_CALL(*sdBusIntfMock_, sd_bus_flush(_)).WillByDefault(Return(-1));
-    ASSERT_THROW(Connection(std::move(sdBusIntfMock_), system_bus), sdbus::Error);
+    ASSERT_THROW(Connection(std::move(sdBusIntfMock_), Connection::system_bus), sdbus::Error);
 }
 
 TEST_F(ASessionBusConnection, ThrowsErrorWhenFlushingTheBusFailsDuringConstruction)
 {
     ON_CALL(*sdBusIntfMock_, sd_bus_open_user(_)).WillByDefault(DoAll(SetArgPointee<0>(fakeBusPtr_), Return(1)));
     ON_CALL(*sdBusIntfMock_, sd_bus_flush(_)).WillByDefault(Return(-1));
-    ASSERT_THROW(Connection(std::move(sdBusIntfMock_), session_bus), sdbus::Error);
+    ASSERT_THROW(Connection(std::move(sdBusIntfMock_), Connection::session_bus), sdbus::Error);
 }
 
 namespace
@@ -169,6 +165,10 @@ template<> void AConnectionNameRequest<Connection::session_bus_t>::setUpBusOpenE
 {
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_open_user(_)).WillOnce(DoAll(SetArgPointee<0>(fakeBusPtr_), Return(1)));
 }
+template<> void AConnectionNameRequest<Connection::custom_session_bus_t>::setUpBusOpenExpectation()
+{
+    EXPECT_CALL(*sdBusIntfMock_, sd_bus_open_user_with_address(_, _)).WillOnce(DoAll(SetArgPointee<0>(fakeBusPtr_), Return(1)));
+}
 template<> void AConnectionNameRequest<Connection::remote_system_bus_t>::setUpBusOpenExpectation()
 {
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_open_system_remote(_, _)).WillOnce(DoAll(SetArgPointee<0>(fakeBusPtr_), Return(1)));
@@ -178,14 +178,19 @@ std::unique_ptr<Connection> AConnectionNameRequest<_BusTypeTag>::makeConnection(
 {
     return std::make_unique<Connection>(std::unique_ptr<NiceMock<SdBusMock>>(sdBusIntfMock_), _BusTypeTag{});
 }
+template<> std::unique_ptr<Connection> AConnectionNameRequest<Connection::custom_session_bus_t>::makeConnection()
+{
+    return std::make_unique<Connection>(std::unique_ptr<NiceMock<SdBusMock>>(sdBusIntfMock_), Connection::custom_session_bus, "custom session bus");
+}
 template<> std::unique_ptr<Connection> AConnectionNameRequest<Connection::remote_system_bus_t>::makeConnection()
 {
-    return std::make_unique<Connection>(std::unique_ptr<NiceMock<SdBusMock>>(sdBusIntfMock_), remote_system_bus, "some host");
+    return std::make_unique<Connection>(std::unique_ptr<NiceMock<SdBusMock>>(sdBusIntfMock_), Connection::remote_system_bus, "some host");
 }
 
 typedef ::testing::Types< Connection::default_bus_t
                         , Connection::system_bus_t
                         , Connection::session_bus_t
+                        , Connection::custom_session_bus_t
                         , Connection::remote_system_bus_t
                         > BusTypeTags;
 
