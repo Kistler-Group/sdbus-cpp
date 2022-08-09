@@ -201,3 +201,18 @@ v1.1.0
 - Add support for unregistering signal handler
 - Add support for chrono literals in sdbus-c++-xml2cpp generator
 - Additional little fixes and improvements in code, build system, and documentation
+
+v1.2.0
+- Add support for match rules
+- Add support for session bus connection at custom address
+- Add CMake variable for extra libsystemd config options
+- Use pseudo D-Bus connection for plain messages
+- Rename dont_request_slot tag to floating_slot
+- Add validity checks for names and paths
+- Remove executable flag from source files
+- Detect missing type after array declaration
+- Fix invalid assert on event fd
+- Enable move for ObjectPath and Signature
+- Add printer for std::chrono in googletest v1.11.0
+- Fix potential undefined behavior in creation of sdbus::Error
+- Additional little fixes and improvements in code, build system, and documentation
