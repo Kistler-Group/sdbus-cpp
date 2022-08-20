@@ -210,6 +210,11 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/sdbus-c++-config.cmake
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/sdbus-c++
         COMPONENT dev)
 
+if(BUILD_SHARED_LIBS AND (BUILD_LIBSYSTEMD OR Systemd_LINK_LIBRARIES MATCHES "/libsystemd\.a(;|$)"))
+    set(PKGCONFIG_REQS ".private")
+else()
+    set(PKGCONFIG_REQS "")
+endif()
 configure_file(pkgconfig/sdbus-c++.pc.in pkgconfig/sdbus-c++.pc @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/sdbus-c++.pc
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig COMPONENT dev)
