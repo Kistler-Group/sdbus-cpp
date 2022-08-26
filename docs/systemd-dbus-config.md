@@ -41,7 +41,7 @@ Typical default D-Bus configuration does not allow to register services except e
 <busconfig>
   <policy user="root">
     <allow own="org.sdbuscpp.concatenator"/>
-    <allow send_destination="org.sdbuscpp"/>
+    <allow send_destination="org.sdbuscpp.concatenator"/>
     <allow send_interface="org.sdbuscpp.concatenator"/>
   </policy>
 </busconfig>
