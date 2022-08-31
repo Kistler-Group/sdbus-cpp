@@ -19,8 +19,9 @@ Using sdbus-c++ library
 14. [Asynchronous client-side methods](#asynchronous-client-side-methods)
 15. [Using D-Bus properties](#using-d-bus-properties)
 16. [Standard D-Bus interfaces](#standard-d-bus-interfaces)
-17. [Support for match rules](#support-for-match-rules)
-18. [Conclusion](#conclusion)
+17. [Using D-Bus Types](#using-d-bus-types)
+18. [Support for match rules](#support-for-match-rules)
+19. [Conclusion](#conclusion)
 
 Introduction
 ------------
@@ -1280,6 +1281,43 @@ Note that signals of afore-mentioned standard D-Bus interfaces are not emitted b
 
 Working examples of using standard D-Bus interfaces can be found in [sdbus-c++ integration tests](/tests/integrationtests/DBusStandardInterfacesTests.cpp) or the [examples](/examples) directory.
 
+Using D-Bus Types
+-------------------------
+
+For many D-Bus interactions dealing with D-Bus types is necessary. For that, sdbus-c++ provides many predefined D-Bus
+types. The table below shows which C++ type corresponds to which D-Bus type.
+
+Example:
+The D-Bus signature of a method is GetManagedObjects(o,a{sa{sv}}).
+This means the corresponding C++ return type is:<br>
+std::map<sdbus::ObjectPath, std::map<std::string, std::map<std::string, sdbus::Variant>>>
+
+
+| Category            | Code        | Code ASCII | Conventional Name	 | C++ Type                        |
+|---------------------|-------------|------------|--------------------|---------------------------------|
+| reserved            | 0           | NUL        | INVALID            | -                               |
+| fixed, basic	       | 121         | y          | BYTE               | uint8_t                         |
+| fixed, basic	       | 98          | b          | BOOLEAN            | bool                            |
+| fixed, basic	       | 110         | n          | INT16              | int16_t                         |
+| fixed, basic	       | 113         | q          | UINT16             | uint16_t                        |
+| fixed, basic	       | 105         | i          | INT32              | int32_t                         |
+| fixed, basic	       | 117         | u          | UINT32             | uint32_t                        |
+| fixed, basic	       | 120         | x          | INT64              | int64_t                         |
+| fixed, basic	       | 116         | t          | UINT64             | uint64_t                        |
+| fixed, basic	       | 100         | d          | DOUBLE             | double                          |
+| string-like, basic	 | 115         | s          | STRING             | const char*, std::string        |
+| string-like, basic	 | 111         | o          | OBJECT_PATH        | sdbus::ObjectPath               |
+| string-like, basic	 | 103         | g          | SIGNATURE          | sdbus::Signature                |
+| container           | 97          | a          | ARRAY              | std::vector<T>, std::map<T1,T2> |
+| container           | 114,40,41   | r()        | STRUCT             | -                               |
+| container           | 118         | v          | VARIANT            | sdbus::Variant                  |
+| container           | 101,123,125 | e{}        | DICT_ENTRY         | -                               |
+| fixed, basic        | 104         | h          | UNIX_FD            | sdbus::UnixFd                   |
+| reserved            | 109         | m          | (reserved)         | -                               |
+| reserved            | 42          | *          | (reserved)         | -                               |
+| reserved            | 63          | ?          | (reserved)         | -                               |
+| reserved            | 64,38,94    | @&^        | (reserved)         | -                               |
+    
 Support for match rules
 -----------------------
 
