@@ -22,9 +22,14 @@ public:
 
 protected:
     thermometer_proxy(sdbus::IProxy& proxy)
-        : proxy_(proxy)
+        : proxy_(&proxy)
     {
     }
+
+    thermometer_proxy(const thermometer_proxy&) = delete;
+    thermometer_proxy& operator=(const thermometer_proxy&) = delete;
+    thermometer_proxy(thermometer_proxy&&) = default;
+    thermometer_proxy& operator=(thermometer_proxy&&) = default;
 
     ~thermometer_proxy() = default;
 
@@ -32,12 +37,12 @@ public:
     uint32_t getCurrentTemperature()
     {
         uint32_t result;
-        proxy_.callMethod("getCurrentTemperature").onInterface(INTERFACE_NAME).storeResultsTo(result);
+        proxy_->callMethod("getCurrentTemperature").onInterface(INTERFACE_NAME).storeResultsTo(result);
         return result;
     }
 
 private:
-    sdbus::IProxy& proxy_;
+    sdbus::IProxy* proxy_;
 };
 
 }}}} // namespaces
@@ -55,9 +60,14 @@ public:
 
 protected:
     factory_proxy(sdbus::IProxy& proxy)
-        : proxy_(proxy)
+        : proxy_(&proxy)
     {
     }
+
+    factory_proxy(const factory_proxy&) = delete;
+    factory_proxy& operator=(const factory_proxy&) = delete;
+    factory_proxy(factory_proxy&&) = default;
+    factory_proxy& operator=(factory_proxy&&) = default;
 
     ~factory_proxy() = default;
 
@@ -65,17 +75,17 @@ public:
     sdbus::ObjectPath createDelegateObject()
     {
         sdbus::ObjectPath result;
-        proxy_.callMethod("createDelegateObject").onInterface(INTERFACE_NAME).storeResultsTo(result);
+        proxy_->callMethod("createDelegateObject").onInterface(INTERFACE_NAME).storeResultsTo(result);
         return result;
     }
 
     void destroyDelegateObject(const sdbus::ObjectPath& delegate)
     {
-        proxy_.callMethod("destroyDelegateObject").onInterface(INTERFACE_NAME).withArguments(delegate).dontExpectReply();
+        proxy_->callMethod("destroyDelegateObject").onInterface(INTERFACE_NAME).withArguments(delegate).dontExpectReply();
     }
 
 private:
-    sdbus::IProxy& proxy_;
+    sdbus::IProxy* proxy_;
 };
 
 }}}}} // namespaces

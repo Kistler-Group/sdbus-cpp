@@ -141,6 +141,11 @@ namespace sdbus {
 
     protected:
         using base_type = AdaptorInterfaces;
+
+        AdaptorInterfaces(const AdaptorInterfaces&) = delete;
+        AdaptorInterfaces& operator=(const AdaptorInterfaces&) = delete;
+        AdaptorInterfaces(AdaptorInterfaces&&) = default;
+        AdaptorInterfaces& operator=(AdaptorInterfaces&&) = default;
         ~AdaptorInterfaces() = default;
     };
 

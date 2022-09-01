@@ -604,7 +604,7 @@ sdbus-c++ ships with the native stub generator tool called `sdbus-c++-xml2cpp`. 
 The generator tool takes D-Bus XML IDL description of D-Bus interfaces on its input, and can be instructed to generate one or both of these: an adaptor header file for use on the server side, and a proxy header file for use on the client side. Like this:
 
 ```bash
-sdbus-c++-xml2cpp database-bindings.xml --adaptor=database-server-glue.h --proxy=database-client-glue.h
+sdbus-c++-xml2cpp concatenator-bindings.xml --adaptor=concatenator-server-glue.h --proxy=concatenator-client-glue.h
 ```
 
 The adaptor header file contains classes that can be used to implement interfaces described in the IDL (these classes represent object interfaces). The proxy header file contains classes that can be used to make calls to remote objects (these classes represent remote object interfaces).
@@ -630,11 +630,13 @@ As an example, let's look at an XML description of our Concatenator's interfaces
 </node>
 ```
 
-After running this through the stubs generator, we get the stub code that is described in the following two subsections.
+After running this through the code generator, we get the generated code that is described in the following two subsections.
 
 ### concatenator-server-glue.h
 
 For each interface in the XML IDL file the generator creates one class that represents it. The class is de facto an interface which shall be implemented by the class inheriting it. The class' constructor takes care of registering all methods, signals and properties. For each D-Bus method there is a pure virtual member function. These pure virtual functions must be implemented in the child class. For each signal, there is a public function member that emits this signal.
+
+Generated adaptor classes support move semantics. They are moveable but not copyable.
 
 ```cpp
 /*
@@ -658,25 +660,30 @@ public:
 
 protected:
     Concatenator_adaptor(sdbus::IObject& object)
-        : object_(object)
+        : object_(&object)
     {
-        object_.registerMethod("concatenate").onInterface(INTERFACE_NAME).withInputParamNames("numbers", "separator").withOutputParamNames("concatenatedString").implementedAs([this](const std::vector<int32_t>& numbers, const std::string& separator){ return this->concatenate(numbers, separator); });
-        object_.registerSignal("concatenated").onInterface(INTERFACE_NAME).withParameters<std::string>("concatenatedString");
+        object_->registerMethod("concatenate").onInterface(INTERFACE_NAME).withInputParamNames("numbers", "separator").withOutputParamNames("concatenatedString").implementedAs([this](const std::vector<int32_t>& numbers, const std::string& separator){ return this->concatenate(numbers, separator); });
+        object_->registerSignal("concatenated").onInterface(INTERFACE_NAME).withParameters<std::string>("concatenatedString");
     }
+
+    Concatenator_adaptor(const Concatenator_adaptor&) = delete;
+    Concatenator_adaptor& operator=(const Concatenator_adaptor&) = delete;
+    Concatenator_adaptor(Concatenator_adaptor&&) = default;
+    Concatenator_adaptor& operator=(Concatenator_adaptor&&) = default;
 
     ~Concatenator_adaptor() = default;
 
 public:
     void emitConcatenated(const std::string& concatenatedString)
     {
-        object_.emitSignal("concatenated").onInterface(INTERFACE_NAME).withArguments(concatenatedString);
+        object_->emitSignal("concatenated").onInterface(INTERFACE_NAME).withArguments(concatenatedString);
     }
 
 private:
     virtual std::string concatenate(const std::vector<int32_t>& numbers, const std::string& separator) = 0;
 
 private:
-    sdbus::IObject& object_;
+    sdbus::IObject* object_;
 };
 
 }} // namespaces
@@ -686,7 +693,9 @@ private:
 
 ### concatenator-client-glue.h
 
-Analogously to the adaptor classes described above, there is one class generated for one interface in the XML IDL file. The class is de facto a proxy to the concrete single interface of a remote object. For each D-Bus signal there is a pure virtual member function whose body must be provided in a child class. For each method, there is a public function member that calls the method remotely.
+Analogously to the adaptor classes described above, there is one proxy class generated for one interface in the XML IDL file. The class is de facto a proxy to the concrete single interface of a remote object. For each D-Bus signal there is a pure virtual member function whose body must be provided in a child class. For each method, there is a public function member that calls the method remotely.
+
+Generated proxy classes support move semantics. They are moveable but not copyable.
 
 ```cpp
 /*
@@ -710,10 +719,15 @@ public:
 
 protected:
     Concatenator_proxy(sdbus::IProxy& proxy)
-        : proxy_(proxy)
+        : proxy_(&proxy)
     {
-        proxy_.uponSignal("concatenated").onInterface(INTERFACE_NAME).call([this](const std::string& concatenatedString){ this->onConcatenated(concatenatedString); });
+        proxy_->uponSignal("concatenated").onInterface(INTERFACE_NAME).call([this](const std::string& concatenatedString){ this->onConcatenated(concatenatedString); });
     }
+
+    Concatenator_proxy(const Concatenator_proxy&) = delete;
+    Concatenator_proxy& operator=(const Concatenator_proxy&) = delete;
+    Concatenator_proxy(Concatenator_proxy&&) = default;
+    Concatenator_proxy& operator=(Concatenator_proxy&&) = default;
 
     ~Concatenator_proxy() = default;
 
@@ -723,12 +737,12 @@ public:
     std::string concatenate(const std::vector<int32_t>& numbers, const std::string& separator)
     {
         std::string result;
-        proxy_.callMethod("concatenate").onInterface(INTERFACE_NAME).withArguments(numbers, separator).storeResultsTo(result);
+        proxy_->callMethod("concatenate").onInterface(INTERFACE_NAME).withArguments(numbers, separator).storeResultsTo(result);
         return result;
     }
 
 private:
-    sdbus::IProxy& proxy_;
+    sdbus::IProxy* proxy_;
 };
 
 }} // namespaces
@@ -1216,9 +1230,9 @@ class PropertyProvider_adaptor
 
 public:
     PropertyProvider_adaptor(sdbus::IObject& object)
-        : object_(object)
+        : object_(&object)
     {
-        object_.registerProperty("status").onInterface(INTERFACE_NAME).withGetter([this](){ return this->status(); }).withSetter([this](const uint32_t& value){ this->status(value); });
+        object_->registerProperty("status").onInterface(INTERFACE_NAME).withGetter([this](){ return this->status(); }).withSetter([this](const uint32_t& value){ this->status(value); });
     }
 
     ~PropertyProvider_adaptor() = default;
@@ -1245,13 +1259,13 @@ public:
     // getting the property value
     uint32_t status()
     {
-        return object_.getProperty("status").onInterface(INTERFACE_NAME);
+        return object_->getProperty("status").onInterface(INTERFACE_NAME);
     }
 
     // setting the property value
     void status(const uint32_t& value)
     {
-        object_.setProperty("status").onInterface(INTERFACE_NAME).toValue(value);
+        object_->setProperty("status").onInterface(INTERFACE_NAME).toValue(value);
     }
 
     /*...*/

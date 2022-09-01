@@ -20,10 +20,15 @@ public:
 
 protected:
     perftests_proxy(sdbus::IProxy& proxy)
-        : proxy_(proxy)
+        : proxy_(&proxy)
     {
-        proxy_.uponSignal("dataSignal").onInterface(INTERFACE_NAME).call([this](const std::string& data){ this->onDataSignal(data); });
+        proxy_->uponSignal("dataSignal").onInterface(INTERFACE_NAME).call([this](const std::string& data){ this->onDataSignal(data); });
     }
+
+    perftests_proxy(const perftests_proxy&) = delete;
+    perftests_proxy& operator=(const perftests_proxy&) = delete;
+    perftests_proxy(perftests_proxy&&) = default;
+    perftests_proxy& operator=(perftests_proxy&&) = default;
 
     ~perftests_proxy() = default;
 
@@ -32,18 +37,18 @@ protected:
 public:
     void sendDataSignals(const uint32_t& numberOfSignals, const uint32_t& signalMsgSize)
     {
-        proxy_.callMethod("sendDataSignals").onInterface(INTERFACE_NAME).withArguments(numberOfSignals, signalMsgSize);
+        proxy_->callMethod("sendDataSignals").onInterface(INTERFACE_NAME).withArguments(numberOfSignals, signalMsgSize);
     }
 
     std::string concatenateTwoStrings(const std::string& string1, const std::string& string2)
     {
         std::string result;
-        proxy_.callMethod("concatenateTwoStrings").onInterface(INTERFACE_NAME).withArguments(string1, string2).storeResultsTo(result);
+        proxy_->callMethod("concatenateTwoStrings").onInterface(INTERFACE_NAME).withArguments(string1, string2).storeResultsTo(result);
         return result;
     }
 
 private:
-    sdbus::IProxy& proxy_;
+    sdbus::IProxy* proxy_;
 };
 
 }} // namespaces
