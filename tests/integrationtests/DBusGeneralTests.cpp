@@ -38,6 +38,7 @@
 #include <fstream>
 #include <future>
 #include <unistd.h>
+#include <variant>
 
 using ::testing::ElementsAre;
 using ::testing::Eq;
@@ -57,6 +58,18 @@ TEST(AdaptorAndProxy, CanBeConstructedSuccesfully)
 
     ASSERT_NO_THROW(TestAdaptor adaptor(*connection, OBJECT_PATH));
     ASSERT_NO_THROW(TestProxy proxy(BUS_NAME, OBJECT_PATH));
+}
+
+TEST(AProxy, SupportsMoveSemantics)
+{
+    static_assert(std::is_move_constructible_v<DummyTestProxy>);
+    static_assert(std::is_move_assignable_v<DummyTestProxy>);
+}
+
+TEST(AnAdaptor, SupportsMoveSemantics)
+{
+    static_assert(std::is_move_constructible_v<DummyTestAdaptor>);
+    static_assert(std::is_move_assignable_v<DummyTestAdaptor>);
 }
 
 TEST_F(AConnection, WillCallCallbackHandlerForIncomingMessageMatchingMatchRule)

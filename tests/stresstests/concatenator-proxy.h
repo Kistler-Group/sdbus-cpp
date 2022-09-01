@@ -21,10 +21,15 @@ public:
 
 protected:
     concatenator_proxy(sdbus::IProxy& proxy)
-        : proxy_(proxy)
+        : proxy_(&proxy)
     {
-        proxy_.uponSignal("concatenatedSignal").onInterface(INTERFACE_NAME).call([this](const std::string& concatenatedString){ this->onConcatenatedSignal(concatenatedString); });
+        proxy_->uponSignal("concatenatedSignal").onInterface(INTERFACE_NAME).call([this](const std::string& concatenatedString){ this->onConcatenatedSignal(concatenatedString); });
     }
+
+    concatenator_proxy(const concatenator_proxy&) = delete;
+    concatenator_proxy& operator=(const concatenator_proxy&) = delete;
+    concatenator_proxy(concatenator_proxy&&) = default;
+    concatenator_proxy& operator=(concatenator_proxy&&) = default;
 
     ~concatenator_proxy() = default;
 
@@ -35,11 +40,11 @@ protected:
 public:
     sdbus::PendingAsyncCall concatenate(const std::map<std::string, sdbus::Variant>& params)
     {
-        return proxy_.callMethodAsync("concatenate").onInterface(INTERFACE_NAME).withArguments(params).uponReplyInvoke([this](const sdbus::Error* error, const std::string& result){ this->onConcatenateReply(result, error); });
+        return proxy_->callMethodAsync("concatenate").onInterface(INTERFACE_NAME).withArguments(params).uponReplyInvoke([this](const sdbus::Error* error, const std::string& result){ this->onConcatenateReply(result, error); });
     }
 
 private:
-    sdbus::IProxy& proxy_;
+    sdbus::IProxy* proxy_;
 };
 
 }}} // namespaces

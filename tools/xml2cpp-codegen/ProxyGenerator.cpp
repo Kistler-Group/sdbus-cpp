@@ -84,7 +84,7 @@ std::string ProxyGenerator::processInterface(Node& interface) const
             << tab << "static constexpr const char* INTERFACE_NAME = \"" << ifaceName << "\";" << endl << endl
             << "protected:" << endl
             << tab << className << "(sdbus::IProxy& proxy)" << endl
-            << tab << tab << ": proxy_(proxy)" << endl;
+            << tab << tab << ": proxy_(&proxy)" << endl;
 
     Nodes methods = interface["method"];
     Nodes signals = interface["signal"];
@@ -96,6 +96,12 @@ std::string ProxyGenerator::processInterface(Node& interface) const
     body << tab << "{" << endl
             << registration
             << tab << "}" << endl << endl;
+
+    // Rule of Five
+    body << tab << className << "(const " << className << "&) = delete;" << endl;
+    body << tab << className << "& operator=(const " << className << "&) = delete;" << endl;
+    body << tab << className << "(" << className << "&&) = default;" << endl;
+    body << tab << className << "& operator=(" << className << "&&) = default;" << endl << endl;
 
     body << tab << "~" << className << "() = default;" << endl << endl;
 
@@ -122,7 +128,7 @@ std::string ProxyGenerator::processInterface(Node& interface) const
     }
 
     body << "private:" << endl
-            << tab << "sdbus::IProxy& proxy_;" << endl
+            << tab << "sdbus::IProxy* proxy_;" << endl
             << "};" << endl << endl
             << std::string(namespacesCount, '}') << " // namespaces" << endl << endl;
 
@@ -200,7 +206,7 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes&
         }
 
         definitionSS << tab << tab << (async && !dontExpectReply ? "return " : "")
-                     << "proxy_.callMethod" << (async ? "Async" : "") << "(\"" << name << "\").onInterface(INTERFACE_NAME)";
+                     << "proxy_->callMethod" << (async ? "Async" : "") << "(\"" << name << "\").onInterface(INTERFACE_NAME)";
 
         if (!timeoutValue.empty())
         {
@@ -257,7 +263,7 @@ std::tuple<std::string, std::string> ProxyGenerator::processSignals(const Nodes&
         std::tie(argStr, argTypeStr, std::ignore, std::ignore) = argsToNamesAndTypes(args);
 
         registrationSS << tab << tab << "proxy_"
-                ".uponSignal(\"" << name << "\")"
+                "->uponSignal(\"" << name << "\")"
                 ".onInterface(INTERFACE_NAME)"
                 ".call([this](" << argTypeStr << ")"
                 "{ this->on" << nameBigFirst << "(" << argStr << "); });" << endl;
@@ -286,7 +292,7 @@ std::string ProxyGenerator::processProperties(const Nodes& properties) const
         {
             propertySS << tab << propertyType << " " << propertyNameSafe << "()" << endl
                     << tab << "{" << endl;
-            propertySS << tab << tab << "return proxy_.getProperty(\"" << propertyName << "\")"
+            propertySS << tab << tab << "return proxy_->getProperty(\"" << propertyName << "\")"
                             ".onInterface(INTERFACE_NAME)";
             propertySS << ";" << endl << tab << "}" << endl << endl;
         }
@@ -295,7 +301,7 @@ std::string ProxyGenerator::processProperties(const Nodes& properties) const
         {
             propertySS << tab << "void " << propertyNameSafe << "(" << propertyTypeArg << ")" << endl
                     << tab << "{" << endl;
-            propertySS << tab << tab << "proxy_.setProperty(\"" << propertyName << "\")"
+            propertySS << tab << tab << "proxy_->setProperty(\"" << propertyName << "\")"
                             ".onInterface(INTERFACE_NAME)"
                             ".toValue(" << propertyArg << ")";
             propertySS << ";" << endl << tab << "}" << endl << endl;

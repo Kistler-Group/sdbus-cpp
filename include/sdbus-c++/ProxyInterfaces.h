@@ -208,6 +208,11 @@ namespace sdbus {
 
     protected:
         using base_type = ProxyInterfaces;
+
+        ProxyInterfaces(const ProxyInterfaces&) = delete;
+        ProxyInterfaces& operator=(const ProxyInterfaces&) = delete;
+        ProxyInterfaces(ProxyInterfaces&&) = default;
+        ProxyInterfaces& operator=(ProxyInterfaces&&) = default;
         ~ProxyInterfaces() = default;
     };
 

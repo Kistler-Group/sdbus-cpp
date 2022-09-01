@@ -118,6 +118,29 @@ public: // for tests
     std::string m_signalMemberName;
 };
 
+class DummyTestProxy final : public sdbus::ProxyInterfaces< org::sdbuscpp::integrationtests_proxy
+                                                          , sdbus::Peer_proxy
+                                                          , sdbus::Introspectable_proxy
+                                                          , sdbus::Properties_proxy >
+{
+public:
+    DummyTestProxy(std::string destination, std::string objectPath)
+        : ProxyInterfaces(destination, objectPath)
+    {
+    }
+
+protected:
+    void onSimpleSignal() override {}
+    void onSignalWithMap(const std::map<int32_t, std::string>&) override {}
+    void onSignalWithVariant(const sdbus::Variant&) override {}
+
+    void onSignalWithoutRegistration(const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>&) {}
+    void onDoOperationReply(uint32_t, const sdbus::Error*) {}
+
+    // Signals of standard D-Bus interfaces
+    void onPropertiesChanged( const std::string&, const std::map<std::string, sdbus::Variant>&, const std::vector<std::string>& ) override {}
+};
+
 }}
 
 #endif /* SDBUS_CPP_INTEGRATIONTESTS_TESTPROXY_H_ */

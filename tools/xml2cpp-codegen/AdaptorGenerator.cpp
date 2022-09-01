@@ -85,7 +85,7 @@ std::string AdaptorGenerator::processInterface(Node& interface) const
             << tab << "static constexpr const char* INTERFACE_NAME = \"" << ifaceName << "\";" << endl << endl
             << "protected:" << endl
             << tab << className << "(sdbus::IObject& object)" << endl
-            << tab << tab << ": object_(object)" << endl;
+            << tab << tab << ": object_(&object)" << endl;
 
     Nodes methods = interface["method"];
     Nodes signals = interface["signal"];
@@ -111,7 +111,7 @@ std::string AdaptorGenerator::processInterface(Node& interface) const
     if(!annotationRegistration.empty())
     {
         std::stringstream str;
-        str << tab << tab << "object_.setInterfaceFlags(INTERFACE_NAME)" << annotationRegistration << ";" << endl;
+        str << tab << tab << "object_->setInterfaceFlags(INTERFACE_NAME)" << annotationRegistration << ";" << endl;
         annotationRegistration = str.str();
     }
 
@@ -131,6 +131,12 @@ std::string AdaptorGenerator::processInterface(Node& interface) const
                        << propertyRegistration
          << tab << "}" << endl << endl;
 
+    // Rule of Five
+    body << tab << className << "(const " << className << "&) = delete;" << endl;
+    body << tab << className << "& operator=(const " << className << "&) = delete;" << endl;
+    body << tab << className << "(" << className << "&&) = default;" << endl;
+    body << tab << className << "& operator=(" << className << "&&) = default;" << endl << endl;
+
     body << tab << "~" << className << "() = default;" << endl << endl;
 
     if (!signalMethods.empty())
@@ -149,7 +155,7 @@ std::string AdaptorGenerator::processInterface(Node& interface) const
     }
 
     body << "private:" << endl
-            << tab << "sdbus::IObject& object_;" << endl
+            << tab << "sdbus::IObject* object_;" << endl
             << "};" << endl << endl
             << std::string(namespacesCount, '}') << " // namespaces" << endl << endl;
 
@@ -211,7 +217,7 @@ std::tuple<std::string, std::string> AdaptorGenerator::processMethods(const Node
 
         using namespace std::string_literals;
 
-        registrationSS << tab << tab << "object_.registerMethod(\""
+        registrationSS << tab << tab << "object_->registerMethod(\""
                 << methodName << "\")"
                 << ".onInterface(INTERFACE_NAME)"
                 << (!argStringsStr.empty() ? (".withInputParamNames(" + argStringsStr + ")") : "")
@@ -267,7 +273,7 @@ std::tuple<std::string, std::string> AdaptorGenerator::processSignals(const Node
         std::tie(argStr, argTypeStr, typeStr, argStringsStr) = argsToNamesAndTypes(args);
 
         signalRegistrationSS << tab << tab
-                << "object_.registerSignal(\"" << name << "\")"
+                << "object_->registerSignal(\"" << name << "\")"
                         ".onInterface(INTERFACE_NAME)";
 
         if (args.size() > 0)
@@ -284,7 +290,7 @@ std::tuple<std::string, std::string> AdaptorGenerator::processSignals(const Node
 
         signalMethodSS << tab << "void emit" << nameWithCapFirstLetter << "(" << argTypeStr << ")" << endl
                 << tab << "{" << endl
-                << tab << tab << "object_.emitSignal(\"" << name << "\")"
+                << tab << tab << "object_->emitSignal(\"" << name << "\")"
                         ".onInterface(INTERFACE_NAME)";
 
         if (!argStr.empty())
@@ -333,7 +339,7 @@ std::tuple<std::string, std::string> AdaptorGenerator::processProperties(const N
                           << "Option '" << annotationName << "' not allowed or supported in this context! Option ignored..." << std::endl;
         }
 
-        registrationSS << tab << tab << "object_.registerProperty(\""
+        registrationSS << tab << tab << "object_->registerProperty(\""
                 << propertyName << "\")"
                 << ".onInterface(INTERFACE_NAME)";
 

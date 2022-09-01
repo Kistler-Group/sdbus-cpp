@@ -109,6 +109,43 @@ public: // for tests
     std::string m_propertySetSender;
 };
 
+class DummyTestAdaptor final : public sdbus::AdaptorInterfaces< org::sdbuscpp::integrationtests_adaptor
+                                                              , sdbus::Properties_adaptor
+                                                              , sdbus::ManagedObject_adaptor >
+{
+public:
+    DummyTestAdaptor(sdbus::IConnection& connection, const std::string& path) : AdaptorInterfaces(connection, path) {}
+
+protected:
+    void noArgNoReturn() override {}
+    int32_t getInt() override { return {}; }
+    std::tuple<uint32_t, std::string> getTuple() override { return {}; }
+    double multiply(const int64_t& a, const double& b) override { return {}; }
+    void multiplyWithNoReply(const int64_t& a, const double& b) override {}
+    std::vector<int16_t> getInts16FromStruct(const sdbus::Struct<uint8_t, int16_t, double, std::string, std::vector<int16_t>>& arg0) override { return {}; }
+    sdbus::Variant processVariant(const sdbus::Variant& variant) override { return {}; }
+    std::map<int32_t, sdbus::Variant> getMapOfVariants(const std::vector<int32_t>& x, const sdbus::Struct<sdbus::Variant, sdbus::Variant>& y) override { return {}; }
+    sdbus::Struct<std::string, sdbus::Struct<std::map<int32_t, int32_t>>> getStructInStruct() override { return {}; }
+    int32_t sumStructItems(const sdbus::Struct<uint8_t, uint16_t>& arg0, const sdbus::Struct<int32_t, int64_t>& arg1) override { return {}; }
+    uint32_t sumVectorItems(const std::vector<uint16_t>& arg0, const std::vector<uint64_t>& arg1) override { return {}; }
+    uint32_t doOperation(const uint32_t& arg0) override { return {}; }
+    void doOperationAsync(sdbus::Result<uint32_t>&& result, uint32_t arg0) override {}
+    sdbus::Signature getSignature() override { return {}; }
+    sdbus::ObjectPath getObjPath() override { return {}; }
+    sdbus::UnixFd getUnixFd() override { return {}; }
+    std::map<uint64_t, sdbus::Struct<std::map<uint8_t, std::vector<sdbus::Struct<sdbus::ObjectPath, bool, sdbus::Variant, std::map<int32_t, std::string>>>>, sdbus::Signature, std::string>> getComplex() override { return {}; }
+    void throwError() override {}
+    void throwErrorWithNoReply() override {}
+    void doPrivilegedStuff() override {}
+    void emitTwoSimpleSignals() override {}
+
+    uint32_t action() override { return {}; }
+    void action(const uint32_t& value) override {}
+    bool blocking() override { return {}; }
+    void blocking(const bool& value) override {}
+    std::string state() override { return {}; }
+};
+
 }}
 
 #endif /* INTEGRATIONTESTS_TESTADAPTOR_H_ */

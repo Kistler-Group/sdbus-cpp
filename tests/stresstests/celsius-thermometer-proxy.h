@@ -22,9 +22,14 @@ public:
 
 protected:
     thermometer_proxy(sdbus::IProxy& proxy)
-        : proxy_(proxy)
+        : proxy_(&proxy)
     {
     }
+
+    thermometer_proxy(const thermometer_proxy&) = delete;
+    thermometer_proxy& operator=(const thermometer_proxy&) = delete;
+    thermometer_proxy(thermometer_proxy&&) = default;
+    thermometer_proxy& operator=(thermometer_proxy&&) = default;
 
     ~thermometer_proxy() = default;
 
@@ -32,12 +37,12 @@ public:
     uint32_t getCurrentTemperature()
     {
         uint32_t result;
-        proxy_.callMethod("getCurrentTemperature").onInterface(INTERFACE_NAME).storeResultsTo(result);
+        proxy_->callMethod("getCurrentTemperature").onInterface(INTERFACE_NAME).storeResultsTo(result);
         return result;
     }
 
 private:
-    sdbus::IProxy& proxy_;
+    sdbus::IProxy* proxy_;
 };
 
 }}}} // namespaces

@@ -43,27 +43,32 @@ namespace sdbus {
 
     protected:
         Peer_proxy(sdbus::IProxy& proxy)
-            : proxy_(proxy)
+            : proxy_(&proxy)
         {
         }
+
+        Peer_proxy(const Peer_proxy&) = delete;
+        Peer_proxy& operator=(const Peer_proxy&) = delete;
+        Peer_proxy(Peer_proxy&&) = default;
+        Peer_proxy& operator=(Peer_proxy&&) = default;
 
         ~Peer_proxy() = default;
 
     public:
         void Ping()
         {
-            proxy_.callMethod("Ping").onInterface(INTERFACE_NAME);
+            proxy_->callMethod("Ping").onInterface(INTERFACE_NAME);
         }
 
         std::string GetMachineId()
         {
             std::string machineUUID;
-            proxy_.callMethod("GetMachineId").onInterface(INTERFACE_NAME).storeResultsTo(machineUUID);
+            proxy_->callMethod("GetMachineId").onInterface(INTERFACE_NAME).storeResultsTo(machineUUID);
             return machineUUID;
         }
 
     private:
-        sdbus::IProxy& proxy_;
+        sdbus::IProxy* proxy_;
     };
 
     // Proxy for introspection
@@ -73,9 +78,14 @@ namespace sdbus {
 
     protected:
         Introspectable_proxy(sdbus::IProxy& proxy)
-            : proxy_(proxy)
+            : proxy_(&proxy)
         {
         }
+
+        Introspectable_proxy(const Introspectable_proxy&) = delete;
+        Introspectable_proxy& operator=(const Introspectable_proxy&) = delete;
+        Introspectable_proxy(Introspectable_proxy&&) = default;
+        Introspectable_proxy& operator=(Introspectable_proxy&&) = default;
 
         ~Introspectable_proxy() = default;
 
@@ -83,12 +93,12 @@ namespace sdbus {
         std::string Introspect()
         {
             std::string xml;
-            proxy_.callMethod("Introspect").onInterface(INTERFACE_NAME).storeResultsTo(xml);
+            proxy_->callMethod("Introspect").onInterface(INTERFACE_NAME).storeResultsTo(xml);
             return xml;
         }
 
     private:
-        sdbus::IProxy& proxy_;
+        sdbus::IProxy* proxy_;
     };
 
     // Proxy for properties
@@ -98,10 +108,10 @@ namespace sdbus {
 
     protected:
         Properties_proxy(sdbus::IProxy& proxy)
-            : proxy_(proxy)
+            : proxy_(&proxy)
         {
             proxy_
-                .uponSignal("PropertiesChanged")
+                ->uponSignal("PropertiesChanged")
                 .onInterface(INTERFACE_NAME)
                 .call([this]( const std::string& interfaceName
                             , const std::map<std::string, sdbus::Variant>& changedProperties
@@ -110,6 +120,11 @@ namespace sdbus {
                                 this->onPropertiesChanged(interfaceName, changedProperties, invalidatedProperties);
                             });
         }
+
+        Properties_proxy(const Properties_proxy&) = delete;
+        Properties_proxy& operator=(const Properties_proxy&) = delete;
+        Properties_proxy(Properties_proxy&&) = default;
+        Properties_proxy& operator=(Properties_proxy&&) = default;
 
         ~Properties_proxy() = default;
 
@@ -120,23 +135,23 @@ namespace sdbus {
     public:
         sdbus::Variant Get(const std::string& interfaceName, const std::string& propertyName)
         {
-            return proxy_.getProperty(propertyName).onInterface(interfaceName);
+            return proxy_->getProperty(propertyName).onInterface(interfaceName);
         }
 
         void Set(const std::string& interfaceName, const std::string& propertyName, const sdbus::Variant& value)
         {
-            proxy_.setProperty(propertyName).onInterface(interfaceName).toValue(value);
+            proxy_->setProperty(propertyName).onInterface(interfaceName).toValue(value);
         }
 
         std::map<std::string, sdbus::Variant> GetAll(const std::string& interfaceName)
         {
             std::map<std::string, sdbus::Variant> props;
-            proxy_.callMethod("GetAll").onInterface(INTERFACE_NAME).withArguments(interfaceName).storeResultsTo(props);
+            proxy_->callMethod("GetAll").onInterface(INTERFACE_NAME).withArguments(interfaceName).storeResultsTo(props);
             return props;
         }
 
     private:
-        sdbus::IProxy& proxy_;
+        sdbus::IProxy* proxy_;
     };
 
     // Proxy for object manager
@@ -146,10 +161,10 @@ namespace sdbus {
 
     protected:
         ObjectManager_proxy(sdbus::IProxy& proxy)
-            : proxy_(proxy)
+            : proxy_(&proxy)
         {
             proxy_
-                .uponSignal("InterfacesAdded")
+                ->uponSignal("InterfacesAdded")
                 .onInterface(INTERFACE_NAME)
                 .call([this]( const sdbus::ObjectPath& objectPath
                             , const std::map<std::string, std::map<std::string, sdbus::Variant>>& interfacesAndProperties )
@@ -157,8 +172,7 @@ namespace sdbus {
                                 this->onInterfacesAdded(objectPath, interfacesAndProperties);
                             });
 
-            proxy_
-                .uponSignal("InterfacesRemoved")
+            proxy_->uponSignal("InterfacesRemoved")
                 .onInterface(INTERFACE_NAME)
                 .call([this]( const sdbus::ObjectPath& objectPath
                             , const std::vector<std::string>& interfaces )
@@ -166,6 +180,11 @@ namespace sdbus {
                                 this->onInterfacesRemoved(objectPath, interfaces);
                             });
         }
+
+        ObjectManager_proxy(const ObjectManager_proxy&) = delete;
+        ObjectManager_proxy& operator=(const ObjectManager_proxy&) = delete;
+        ObjectManager_proxy(ObjectManager_proxy&&) = default;
+        ObjectManager_proxy& operator=(ObjectManager_proxy&&) = default;
 
         ~ObjectManager_proxy() = default;
 
@@ -178,12 +197,12 @@ namespace sdbus {
         std::map<sdbus::ObjectPath, std::map<std::string, std::map<std::string, sdbus::Variant>>> GetManagedObjects()
         {
             std::map<sdbus::ObjectPath, std::map<std::string, std::map<std::string, sdbus::Variant>>> objectsInterfacesAndProperties;
-            proxy_.callMethod("GetManagedObjects").onInterface(INTERFACE_NAME).storeResultsTo(objectsInterfacesAndProperties);
+            proxy_->callMethod("GetManagedObjects").onInterface(INTERFACE_NAME).storeResultsTo(objectsInterfacesAndProperties);
             return objectsInterfacesAndProperties;
         }
 
     private:
-        sdbus::IProxy& proxy_;
+        sdbus::IProxy* proxy_;
     };
 
     // Adaptors for the above-listed standard D-Bus interfaces are not necessary because the functionality
@@ -197,25 +216,30 @@ namespace sdbus {
 
     protected:
         Properties_adaptor(sdbus::IObject& object)
-            : object_(object)
+            : object_(&object)
         {
         }
+
+        Properties_adaptor(const Properties_adaptor&) = delete;
+        Properties_adaptor& operator=(const Properties_adaptor&) = delete;
+        Properties_adaptor(Properties_adaptor&&) = default;
+        Properties_adaptor& operator=(Properties_adaptor&&) = default;
 
         ~Properties_adaptor() = default;
 
     public:
         void emitPropertiesChangedSignal(const std::string& interfaceName, const std::vector<std::string>& properties)
         {
-            object_.emitPropertiesChangedSignal(interfaceName, properties);
+            object_->emitPropertiesChangedSignal(interfaceName, properties);
         }
 
         void emitPropertiesChangedSignal(const std::string& interfaceName)
         {
-            object_.emitPropertiesChangedSignal(interfaceName);
+            object_->emitPropertiesChangedSignal(interfaceName);
         }
 
     private:
-        sdbus::IObject& object_;
+        sdbus::IObject* object_;
     };
 
     /*!
@@ -234,15 +258,20 @@ namespace sdbus {
 
     protected:
         explicit ObjectManager_adaptor(sdbus::IObject& object)
-            : object_(object)
+            : object_(&object)
         {
-            object_.addObjectManager();
+            object_->addObjectManager();
         }
+
+        ObjectManager_adaptor(const ObjectManager_adaptor&) = delete;
+        ObjectManager_adaptor& operator=(const ObjectManager_adaptor&) = delete;
+        ObjectManager_adaptor(ObjectManager_adaptor&&) = default;
+        ObjectManager_adaptor& operator=(ObjectManager_adaptor&&) = default;
 
         ~ObjectManager_adaptor() = default;
 
     private:
-        sdbus::IObject& object_;
+        sdbus::IObject* object_;
     };
 
     /*!
@@ -259,9 +288,15 @@ namespace sdbus {
     class ManagedObject_adaptor
     {
     protected:
-        explicit ManagedObject_adaptor(sdbus::IObject& object) : object_(object)
+        explicit ManagedObject_adaptor(sdbus::IObject& object)
+            : object_(&object)
         {
         }
+
+        ManagedObject_adaptor(const ManagedObject_adaptor&) = delete;
+        ManagedObject_adaptor& operator=(const ManagedObject_adaptor&) = delete;
+        ManagedObject_adaptor(ManagedObject_adaptor&&) = default;
+        ManagedObject_adaptor& operator=(ManagedObject_adaptor&&) = default;
 
         ~ManagedObject_adaptor() = default;
 
@@ -273,7 +308,7 @@ namespace sdbus {
          */
         void emitInterfacesAddedSignal()
         {
-            object_.emitInterfacesAddedSignal();
+            object_->emitInterfacesAddedSignal();
         }
 
         /*!
@@ -283,7 +318,7 @@ namespace sdbus {
          */
         void emitInterfacesAddedSignal(const std::vector<std::string>& interfaces)
         {
-            object_.emitInterfacesAddedSignal(interfaces);
+            object_->emitInterfacesAddedSignal(interfaces);
         }
 
         /*!
@@ -293,7 +328,7 @@ namespace sdbus {
          */
         void emitInterfacesRemovedSignal()
         {
-            object_.emitInterfacesRemovedSignal();
+            object_->emitInterfacesRemovedSignal();
         }
 
         /*!
@@ -303,11 +338,11 @@ namespace sdbus {
          */
         void emitInterfacesRemovedSignal(const std::vector<std::string>& interfaces)
         {
-            object_.emitInterfacesRemovedSignal(interfaces);
+            object_->emitInterfacesRemovedSignal(interfaces);
         }
 
     private:
-        sdbus::IObject& object_;
+        sdbus::IObject* object_;
     };
 
 }
