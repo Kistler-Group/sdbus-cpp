@@ -75,11 +75,16 @@ Connection::Connection(std::unique_ptr<ISdBus>&& interface, pseudo_bus_t)
     , bus_(openPseudoBus())
 {
     assert(iface_ != nullptr);
+    eventFd_.fd = eventfd(0, 0);
+    assert(eventFd_.fd >= 0);
 }
 
 Connection::~Connection()
 {
     Connection::leaveEventLoop();
+    if (0 <= eventFd_.fd) {
+        close(eventFd_.fd);
+    }
 }
 
 void Connection::requestName(const std::string& name)
@@ -141,7 +146,7 @@ Connection::PollData Connection::getEventLoopPollData() const
     auto r = iface_->sd_bus_get_poll_data(bus_.get(), &pollData);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus poll data", -r);
 
-    return {pollData.fd, pollData.events, pollData.timeout_usec};
+    return {eventFd_.fd, pollData.fd, pollData.events, pollData.timeout_usec};
 }
 
 const ISdBus& Connection::getSdBusInterface() const
@@ -443,6 +448,11 @@ void Connection::notifyEventLoop(int fd) const
 void Connection::notifyEventLoopToExit() const
 {
     notifyEventLoop(loopExitFd_.fd);
+}
+
+void Connection::notifyEventLoop() const
+{
+    notifyEventLoop(eventFd_.fd);
 }
 
 void Connection::notifyEventLoopNewTimeout() const

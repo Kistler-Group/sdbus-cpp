@@ -139,6 +139,7 @@ namespace sdbus::internal {
         void notifyEventLoop(int fd) const;
         void notifyEventLoopToExit() const;
         void clearEventLoopNotification(int fd) const;
+        void notifyEventLoop() const override;
         void notifyEventLoopNewTimeout() const override;
 
     private:

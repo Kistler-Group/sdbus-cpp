@@ -782,6 +782,10 @@ MethodReply MethodCall::sendWithReply(uint64_t timeout) const
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method", -r);
 
+    // Force event loop to re-enter processing to handle queued messages
+    SDBUS_THROW_ERROR_IF(connection_ == nullptr, "Invalid use of MethodCall API", ENOTSUP);
+    connection_->notifyEventLoop();
+
     return Factory::create<MethodReply>(sdbusReply, sdbus_, adopt_message);
 }
 
@@ -789,6 +793,10 @@ MethodReply MethodCall::sendWithNoReply() const
 {
     auto r = sdbus_->sd_bus_send(nullptr, (sd_bus_message*)msg_, nullptr);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method with no reply", -r);
+
+    // Force event loop to re-enter processing to handle queued messages
+    SDBUS_THROW_ERROR_IF(connection_ == nullptr, "Invalid use of MethodCall API", ENOTSUP);
+    connection_->notifyEventLoop();
 
     return Factory::create<MethodReply>(); // No reply
 }

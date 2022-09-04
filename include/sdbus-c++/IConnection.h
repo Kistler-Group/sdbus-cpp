@@ -67,6 +67,10 @@ namespace sdbus {
             /*!
              * The read fd to be monitored by the event loop.
              */
+            int event_fd;
+            /*!
+             * The read fd to be monitored by the event loop.
+             */
             int fd;
             /*!
              * The events to use for poll(2) alongside fd.

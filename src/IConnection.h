@@ -90,6 +90,7 @@ namespace sdbus::internal {
                                                         , sd_bus_message_handler_t callback
                                                         , void* userData ) = 0;
 
+        virtual void notifyEventLoop() const = 0;
         virtual void notifyEventLoopNewTimeout() const = 0;
         virtual MethodReply tryCallMethodSynchronously(const MethodCall& message, uint64_t timeout) = 0;
     };
