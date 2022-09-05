@@ -1282,42 +1282,46 @@ Note that signals of afore-mentioned standard D-Bus interfaces are not emitted b
 Working examples of using standard D-Bus interfaces can be found in [sdbus-c++ integration tests](/tests/integrationtests/DBusStandardInterfacesTests.cpp) or the [examples](/examples) directory.
 
 Using D-Bus Types
--------------------------
+-----------------
 
-For many D-Bus interactions dealing with D-Bus types is necessary. For that, sdbus-c++ provides many predefined D-Bus
-types. The table below shows which C++ type corresponds to which D-Bus type.
-
-Example:
-The D-Bus signature of a method is GetManagedObjects(o,a{sa{sv}}).
-This means the corresponding C++ return type is:<br>
-std::map<sdbus::ObjectPath, std::map<std::string, std::map<std::string, sdbus::Variant>>>
+For many D-Bus interactions dealing with D-Bus types is necessary. For that, sdbus-c++ provides many predefined D-Bus types. The table below shows which C++ type corresponds to which D-Bus type.
 
 
 | Category            | Code        | Code ASCII | Conventional Name	 | C++ Type                        |
 |---------------------|-------------|------------|--------------------|---------------------------------|
 | reserved            | 0           | NUL        | INVALID            | -                               |
-| fixed, basic	       | 121         | y          | BYTE               | uint8_t                         |
-| fixed, basic	       | 98          | b          | BOOLEAN            | bool                            |
-| fixed, basic	       | 110         | n          | INT16              | int16_t                         |
-| fixed, basic	       | 113         | q          | UINT16             | uint16_t                        |
-| fixed, basic	       | 105         | i          | INT32              | int32_t                         |
-| fixed, basic	       | 117         | u          | UINT32             | uint32_t                        |
-| fixed, basic	       | 120         | x          | INT64              | int64_t                         |
-| fixed, basic	       | 116         | t          | UINT64             | uint64_t                        |
-| fixed, basic	       | 100         | d          | DOUBLE             | double                          |
-| string-like, basic	 | 115         | s          | STRING             | const char*, std::string        |
-| string-like, basic	 | 111         | o          | OBJECT_PATH        | sdbus::ObjectPath               |
-| string-like, basic	 | 103         | g          | SIGNATURE          | sdbus::Signature                |
-| container           | 97          | a          | ARRAY              | std::vector<T>, std::map<T1,T2> |
-| container           | 114,40,41   | r()        | STRUCT             | -                               |
-| container           | 118         | v          | VARIANT            | sdbus::Variant                  |
+| fixed, basic	       | 121         | y          | BYTE               | `uint8_t`                         |
+| fixed, basic	       | 98          | b          | BOOLEAN            | `bool`                            |
+| fixed, basic	       | 110         | n          | INT16              | `int16_t`                         |
+| fixed, basic	       | 113         | q          | UINT16             | `uint16_t`                        |
+| fixed, basic	       | 105         | i          | INT32              | `int32_t`                         |
+| fixed, basic	       | 117         | u          | UINT32             | `uint32_t`                        |
+| fixed, basic	       | 120         | x          | INT64              | `int64_t`                         |
+| fixed, basic	       | 116         | t          | UINT64             | `uint64_t`                        |
+| fixed, basic	       | 100         | d          | DOUBLE             | `double`                          |
+| string-like, basic	 | 115         | s          | STRING             | `const char*`, `std::string`        |
+| string-like, basic	 | 111         | o          | OBJECT_PATH        | `sdbus::ObjectPath`               |
+| string-like, basic	 | 103         | g          | SIGNATURE          | `sdbus::Signature`                |
+| container           | 97          | a          | ARRAY              | `std::vector<T>` (if used as an array followed by a single complete type T), or `std::map<T1, T2>` (if used as an array of dict entries) |
+| container           | 114,40,41   | r()        | STRUCT             | `sdbus::Struct<T1, T2, ...>` variadic class template                               |
+| container           | 118         | v          | VARIANT            | `sdbus::Variant`                  |
 | container           | 101,123,125 | e{}        | DICT_ENTRY         | -                               |
-| fixed, basic        | 104         | h          | UNIX_FD            | sdbus::UnixFd                   |
+| fixed, basic        | 104         | h          | UNIX_FD            | `sdbus::UnixFd`                   |
 | reserved            | 109         | m          | (reserved)         | -                               |
 | reserved            | 42          | *          | (reserved)         | -                               |
 | reserved            | 63          | ?          | (reserved)         | -                               |
 | reserved            | 64,38,94    | @&^        | (reserved)         | -                               |
-    
+
+A few examples:
+
+* The D-Bus signature of an output argument of method `GetManagedObjects()` on standard interface `org.freedesktop.DBus.ObjectManager` is `a{oa{sa{sv}}}`. For this the corresponding C++ method return type is: `std::map<sdbus::ObjectPath, std::map<std::string, std::map<std::string, sdbus::Variant>>>`.
+* Or an input argument of method `InterfacesRemoved` on that interface has signature `as`. Ths corresponds to the C++ parameter of type `std::vector<std::string>`.
+* Or a D-Bus signature `a(bdh)` corresponds to the array of D-Bus structures: `std::vector<sdbus::Struct<bool, double, sdbus::UnixFd>>`.
+
+To see how C++ types are mapped to D-Bus types (including container types) in sdbus-c++, have a look at individual [specializations of `sdbus::signature_of` class template](https://github.com/Kistler-Group/sdbus-cpp/blob/master/include/sdbus-c%2B%2B/TypeTraits.h#L87) in TypeTraits.h header file. For more examples of type mappings, look into [TypeTraits unit tests](https://github.com/Kistler-Group/sdbus-cpp/blob/master/tests/unittests/TypeTraits_test.cpp#L62).
+
+For more information on basic D-Bus types, D-Bus container types, and D-Bus type system in general, make sure to consult the [D-Bus specification](https://dbus.freedesktop.org/doc/dbus-specification.html#type-system).
+
 Support for match rules
 -----------------------
 
