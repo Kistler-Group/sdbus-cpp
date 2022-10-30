@@ -146,7 +146,7 @@ Connection::PollData Connection::getEventLoopPollData() const
     auto r = iface_->sd_bus_get_poll_data(bus_.get(), &pollData);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus poll data", -r);
 
-    return {eventFd_.fd, pollData.fd, pollData.events, pollData.timeout_usec};
+    return {pollData.fd, pollData.events, pollData.timeout_usec, eventFd_.fd};
 }
 
 const ISdBus& Connection::getSdBusInterface() const
