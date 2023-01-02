@@ -97,7 +97,7 @@ References/documentation
 
 * [Using sdbus-c++](docs/using-sdbus-c++.md) - *the* main, comprehensive tutorial on sdbus-c++
 * [Systemd and dbus configuration](docs/systemd-dbus-config.md)
-* [D-Bus Specification](https://dbus.freedesktop.org/docs/dbus-specification.html)
+* [D-Bus Specification](https://dbus.freedesktop.org/doc/dbus-specification.html)
 * [sd-bus Overview](http://0pointer.net/blog/the-new-sd-bus-api-of-systemd.html)
 
 Contributing
