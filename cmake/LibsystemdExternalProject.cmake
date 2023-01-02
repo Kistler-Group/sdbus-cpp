@@ -46,7 +46,7 @@ ExternalProject_Add(LibsystemdBuildProject
                     GIT_SHALLOW       1
                     UPDATE_COMMAND    ""
                     CONFIGURE_COMMAND ${CMAKE_COMMAND} -E remove <BINARY_DIR>/*
-                              COMMAND ${MESON} --prefix=<INSTALL_DIR> --buildtype=${LIBSYSTEMD_BUILD_TYPE} -Dstatic-libsystemd=pic -Dselinux=false <SOURCE_DIR> <BINARY_DIR> ${LIBSYSTEMD_EXTRA_CONFIG_OPTS}
+                              COMMAND ${MESON} --prefix=<INSTALL_DIR> --buildtype=${LIBSYSTEMD_BUILD_TYPE} -Drootprefix=<INSTALL_DIR> -Dstatic-libsystemd=pic -Dselinux=false <SOURCE_DIR> <BINARY_DIR> ${LIBSYSTEMD_EXTRA_CONFIG_OPTS}
                     BUILD_COMMAND     ${BUILD_VERSION_H}
                           COMMAND     ${NINJA} -C <BINARY_DIR> libsystemd.a
                     BUILD_ALWAYS      0

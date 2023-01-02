@@ -201,7 +201,13 @@ TEST_F(SdbusTestObject, EmitsInterfacesAddedSignalForAllObjectInterfaces)
             , const std::map<std::string, std::map<std::string, sdbus::Variant>>& interfacesAndProperties )
     {
         EXPECT_THAT(objectPath, Eq(OBJECT_PATH));
+#if LIBSYSTEMD_VERSION<=250
         EXPECT_THAT(interfacesAndProperties, SizeIs(5)); // INTERFACE_NAME + 4 standard interfaces
+#else
+        // Since systemd v251, ObjectManager standard interface is not listed among the interfaces
+        // if the object does not have object manager functionality explicitly enabled.
+        EXPECT_THAT(interfacesAndProperties, SizeIs(4)); // INTERFACE_NAME + 3 standard interfaces
+#endif
 #if LIBSYSTEMD_VERSION<=244
         // Up to sd-bus v244, all properties are added to the list, i.e. `state', `action', and `blocking' in this case.
         EXPECT_THAT(interfacesAndProperties.at(INTERFACE_NAME), SizeIs(3));
@@ -248,7 +254,13 @@ TEST_F(SdbusTestObject, EmitsInterfacesRemovedSignalForAllObjectInterfaces)
                                                                           , const std::vector<std::string>& interfaces )
     {
         EXPECT_THAT(objectPath, Eq(OBJECT_PATH));
+#if LIBSYSTEMD_VERSION<=250
         ASSERT_THAT(interfaces, SizeIs(5)); // INTERFACE_NAME + 4 standard interfaces
+#else
+        // Since systemd v251, ObjectManager standard interface is not listed among the interfaces
+        // if the object does not have object manager functionality explicitly enabled.
+        ASSERT_THAT(interfaces, SizeIs(4)); // INTERFACE_NAME + 3 standard interfaces
+#endif
         signalReceived = true;
     };
 
