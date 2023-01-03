@@ -65,7 +65,7 @@ jobs:
       run: |
         cd build
         sudo cmake --build . --target install
-        ctest
+        ctest --output-on-failure
     - name: pack
       if: matrix.build == 'shared-libsystemd' && matrix.os == 'ubuntu-20.04'
       run: |
