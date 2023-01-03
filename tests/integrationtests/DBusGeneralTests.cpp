@@ -116,7 +116,8 @@ TEST_F(AConnection, CanAddFloatingMatchRule)
     };
     con->addMatch(matchRule, std::move(callback), sdbus::floating_slot);
     m_adaptor->emitSimpleSignal();
-    assert(waitUntil(matchingMessageReceived, 2s));
+    [[maybe_unused]] auto gotMessage = waitUntil(matchingMessageReceived, 2s);
+    assert(gotMessage);
     matchingMessageReceived = false;
 
     con.reset();
