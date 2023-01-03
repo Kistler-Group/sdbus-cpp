@@ -469,7 +469,6 @@ namespace sdbus {
      * @param[in] connection D-Bus connection to be used by the proxy object
      * @param[in] destination Bus name that provides the remote D-Bus object
      * @param[in] objectPath Path of the remote D-Bus object
-     * @param[in] dont_run_event_loop_thread tag to specify the behavior regarding running an event loop thread
      * @return Pointer to the object proxy instance
      *
      * The provided connection will be used by the proxy to issue calls against the object.
@@ -513,7 +512,6 @@ namespace sdbus {
      *
      * @param[in] destination Bus name that provides the remote D-Bus object
      * @param[in] objectPath Path of the remote D-Bus object
-     * @param[in] dont_run_event_loop_thread tag to specify the behavior regarding running an event loop thread
      * @return Pointer to the object proxy instance
      *
      * No D-Bus connection is provided here, so the object proxy will create and manage

@@ -293,7 +293,6 @@ namespace sdbus {
          *
          * @param[in] match Match expression to filter incoming D-Bus message
          * @param[in] callback Callback handler to be called upon incoming D-Bus message matching the rule
-         * @param[in] Floating slot tag
          *
          * The method installs a floating match rule for messages received on the specified bus connection.
          * Floating means that the bus connection object owns the match rule, i.e. lifetime of the match rule
@@ -314,21 +313,21 @@ namespace sdbus {
         [[deprecated("This function has been replaced by enterEventLoop()")]] void enterProcessingLoop();
 
         /*!
-         * @copydoc IConnection::enterProcessingLoopAsync()
+         * @copydoc IConnection::enterEventLoopAsync()
          *
          * @deprecated This function has been replaced by enterEventLoopAsync()
          */
         [[deprecated("This function has been replaced by enterEventLoopAsync()")]] void enterProcessingLoopAsync();
 
         /*!
-         * @copydoc IConnection::leaveProcessingLoop()
+         * @copydoc IConnection::leaveEventLoop()
          *
          * @deprecated This function has been replaced by leaveEventLoop()
          */
         [[deprecated("This function has been replaced by leaveEventLoop()")]] void leaveProcessingLoop();
 
         /*!
-         * @copydoc IConnection::getProcessLoopPollData()
+         * @copydoc IConnection::getEventLoopPollData()
          *
          * @deprecated This function has been replaced by getEventLoopPollData()
          */
