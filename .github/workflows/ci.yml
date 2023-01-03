@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-18.04, ubuntu-20.04]
+        os: [ubuntu-18.04, ubuntu-20.04, ubuntu-22.04]
         compiler: [g++, clang]
         build: [shared-libsystemd]
         include:
@@ -20,7 +20,7 @@ jobs:
             compiler: g++
             build: embedded-static-libsystemd
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: install-libsystemd-toolchain
       if: matrix.build == 'embedded-static-libsystemd'
       run: |
@@ -39,28 +39,32 @@ jobs:
         sudo update-alternatives --install /usr/bin/cc cc /usr/bin/clang 10
         sudo update-alternatives --remove-all c++
         sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++ 10
-    - name: configure-debug
-      if: matrix.build == 'shared-libsystemd' && matrix.os == 'ubuntu-18.04'
+    - name: install-googletest
+      if: matrix.os == 'ubuntu-22.04' # On older ubuntus the libgmock-dev package is either unavailable or has faulty pkg-config file
       run: |
-        mkdir build
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-O0 -g -W -Wextra -Wall -Wnon-virtual-dtor -Werror" -DBUILD_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON -DBUILD_CODE_GEN=ON ..
-    - name: configure-release
+        sudo apt-get install -y libgmock-dev
+    - name: configure-debug
       if: matrix.build == 'shared-libsystemd' && matrix.os == 'ubuntu-20.04'
       run: |
         mkdir build
         cd build
-        cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_FLAGS="-O3 -DNDEBUG -W -Wextra -Wall -Wnon-virtual-dtor -Werror" -DBUILD_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON -DBUILD_CODE_GEN=ON ..
+        cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-O0 -g -W -Wextra -Wall -Wnon-virtual-dtor -Werror" -DCMAKE_VERBOSE_MAKEFILE=ON -DBUILD_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON -DBUILD_CODE_GEN=ON ..
+    - name: configure-release
+      if: matrix.build == 'shared-libsystemd' && (matrix.os == 'ubuntu-18.04' || matrix.os == 'ubuntu-22.04')
+      run: |
+        mkdir build
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_FLAGS="-O3 -DNDEBUG -W -Wextra -Wall -Wnon-virtual-dtor -Werror" -DCMAKE_VERBOSE_MAKEFILE=ON -DBUILD_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON -DBUILD_CODE_GEN=ON ..
     - name: configure-with-embedded-libsystemd
       if: matrix.build == 'embedded-static-libsystemd'
       run: |
         mkdir build
         cd build
-        cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON -DBUILD_CODE_GEN=ON -DBUILD_LIBSYSTEMD=ON -DLIBSYSTEMD_VERSION=244 ..
+        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_VERBOSE_MAKEFILE=ON -DBUILD_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON -DBUILD_CODE_GEN=ON -DBUILD_LIBSYSTEMD=ON -DLIBSYSTEMD_VERSION=244 ..
     - name: make
       run: |
         cd build
-        cmake --build . -j2
+        cmake --build . -j4
     - name: verify
       run: |
         cd build
@@ -73,7 +77,7 @@ jobs:
         cpack -G DEB
     - name: 'Upload Artifact'
       if: matrix.build == 'shared-libsystemd' && matrix.os == 'ubuntu-20.04' && matrix.compiler == 'g++'
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: "debian-packages-${{ matrix.os }}-${{ matrix.compiler }}"
         path: |
