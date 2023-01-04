@@ -89,6 +89,18 @@ TEST_F(SdbusTestObject, EmitsSignalWithMapSuccesfully)
     ASSERT_THAT(m_proxy->m_mapFromSignal[1], Eq("one"));
 }
 
+TEST_F(SdbusTestObject, EmitsSignalWithLargeMapSuccesfully)
+{
+  std::map<int32_t, std::string> largeMap;
+  for (int32_t i = 0; i < 20'000; ++i)
+      largeMap.emplace(i, "This is string nr. " + std::to_string(i+1));
+  m_adaptor->emitSignalWithMap(largeMap);
+
+  ASSERT_TRUE(waitUntil(m_proxy->m_gotSignalWithMap));
+  ASSERT_THAT(m_proxy->m_mapFromSignal[0], Eq("This is string nr. 1"));
+  ASSERT_THAT(m_proxy->m_mapFromSignal[1], Eq("This is string nr. 2"));
+}
+
 TEST_F(SdbusTestObject, EmitsSignalWithVariantSuccesfully)
 {
     double d = 3.14;
