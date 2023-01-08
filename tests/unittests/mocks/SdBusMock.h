@@ -92,6 +92,8 @@ public:
     MOCK_METHOD2(sd_bus_creds_get_egid, int(sd_bus_creds *, gid_t *));
     MOCK_METHOD2(sd_bus_creds_get_supplementary_gids, int(sd_bus_creds *, const gid_t **));
     MOCK_METHOD2(sd_bus_creds_get_selinux_context, int(sd_bus_creds *, const char **));
+
+    MOCK_METHOD1(sd_bus_get_event, sd_event *(sd_bus *bus));
 };
 
 #endif //SDBUS_CXX_SDBUS_MOCK_H

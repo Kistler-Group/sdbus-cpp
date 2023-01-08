@@ -101,6 +101,8 @@ namespace sdbus::internal {
         virtual int sd_bus_creds_get_egid(sd_bus_creds *c, gid_t *egid) = 0;
         virtual int sd_bus_creds_get_supplementary_gids(sd_bus_creds *c, const gid_t **gids) = 0;
         virtual int sd_bus_creds_get_selinux_context(sd_bus_creds *c, const char **label) = 0;
+
+        virtual sd_event *sd_bus_get_event(sd_bus *bus) = 0;
     };
 
 }

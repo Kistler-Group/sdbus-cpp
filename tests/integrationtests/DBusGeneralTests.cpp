@@ -45,8 +45,6 @@ using ::testing::Eq;
 using namespace std::chrono_literals;
 using namespace sdbus::test;
 
-using AConnection = TestFixture;
-
 /*-------------------------------------*/
 /* --          TEST CASES           -- */
 /*-------------------------------------*/
@@ -72,38 +70,38 @@ TEST(AnAdaptor, SupportsMoveSemantics)
     static_assert(std::is_move_assignable_v<DummyTestAdaptor>);
 }
 
-TEST_F(AConnection, WillCallCallbackHandlerForIncomingMessageMatchingMatchRule)
+TYPED_TEST(AConnection, WillCallCallbackHandlerForIncomingMessageMatchingMatchRule)
 {
     auto matchRule = "sender='" + BUS_NAME + "',path='" + OBJECT_PATH + "'";
     std::atomic<bool> matchingMessageReceived{false};
-    auto slot = s_proxyConnection->addMatch(matchRule, [&](sdbus::Message& msg)
+    auto slot = this->s_proxyConnection->addMatch(matchRule, [&](sdbus::Message& msg)
     {
         if(msg.getPath() == OBJECT_PATH)
             matchingMessageReceived = true;
     });
 
-    m_adaptor->emitSimpleSignal();
+    this->m_adaptor->emitSimpleSignal();
 
-    ASSERT_TRUE(waitUntil(matchingMessageReceived));
+    ASSERT_TRUE(this->waitUntil(matchingMessageReceived));
 }
 
-TEST_F(AConnection, WillUnsubscribeMatchRuleWhenClientDestroysTheAssociatedSlot)
+TYPED_TEST(AConnection, WillUnsubscribeMatchRuleWhenClientDestroysTheAssociatedSlot)
 {
     auto matchRule = "sender='" + BUS_NAME + "',path='" + OBJECT_PATH + "'";
     std::atomic<bool> matchingMessageReceived{false};
-    auto slot = s_proxyConnection->addMatch(matchRule, [&](sdbus::Message& msg)
+    auto slot = this->s_proxyConnection->addMatch(matchRule, [&](sdbus::Message& msg)
     {
         if(msg.getPath() == OBJECT_PATH)
             matchingMessageReceived = true;
     });
     slot.reset();
 
-    m_adaptor->emitSimpleSignal();
+    this->m_adaptor->emitSimpleSignal();
 
-    ASSERT_FALSE(waitUntil(matchingMessageReceived, 2s));
+    ASSERT_FALSE(this->waitUntil(matchingMessageReceived, 2s));
 }
 
-TEST_F(AConnection, CanAddFloatingMatchRule)
+TYPED_TEST(AConnection, CanAddFloatingMatchRule)
 {
     auto matchRule = "sender='" + BUS_NAME + "',path='" + OBJECT_PATH + "'";
     std::atomic<bool> matchingMessageReceived{false};
@@ -115,32 +113,32 @@ TEST_F(AConnection, CanAddFloatingMatchRule)
             matchingMessageReceived = true;
     };
     con->addMatch(matchRule, std::move(callback), sdbus::floating_slot);
-    m_adaptor->emitSimpleSignal();
-    [[maybe_unused]] auto gotMessage = waitUntil(matchingMessageReceived, 2s);
+    this->m_adaptor->emitSimpleSignal();
+    [[maybe_unused]] auto gotMessage = this->waitUntil(matchingMessageReceived, 2s);
     assert(gotMessage);
     matchingMessageReceived = false;
 
     con.reset();
-    m_adaptor->emitSimpleSignal();
+    this->m_adaptor->emitSimpleSignal();
 
-    ASSERT_FALSE(waitUntil(matchingMessageReceived, 2s));
+    ASSERT_FALSE(this->waitUntil(matchingMessageReceived, 2s));
 }
 
-TEST_F(AConnection, WillNotPassToMatchCallbackMessagesThatDoNotMatchTheRule)
+TYPED_TEST(AConnection, WillNotPassToMatchCallbackMessagesThatDoNotMatchTheRule)
 {
     auto matchRule = "type='signal',interface='" + INTERFACE_NAME + "',member='simpleSignal'";
     std::atomic<size_t> numberOfMatchingMessages{};
-    auto slot = s_proxyConnection->addMatch(matchRule, [&](sdbus::Message& msg)
+    auto slot = this->s_proxyConnection->addMatch(matchRule, [&](sdbus::Message& msg)
     {
         if(msg.getMemberName() == "simpleSignal")
             numberOfMatchingMessages++;
     });
-    auto adaptor2 = std::make_unique<TestAdaptor>(*s_adaptorConnection, OBJECT_PATH_2);
+    auto adaptor2 = std::make_unique<TestAdaptor>(*this->s_adaptorConnection, OBJECT_PATH_2);
 
-    m_adaptor->emitSignalWithMap({});
+    this->m_adaptor->emitSignalWithMap({});
     adaptor2->emitSimpleSignal();
-    m_adaptor->emitSimpleSignal();
+    this->m_adaptor->emitSimpleSignal();
 
-    ASSERT_TRUE(waitUntil([&](){ return numberOfMatchingMessages == 2; }));
-    ASSERT_FALSE(waitUntil([&](){ return numberOfMatchingMessages > 2; }, 1s));
+    ASSERT_TRUE(this->waitUntil([&](){ return numberOfMatchingMessages == 2; }));
+    ASSERT_FALSE(this->waitUntil([&](){ return numberOfMatchingMessages > 2; }, 1s));
 }

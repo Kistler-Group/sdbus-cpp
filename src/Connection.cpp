@@ -32,6 +32,7 @@
 #include <sdbus-c++/Error.h>
 #include "ScopeGuard.h"
 #include <systemd/sd-bus.h>
+#include <systemd/sd-event.h>
 #include <unistd.h>
 #include <poll.h>
 #include <sys/eventfd.h>
@@ -221,6 +222,102 @@ Slot Connection::addMatch(const std::string& match, message_handler callback)
 void Connection::addMatch(const std::string& match, message_handler callback, floating_slot_t)
 {
     floatingMatchRules_.push_back(addMatch(match, std::move(callback)));
+}
+
+void Connection::attachSdEventLoop(sd_event *event, int priority)
+{
+    // Get default event if no event is provided by the caller
+    if (event != nullptr)
+        event = sd_event_ref(event);
+    else
+        (void)sd_event_default(&event);
+    SDBUS_THROW_ERROR_IF(!event, "Invalid sd_event handle", EINVAL);
+    Slot sdEvent{event, [](void* event){ sd_event_unref((sd_event*)event); }};
+    // TODO: auto sdEvent = createSdEventSlot(...);
+
+    sd_event_source *timeEventSource{};
+    auto r = sd_event_add_time(event, &timeEventSource, CLOCK_MONOTONIC, 0, 0, onSdTimerEvent, this);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to add timer event", -r);
+    Slot sdTimeEventSource{timeEventSource, [](void* source){ sd_event_source_disable_unref((sd_event_source*)source); }};
+
+    r = sd_event_source_set_priority(timeEventSource, priority); // TODO maybe use custom EventSourceSlot with custom type? Then we can use slot.get() here
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to set time event priority", -r);
+
+    r = sd_event_source_set_description(timeEventSource, "bus-time");
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to set time event description", -r);
+    // TODO: auto sdTimeEventSource = createSdTimeEventSourceSlot(...);
+
+    sd_event_source *ioEventSource{};
+    auto pollData = getEventLoopPollData();
+    r = sd_event_add_io(event, &ioEventSource, pollData.fd, 0, onSdIoEvent, this);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to add io event", -r);
+    Slot sdIoEventSource{ioEventSource, [](void* source){ sd_event_source_disable_unref((sd_event_source*)source); }};
+
+    r = sd_event_source_set_prepare(ioEventSource, onSdEventPrepare);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to set prepare callback for IO event", -r);
+
+    r = sd_event_source_set_priority(ioEventSource, priority);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to set priority for IO event", -r);
+
+    r = sd_event_source_set_description(ioEventSource, "bus-input");
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to set priority for IO event", -r);
+    // TODO: auto sdIoEventSource = createSdIoEventSourceSlot(...);
+
+    sdEvent_ = std::make_unique<SdEvent>(SdEvent{std::move(sdEvent), std::move(sdTimeEventSource), std::move(sdIoEventSource)});
+}
+
+void Connection::detachSdEventLoop()
+{
+    sdEvent_.reset();
+}
+
+sd_event *Connection::getSdEventLoop()
+{
+    return iface_->sd_bus_get_event(bus_.get());
+}
+
+int Connection::onSdTimerEvent(sd_event_source */*s*/, uint64_t /*usec*/, void *userdata)
+{
+    auto connection = static_cast<Connection*>(userdata);
+    assert(connection != nullptr);
+
+    connection->processPendingRequest();
+
+    return 1;
+}
+
+int Connection::onSdIoEvent(sd_event_source */*s*/, int /*fd*/, uint32_t /*revents*/, void *userdata)
+{
+    auto connection = static_cast<Connection*>(userdata);
+    assert(connection != nullptr);
+
+    connection->processPendingRequest();
+
+    return 1;
+}
+
+int Connection::onSdEventPrepare(sd_event_source */*s*/, void *userdata)
+{
+    auto connection = static_cast<Connection*>(userdata);
+    assert(connection != nullptr);
+
+    auto sdbusPollData = connection->getEventLoopPollData();
+
+    // Set poll events to watch out for
+    auto* sdIoEventSource = static_cast<sd_event_source*>(connection->sdEvent_->sdIoEventSource_.get());
+    auto r = sd_event_source_set_io_events(sdIoEventSource, sdbusPollData.events);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to set poll events for IO event source", -r);
+
+    // Set current timeout to the time event source (may be zero if there are messages in the sd-bus queues to be processed)
+    auto* sdTimeEventSource = static_cast<sd_event_source*>(connection->sdEvent_->sdTimeEventSource_.get());
+    r = sd_event_source_set_time(sdTimeEventSource, sdbusPollData.timeout_usec);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to set timeout for time event source", -r);
+    r = sd_event_source_set_enabled(sdTimeEventSource, SD_EVENT_ON);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to enable time event source", -r);
+
+    // TODO: Continue with integration tests
+
+    return 1;
 }
 
 Slot Connection::addObjectVTable( const std::string& objectPath

@@ -87,6 +87,10 @@ namespace sdbus::internal {
         [[nodiscard]] Slot addMatch(const std::string& match, message_handler callback) override;
         void addMatch(const std::string& match, message_handler callback, floating_slot_t) override;
 
+        void attachSdEventLoop(sd_event *event, int priority) override;
+        void detachSdEventLoop() override;
+        sd_event *getSdEventLoop() override;
+
         const ISdBus& getSdBusInterface() const override;
         ISdBus& getSdBusInterface() override;
 
@@ -141,9 +145,12 @@ namespace sdbus::internal {
         void clearEventLoopNotification(int fd) const;
         void notifyEventLoopNewTimeout() const override;
 
-    private:
         void joinWithEventLoop();
         static std::vector</*const */char*> to_strv(const std::vector<std::string>& strings);
+
+        static int onSdTimerEvent(sd_event_source *s, uint64_t usec, void *userdata);
+        static int onSdIoEvent(sd_event_source *s, int fd, uint32_t revents, void *userdata);
+        static int onSdEventPrepare(sd_event_source *s, void *userdata);
 
         struct EventFd
         {
@@ -169,6 +176,15 @@ namespace sdbus::internal {
         EventFd eventFd_;
         std::atomic<uint64_t> activeTimeout_{};
         std::vector<Slot> floatingMatchRules_;
+
+        // sd-event integration
+        struct SdEvent
+        {
+            Slot sdEvent_;
+            Slot sdTimeEventSource_;
+            Slot sdIoEventSource_{};
+        };
+        std::unique_ptr<SdEvent> sdEvent_;
     };
 
 }

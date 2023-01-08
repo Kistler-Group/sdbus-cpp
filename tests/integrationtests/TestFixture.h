@@ -2,7 +2,7 @@
  * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
  * (C) 2016 - 2022 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
- * @file TestAdaptor.h
+ * @file TestFixture.h
  *
  * Created on: Jan 2, 2017
  * Project: sdbus-c++
@@ -33,6 +33,8 @@
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <systemd/sd-event.h>
+#include <sys/eventfd.h>
 
 #include <thread>
 #include <chrono>
@@ -41,22 +43,17 @@
 
 namespace sdbus { namespace test {
 
-class TestFixture : public ::testing::Test
+class BaseTestFixture : public ::testing::Test
 {
 public:
     static void SetUpTestCase()
     {
-        s_proxyConnection->enterEventLoopAsync();
         s_adaptorConnection->requestName(BUS_NAME);
-        s_adaptorConnection->enterEventLoopAsync();
-        std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Give time for the proxy connection to start listening to signals
     }
 
     static void TearDownTestCase()
     {
         s_adaptorConnection->releaseName(BUS_NAME);
-        s_adaptorConnection->leaveEventLoop();
-        s_proxyConnection->leaveEventLoop();
     }
 
     template <typename _Fnc>
@@ -84,17 +81,17 @@ public:
 private:
     void SetUp() override
     {
-        m_objectManagerProxy = std::make_unique<ObjectManagerTestProxy>(*s_proxyConnection, BUS_NAME, MANAGER_PATH);
-        m_proxy = std::make_unique<TestProxy>(*s_proxyConnection, BUS_NAME, OBJECT_PATH);
+      m_objectManagerProxy = std::make_unique<ObjectManagerTestProxy>(*s_proxyConnection, BUS_NAME, MANAGER_PATH);
+      m_proxy = std::make_unique<TestProxy>(*s_proxyConnection, BUS_NAME, OBJECT_PATH);
 
-        m_objectManagerAdaptor = std::make_unique<ObjectManagerTestAdaptor>(*s_adaptorConnection, MANAGER_PATH);
-        m_adaptor = std::make_unique<TestAdaptor>(*s_adaptorConnection, OBJECT_PATH);
+      m_objectManagerAdaptor = std::make_unique<ObjectManagerTestAdaptor>(*s_adaptorConnection, MANAGER_PATH);
+      m_adaptor = std::make_unique<TestAdaptor>(*s_adaptorConnection, OBJECT_PATH);
     }
 
     void TearDown() override
     {
-        m_proxy.reset();
-        m_adaptor.reset();
+      m_proxy.reset();
+      m_adaptor.reset();
     }
 
 public:
@@ -105,6 +102,93 @@ public:
     std::unique_ptr<TestAdaptor> m_adaptor;
     std::unique_ptr<TestProxy> m_proxy;
 };
+
+struct SdBusCppLoop{};
+struct SdEventLoop{};
+
+template <typename _EventLoop>
+class TestFixture : public BaseTestFixture{};
+
+// Fixture working upon internal sdbus-c++ event loop
+template <>
+class TestFixture<SdBusCppLoop> : public BaseTestFixture
+{
+public:
+    static void SetUpTestCase()
+    {
+        BaseTestFixture::SetUpTestCase();
+        s_proxyConnection->enterEventLoopAsync();
+        s_adaptorConnection->enterEventLoopAsync();
+        std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Give time for the proxy connection to start listening to signals
+    }
+
+    static void TearDownTestCase()
+    {
+        BaseTestFixture::TearDownTestCase();
+        s_adaptorConnection->leaveEventLoop();
+        s_proxyConnection->leaveEventLoop();
+    }
+};
+
+// Fixture working upon attached external sd-event loop
+template <>
+class TestFixture<SdEventLoop> : public BaseTestFixture
+{
+public:
+    static void SetUpTestCase()
+    {
+        sd_event_new(&s_sdEvent);
+
+        s_proxyConnection->attachSdEventLoop(s_sdEvent);
+        s_adaptorConnection->attachSdEventLoop(s_sdEvent);
+
+        s_eventExitFd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
+        // No callback means that the event loop will exit when this event source triggers
+        sd_event_add_io(s_sdEvent, nullptr, s_eventExitFd, EPOLLIN, nullptr, NULL);
+
+        s_eventLoopThread = std::thread([]()
+        {
+            sd_event_loop(s_sdEvent);
+        });
+
+        BaseTestFixture::SetUpTestCase();
+        std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Give time for the proxy connection to start listening to signals
+    }
+
+    static void TearDownTestCase()
+    {
+        uint64_t value = 1;
+        write(s_eventExitFd, &value, sizeof(value));
+
+        s_eventLoopThread.join();
+
+        sd_event_unref(s_sdEvent);
+        close(s_eventExitFd);
+
+        BaseTestFixture::TearDownTestCase();
+    }
+
+private:
+    static std::thread s_eventLoopThread;
+    static sd_event *s_sdEvent;
+    static int s_eventExitFd;
+};
+
+typedef ::testing::Types<SdBusCppLoop, SdEventLoop> EventLoopTags;
+
+TYPED_TEST_SUITE(TestFixture, EventLoopTags);
+
+template <typename _EventLoop>
+using SdbusTestObject = TestFixture<_EventLoop>;
+TYPED_TEST_SUITE(SdbusTestObject, EventLoopTags);
+
+template <typename _EventLoop>
+using AsyncSdbusTestObject = TestFixture<_EventLoop>;
+TYPED_TEST_SUITE(AsyncSdbusTestObject, EventLoopTags);
+
+template <typename _EventLoop>
+using AConnection = TestFixture<_EventLoop>;
+TYPED_TEST_SUITE(AConnection, EventLoopTags);
 
 }}
 

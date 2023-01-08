@@ -50,59 +50,57 @@ using ::testing::NotNull;
 using namespace std::chrono_literals;
 using namespace sdbus::test;
 
-using SdbusTestObject = TestFixture;
-
 /*-------------------------------------*/
 /* --          TEST CASES           -- */
 /*-------------------------------------*/
 
-TEST_F(SdbusTestObject, CallsEmptyMethodSuccesfully)
+TYPED_TEST(SdbusTestObject, CallsEmptyMethodSuccesfully)
 {
-    ASSERT_NO_THROW(m_proxy->noArgNoReturn());
+    ASSERT_NO_THROW(this->m_proxy->noArgNoReturn());
 }
 
-TEST_F(SdbusTestObject, CallsMethodsWithBaseTypesSuccesfully)
+TYPED_TEST(SdbusTestObject, CallsMethodsWithBaseTypesSuccesfully)
 {
-    auto resInt = m_proxy->getInt();
+    auto resInt = this->m_proxy->getInt();
     ASSERT_THAT(resInt, Eq(INT32_VALUE));
 
-    auto multiplyRes = m_proxy->multiply(INT64_VALUE, DOUBLE_VALUE);
+    auto multiplyRes = this->m_proxy->multiply(INT64_VALUE, DOUBLE_VALUE);
     ASSERT_THAT(multiplyRes, Eq(INT64_VALUE * DOUBLE_VALUE));
 }
 
-TEST_F(SdbusTestObject, CallsMethodsWithTuplesSuccesfully)
+TYPED_TEST(SdbusTestObject, CallsMethodsWithTuplesSuccesfully)
 {
-    auto resTuple = m_proxy->getTuple();
+    auto resTuple = this->m_proxy->getTuple();
     ASSERT_THAT(std::get<0>(resTuple), Eq(UINT32_VALUE));
     ASSERT_THAT(std::get<1>(resTuple), Eq(STRING_VALUE));
 }
 
-TEST_F(SdbusTestObject, CallsMethodsWithStructSuccesfully)
+TYPED_TEST(SdbusTestObject, CallsMethodsWithStructSuccesfully)
 {
     sdbus::Struct<uint8_t, int16_t, double, std::string, std::vector<int16_t>> a{};
-    auto vectorRes = m_proxy->getInts16FromStruct(a);
+    auto vectorRes = this->m_proxy->getInts16FromStruct(a);
     ASSERT_THAT(vectorRes, Eq(std::vector<int16_t>{0})); // because second item is by default initialized to 0
 
 
     sdbus::Struct<uint8_t, int16_t, double, std::string, std::vector<int16_t>> b{
         UINT8_VALUE, INT16_VALUE, DOUBLE_VALUE, STRING_VALUE, {INT16_VALUE, -INT16_VALUE}
     };
-    vectorRes = m_proxy->getInts16FromStruct(b);
+    vectorRes = this->m_proxy->getInts16FromStruct(b);
     ASSERT_THAT(vectorRes, Eq(std::vector<int16_t>{INT16_VALUE, INT16_VALUE, -INT16_VALUE}));
 }
 
-TEST_F(SdbusTestObject, CallsMethodWithVariantSuccesfully)
+TYPED_TEST(SdbusTestObject, CallsMethodWithVariantSuccesfully)
 {
     sdbus::Variant v{DOUBLE_VALUE};
-    auto variantRes = m_proxy->processVariant(v);
+    sdbus::Variant variantRes = this->m_proxy->processVariant(v);
     ASSERT_THAT(variantRes.get<int32_t>(), Eq(static_cast<int32_t>(DOUBLE_VALUE)));
 }
 
-TEST_F(SdbusTestObject, CallsMethodWithStructVariantsAndGetMapSuccesfully)
+TYPED_TEST(SdbusTestObject, CallsMethodWithStructVariantsAndGetMapSuccesfully)
 {
     std::vector<int32_t> x{-2, 0, 2};
     sdbus::Struct<sdbus::Variant, sdbus::Variant> y{false, true};
-    auto mapOfVariants = m_proxy->getMapOfVariants(x, y);
+    std::map<int32_t, sdbus::Variant> mapOfVariants = this->m_proxy->getMapOfVariants(x, y);
     decltype(mapOfVariants) res{{-2, false}, {0, false}, {2, true}};
 
     ASSERT_THAT(mapOfVariants[-2].get<bool>(), Eq(res[-2].get<bool>()));
@@ -110,69 +108,69 @@ TEST_F(SdbusTestObject, CallsMethodWithStructVariantsAndGetMapSuccesfully)
     ASSERT_THAT(mapOfVariants[2].get<bool>(), Eq(res[2].get<bool>()));
 }
 
-TEST_F(SdbusTestObject, CallsMethodWithStructInStructSuccesfully)
+TYPED_TEST(SdbusTestObject, CallsMethodWithStructInStructSuccesfully)
 {
-    auto val = m_proxy->getStructInStruct();
-    ASSERT_THAT(val.get<0>(), Eq(STRING_VALUE));
+    auto val = this->m_proxy->getStructInStruct();
+    ASSERT_THAT(val.template get<0>(), Eq(STRING_VALUE));
     ASSERT_THAT(std::get<0>(std::get<1>(val))[INT32_VALUE], Eq(INT32_VALUE));
 }
 
-TEST_F(SdbusTestObject, CallsMethodWithTwoStructsSuccesfully)
+TYPED_TEST(SdbusTestObject, CallsMethodWithTwoStructsSuccesfully)
 {
-    auto val = m_proxy->sumStructItems({1, 2}, {3, 4});
+    auto val = this->m_proxy->sumStructItems({1, 2}, {3, 4});
     ASSERT_THAT(val, Eq(1 + 2 + 3 + 4));
 }
 
-TEST_F(SdbusTestObject, CallsMethodWithTwoVectorsSuccesfully)
+TYPED_TEST(SdbusTestObject, CallsMethodWithTwoVectorsSuccesfully)
 {
-    auto val = m_proxy->sumVectorItems({1, 7}, {2, 3});
+    auto val = this->m_proxy->sumVectorItems({1, 7}, {2, 3});
     ASSERT_THAT(val, Eq(1 + 7 + 2 + 3));
 }
 
-TEST_F(SdbusTestObject, CallsMethodWithSignatureSuccesfully)
+TYPED_TEST(SdbusTestObject, CallsMethodWithSignatureSuccesfully)
 {
-    auto resSignature = m_proxy->getSignature();
+    auto resSignature = this->m_proxy->getSignature();
     ASSERT_THAT(resSignature, Eq(SIGNATURE_VALUE));
 }
 
-TEST_F(SdbusTestObject, CallsMethodWithObjectPathSuccesfully)
+TYPED_TEST(SdbusTestObject, CallsMethodWithObjectPathSuccesfully)
 {
-    auto resObjectPath = m_proxy->getObjPath();
+    auto resObjectPath = this->m_proxy->getObjPath();
     ASSERT_THAT(resObjectPath, Eq(OBJECT_PATH_VALUE));
 }
 
-TEST_F(SdbusTestObject, CallsMethodWithUnixFdSuccesfully)
+TYPED_TEST(SdbusTestObject, CallsMethodWithUnixFdSuccesfully)
 {
-    auto resUnixFd = m_proxy->getUnixFd();
+    auto resUnixFd = this->m_proxy->getUnixFd();
     ASSERT_THAT(resUnixFd.get(), Gt(UNIX_FD_VALUE));
 }
 
-TEST_F(SdbusTestObject, CallsMethodWithComplexTypeSuccesfully)
+TYPED_TEST(SdbusTestObject, CallsMethodWithComplexTypeSuccesfully)
 {
-    auto resComplex = m_proxy->getComplex();
+    auto resComplex = this->m_proxy->getComplex();
     ASSERT_THAT(resComplex.count(0), Eq(1));
 }
 
-TEST_F(SdbusTestObject, CallsMultiplyMethodWithNoReplyFlag)
+TYPED_TEST(SdbusTestObject, CallsMultiplyMethodWithNoReplyFlag)
 {
-    m_proxy->multiplyWithNoReply(INT64_VALUE, DOUBLE_VALUE);
+    this->m_proxy->multiplyWithNoReply(INT64_VALUE, DOUBLE_VALUE);
 
-    ASSERT_TRUE(waitUntil(m_adaptor->m_wasMultiplyCalled));
-    ASSERT_THAT(m_adaptor->m_multiplyResult, Eq(INT64_VALUE * DOUBLE_VALUE));
+    ASSERT_TRUE(this->waitUntil(this->m_adaptor->m_wasMultiplyCalled));
+    ASSERT_THAT(this->m_adaptor->m_multiplyResult, Eq(INT64_VALUE * DOUBLE_VALUE));
 }
 
-TEST_F(SdbusTestObject, CallsMethodWithCustomTimeoutSuccessfully)
+TYPED_TEST(SdbusTestObject, CallsMethodWithCustomTimeoutSuccessfully)
 {
-    auto res = m_proxy->doOperationWithTimeout(500ms, 20); // The operation will take 20ms, but the timeout is 500ms, so we are fine
+    auto res = this->m_proxy->doOperationWithTimeout(500ms, 20); // The operation will take 20ms, but the timeout is 500ms, so we are fine
     ASSERT_THAT(res, Eq(20));
 }
 
-TEST_F(SdbusTestObject, ThrowsTimeoutErrorWhenMethodTimesOut)
+TYPED_TEST(SdbusTestObject, ThrowsTimeoutErrorWhenMethodTimesOut)
 {
     auto start = std::chrono::steady_clock::now();
     try
     {
-        m_proxy->doOperationWithTimeout(1us, 1000); // The operation will take 1s, but the timeout is 1us, so we should time out
+        this->m_proxy->doOperationWithTimeout(1us, 1000); // The operation will take 1s, but the timeout is 1us, so we should time out
         FAIL() << "Expected sdbus::Error exception";
     }
     catch (const sdbus::Error& e)
@@ -188,11 +186,11 @@ TEST_F(SdbusTestObject, ThrowsTimeoutErrorWhenMethodTimesOut)
     }
 }
 
-TEST_F(SdbusTestObject, CallsMethodThatThrowsError)
+TYPED_TEST(SdbusTestObject, CallsMethodThatThrowsError)
 {
     try
     {
-        m_proxy->throwError();
+        this->m_proxy->throwError();
         FAIL() << "Expected sdbus::Error exception";
     }
     catch (const sdbus::Error& e)
@@ -206,74 +204,74 @@ TEST_F(SdbusTestObject, CallsMethodThatThrowsError)
     }
 }
 
-TEST_F(SdbusTestObject, CallsErrorThrowingMethodWithDontExpectReplySet)
+TYPED_TEST(SdbusTestObject, CallsErrorThrowingMethodWithDontExpectReplySet)
 {
-    ASSERT_NO_THROW(m_proxy->throwErrorWithNoReply());
+    ASSERT_NO_THROW(this->m_proxy->throwErrorWithNoReply());
 
-    ASSERT_TRUE(waitUntil(m_adaptor->m_wasThrowErrorCalled));
+    ASSERT_TRUE(this->waitUntil(this->m_adaptor->m_wasThrowErrorCalled));
 }
 
-TEST_F(SdbusTestObject, FailsCallingNonexistentMethod)
+TYPED_TEST(SdbusTestObject, FailsCallingNonexistentMethod)
 {
-    ASSERT_THROW(m_proxy->callNonexistentMethod(), sdbus::Error);
+    ASSERT_THROW(this->m_proxy->callNonexistentMethod(), sdbus::Error);
 }
 
-TEST_F(SdbusTestObject, FailsCallingMethodOnNonexistentInterface)
+TYPED_TEST(SdbusTestObject, FailsCallingMethodOnNonexistentInterface)
 {
-    ASSERT_THROW(m_proxy->callMethodOnNonexistentInterface(), sdbus::Error);
+    ASSERT_THROW(this->m_proxy->callMethodOnNonexistentInterface(), sdbus::Error);
 }
 
-TEST_F(SdbusTestObject, FailsCallingMethodOnNonexistentDestination)
+TYPED_TEST(SdbusTestObject, FailsCallingMethodOnNonexistentDestination)
 {
     TestProxy proxy("sdbuscpp.destination.that.does.not.exist", OBJECT_PATH);
     ASSERT_THROW(proxy.getInt(), sdbus::Error);
 }
 
-TEST_F(SdbusTestObject, FailsCallingMethodOnNonexistentObject)
+TYPED_TEST(SdbusTestObject, FailsCallingMethodOnNonexistentObject)
 {
     TestProxy proxy(BUS_NAME, "/sdbuscpp/path/that/does/not/exist");
     ASSERT_THROW(proxy.getInt(), sdbus::Error);
 }
 
-TEST_F(SdbusTestObject, CanReceiveSignalWhileMakingMethodCall)
+TYPED_TEST(SdbusTestObject, CanReceiveSignalWhileMakingMethodCall)
 {
-    m_proxy->emitTwoSimpleSignals();
+    this->m_proxy->emitTwoSimpleSignals();
 
-    ASSERT_TRUE(waitUntil(m_proxy->m_gotSimpleSignal));
-    ASSERT_TRUE(waitUntil(m_proxy->m_gotSignalWithMap));
+    ASSERT_TRUE(this->waitUntil(this->m_proxy->m_gotSimpleSignal));
+    ASSERT_TRUE(this->waitUntil(this->m_proxy->m_gotSignalWithMap));
 }
 
-TEST_F(SdbusTestObject, CanAccessAssociatedMethodCallMessageInMethodCallHandler)
+TYPED_TEST(SdbusTestObject, CanAccessAssociatedMethodCallMessageInMethodCallHandler)
 {
-    m_proxy->doOperation(10); // This will save pointer to method call message on server side
+    this->m_proxy->doOperation(10); // This will save pointer to method call message on server side
 
-    ASSERT_THAT(m_adaptor->m_methodCallMsg, NotNull());
-    ASSERT_THAT(m_adaptor->m_methodCallMemberName, Eq("doOperation"));
+    ASSERT_THAT(this->m_adaptor->m_methodCallMsg, NotNull());
+    ASSERT_THAT(this->m_adaptor->m_methodCallMemberName, Eq("doOperation"));
 }
 
-TEST_F(SdbusTestObject, CanAccessAssociatedMethodCallMessageInAsyncMethodCallHandler)
+TYPED_TEST(SdbusTestObject, CanAccessAssociatedMethodCallMessageInAsyncMethodCallHandler)
 {
-    m_proxy->doOperationAsync(10); // This will save pointer to method call message on server side
+    this->m_proxy->doOperationAsync(10); // This will save pointer to method call message on server side
 
-    ASSERT_THAT(m_adaptor->m_methodCallMsg, NotNull());
-    ASSERT_THAT(m_adaptor->m_methodCallMemberName, Eq("doOperationAsync"));
+    ASSERT_THAT(this->m_adaptor->m_methodCallMsg, NotNull());
+    ASSERT_THAT(this->m_adaptor->m_methodCallMemberName, Eq("doOperationAsync"));
 }
 
 #if LIBSYSTEMD_VERSION>=240
-TEST_F(SdbusTestObject, CanSetGeneralMethodTimeoutWithLibsystemdVersionGreaterThan239)
+TYPED_TEST(SdbusTestObject, CanSetGeneralMethodTimeoutWithLibsystemdVersionGreaterThan239)
 {
-    s_adaptorConnection->setMethodCallTimeout(5000000);
-    ASSERT_THAT(s_adaptorConnection->getMethodCallTimeout(), Eq(5000000));
+    this->s_adaptorConnection->setMethodCallTimeout(5000000);
+    ASSERT_THAT(this->s_adaptorConnection->getMethodCallTimeout(), Eq(5000000));
 }
 #else
-TEST_F(SdbusTestObject, CannotSetGeneralMethodTimeoutWithLibsystemdVersionLessThan240)
+TYPED_TEST(SdbusTestObject, CannotSetGeneralMethodTimeoutWithLibsystemdVersionLessThan240)
 {
-    ASSERT_THROW(s_adaptorConnection->setMethodCallTimeout(5000000), sdbus::Error);
-    ASSERT_THROW(s_adaptorConnection->getMethodCallTimeout(), sdbus::Error);
+    ASSERT_THROW(this->s_adaptorConnection->setMethodCallTimeout(5000000), sdbus::Error);
+    ASSERT_THROW(this->s_adaptorConnection->getMethodCallTimeout(), sdbus::Error);
 }
 #endif
 
-TEST_F(SdbusTestObject, CanCallMethodSynchronouslyWithoutAnEventLoopThread)
+TYPED_TEST(SdbusTestObject, CanCallMethodSynchronouslyWithoutAnEventLoopThread)
 {
     auto proxy = std::make_unique<TestProxy>(BUS_NAME, OBJECT_PATH, sdbus::dont_run_event_loop_thread);
 

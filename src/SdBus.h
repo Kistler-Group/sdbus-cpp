@@ -94,6 +94,8 @@ public:
     virtual int sd_bus_creds_get_supplementary_gids(sd_bus_creds *c, const gid_t **gids) override;
     virtual int sd_bus_creds_get_selinux_context(sd_bus_creds *c, const char **label) override;
 
+    virtual sd_event *sd_bus_get_event(sd_bus *bus) override;
+
 private:
     std::recursive_mutex sdbusMutex_;
 };

@@ -401,4 +401,11 @@ int SdBus::sd_bus_creds_get_selinux_context(sd_bus_creds *c, const char **label)
     return ::sd_bus_creds_get_selinux_context(c, label);
 }
 
+sd_event *SdBus::sd_bus_get_event(sd_bus *bus)
+{
+    std::lock_guard lock(sdbusMutex_);
+
+    return ::sd_bus_get_event(bus);
+}
+
 }

@@ -34,6 +34,8 @@
 #include <cstdint>
 #include <optional>
 
+struct sd_event;
+
 namespace sdbus {
 
     /********************************************//**
@@ -127,7 +129,7 @@ namespace sdbus {
         virtual void releaseName(const std::string& name) = 0;
 
         /*!
-         * @brief Retrieve the unique name of a connection. E.g. ":1.xx"
+         * @brief Retrieves the unique name of a connection. E.g. ":1.xx"
          *
          * @throws sdbus::Error in case of failure
          */
@@ -304,6 +306,32 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         virtual void addMatch(const std::string& match, message_handler callback, floating_slot_t) = 0;
+
+        /*!
+         * @brief Attaches the bus connection to an sd-event event loop
+         *
+         * @param[in] event sd-event event loop object
+         * @param[in] priority Specified priority
+         *
+         * @throws sdbus::Error in case of failure
+         *
+         * See `man sd_bus_attach_event'.
+         */
+        virtual void attachSdEventLoop(sd_event *event, int priority = 0) = 0;
+
+        /*!
+         * @brief Detaches the bus connection from an sd-event event loop
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual void detachSdEventLoop() = 0;
+
+        /*!
+         * @brief Gets current sd-event event loop for the bus connection
+         *
+         * @return Pointer to event loop object if attached, nullptr otherwise
+         */
+        virtual sd_event *getSdEventLoop() = 0;
 
         /*!
          * @copydoc IConnection::enterEventLoop()
