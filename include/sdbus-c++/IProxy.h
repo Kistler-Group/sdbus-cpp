@@ -83,20 +83,29 @@ namespace sdbus {
         virtual MethodCall createMethodCall(const std::string& interfaceName, const std::string& methodName) = 0;
 
         /*!
-         * @brief Calls method on the D-Bus object
+         * @brief Calls method on the remote D-Bus object
          *
          * @param[in] message Message representing a method call
          * @param[in] timeout Timeout for dbus call in microseconds
          * @return A method reply message
          *
-         * Normally, the call is blocking, i.e. it waits for the remote method to finish with either
-         * a return value or an error.
+         * The call does not block if the method call has dont-expect-reply flag set. In that case,
+         * the call returns immediately and the return value is an empty, invalid method reply.
          *
-         * If the method call argument is set to not expect reply, the call will not wait for the remote
-         * method to finish, i.e. the call will be non-blocking, and the function will return an empty,
-         * invalid MethodReply object (representing void).
+         * The call blocks otherwise, waiting for the remote peer to send back a reply, or an error,
+         * or until the call times out.
          *
-         * Note: To avoid messing with messages, use higher-level API defined below.
+         * While blocking, other concurrent operations (in other threads) on the underlying bus
+         * connection are stalled until the call returns. This is not an issue in vast majority of
+         * (simple, single-threaded) applications. In asynchronous, multi-threaded designs involving
+         * shared bus connections, this may be an issue. It is advised to instead use an asynchronous
+         * callMethod() function overload, which does not block the bus connection, or do the synchronous
+         * call from another Proxy instance created just before the call and then destroyed (which is
+         * anyway quite a typical approach in D-Bus implementations). Such proxy instance must have
+         * its own bus connection. Slim proxies created with `dont_run_event_loop_thread` tag are
+         * designed for exactly that purpose.
+         *
+         * Note: To avoid messing with messages, use API on a higher level of abstraction defined below.
          *
          * @throws sdbus::Error in case of failure
          */
@@ -117,10 +126,10 @@ namespace sdbus {
          * @return Cookie for the the pending asynchronous call
          *
          * The call is non-blocking. It doesn't wait for the reply. Once the reply arrives,
-         * the provided async reply handler will get invoked from the context of the connection
-         * I/O event loop thread.
+         * the provided async reply handler will get invoked from the context of the bus
+         * connection I/O event loop thread.
          *
-         * Note: To avoid messing with messages, use higher-level API defined below.
+         * Note: To avoid messing with messages, use API on a higher level of abstraction defined below.
          *
          * @throws sdbus::Error in case of failure
          */

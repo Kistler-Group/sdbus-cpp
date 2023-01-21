@@ -75,21 +75,6 @@ namespace sdbus::internal {
         const Message* getCurrentlyProcessedMessage() const override;
 
     private:
-        class SyncCallReplyData
-        {
-        public:
-            void sendMethodReplyToWaitingThread(MethodReply& reply, const Error* error);
-            MethodReply waitForMethodReply();
-
-        private:
-            std::mutex mutex_;
-            std::condition_variable cond_;
-            bool arrived_{};
-            MethodReply reply_;
-            std::unique_ptr<Error> error_;
-        };
-
-        MethodReply sendMethodCallMessageAndWaitForReply(const MethodCall& message, uint64_t timeout);
         void registerSignalHandlers(sdbus::internal::IConnection& connection);
         static int sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
         static int sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);

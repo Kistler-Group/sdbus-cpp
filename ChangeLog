@@ -248,3 +248,18 @@ v1.5.0
 - Add INSTALL_TESTS CMake option
 - Minor UnixFd cleanups
 - Additional little fixes and updates in code, build system, CI, and documentation
+
+v2.0
+- Breaking changes in API/ABI/behavior:
+   - In *synchronous* D-Bus calls, the proxy now **always** blocks the connection for concurrent use until the call finishes (with either a received reply,
+     an error, or time out). If this creates a connection contention issue in your multi-threaded design, use short-lived, light-weight proxies, or call
+     the method in an asynchronous way.
+   - The `PollData` struct has been extended with a new data member: `eventFd`. All hooks with external event loops shall be modified to poll on this fd as well.
+   - `PollData::timeout_usec` was renamed to `PollData::timeout` and its type has been changed to `std::chrono::microseconds`. This member now holds directly
+     what before had to be obtained through `PollData::getAbsoluteTimeout()` call.
+   - `PollData::getRelativeTimeout()` return type was changed to `std::chrono::microseconds`.
+   - `IConnection::processPendingRequest()` was renamed to `IConnection::processPendingEvent()`.
+- Systemd of at least v238 is required to compile sdbus-c++
+- A proper fix for timeout handling
+- Fix for external event loops in which the event loop thread ID was not correctly initialized (now fixed and simplified by not needing the thread ID anymore)
+- Other simplifications, improvements and fixes springing out from the above refactoring
