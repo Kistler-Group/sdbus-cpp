@@ -1,0 +1,63 @@
+@startuml
+
+package "Public API" <<frame>> #DDDDDD {
+interface IConnection {
+  +requestName()
+  +enterProcessLoop()
+  +leaveProcessLoop()
+}
+
+interface IObject {
+  +registerMethod()
+  +emitSignal()
+}
+
+interface IProxy {
+  +callMethod()
+  +subscribeToSignal()
+  +get/setProperty()
+}
+
+class Message {
+  +serialize(...)
+  +deserialize(...)
+  +send()
+  Type msgType
+}
+}
+
+interface IConnectionInternal {
+  +addObjectVTable()
+  +createMethodCall()
+  +createSignal()
+}
+
+class Connection {
+}
+
+class Object {
+  IConnectionInternal& connection
+  string objectPath
+  List interfaces
+  List methods
+  List signals
+  List properties
+}
+
+class Proxy {
+  IConnectionInternal& connection
+  string destination
+  string objectPath
+  List signalHandlers
+}
+
+IConnection <|-- Connection
+IConnectionInternal  <|- Connection
+IObject <|-- Object
+IProxy <|-- Proxy
+Connection <-- Object : "use"
+Connection <-- Proxy : "use"
+Message <.. Object : "send/receive"
+Message <.. Proxy : "send/receive"
+
+@enduml

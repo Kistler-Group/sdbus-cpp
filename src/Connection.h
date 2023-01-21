@@ -37,8 +37,6 @@
 #include <thread>
 #include <string>
 #include <vector>
-#include <atomic>
-#include <mutex>
 
 namespace sdbus::internal {
 
@@ -75,7 +73,7 @@ namespace sdbus::internal {
         void enterEventLoopAsync() override;
         void leaveEventLoop() override;
         PollData getEventLoopPollData() const override;
-        bool processPendingRequest() override;
+        bool processPendingEvent() override;
 
         void addObjectManager(const std::string& objectPath) override;
         void addObjectManager(const std::string& objectPath, floating_slot_t) override;
@@ -108,6 +106,10 @@ namespace sdbus::internal {
                            , const std::string& interfaceName
                            , const std::string& signalName ) const override;
 
+        MethodReply callMethod(const MethodCall& message, uint64_t timeout) override;
+        void callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout, floating_slot_t) override;
+        Slot callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout) override;
+
         void emitPropertiesChangedSignal( const std::string& objectPath
                                         , const std::string& interfaceName
                                         , const std::vector<std::string>& propNames ) override;
@@ -125,8 +127,6 @@ namespace sdbus::internal {
                                   , sd_bus_message_handler_t callback
                                   , void* userData ) override;
 
-        MethodReply tryCallMethodSynchronously(const MethodCall& message, uint64_t timeout) override;
-
     private:
         using BusFactory = std::function<int(sd_bus**)>;
         using BusPtr = std::unique_ptr<sd_bus, std::function<sd_bus*(sd_bus*)>>;
@@ -135,27 +135,32 @@ namespace sdbus::internal {
         BusPtr openBus(const std::function<int(sd_bus**)>& busFactory);
         BusPtr openPseudoBus();
         void finishHandshake(sd_bus* bus);
-        bool waitForNextRequest();
+        bool waitForNextEvent();
+
+        bool arePendingMessagesInReadQueue() const;
         static std::string composeSignalMatchFilter( const std::string &sender
                                                    , const std::string &objectPath
                                                    , const std::string &interfaceName
                                                    , const std::string &signalName);
-        void notifyEventLoop(int fd) const;
-        void notifyEventLoopToExit() const;
-        void clearEventLoopNotification(int fd) const;
-        void notifyEventLoopNewTimeout() const override;
 
+        void notifyEventLoopToExit();
+        void notifyEventLoopToWakeUpFromPoll();
         void joinWithEventLoop();
+
         static std::vector</*const */char*> to_strv(const std::vector<std::string>& strings);
 
         static int onSdTimerEvent(sd_event_source *s, uint64_t usec, void *userdata);
         static int onSdIoEvent(sd_event_source *s, int fd, uint32_t revents, void *userdata);
+        static int onSdInternalEvent(sd_event_source *s, int fd, uint32_t revents, void *userdata);
         static int onSdEventPrepare(sd_event_source *s, void *userdata);
 
         struct EventFd
         {
             EventFd();
             ~EventFd();
+            void notify();
+            bool clear();
+
             int fd{-1};
         };
 
@@ -166,25 +171,23 @@ namespace sdbus::internal {
             sd_bus_slot *slot;
         };
 
-    private:
-        std::unique_ptr<ISdBus> iface_;
-        BusPtr bus_;
-        std::thread asyncLoopThread_;
-        std::atomic<std::thread::id> loopThreadId_;
-        std::mutex loopMutex_;
-        EventFd loopExitFd_;
-        EventFd eventFd_;
-        std::atomic<uint64_t> activeTimeout_{};
-        std::vector<Slot> floatingMatchRules_;
-
         // sd-event integration
         struct SdEvent
         {
-            Slot sdEvent_;
-            Slot sdTimeEventSource_;
-            Slot sdIoEventSource_{};
+            Slot sdEvent;
+            Slot sdTimeEventSource;
+            Slot sdIoEventSource;
+            Slot sdInternalEventSource;
         };
-        std::unique_ptr<SdEvent> sdEvent_;
+
+    private:
+        std::unique_ptr<ISdBus> sdbus_;
+        BusPtr bus_;
+        std::thread asyncLoopThread_;
+        EventFd loopExitFd_; // To wake up event loop I/O polling to exit
+        EventFd eventFd_; // To wake up event loop I/O polling to re-enter poll with fresh PollData values
+        std::vector<Slot> floatingMatchRules_;
+        std::unique_ptr<SdEvent> sdEvent_; // Integration of systemd sd-event event loop implementation
     };
 
 }

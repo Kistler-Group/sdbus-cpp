@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<node name="/org/sdbuscpp/stresstests/concatenator">
+    <interface name="org.sdbuscpp.stresstests.concatenator">
+        <method name="concatenate">
+            <arg type="a{sv}" name="params" direction="in" />
+            <arg type="s" name="result" direction="out" />
+            <annotation name="org.freedesktop.DBus.Method.Async" value="clientserver" />
+        </method>
+        <signal name="concatenatedSignal">
+            <arg type="s" name="concatenatedString" />
+        </signal>
+    </interface>
+</node>

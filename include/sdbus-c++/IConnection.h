@@ -51,62 +51,7 @@ namespace sdbus {
     class IConnection
     {
     public:
-        /*!
-         * Poll Data for external event loop implementations.
-         *
-         * To integrate sdbus with your app's own custom event handling system
-         * you can use this method to query which file descriptors, poll events
-         * and timeouts you should add to your app's poll(2), or select(2)
-         * call in your main event loop.
-         *
-         * If you are unsure what this all means then use
-         * enterEventLoop() or enterEventLoopAsync() instead.
-         *
-         * See: getEventLoopPollData()
-         */
-        struct PollData
-        {
-            /*!
-             * The read fd to be monitored by the event loop.
-             */
-            int fd;
-            /*!
-             * The events to use for poll(2) alongside fd.
-             */
-            short int events;
-
-            /*!
-             * Absolute timeout value in micro seconds and based of CLOCK_MONOTONIC.
-             */
-            uint64_t timeout_usec;
-
-            /*!
-             * Get the event poll timeout.
-             *
-             * The timeout is an absolute value based of CLOCK_MONOTONIC.
-             *
-             * @return a duration since the CLOCK_MONOTONIC epoch started.
-             */
-            [[nodiscard]] std::chrono::microseconds getAbsoluteTimeout() const
-            {
-                return std::chrono::microseconds(timeout_usec);
-            }
-
-            /*!
-             * Get the timeout as relative value from now
-             *
-             * @return std::nullopt if the timeout is indefinite. A duration otherwise.
-             */
-            [[nodiscard]] std::optional<std::chrono::microseconds> getRelativeTimeout() const;
-
-            /*!
-             * Get a converted, relative timeout which can be passed as argument 'timeout' to poll(2)
-             *
-             * @return -1 if the timeout is indefinite. 0 if the poll(2) shouldn't block. An integer in milli
-             * seconds otherwise.
-             */
-            [[nodiscard]] int getPollTimeout() const;
-        };
+        struct PollData;
 
         virtual ~IConnection() = default;
 
@@ -180,44 +125,62 @@ namespace sdbus {
         [[deprecated("Use one of other addObjectManager overloads")]] virtual void addObjectManager(const std::string& objectPath) = 0;
 
         /*!
-         * @brief Returns fd, I/O events and timeout data you can pass to poll
+         * @brief Returns fd's, I/O events and timeout data to be used in an external event loop
          *
-         * To integrate sdbus with your app's own custom event handling system
-         * (without the requirement of an extra thread), you can use this
-         * method to query which file descriptors, poll events and timeouts you
-         * should add to your app's poll call in your main event loop. If these
-         * file descriptors signal, then you should call processPendingRequest
-         * to process the event. This means that all of sdbus's callbacks will
-         * arrive on your app's main event thread (opposed to on a thread created
-         * by sdbus-c++). If you are unsure what this all means then use
-         * enterEventLoop() or enterEventLoopAsync() instead.
+         * This function is useful to hook up a bus connection object with an
+         * external (like GMainLoop, boost::asio, etc.) or manual event loop
+         * involving poll() or a similar I/O polling call.
          *
-         * To integrate sdbus-c++ into a gtk app, pass the file descriptor returned
-         * by this method to g_main_context_add_poll.
+         * Before **each** invocation of the I/O polling call, this function
+         * should be invoked. Returned PollData::fd file descriptor should
+         * be polled for the events indicated by PollData::events, and the I/O
+         * call should block for that up to the returned PollData::timeout.
+         *
+         * Additionally, returned PollData::eventFd should be polled for POLLIN
+         * events.
+         *
+         * After each I/O polling call the bus connection needs to process
+         * incoming or outgoing data, by invoking processPendingEvent().
+         *
+         * Note that the returned timeout should be considered only a maximum
+         * sleeping time. It is permissible (and even expected) that shorter
+         * timeouts are used by the calling program, in case other event sources
+         * are polled in the same event loop. Note that the returned time-value
+         * is absolute, based of CLOCK_MONOTONIC and specified in microseconds.
+         * Use PollData::getPollTimeout() to have the timeout value converted
+         * in a form that can be passed to poll(2).
+         *
+         * The bus connection conveniently integrates sd-event event loop.
+         * To attach the bus connection to an sd-event event loop, use
+         * attachSdEventLoop() function.
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual PollData getEventLoopPollData() const = 0;
+        [[nodiscard]] virtual PollData getEventLoopPollData() const = 0;
 
         /*!
-         * @brief Process a pending request
+         * @brief Processes a pending event
          *
-         * @returns true if an event was processed, false if poll should be called
+         * @returns True if an event was processed, false if no operations were pending
          *
-         * Processes a single dbus event. All of sdbus-c++'s callbacks will be called
-         * from within this method. This method should ONLY be used in conjuction
-         * with getEventLoopPollData().
-         * This method returns true if an I/O message was processed. This you can try
-         * to call this method again before going to poll on I/O events. The method
-         * returns false if no operations were pending, and the caller should then
-         * poll for I/O events before calling this method again.
-         * enterEventLoop() and enterEventLoopAsync() will call this method for you,
-         * so there is no need to call it when using these. If you are unsure what
-         * this all means then don't use this method.
+         * This function drives the D-Bus connection. It processes pending I/O events.
+         * Queued outgoing messages (or parts thereof) are sent out. Queued incoming
+         * messages are dispatched to registered callbacks. Timeouts are recalculated.
+         *
+         * It returns false when no operations were pending and true if a message was
+         * processed. When false is returned the caller should synchronously poll for
+         * I/O events before calling into processPendingEvent() again.
+         * Don't forget to call getEventLoopPollData() each time before the next poll.
+         *
+         * You don't need to directly call this method or getEventLoopPollData() method
+         * when using convenient, internal bus connection event loops through
+         * enterEventLoop() or enterEventLoopAsync() calls, or when the bus is
+         * connected to an sd-event event loop through attachSdEventLoop().
+         * It is invoked automatically when necessary.
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual bool processPendingRequest() = 0;
+        virtual bool processPendingEvent() = 0;
 
         /*!
          * @brief Sets general method call timeout
@@ -360,6 +323,55 @@ namespace sdbus {
          * @deprecated This function has been replaced by getEventLoopPollData()
          */
         [[deprecated("This function has been replaced by getEventLoopPollData()")]] PollData getProcessLoopPollData() const;
+
+        /*!
+         * @struct PollData
+         *
+         * Carries poll data needed for integration with external event loop implementations.
+         *
+         * See getEventLoopPollData() for more info.
+         */
+        struct PollData
+        {
+            /*!
+             * The read fd to be monitored by the event loop.
+             */
+            int fd;
+
+            /*!
+             * The events to use for poll(2) alongside fd.
+             */
+            short int events;
+
+            /*!
+             * Absolute timeout value in microseconds, based of CLOCK_MONOTONIC.
+             *
+             * Call getPollTimeout() to get timeout recalculated to relative timeout that can be passed to poll(2).
+             */
+            std::chrono::microseconds timeout;
+
+            /*!
+             * An additional event fd to be monitored by the event loop for POLLIN events.
+             */
+            int eventFd;
+
+            /*!
+             * Returns the timeout as relative value from now.
+             *
+             * Returned value is std::chrono::microseconds::max() if the timeout is indefinite.
+             *
+             * @return Relative timeout as a time duration
+             */
+            [[nodiscard]] std::chrono::microseconds getRelativeTimeout() const;
+
+            /*!
+             * Returns relative timeout in the form which can be passed as argument 'timeout' to poll(2)
+             *
+             * @return -1 if the timeout is indefinite. 0 if the poll(2) shouldn't block.
+             *         An integer in milliseconds otherwise.
+             */
+            [[nodiscard]] int getPollTimeout() const;
+        };
     };
 
     template <typename _Rep, typename _Period>
