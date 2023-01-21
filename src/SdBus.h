@@ -76,7 +76,7 @@ public:
 
     virtual int sd_bus_process(sd_bus *bus, sd_bus_message **r) override;
     virtual int sd_bus_get_poll_data(sd_bus *bus, PollData* data) override;
-
+    virtual int sd_bus_get_n_queued_read(sd_bus *bus, uint64_t *ret) override;
     virtual int sd_bus_flush(sd_bus *bus) override;
     virtual sd_bus *sd_bus_flush_close_unref(sd_bus *bus) override;
     virtual sd_bus *sd_bus_close_unref(sd_bus *bus) override;

@@ -16,9 +16,9 @@ option(BUILD_LIBSYSTEMD "Build libsystemd static library and incorporate it into
 
 if(NOT BUILD_LIBSYSTEMD)
     find_package(PkgConfig REQUIRED)
-    pkg_check_modules(Systemd IMPORTED_TARGET GLOBAL libsystemd>=236)
+    pkg_check_modules(Systemd IMPORTED_TARGET GLOBAL libsystemd>=238)
     if(NOT TARGET PkgConfig::Systemd)
-        message(FATAL_ERROR "libsystemd of version at least 236 is required, but was not found "
+        message(FATAL_ERROR "libsystemd of version at least 238 is required, but was not found "
                             "(if you have systemd in your OS, you may want to install package containing pkgconfig "
                             " files for libsystemd library. On Ubuntu, that is libsystemd-dev. "
                             " Alternatively, you may turn BUILD_LIBSYSTEMD on for sdbus-c++ to download, build "
