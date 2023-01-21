@@ -28,6 +28,7 @@
 #define SDBUS_CXX_INTERNAL_ICONNECTION_H_
 
 #include <sdbus-c++/IConnection.h>
+#include <sdbus-c++/TypeTraits.h>
 #include SDBUS_HEADER
 #include <string>
 #include <memory>
@@ -70,6 +71,10 @@ namespace sdbus::internal {
                                    , const std::string& interfaceName
                                    , const std::string& signalName ) const = 0;
 
+        virtual MethodReply callMethod(const MethodCall& message, uint64_t timeout) = 0;
+        virtual void callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout, floating_slot_t) = 0;
+        virtual Slot callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout) = 0;
+
         virtual void emitPropertiesChangedSignal( const std::string& objectPath
                                                 , const std::string& interfaceName
                                                 , const std::vector<std::string>& propNames ) = 0;
@@ -89,9 +94,6 @@ namespace sdbus::internal {
                                                         , const std::string& signalName
                                                         , sd_bus_message_handler_t callback
                                                         , void* userData ) = 0;
-
-        virtual void notifyEventLoopNewTimeout() const = 0;
-        virtual MethodReply tryCallMethodSynchronously(const MethodCall& message, uint64_t timeout) = 0;
     };
 
     [[nodiscard]] std::unique_ptr<sdbus::internal::IConnection> createConnection();
