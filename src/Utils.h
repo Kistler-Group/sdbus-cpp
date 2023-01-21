@@ -50,4 +50,19 @@
 #define SDBUS_CHECK_MEMBER_NAME(_NAME)
 #endif
 
+namespace sdbus::internal {
+
+    // Returns time since epoch based of POSIX CLOCK_MONOTONIC,
+    // so we use the very same clock as underlying sd-bus library.
+    [[nodiscard]] inline auto now()
+    {
+        struct timespec ts{};
+        auto r = clock_gettime(CLOCK_MONOTONIC, &ts);
+        SDBUS_THROW_ERROR_IF(r < 0, "clock_gettime failed: ", -errno);
+
+        return std::chrono::nanoseconds(ts.tv_nsec) + std::chrono::seconds(ts.tv_sec);
+    }
+
+}
+
 #endif /* SDBUS_CXX_INTERNAL_UTILS_H_ */

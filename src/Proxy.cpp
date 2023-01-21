@@ -88,31 +88,9 @@ MethodCall Proxy::createMethodCall(const std::string& interfaceName, const std::
 
 MethodReply Proxy::callMethod(const MethodCall& message, uint64_t timeout)
 {
-    // Sending method call synchronously is the only operation that blocks, waiting for the method
-    // reply message among the incoming messages on the sd-bus connection socket. But typically there
-    // already is somebody that generally handles incoming D-Bus messages -- the connection event loop
-    // running typically in its own thread. We have to avoid polling on socket from several threads.
-    // So we have to branch here: either we are within the context of the event loop thread, then we
-    // can send the message simply via sd_bus_call, which blocks. Or we are in another thread, then
-    // we can perform the send operation of the method call message from here (because that is thread-
-    // safe like other sd-bus API accesses), but the incoming reply we have to get through the event
-    // loop thread, because this is the only rightful listener on the sd-bus connection socket.
-    // So, technically, we use async means to wait here for reply received by the event loop thread.
-
     SDBUS_THROW_ERROR_IF(!message.isValid(), "Invalid method call message provided", EINVAL);
 
-    // If we don't need to wait for any reply, we can send the message now irrespective of the context
-    if (message.doesntExpectReply())
-        return message.send(timeout);
-
-    // If we are in the context of event loop thread, we can send the D-Bus call synchronously
-    // and wait blockingly for the reply, because we are the exclusive listeners on the socket
-    auto reply = connection_->tryCallMethodSynchronously(message, timeout);
-    if (reply.isValid())
-        return reply;
-
-    // Otherwise we send the call asynchronously and do blocking wait for the reply from the event loop thread
-    return sendMethodCallMessageAndWaitForReply(message, timeout);
+    return connection_->callMethod(message, timeout);
 }
 
 PendingAsyncCall Proxy::callMethod(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout)
@@ -123,55 +101,13 @@ PendingAsyncCall Proxy::callMethod(const MethodCall& message, async_reply_handle
     auto callData = std::make_shared<AsyncCalls::CallData>(AsyncCalls::CallData{*this, std::move(asyncReplyCallback), {}});
     auto weakData = std::weak_ptr<AsyncCalls::CallData>{callData};
 
-    callData->slot = message.send(callback, callData.get(), timeout);
+    callData->slot = connection_->callMethod(message, callback, callData.get(), timeout);
 
     auto slotPtr = callData->slot.get();
     pendingAsyncCalls_.addCall(slotPtr, std::move(callData));
 
+    // TODO: Instead of PendingAsyncCall consider using Slot implementation for simplicity and consistency
     return {weakData};
-}
-
-MethodReply Proxy::sendMethodCallMessageAndWaitForReply(const MethodCall& message, uint64_t timeout)
-{
-    /*thread_local*/ SyncCallReplyData syncCallReplyData;
-
-    async_reply_handler asyncReplyCallback = [&syncCallReplyData](MethodReply& reply, const Error* error)
-    {
-        syncCallReplyData.sendMethodReplyToWaitingThread(reply, error);
-    };
-    auto callback = (void*)&Proxy::sdbus_async_reply_handler;
-    AsyncCalls::CallData callData{*this, std::move(asyncReplyCallback), {}};
-
-    message.send(callback, &callData, timeout, floating_slot);
-
-    return syncCallReplyData.waitForMethodReply();
-}
-
-void Proxy::SyncCallReplyData::sendMethodReplyToWaitingThread(MethodReply& reply, const Error* error)
-{
-    std::unique_lock lock{mutex_};
-    SCOPE_EXIT{ cond_.notify_one(); }; // This must happen before unlocking the mutex to avoid potential data race on spurious wakeup in the waiting thread
-    SCOPE_EXIT{ arrived_ = true; };
-
-    //error_ = nullptr; // Necessary if SyncCallReplyData instance is thread_local
-
-    if (error == nullptr)
-        reply_ = std::move(reply);
-    else
-        error_ = std::make_unique<Error>(*error);
-}
-
-MethodReply Proxy::SyncCallReplyData::waitForMethodReply()
-{
-    std::unique_lock lock{mutex_};
-    cond_.wait(lock, [this](){ return arrived_; });
-
-    //arrived_ = false; // Necessary if SyncCallReplyData instance is thread_local
-
-    if (error_)
-        throw *error_;
-
-    return std::move(reply_);
 }
 
 void Proxy::registerSignalHandler( const std::string& interfaceName
