@@ -55,18 +55,17 @@
 //     return; // exiting scope normally
 // }
 
-#define SCOPE_EXIT                                          \
-    auto ANONYMOUS_VARIABLE(SCOPE_EXIT_STATE)               \
-    = ::skybase::utils::detail::ScopeGuardOnExit() + [&]()  \
+#define SCOPE_EXIT                                               \
+    auto ANONYMOUS_VARIABLE(SCOPE_EXIT_STATE)                    \
+        = ::sdbus::internal::detail::ScopeGuardOnExit() + [&]()  \
     /**/
 
-#define SCOPE_EXIT_NAMED(NAME)                              \
-    auto NAME                                               \
-    = ::skybase::utils::detail::ScopeGuardOnExit() + [&]()  \
+#define SCOPE_EXIT_NAMED(NAME)                                   \
+    auto NAME                                                    \
+        = ::sdbus::internal::detail::ScopeGuardOnExit() + [&]()  \
     /**/
 
-namespace skybase {
-namespace utils {
+namespace sdbus::internal {
 
     template <class _Fun>
     class ScopeGuard
@@ -114,7 +113,7 @@ namespace utils {
         }
     }
 
-}}
+}
 
 #define CONCATENATE_IMPL(s1, s2) s1##s2
 #define CONCATENATE(s1, s2) CONCATENATE_IMPL(s1, s2)
