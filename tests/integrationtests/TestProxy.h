@@ -2,7 +2,7 @@
  * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
  * (C) 2016 - 2022 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
- * @file TestAdaptor.h
+ * @file TestProxy.h
  *
  * Created on: Jan 2, 2017
  * Project: sdbus-c++

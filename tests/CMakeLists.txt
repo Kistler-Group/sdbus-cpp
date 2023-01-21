@@ -50,6 +50,7 @@ set(UNITTESTS_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/unittests)
 set(UNITTESTS_SRCS
     ${UNITTESTS_SOURCE_DIR}/sdbus-c++-unit-tests.cpp
     ${UNITTESTS_SOURCE_DIR}/Message_test.cpp
+    ${UNITTESTS_SOURCE_DIR}/PollData_test.cpp
     ${UNITTESTS_SOURCE_DIR}/Types_test.cpp
     ${UNITTESTS_SOURCE_DIR}/TypeTraits_test.cpp
     ${UNITTESTS_SOURCE_DIR}/Connection_test.cpp
