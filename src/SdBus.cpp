@@ -53,6 +53,8 @@ int SdBus::sd_bus_send(sd_bus *bus, sd_bus_message *m, uint64_t *cookie)
         return r;
 
     // Make sure long messages are not only stored in outgoing queues but also really sent out
+    // TODO: This is a workaround. We should not block here until everything is physically sent out.
+    //   Refactor: if sd_bus_get_n_queued_write() > 0 then wake up event loop through event fd
     ::sd_bus_flush(bus != nullptr ? bus : ::sd_bus_message_get_bus(m));
 
     return r;
@@ -74,6 +76,8 @@ int SdBus::sd_bus_call_async(sd_bus *bus, sd_bus_slot **slot, sd_bus_message *m,
       return r;
 
     // Make sure long messages are not only stored in outgoing queues but also really sent out
+    // TODO: This is a workaround. We should not block here until everything is physically sent out.
+    //   Refactor: if sd_bus_get_n_queued_write() > 0 then wake up event loop through event fd
     ::sd_bus_flush(bus != nullptr ? bus : ::sd_bus_message_get_bus(m));
 
     return r;
@@ -393,6 +397,13 @@ int SdBus::sd_bus_get_poll_data(sd_bus *bus, PollData* data)
     r = ::sd_bus_get_timeout(bus, &data->timeout_usec);
 
     return r;
+}
+
+int SdBus::sd_bus_get_n_queued_read(sd_bus *bus, uint64_t *ret)
+{
+    std::lock_guard lock(sdbusMutex_);
+
+    return ::sd_bus_get_n_queued_read(bus, ret);
 }
 
 int SdBus::sd_bus_flush(sd_bus *bus)
