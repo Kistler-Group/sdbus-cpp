@@ -22,7 +22,8 @@ Using sdbus-c++ library
 17. [Representing D-Bus Types in sdbus-c++](#representing-d-bus-types-in-sdbus-c)
 18. [Support for match rules](#support-for-match-rules)
 19. [Using direct (peer-to-peer) D-Bus connections](#using-direct-peer-to-peer-d-bus-connections)
-20. [Conclusion](#conclusion)
+20. [Using sdbus-c++ in external event loops](#using-sdbus-c-in-external-event-loops)
+21. [Conclusion](#conclusion)
 
 Introduction
 ------------
@@ -386,7 +387,7 @@ int main(int argc, char *argv[])
 }
 ```
 
-In simple cases, we don't need to create D-Bus connection explicitly for our proxies. Unless a connection is provided to a proxy object explicitly via factory parameter, the proxy will create a connection of his own, and it will be a system bus connection. This is the case in the example above. (This approach is not scalable and resource-saving if we have plenty of proxies; see section [Working with D-Bus connections](#working-with-d-bus-connections-in-sdbus-c) for elaboration.) So, in the example, we create a proxy for object `/org/sdbuscpp/concatenator` publicly available at bus `org.sdbuscpp.concatenator`. We register signal handlers, if any, and finish the registration, making the proxy ready for use.
+In simple cases, we don't need to create D-Bus connection explicitly for our proxies. Unless a connection is provided to a proxy object explicitly via factory parameter, the proxy will create a connection of his own (unless it is a light-weight, short-lived proxy created with `dont_run_event_loop_thread_t`), and it will be a system bus connection. This is the case in the example above. (This approach is not scalable and resource-saving if we have plenty of proxies; see section [Working with D-Bus connections](#working-with-d-bus-connections-in-sdbus-c) for elaboration.) So, in the example, we create a proxy for object `/org/sdbuscpp/concatenator` publicly available at bus `org.sdbuscpp.concatenator`. We register signal handlers, if any, and finish the registration, making the proxy ready for use.
 
 The callback for a D-Bus signal handler on this level is any callable of signature `void(sdbus::Signal& signal)`. The one and only parameter `signal` is the incoming signal message. We need to deserialize arguments from it, and then we can do our business logic with it.
 
@@ -423,41 +424,51 @@ How shall we use connections in relation to D-Bus objects and object proxies?
 
 A D-Bus connection is represented by a `IConnection` instance. Each connection needs an event loop being run upon it. So it needs a thread handling the event loop. This thread serves all incoming and outgoing messages and all communication towards D-Bus daemon. One process can have one but also multiple D-Bus connections (we just have to make certain that the connections with assigned bus names don't share a common name; the name must be unique).
 
-A typical use case for most services is **one** D-Bus connection in the application. The application runs event loop on that connection. When creating objects or proxies, the application provides reference of that connection to those objects and proxies. This means all these objects and proxies share the same connection. This is nicely scalable, because with whatever number of objects or proxies, there is only one connection and one event loop thread. Yet, services that provide objects at various bus names have to create and maintain multiple D-Bus connections, each with the unique bus name.
+A typical use case for most services is **one** D-Bus connection in the application. The application runs an (internal or external, see below) event loop on that connection. When creating objects or proxies, the application provides reference of that connection to those objects and proxies. This means all these objects and proxies share the same connection. This is nicely scalable, because with whatever number of objects or proxies, there is only one connection and one event loop thread. Yet, services that provide objects at various bus names have to create and maintain multiple D-Bus connections, each with the unique bus name.
 
-The connection is thread-safe and objects and proxies can invoke operations on it from multiple threads simultaneously, but the operations are serialized. This means, for example, that if an object's callback for an incoming remote method call is going to be invoked in an event loop thread, and in another thread we use a proxy to call remote method in another process, the threads are contending and only one can go on while the other must wait and can only proceed after the first one has finished, because both are using a shared resource -- the connection.
+The connection is thread-safe and objects and proxies can invoke operations on it from multiple threads simultaneously, but the operations are serialized. Access to the connection is mutually exclusive. This means, for example, that if an object's callback for an incoming remote method call is going to be invoked in an event loop thread, and in another thread we use a proxy to call remote method in another process, the threads are contending and only one can go on while the other must wait and can only proceed after the first one has finished, because both are using a shared resource -- the connection.
 
-We should bear that in mind when designing more complex, multi-threaded services with high parallelism. If we have undesired contention on a connection, creating a specific, dedicated connection for a hot spot helps to increase concurrency. sdbus-c++ provides us freedom to create as many connections as we want and assign objects and proxies to those connections at our will. We, as application developers, choose whatever approach is more suitable to us at quite a fine granularity.
+When a `poll()` sleeps upon the connection, the connection can be used by other threads without blocking. When calling a D-Bus method through a proxy synchronously, the proxy blocks the connection from concurrent use until it gets from the peer a reply (or an error, the call times out). Async D-Bus method calls don't block the connection while the call is pending (the connection is only "locked" while the call message is sent out and while the reply handler is executed for an already arrived reply message, but not in between while the call is pending). See doxygen documentation for `IProxy::callMethod()` overloads for more details.
+
+We should bear these design aspects of sdbus-c++ in mind when designing more complex, multi-threaded services with high parallelism. If we have undesired contention on a connection, creating a separate, dedicated connection for a hot spot helps to increase concurrency. sdbus-c++ provides us freedom to create as many connections as we want and assign objects and proxies to those connections at our will. We, as application developers, choose whatever approach is more suitable to us at quite a fine granularity.
 
 So, more technically, how can we use connections from the server and the client perspective?
 
 #### Using D-Bus connections on the server side
 
-On the **server** side, we generally need to create D-Bus objects and publish their APIs. For that we first need a connection with a unique bus name. We need to create the D-Bus connection manually ourselves, request bus name on it, and manually launch its event loop:
+On the **server** side, we generally need to create D-Bus objects and publish their APIs. For that we first need a connection with a unique bus name. We need to create the D-Bus connection manually ourselves, request bus name on it, and manually launch:
 
-  * either in a blocking way, through `enterEventLoop()`,
-  * or in a non-blocking async way, through `enterEventLoopAsync()`,
-  * or, when we have our own implementation of an event loop (e.g. we are using sd-event event loop), we can ask the connection for its underlying fd, I/O events and timeouts through `getEventLoopPollData()` and use that data in our event loop mechanism.
+  * its internal event loop
+    * either in a blocking way, through `enterEventLoop()`,
+    * or in a non-blocking async way, through `enterEventLoopAsync()`,
+  * or an external event loop. This is suitable if we use in our application an event loop implementation of our choice (e.g., GLib Event Loop, boost::asio, ...) and we want to hook up our sdbus-c++ connections with it. See [Using sdbus-c++ in external event loops](#using-sdbus-c-in-external-event-loops) section for more information.
 
-The object takes the D-Bus connection as a reference in its constructor. This is the only way to wire connection and object together. We must make sure the connection exists as long as objects using it exist.
+The object takes the D-Bus connection as a reference in its constructor. This is the only way to wire the connection and the object together. We must make sure the connection exists as long as objects using it exist.
 
 Of course, at any time before or after running the event loop on the connection, we can create and "hook", as well as remove, objects and proxies upon that connection.
+
+*Note:* There may be both objects and proxies hooked to a single connection, of course. A D-Bus server application may also be a client to another D-Bus server application, and share one D-Bus connection for the D-Bus interface it exports as well as for the proxies towards other D-Bus interfaces.
 
 #### Using D-Bus connections on the client side
 
 On the **client** side we likewise need a connection -- just that unlike on the server side, we don't need to request a unique bus name on it. We have more options here when creating a proxy:
 
-  * Pass an already existing connection as a reference. This is the typical approach when the application already maintains a D-Bus connection (maybe it provide D-Bus API on it, and/or it already has some proxies hooked on it). The proxy will share the connection with others. With this approach we must of course ensure that the connection exists as long as the proxy exists.
+  * Pass an already existing connection as a reference. This is the typical approach when the application already maintains a D-Bus connection (maybe it provide D-Bus API on it, and/or it already has some proxies hooked on it). The proxy will share the connection with others. With this approach we must of course ensure that the connection exists as long as the proxy exists. For discussion on options for running an event loop on that connection, see above section [Using D-Bus connections on the server side](#using-d-bus-connections-on-the-server-side).
 
-  * Or -- and this is typical when we have a simple D-Bus client application -- we have another option: we let the proxy maintain its own connection (and potentially an associated event loop thread, see below):
+  * Or -- and this is a simpler approach for  simple D-Bus client applications -- we have another option: we let the proxy maintain its own connection (and potentially an associated event loop thread, see below). We have two options here:
 
-    * We either create the connection ourselves and `std::move` it to the proxy object factory. The proxy becomes an owner of this connection, and will run the event loop on that connection. This had the advantage that we may choose the type of connection (system, session, remote).
+    * We either create the connection ourselves and `std::move` it to the proxy object factory. The proxy becomes an owner of this connection, and it will be his dedicated connection. This has the advantage that we may choose the type of connection (system, session, remote). Additionally,
 
-    * Or we don't bother about any connection at all when creating a proxy (the factory overload with no connection parameter). Under the hood, the proxy creates its own *system bus* connection, creates a separate thread and runs an event loop in it. Quite **simple**, but as you can see, this hurts scalability in case of many proxies, as each would spawn and maintain its own event loop thread (see discussion higher above). But we don't necessarily need an event loop thread, in case our proxy doesn't need to listen to signals or async method call replies. Read on.
+      * when created **without** `dont_run_event_loop_thread_t` tag, the proxy **will start** a dedicated event loop thread on that connection;
+      * or, when created **with** `dont_run_event_loop_thread_t` tag, the proxy will start **no** event loop thread on that connection.
 
-    It's also possible in this case to instruct the proxy to **not spawn an event loop thread** for its connection. There are many situations that we want to quickly create a proxy, carry out one or a few (synchronous) D-Bus calls, and let go of proxy. We call them light-weight proxies. For that purpose, spawning a new event loop thread comes with time and resource penalty, for nothing. To create such **a light-weight proxy**, use the factory/constructor overload with `dont_run_event_loop_thread_t`. All in above two bullet sub-points holds; the proxy just won't spawn a thread with an event loop in it. Note that such a proxy can be used only for synchronous D-Bus calls; it may not receive signals or async call replies.
+    * Or we don't care about connnections at all (proxy factory overloads with no connection parameter). Under the hood, the proxy creates its own *system bus* connection. Additionally:
+      * when created **without** `dont_run_event_loop_thread_t` tag, the proxy **will start** a dedicated event loop thread on that connection;
+      * or, when created **with** `dont_run_event_loop_thread_t` tag, the proxy will start **no** event loop thread on that connection.
 
-#### Stopping I/O event loops graciously
+    A proxy needs an event loop if it's a "**long-lived**" proxy that listens on incoming messages like signals, async call replies, atc. Sharing one connection with its one event loop is more scalable. Starting a dedicated event loop in a proxy is simpler from API perspective, but comes at a performance and resource cost for each proxy creation/destruction, and it hurts scalability. A simple and scalable option are "**short-lived, light-weight**" proxies. Quite a typical use case is that we occasionally need to carry out one or a few D-Bus calls and that's it. We may create a proxy, do the calls, and let go of proxy. Such a light-weight proxy is created when `dont_run_event_loop_thread_t` tag is passed to the proxy factory. Such a proxy **does not spawn** an event loop thread. It only support synchronous D-Bus calls (no signals, no async calls...), and is meant to be created, used right away, and then destroyed immediately.
+
+#### Stopping internal I/O event loops graciously
 
 A connection with an asynchronous event loop (i.e. one initiated through `enterEventLoopAsync()`) will stop and join its event loop thread automatically in its destructor. An event loop that blocks in the synchronous `enterEventLoop()` call can be unblocked through `leaveEventLoop()` call on the respective bus connection issued from a different thread or from an OS signal handler.
 
@@ -1502,23 +1513,23 @@ sdbus-c++ provides many default, pre-defined C++ type representations for D-Bus 
 | Category            | Code        | Code ASCII | Conventional Name  | C++ Type                        |
 |---------------------|-------------|------------|--------------------|---------------------------------|
 | reserved            | 0           | NUL        | INVALID            | -                               |
-| fixed, basic        | 121         | y          | BYTE               | `uint8_t`                         |
-| fixed, basic        | 98          | b          | BOOLEAN            | `bool`                            |
-| fixed, basic        | 110         | n          | INT16              | `int16_t`                         |
-| fixed, basic        | 113         | q          | UINT16             | `uint16_t`                        |
-| fixed, basic        | 105         | i          | INT32              | `int32_t`                         |
-| fixed, basic        | 117         | u          | UINT32             | `uint32_t`                        |
-| fixed, basic        | 120         | x          | INT64              | `int64_t`                         |
-| fixed, basic        | 116         | t          | UINT64             | `uint64_t`                        |
-| fixed, basic        | 100         | d          | DOUBLE             | `double`                          |
-| string-like, basic  | 115         | s          | STRING             | `const char*`, `std::string`        |
-| string-like, basic  | 111         | o          | OBJECT_PATH        | `sdbus::ObjectPath`               |
-| string-like, basic  | 103         | g          | SIGNATURE          | `sdbus::Signature`                |
+| fixed, basic        | 121         | y          | BYTE               | `uint8_t`                       |
+| fixed, basic        | 98          | b          | BOOLEAN            | `bool`                          |
+| fixed, basic        | 110         | n          | INT16              | `int16_t`                       |
+| fixed, basic        | 113         | q          | UINT16             | `uint16_t`                      |
+| fixed, basic        | 105         | i          | INT32              | `int32_t`                       |
+| fixed, basic        | 117         | u          | UINT32             | `uint32_t`                      |
+| fixed, basic        | 120         | x          | INT64              | `int64_t`                       |
+| fixed, basic        | 116         | t          | UINT64             | `uint64_t`                      |
+| fixed, basic        | 100         | d          | DOUBLE             | `double`                        |
+| string-like, basic  | 115         | s          | STRING             | `const char*`, `std::string`    |
+| string-like, basic  | 111         | o          | OBJECT_PATH        | `sdbus::ObjectPath`             |
+| string-like, basic  | 103         | g          | SIGNATURE          | `sdbus::Signature`              |
 | container           | 97          | a          | ARRAY              | `std::vector<T>`, `std::array<T>`, `std::span<T>` - if used as an array followed by a single complete type `T` <br /> `std::map<T1, T2>`, `std::unordered_map<T1, T2>` - if used as an array of dict entries |
-| container           | 114,40,41   | r()        | STRUCT             | `sdbus::Struct<T1, T2, ...>` variadic class template                               |
-| container           | 118         | v          | VARIANT            | `sdbus::Variant`                  |
+| container           | 114,40,41   | r()        | STRUCT             | `sdbus::Struct<T1, T2, ...>` variadic class template                                                                                                                                                         |
+| container           | 118         | v          | VARIANT            | `sdbus::Variant`                |
 | container           | 101,123,125 | e{}        | DICT_ENTRY         | -                               |
-| fixed, basic        | 104         | h          | UNIX_FD            | `sdbus::UnixFd`                   |
+| fixed, basic        | 104         | h          | UNIX_FD            | `sdbus::UnixFd`                 |
 | reserved            | 109         | m          | (reserved)         | -                               |
 | reserved            | 42          | *          | (reserved)         | -                               |
 | reserved            | 63          | ?          | (reserved)         | -                               |
@@ -1698,6 +1709,21 @@ int main(int argc, char *argv[])
 ```
 
 > **_Note_:** The example above explicitly stops the event loops on both sides, before the connection objects are destroyed. This avoids potential `Connection reset by peer` errors caused when one side closes its socket while the other side is still working on the counterpart socket. This is a recommended workflow for closing direct D-Bus connections.
+
+Using sdbus-c++ in external event loops
+---------------------------------------
+
+sdbus-c++ connections can be hooked up with an external (like GMainLoop, boost::asio, etc.) or manual event loop involving `poll()` or a similar I/O polling call. The following describes how to integrate it correctly:
+
+Before **each** invocation of the I/O polling call, `IConnection::getEventLoopPollData()` function should be invoked. Returned `PollData::fd` file descriptor should be polled for the events indicated by `PollData::events`, and the I/O call should block up to the returned `PollData::timeout`. Additionally, returned `PollData::eventFd` should be polled for POLLIN events.
+
+After each I/O polling call (for both `PollData::fd` and `PollData::eventFd` events), the `IConnection::processPendingEvent()` method should be invoked. This enables the bus connection to process any incoming or outgoing D-Bus messages.
+
+Note that the returned timeout should be considered only a maximum sleeping time. It is permissible (and even expected) that shorter timeouts are used by the calling program, in case other event sources are polled in the same event loop. Note that the returned time-value is absolute, based of `CLOCK_MONOTONIC` and specified in microseconds. Use `PollData::getPollTimeout()` to have the timeout value converted into a form that can be passed to `poll()`.
+
+`PollData::fd` is a bus I/O fd. `PollData::eventFd` is an sdbus-c++ internal fd for communicating important changes from other threads to the event loop thread, so the event loop retrieves new poll data (with updated timeout, for example) and, potentially, processes pending D-Bus messages (like signals that came in during a blocking synchronous call from other thread, or queued outgoing messages that are very big to be able to have been sent in one shot from another thread), before the next poll.
+
+Consult `IConnection::PollData` and `IConnection::getEventLoopPollData()` documentation for more potentially more information.
 
 Conclusion
 ----------
