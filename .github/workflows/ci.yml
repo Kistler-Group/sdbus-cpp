@@ -16,8 +16,11 @@ jobs:
         compiler: [g++, clang]
         build: [shared-libsystemd]
         include:
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             compiler: g++
+            build: embedded-static-libsystemd
+          - os: ubuntu-22.04
+            compiler: clang
             build: embedded-static-libsystemd
     steps:
     - uses: actions/checkout@v3
@@ -60,7 +63,7 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_VERBOSE_MAKEFILE=ON -DBUILD_TESTS=ON -DINSTALL_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON -DBUILD_CODE_GEN=ON -DBUILD_LIBSYSTEMD=ON -DLIBSYSTEMD_VERSION=244 ..
+        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_VERBOSE_MAKEFILE=ON -DBUILD_TESTS=ON -DINSTALL_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON -DBUILD_CODE_GEN=ON -DBUILD_LIBSYSTEMD=ON -DLIBSYSTEMD_VERSION=252 ..
     - name: make
       run: |
         cd build
