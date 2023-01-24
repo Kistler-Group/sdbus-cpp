@@ -4,7 +4,9 @@ on:
   push:
     branches: [ master ]
   pull_request:
-    branches: [ master ]
+    branches:
+      - master
+      - release/v2.0
 
 jobs:
   build:
