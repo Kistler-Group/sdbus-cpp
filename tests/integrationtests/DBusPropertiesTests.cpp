@@ -51,35 +51,33 @@ using ::testing::IsEmpty;
 using namespace std::chrono_literals;
 using namespace sdbus::test;
 
-using SdbusTestObject = TestFixture;
-
 /*-------------------------------------*/
 /* --          TEST CASES           -- */
 /*-------------------------------------*/
 
-TEST_F(SdbusTestObject, ReadsReadOnlyPropertySuccesfully)
+TYPED_TEST(SdbusTestObject, ReadsReadOnlyPropertySuccesfully)
 {
-    ASSERT_THAT(m_proxy->state(), Eq(DEFAULT_STATE_VALUE));
+    ASSERT_THAT(this->m_proxy->state(), Eq(DEFAULT_STATE_VALUE));
 }
 
-TEST_F(SdbusTestObject, FailsWritingToReadOnlyProperty)
+TYPED_TEST(SdbusTestObject, FailsWritingToReadOnlyProperty)
 {
-    ASSERT_THROW(m_proxy->setStateProperty("new_value"), sdbus::Error);
+    ASSERT_THROW(this->m_proxy->setStateProperty("new_value"), sdbus::Error);
 }
 
-TEST_F(SdbusTestObject, WritesAndReadsReadWritePropertySuccesfully)
+TYPED_TEST(SdbusTestObject, WritesAndReadsReadWritePropertySuccesfully)
 {
     uint32_t newActionValue = 5678;
 
-    m_proxy->action(newActionValue);
+    this->m_proxy->action(newActionValue);
 
-    ASSERT_THAT(m_proxy->action(), Eq(newActionValue));
+    ASSERT_THAT(this->m_proxy->action(), Eq(newActionValue));
 }
 
-TEST_F(SdbusTestObject, CanAccessAssociatedPropertySetMessageInPropertySetHandler)
+TYPED_TEST(SdbusTestObject, CanAccessAssociatedPropertySetMessageInPropertySetHandler)
 {
-    m_proxy->blocking(true); // This will save pointer to property get message on server side
+    this->m_proxy->blocking(true); // This will save pointer to property get message on server side
 
-    ASSERT_THAT(m_adaptor->m_propertySetMsg, NotNull());
-    ASSERT_THAT(m_adaptor->m_propertySetSender, Not(IsEmpty()));
+    ASSERT_THAT(this->m_adaptor->m_propertySetMsg, NotNull());
+    ASSERT_THAT(this->m_adaptor->m_propertySetSender, Not(IsEmpty()));
 }
