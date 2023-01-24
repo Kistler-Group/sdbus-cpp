@@ -44,32 +44,30 @@ using ::testing::NotNull;
 using namespace std::chrono_literals;
 using namespace sdbus::test;
 
-using SdbusTestObject = TestFixture;
-
 /*-------------------------------------*/
 /* --          TEST CASES           -- */
 /*-------------------------------------*/
 
-TEST_F(SdbusTestObject, EmitsSimpleSignalSuccesfully)
+TYPED_TEST(SdbusTestObject, EmitsSimpleSignalSuccesfully)
 {
-    m_adaptor->emitSimpleSignal();
+    this->m_adaptor->emitSimpleSignal();
 
-    ASSERT_TRUE(waitUntil(m_proxy->m_gotSimpleSignal));
+    ASSERT_TRUE(this->waitUntil(this->m_proxy->m_gotSimpleSignal));
 }
 
-TEST_F(SdbusTestObject, EmitsSimpleSignalToMultipleProxiesSuccesfully)
+TYPED_TEST(SdbusTestObject, EmitsSimpleSignalToMultipleProxiesSuccesfully)
 {
-    auto proxy1 = std::make_unique<TestProxy>(*s_adaptorConnection, BUS_NAME, OBJECT_PATH);
-    auto proxy2 = std::make_unique<TestProxy>(*s_adaptorConnection, BUS_NAME, OBJECT_PATH);
+    auto proxy1 = std::make_unique<TestProxy>(*this->s_adaptorConnection, BUS_NAME, OBJECT_PATH);
+    auto proxy2 = std::make_unique<TestProxy>(*this->s_adaptorConnection, BUS_NAME, OBJECT_PATH);
 
-    m_adaptor->emitSimpleSignal();
+    this->m_adaptor->emitSimpleSignal();
 
-    ASSERT_TRUE(waitUntil(m_proxy->m_gotSimpleSignal));
-    ASSERT_TRUE(waitUntil(proxy1->m_gotSimpleSignal));
-    ASSERT_TRUE(waitUntil(proxy2->m_gotSimpleSignal));
+    ASSERT_TRUE(this->waitUntil(this->m_proxy->m_gotSimpleSignal));
+    ASSERT_TRUE(this->waitUntil(proxy1->m_gotSimpleSignal));
+    ASSERT_TRUE(this->waitUntil(proxy2->m_gotSimpleSignal));
 }
 
-TEST_F(SdbusTestObject, ProxyDoesNotReceiveSignalFromOtherBusName)
+TYPED_TEST(SdbusTestObject, ProxyDoesNotReceiveSignalFromOtherBusName)
 {
     auto otherBusName = BUS_NAME + "2";
     auto connection2 = sdbus::createConnection(otherBusName);
@@ -77,93 +75,93 @@ TEST_F(SdbusTestObject, ProxyDoesNotReceiveSignalFromOtherBusName)
 
     adaptor2->emitSimpleSignal();
 
-    ASSERT_FALSE(waitUntil(m_proxy->m_gotSimpleSignal, 2s));
+    ASSERT_FALSE(this->waitUntil(this->m_proxy->m_gotSimpleSignal, 1s));
 }
 
-TEST_F(SdbusTestObject, EmitsSignalWithMapSuccesfully)
+TYPED_TEST(SdbusTestObject, EmitsSignalWithMapSuccesfully)
 {
-    m_adaptor->emitSignalWithMap({{0, "zero"}, {1, "one"}});
+    this->m_adaptor->emitSignalWithMap({{0, "zero"}, {1, "one"}});
 
-    ASSERT_TRUE(waitUntil(m_proxy->m_gotSignalWithMap));
-    ASSERT_THAT(m_proxy->m_mapFromSignal[0], Eq("zero"));
-    ASSERT_THAT(m_proxy->m_mapFromSignal[1], Eq("one"));
+    ASSERT_TRUE(this->waitUntil(this->m_proxy->m_gotSignalWithMap));
+    ASSERT_THAT(this->m_proxy->m_mapFromSignal[0], Eq("zero"));
+    ASSERT_THAT(this->m_proxy->m_mapFromSignal[1], Eq("one"));
 }
 
-TEST_F(SdbusTestObject, EmitsSignalWithLargeMapSuccesfully)
+TYPED_TEST(SdbusTestObject, EmitsSignalWithLargeMapSuccesfully)
 {
   std::map<int32_t, std::string> largeMap;
   for (int32_t i = 0; i < 20'000; ++i)
       largeMap.emplace(i, "This is string nr. " + std::to_string(i+1));
-  m_adaptor->emitSignalWithMap(largeMap);
+  this->m_adaptor->emitSignalWithMap(largeMap);
 
-  ASSERT_TRUE(waitUntil(m_proxy->m_gotSignalWithMap));
-  ASSERT_THAT(m_proxy->m_mapFromSignal[0], Eq("This is string nr. 1"));
-  ASSERT_THAT(m_proxy->m_mapFromSignal[1], Eq("This is string nr. 2"));
+  ASSERT_TRUE(this->waitUntil(this->m_proxy->m_gotSignalWithMap));
+  ASSERT_THAT(this->m_proxy->m_mapFromSignal[0], Eq("This is string nr. 1"));
+  ASSERT_THAT(this->m_proxy->m_mapFromSignal[1], Eq("This is string nr. 2"));
 }
 
-TEST_F(SdbusTestObject, EmitsSignalWithVariantSuccesfully)
+TYPED_TEST(SdbusTestObject, EmitsSignalWithVariantSuccesfully)
 {
     double d = 3.14;
-    m_adaptor->emitSignalWithVariant(d);
+    this->m_adaptor->emitSignalWithVariant(d);
 
-    ASSERT_TRUE(waitUntil(m_proxy->m_gotSignalWithVariant));
-    ASSERT_THAT(m_proxy->m_variantFromSignal, DoubleEq(d));
+    ASSERT_TRUE(this->waitUntil(this->m_proxy->m_gotSignalWithVariant));
+    ASSERT_THAT(this->m_proxy->m_variantFromSignal, DoubleEq(d));
 }
 
-TEST_F(SdbusTestObject, EmitsSignalWithoutRegistrationSuccesfully)
+TYPED_TEST(SdbusTestObject, EmitsSignalWithoutRegistrationSuccesfully)
 {
-    m_adaptor->emitSignalWithoutRegistration({"platform", {"av"}});
+    this->m_adaptor->emitSignalWithoutRegistration({"platform", {"av"}});
 
-    ASSERT_TRUE(waitUntil(m_proxy->m_gotSignalWithSignature));
-    ASSERT_THAT(m_proxy->m_signatureFromSignal["platform"], Eq("av"));
+    ASSERT_TRUE(this->waitUntil(this->m_proxy->m_gotSignalWithSignature));
+    ASSERT_THAT(this->m_proxy->m_signatureFromSignal["platform"], Eq("av"));
 }
 
-TEST_F(SdbusTestObject, CanAccessAssociatedSignalMessageInSignalHandler)
+TYPED_TEST(SdbusTestObject, CanAccessAssociatedSignalMessageInSignalHandler)
 {
-    m_adaptor->emitSimpleSignal();
+    this->m_adaptor->emitSimpleSignal();
 
-    waitUntil(m_proxy->m_gotSimpleSignal);
+    this->waitUntil(this->m_proxy->m_gotSimpleSignal);
 
-    ASSERT_THAT(m_proxy->m_signalMsg, NotNull());
-    ASSERT_THAT(m_proxy->m_signalMemberName, Eq("simpleSignal"));
+    ASSERT_THAT(this->m_proxy->m_signalMsg, NotNull());
+    ASSERT_THAT(this->m_proxy->m_signalMemberName, Eq("simpleSignal"));
 }
 
-TEST_F(SdbusTestObject, UnregistersSignalHandler)
+TYPED_TEST(SdbusTestObject, UnregistersSignalHandler)
 {
-    ASSERT_NO_THROW(m_proxy->unregisterSimpleSignalHandler());
+    ASSERT_NO_THROW(this->m_proxy->unregisterSimpleSignalHandler());
 
-    m_adaptor->emitSimpleSignal();
+    this->m_adaptor->emitSimpleSignal();
 
-    ASSERT_FALSE(waitUntil(m_proxy->m_gotSimpleSignal, 2s));
+    ASSERT_FALSE(this->waitUntil(this->m_proxy->m_gotSimpleSignal, 1s));
 }
 
-TEST_F(SdbusTestObject, UnregistersSignalHandlerForSomeProxies)
+TYPED_TEST(SdbusTestObject, UnregistersSignalHandlerForSomeProxies)
 {
-    auto proxy1 = std::make_unique<TestProxy>(*s_adaptorConnection, BUS_NAME, OBJECT_PATH);
-    auto proxy2 = std::make_unique<TestProxy>(*s_adaptorConnection, BUS_NAME, OBJECT_PATH);
+    auto proxy1 = std::make_unique<TestProxy>(*this->s_adaptorConnection, BUS_NAME, OBJECT_PATH);
+    auto proxy2 = std::make_unique<TestProxy>(*this->s_adaptorConnection, BUS_NAME, OBJECT_PATH);
 
-    ASSERT_NO_THROW(m_proxy->unregisterSimpleSignalHandler());
+    ASSERT_NO_THROW(this->m_proxy->unregisterSimpleSignalHandler());
 
-    m_adaptor->emitSimpleSignal();
+    this->m_adaptor->emitSimpleSignal();
 
-    ASSERT_TRUE(waitUntil(proxy1->m_gotSimpleSignal));
-    ASSERT_TRUE(waitUntil(proxy2->m_gotSimpleSignal));
-    ASSERT_FALSE(waitUntil(m_proxy->m_gotSimpleSignal, 2s));
+    ASSERT_TRUE(this->waitUntil(proxy1->m_gotSimpleSignal));
+    ASSERT_TRUE(this->waitUntil(proxy2->m_gotSimpleSignal));
+    ASSERT_FALSE(this->waitUntil(this->m_proxy->m_gotSimpleSignal, 1s));
 }
 
-TEST_F(SdbusTestObject, ReRegistersSignalHandler)
+TYPED_TEST(SdbusTestObject, ReRegistersSignalHandler)
 {
     // unregister simple-signal handler
-    ASSERT_NO_THROW(m_proxy->unregisterSimpleSignalHandler());
+    ASSERT_NO_THROW(this->m_proxy->unregisterSimpleSignalHandler());
 
-    m_adaptor->emitSimpleSignal();
+    this->m_adaptor->emitSimpleSignal();
 
-    ASSERT_FALSE(waitUntil(m_proxy->m_gotSimpleSignal, 2s));
+    ASSERT_FALSE(this->waitUntil(this->m_proxy->m_gotSimpleSignal, 1s));
 
     // re-register simple-signal handler
-    ASSERT_NO_THROW(m_proxy->reRegisterSimpleSignalHandler());
+    ASSERT_NO_THROW(this->m_proxy->reRegisterSimpleSignalHandler());
 
-    m_adaptor->emitSimpleSignal();
+    this->m_adaptor->emitSimpleSignal();
 
-    ASSERT_TRUE(waitUntil(m_proxy->m_gotSimpleSignal));
+    ASSERT_TRUE(this->waitUntil(this->m_proxy->m_gotSimpleSignal));
 }
