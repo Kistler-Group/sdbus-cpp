@@ -2,7 +2,7 @@
  * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
  * (C) 2016 - 2022 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
- * @file TestAdaptor.cpp
+ * @file TestFixture.cpp
  *
  * Created on: May 23, 2020
  * Project: sdbus-c++
@@ -27,8 +27,14 @@
 #include "TestFixture.h"
 
 namespace sdbus { namespace test {
-    
-std::unique_ptr<sdbus::IConnection> TestFixture::s_adaptorConnection = sdbus::createSystemBusConnection();
-std::unique_ptr<sdbus::IConnection> TestFixture::s_proxyConnection = sdbus::createSystemBusConnection();
+
+std::unique_ptr<sdbus::IConnection> BaseTestFixture::s_adaptorConnection = sdbus::createSystemBusConnection();
+std::unique_ptr<sdbus::IConnection> BaseTestFixture::s_proxyConnection = sdbus::createSystemBusConnection();
+
+std::thread TestFixture<SdEventLoop>::s_adaptorEventLoopThread{};
+std::thread TestFixture<SdEventLoop>::s_proxyEventLoopThread{};
+sd_event *TestFixture<SdEventLoop>::s_adaptorSdEvent{};
+sd_event *TestFixture<SdEventLoop>::s_proxySdEvent{};
+int TestFixture<SdEventLoop>::s_eventExitFd{-1};
 
 }}

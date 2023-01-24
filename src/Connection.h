@@ -85,6 +85,10 @@ namespace sdbus::internal {
         [[nodiscard]] Slot addMatch(const std::string& match, message_handler callback) override;
         void addMatch(const std::string& match, message_handler callback, floating_slot_t) override;
 
+        void attachSdEventLoop(sd_event *event, int priority) override;
+        void detachSdEventLoop() override;
+        sd_event *getSdEventLoop() override;
+
         const ISdBus& getSdBusInterface() const override;
         ISdBus& getSdBusInterface() override;
 
@@ -145,6 +149,17 @@ namespace sdbus::internal {
 
         static std::vector</*const */char*> to_strv(const std::vector<std::string>& strings);
 
+        Slot createSdEventSlot(sd_event *event);
+        Slot createSdTimeEventSourceSlot(sd_event *event, int priority);
+        Slot createSdIoEventSourceSlot(sd_event *event, int fd, int priority);
+        Slot createSdInternalEventSourceSlot(sd_event *event, int fd, int priority);
+        static void deleteSdEventSource(sd_event_source *s);
+
+        static int onSdTimerEvent(sd_event_source *s, uint64_t usec, void *userdata);
+        static int onSdIoEvent(sd_event_source *s, int fd, uint32_t revents, void *userdata);
+        static int onSdInternalEvent(sd_event_source *s, int fd, uint32_t revents, void *userdata);
+        static int onSdEventPrepare(sd_event_source *s, void *userdata);
+
         struct EventFd
         {
             EventFd();
@@ -162,6 +177,15 @@ namespace sdbus::internal {
             sd_bus_slot *slot;
         };
 
+        // sd-event integration
+        struct SdEvent
+        {
+            Slot sdEvent;
+            Slot sdTimeEventSource;
+            Slot sdIoEventSource;
+            Slot sdInternalEventSource;
+        };
+
     private:
         std::unique_ptr<ISdBus> sdbus_;
         BusPtr bus_;
@@ -169,6 +193,7 @@ namespace sdbus::internal {
         EventFd loopExitFd_; // To wake up event loop I/O polling to exit
         EventFd eventFd_; // To wake up event loop I/O polling to re-enter poll with fresh PollData values
         std::vector<Slot> floatingMatchRules_;
+        std::unique_ptr<SdEvent> sdEvent_; // Integration of systemd sd-event event loop implementation
     };
 
 }
