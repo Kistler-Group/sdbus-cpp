@@ -48,43 +48,41 @@ using ::testing::SizeIs;
 using namespace std::chrono_literals;
 using namespace sdbus::test;
 
-using SdbusTestObject = TestFixture;
-
 /*-------------------------------------*/
 /* --          TEST CASES           -- */
 /*-------------------------------------*/
 
-TEST_F(SdbusTestObject, PingsViaPeerInterface)
+TYPED_TEST(SdbusTestObject, PingsViaPeerInterface)
 {
-    ASSERT_NO_THROW(m_proxy->Ping());
+    ASSERT_NO_THROW(this->m_proxy->Ping());
 }
 
-TEST_F(SdbusTestObject, AnswersMachineUuidViaPeerInterface)
+TYPED_TEST(SdbusTestObject, AnswersMachineUuidViaPeerInterface)
 {
     if (::access("/etc/machine-id", F_OK) == -1 &&
         ::access("/var/lib/dbus/machine-id", F_OK) == -1)
         GTEST_SKIP() << "/etc/machine-id and /var/lib/dbus/machine-id files do not exist, GetMachineId() will not work";
 
-    ASSERT_NO_THROW(m_proxy->GetMachineId());
+    ASSERT_NO_THROW(this->m_proxy->GetMachineId());
 }
 
 // TODO: Adjust expected xml and uncomment this test
-//TEST_F(SdbusTestObject, AnswersXmlApiDescriptionViaIntrospectableInterface)
+//TYPED_TEST(SdbusTestObject, AnswersXmlApiDescriptionViaIntrospectableInterface)
 //{
-//    ASSERT_THAT(m_proxy->Introspect(), Eq(m_adaptor->getExpectedXmlApiDescription()));
+//    ASSERT_THAT(this->m_proxy->Introspect(), Eq(this->m_adaptor->getExpectedXmlApiDescription()));
 //}
 
-TEST_F(SdbusTestObject, GetsPropertyViaPropertiesInterface)
+TYPED_TEST(SdbusTestObject, GetsPropertyViaPropertiesInterface)
 {
-    ASSERT_THAT(m_proxy->Get(INTERFACE_NAME, "state").get<std::string>(), Eq(DEFAULT_STATE_VALUE));
+    ASSERT_THAT(this->m_proxy->Get(INTERFACE_NAME, "state").template get<std::string>(), Eq(DEFAULT_STATE_VALUE));
 }
 
-TEST_F(SdbusTestObject, GetsPropertyAsynchronouslyViaPropertiesInterface)
+TYPED_TEST(SdbusTestObject, GetsPropertyAsynchronouslyViaPropertiesInterface)
 {
     std::promise<std::string> promise;
     auto future = promise.get_future();
 
-    m_proxy->GetAsync(INTERFACE_NAME, "state", [&](const sdbus::Error* err, sdbus::Variant value)
+    this->m_proxy->GetAsync(INTERFACE_NAME, "state", [&](const sdbus::Error* err, sdbus::Variant value)
     {
         if (err == nullptr)
            promise.set_value(value.get<std::string>());
@@ -95,29 +93,29 @@ TEST_F(SdbusTestObject, GetsPropertyAsynchronouslyViaPropertiesInterface)
     ASSERT_THAT(future.get(), Eq(DEFAULT_STATE_VALUE));
 }
 
-TEST_F(SdbusTestObject, GetsPropertyAsynchronouslyViaPropertiesInterfaceWithFuture)
+TYPED_TEST(SdbusTestObject, GetsPropertyAsynchronouslyViaPropertiesInterfaceWithFuture)
 {
-    auto future = m_proxy->GetAsync(INTERFACE_NAME, "state", sdbus::with_future);
+    auto future = this->m_proxy->GetAsync(INTERFACE_NAME, "state", sdbus::with_future);
 
-    ASSERT_THAT(future.get().get<std::string>(), Eq(DEFAULT_STATE_VALUE));
+    ASSERT_THAT(future.get().template get<std::string>(), Eq(DEFAULT_STATE_VALUE));
 }
 
-TEST_F(SdbusTestObject, SetsPropertyViaPropertiesInterface)
+TYPED_TEST(SdbusTestObject, SetsPropertyViaPropertiesInterface)
 {
     uint32_t newActionValue = 2345;
 
-    m_proxy->Set(INTERFACE_NAME, "action", sdbus::Variant{newActionValue});
+    this->m_proxy->Set(INTERFACE_NAME, "action", sdbus::Variant{newActionValue});
 
-    ASSERT_THAT(m_proxy->action(), Eq(newActionValue));
+    ASSERT_THAT(this->m_proxy->action(), Eq(newActionValue));
 }
 
-TEST_F(SdbusTestObject, SetsPropertyAsynchronouslyViaPropertiesInterface)
+TYPED_TEST(SdbusTestObject, SetsPropertyAsynchronouslyViaPropertiesInterface)
 {
     uint32_t newActionValue = 2346;
     std::promise<void> promise;
     auto future = promise.get_future();
 
-    m_proxy->SetAsync(INTERFACE_NAME, "action", sdbus::Variant{newActionValue}, [&](const sdbus::Error* err)
+    this->m_proxy->SetAsync(INTERFACE_NAME, "action", sdbus::Variant{newActionValue}, [&](const sdbus::Error* err)
     {
         if (err == nullptr)
             promise.set_value();
@@ -126,35 +124,35 @@ TEST_F(SdbusTestObject, SetsPropertyAsynchronouslyViaPropertiesInterface)
     });
 
     ASSERT_NO_THROW(future.get());
-    ASSERT_THAT(m_proxy->action(), Eq(newActionValue));
+    ASSERT_THAT(this->m_proxy->action(), Eq(newActionValue));
 }
 
-TEST_F(SdbusTestObject, SetsPropertyAsynchronouslyViaPropertiesInterfaceWithFuture)
+TYPED_TEST(SdbusTestObject, SetsPropertyAsynchronouslyViaPropertiesInterfaceWithFuture)
 {
     uint32_t newActionValue = 2347;
 
-    auto future = m_proxy->SetAsync(INTERFACE_NAME, "action", sdbus::Variant{newActionValue}, sdbus::with_future);
+    auto future = this->m_proxy->SetAsync(INTERFACE_NAME, "action", sdbus::Variant{newActionValue}, sdbus::with_future);
 
     ASSERT_NO_THROW(future.get());
-    ASSERT_THAT(m_proxy->action(), Eq(newActionValue));
+    ASSERT_THAT(this->m_proxy->action(), Eq(newActionValue));
 }
 
-TEST_F(SdbusTestObject, GetsAllPropertiesViaPropertiesInterface)
+TYPED_TEST(SdbusTestObject, GetsAllPropertiesViaPropertiesInterface)
 {
-    const auto properties = m_proxy->GetAll(INTERFACE_NAME);
+    const auto properties = this->m_proxy->GetAll(INTERFACE_NAME);
 
     ASSERT_THAT(properties, SizeIs(3));
-    EXPECT_THAT(properties.at("state").get<std::string>(), Eq(DEFAULT_STATE_VALUE));
-    EXPECT_THAT(properties.at("action").get<uint32_t>(), Eq(DEFAULT_ACTION_VALUE));
-    EXPECT_THAT(properties.at("blocking").get<bool>(), Eq(DEFAULT_BLOCKING_VALUE));
+    EXPECT_THAT(properties.at("state").template get<std::string>(), Eq(DEFAULT_STATE_VALUE));
+    EXPECT_THAT(properties.at("action").template get<uint32_t>(), Eq(DEFAULT_ACTION_VALUE));
+    EXPECT_THAT(properties.at("blocking").template get<bool>(), Eq(DEFAULT_BLOCKING_VALUE));
 }
 
-TEST_F(SdbusTestObject, GetsAllPropertiesAsynchronouslyViaPropertiesInterface)
+TYPED_TEST(SdbusTestObject, GetsAllPropertiesAsynchronouslyViaPropertiesInterface)
 {
     std::promise<std::map<std::string, sdbus::Variant>> promise;
     auto future = promise.get_future();
 
-    m_proxy->GetAllAsync(INTERFACE_NAME, [&](const sdbus::Error* err, std::map<std::string, sdbus::Variant> value)
+    this->m_proxy->GetAllAsync(INTERFACE_NAME, [&](const sdbus::Error* err, std::map<std::string, sdbus::Variant> value)
     {
         if (err == nullptr)
             promise.set_value(std::move(value));
@@ -169,24 +167,24 @@ TEST_F(SdbusTestObject, GetsAllPropertiesAsynchronouslyViaPropertiesInterface)
     EXPECT_THAT(properties.at("blocking").get<bool>(), Eq(DEFAULT_BLOCKING_VALUE));
 }
 
-TEST_F(SdbusTestObject, GetsAllPropertiesAsynchronouslyViaPropertiesInterfaceWithFuture)
+TYPED_TEST(SdbusTestObject, GetsAllPropertiesAsynchronouslyViaPropertiesInterfaceWithFuture)
 {
-    auto future = m_proxy->GetAllAsync(INTERFACE_NAME, sdbus::with_future);
+    auto future = this->m_proxy->GetAllAsync(INTERFACE_NAME, sdbus::with_future);
 
     auto properties = future.get();
 
     ASSERT_THAT(properties, SizeIs(3));
-    EXPECT_THAT(properties.at("state").get<std::string>(), Eq(DEFAULT_STATE_VALUE));
-    EXPECT_THAT(properties.at("action").get<uint32_t>(), Eq(DEFAULT_ACTION_VALUE));
-    EXPECT_THAT(properties.at("blocking").get<bool>(), Eq(DEFAULT_BLOCKING_VALUE));
+    EXPECT_THAT(properties.at("state").template get<std::string>(), Eq(DEFAULT_STATE_VALUE));
+    EXPECT_THAT(properties.at("action").template get<uint32_t>(), Eq(DEFAULT_ACTION_VALUE));
+    EXPECT_THAT(properties.at("blocking").template get<bool>(), Eq(DEFAULT_BLOCKING_VALUE));
 }
 
-TEST_F(SdbusTestObject, EmitsPropertyChangedSignalForSelectedProperties)
+TYPED_TEST(SdbusTestObject, EmitsPropertyChangedSignalForSelectedProperties)
 {
     std::atomic<bool> signalReceived{false};
-    m_proxy->m_onPropertiesChangedHandler = [&signalReceived]( const std::string& interfaceName
-                                                             , const std::map<std::string, sdbus::Variant>& changedProperties
-                                                             , const std::vector<std::string>& /*invalidatedProperties*/ )
+    this->m_proxy->m_onPropertiesChangedHandler = [&signalReceived]( const std::string& interfaceName
+                                                                   , const std::map<std::string, sdbus::Variant>& changedProperties
+                                                                   , const std::vector<std::string>& /*invalidatedProperties*/ )
     {
         EXPECT_THAT(interfaceName, Eq(INTERFACE_NAME));
         EXPECT_THAT(changedProperties, SizeIs(1));
@@ -194,19 +192,19 @@ TEST_F(SdbusTestObject, EmitsPropertyChangedSignalForSelectedProperties)
         signalReceived = true;
     };
 
-    m_proxy->blocking(!DEFAULT_BLOCKING_VALUE);
-    m_proxy->action(DEFAULT_ACTION_VALUE*2);
-    m_adaptor->emitPropertiesChangedSignal(INTERFACE_NAME, {"blocking"});
+    this->m_proxy->blocking(!DEFAULT_BLOCKING_VALUE);
+    this->m_proxy->action(DEFAULT_ACTION_VALUE*2);
+    this->m_adaptor->emitPropertiesChangedSignal(INTERFACE_NAME, {"blocking"});
 
     ASSERT_TRUE(waitUntil(signalReceived));
 }
 
-TEST_F(SdbusTestObject, EmitsPropertyChangedSignalForAllProperties)
+TYPED_TEST(SdbusTestObject, EmitsPropertyChangedSignalForAllProperties)
 {
     std::atomic<bool> signalReceived{false};
-    m_proxy->m_onPropertiesChangedHandler = [&signalReceived]( const std::string& interfaceName
-                                                             , const std::map<std::string, sdbus::Variant>& changedProperties
-                                                             , const std::vector<std::string>& invalidatedProperties )
+    this->m_proxy->m_onPropertiesChangedHandler = [&signalReceived]( const std::string& interfaceName
+                                                                   , const std::map<std::string, sdbus::Variant>& changedProperties
+                                                                   , const std::vector<std::string>& invalidatedProperties )
     {
         EXPECT_THAT(interfaceName, Eq(INTERFACE_NAME));
         EXPECT_THAT(changedProperties, SizeIs(1));
@@ -216,38 +214,38 @@ TEST_F(SdbusTestObject, EmitsPropertyChangedSignalForAllProperties)
         signalReceived = true;
     };
 
-    m_adaptor->emitPropertiesChangedSignal(INTERFACE_NAME);
+    this->m_adaptor->emitPropertiesChangedSignal(INTERFACE_NAME);
 
     ASSERT_TRUE(waitUntil(signalReceived));
 }
 
-TEST_F(SdbusTestObject, GetsZeroManagedObjectsIfHasNoSubPathObjects)
+TYPED_TEST(SdbusTestObject, GetsZeroManagedObjectsIfHasNoSubPathObjects)
 {
-    m_adaptor.reset();
-    const auto objectsInterfacesAndProperties = m_objectManagerProxy->GetManagedObjects();
+    this->m_adaptor.reset();
+    const auto objectsInterfacesAndProperties = this->m_objectManagerProxy->GetManagedObjects();
 
     ASSERT_THAT(objectsInterfacesAndProperties, SizeIs(0));
 }
 
-TEST_F(SdbusTestObject, GetsManagedObjectsSuccessfully)
+TYPED_TEST(SdbusTestObject, GetsManagedObjectsSuccessfully)
 {
-    auto adaptor2 = std::make_unique<TestAdaptor>(*s_adaptorConnection, OBJECT_PATH_2);
-    const auto objectsInterfacesAndProperties = m_objectManagerProxy->GetManagedObjects();
+    auto adaptor2 = std::make_unique<TestAdaptor>(*this->s_adaptorConnection, OBJECT_PATH_2);
+    const auto objectsInterfacesAndProperties = this->m_objectManagerProxy->GetManagedObjects();
 
     ASSERT_THAT(objectsInterfacesAndProperties, SizeIs(2));
     EXPECT_THAT(objectsInterfacesAndProperties.at(OBJECT_PATH)
         .at(org::sdbuscpp::integrationtests_adaptor::INTERFACE_NAME)
-        .at("action").get<uint32_t>(), Eq(DEFAULT_ACTION_VALUE));
+        .at("action").template get<uint32_t>(), Eq(DEFAULT_ACTION_VALUE));
     EXPECT_THAT(objectsInterfacesAndProperties.at(OBJECT_PATH_2)
         .at(org::sdbuscpp::integrationtests_adaptor::INTERFACE_NAME)
-        .at("action").get<uint32_t>(), Eq(DEFAULT_ACTION_VALUE));
+        .at("action").template get<uint32_t>(), Eq(DEFAULT_ACTION_VALUE));
 }
 
-TEST_F(SdbusTestObject, EmitsInterfacesAddedSignalForSelectedObjectInterfaces)
+TYPED_TEST(SdbusTestObject, EmitsInterfacesAddedSignalForSelectedObjectInterfaces)
 {
     std::atomic<bool> signalReceived{false};
-    m_objectManagerProxy->m_onInterfacesAddedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
-            , const std::map<std::string, std::map<std::string, sdbus::Variant>>& interfacesAndProperties )
+    this->m_objectManagerProxy->m_onInterfacesAddedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
+                                                                              , const std::map<std::string, std::map<std::string, sdbus::Variant>>& interfacesAndProperties )
     {
         EXPECT_THAT(objectPath, Eq(OBJECT_PATH));
         EXPECT_THAT(interfacesAndProperties, SizeIs(1));
@@ -269,16 +267,16 @@ TEST_F(SdbusTestObject, EmitsInterfacesAddedSignalForSelectedObjectInterfaces)
         signalReceived = true;
     };
 
-    m_adaptor->emitInterfacesAddedSignal({INTERFACE_NAME});
+    this->m_adaptor->emitInterfacesAddedSignal({INTERFACE_NAME});
 
     ASSERT_TRUE(waitUntil(signalReceived));
 }
 
-TEST_F(SdbusTestObject, EmitsInterfacesAddedSignalForAllObjectInterfaces)
+TYPED_TEST(SdbusTestObject, EmitsInterfacesAddedSignalForAllObjectInterfaces)
 {
     std::atomic<bool> signalReceived{false};
-    m_objectManagerProxy->m_onInterfacesAddedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
-            , const std::map<std::string, std::map<std::string, sdbus::Variant>>& interfacesAndProperties )
+    this->m_objectManagerProxy->m_onInterfacesAddedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
+                                                                              , const std::map<std::string, std::map<std::string, sdbus::Variant>>& interfacesAndProperties )
     {
         EXPECT_THAT(objectPath, Eq(OBJECT_PATH));
 #if LIBSYSTEMD_VERSION<=250
@@ -305,16 +303,16 @@ TEST_F(SdbusTestObject, EmitsInterfacesAddedSignalForAllObjectInterfaces)
         signalReceived = true;
     };
 
-    m_adaptor->emitInterfacesAddedSignal();
+    this->m_adaptor->emitInterfacesAddedSignal();
 
     ASSERT_TRUE(waitUntil(signalReceived));
 }
 
-TEST_F(SdbusTestObject, EmitsInterfacesRemovedSignalForSelectedObjectInterfaces)
+TYPED_TEST(SdbusTestObject, EmitsInterfacesRemovedSignalForSelectedObjectInterfaces)
 {
     std::atomic<bool> signalReceived{false};
-    m_objectManagerProxy->m_onInterfacesRemovedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
-                                                                          , const std::vector<std::string>& interfaces )
+    this->m_objectManagerProxy->m_onInterfacesRemovedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
+                                                                                , const std::vector<std::string>& interfaces )
     {
         EXPECT_THAT(objectPath, Eq(OBJECT_PATH));
         ASSERT_THAT(interfaces, SizeIs(1));
@@ -322,16 +320,16 @@ TEST_F(SdbusTestObject, EmitsInterfacesRemovedSignalForSelectedObjectInterfaces)
         signalReceived = true;
     };
 
-    m_adaptor->emitInterfacesRemovedSignal({INTERFACE_NAME});
+    this->m_adaptor->emitInterfacesRemovedSignal({INTERFACE_NAME});
 
     ASSERT_TRUE(waitUntil(signalReceived));
 }
 
-TEST_F(SdbusTestObject, EmitsInterfacesRemovedSignalForAllObjectInterfaces)
+TYPED_TEST(SdbusTestObject, EmitsInterfacesRemovedSignalForAllObjectInterfaces)
 {
     std::atomic<bool> signalReceived{false};
-    m_objectManagerProxy->m_onInterfacesRemovedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
-                                                                          , const std::vector<std::string>& interfaces )
+    this->m_objectManagerProxy->m_onInterfacesRemovedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
+                                                                                , const std::vector<std::string>& interfaces )
     {
         EXPECT_THAT(objectPath, Eq(OBJECT_PATH));
 #if LIBSYSTEMD_VERSION<=250
@@ -344,7 +342,7 @@ TEST_F(SdbusTestObject, EmitsInterfacesRemovedSignalForAllObjectInterfaces)
         signalReceived = true;
     };
 
-    m_adaptor->emitInterfacesRemovedSignal();
+    this->m_adaptor->emitInterfacesRemovedSignal();
 
     ASSERT_TRUE(waitUntil(signalReceived));
 }
