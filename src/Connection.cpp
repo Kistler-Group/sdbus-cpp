@@ -32,6 +32,9 @@
 #include <sdbus-c++/Error.h>
 #include "ScopeGuard.h"
 #include SDBUS_HEADER
+#ifndef SDBUS_basu // sd_event integration is not supported in basu-based sdbus-c++
+#include <systemd/sd-event.h>
+#endif
 #include <unistd.h>
 #include <poll.h>
 #include <sys/eventfd.h>
@@ -243,6 +246,189 @@ void Connection::addMatch(const std::string& match, message_handler callback, fl
 {
     floatingMatchRules_.push_back(addMatch(match, std::move(callback)));
 }
+
+void Connection::attachSdEventLoop(sd_event *event, int priority)
+{
+#ifndef SDBUS_basu
+    auto pollData = getEventLoopPollData();
+
+    auto sdEvent = createSdEventSlot(event);
+    auto sdTimeEventSource = createSdTimeEventSourceSlot(event, priority);
+    auto sdIoEventSource = createSdIoEventSourceSlot(event, pollData.fd, priority);
+    auto sdInternalEventSource = createSdInternalEventSourceSlot(event, pollData.eventFd, priority);
+
+    sdEvent_ = std::make_unique<SdEvent>(SdEvent{ std::move(sdEvent)
+                                                , std::move(sdTimeEventSource)
+                                                , std::move(sdIoEventSource)
+                                                , std::move(sdInternalEventSource) });
+#else
+    (void)event;
+    (void)priority;
+    SDBUS_THROW_ERROR("sd_event integration is not supported on this platform", EOPNOTSUPP);
+#endif
+}
+
+void Connection::detachSdEventLoop()
+{
+    sdEvent_.reset();
+}
+
+sd_event *Connection::getSdEventLoop()
+{
+    return sdEvent_ ? static_cast<sd_event*>(sdEvent_->sdEvent.get()) : nullptr;
+}
+
+#ifndef SDBUS_basu
+
+Slot Connection::createSdEventSlot(sd_event *event)
+{
+    // Get default event if no event is provided by the caller
+    if (event != nullptr)
+        event = sd_event_ref(event);
+    else
+        (void)sd_event_default(&event);
+    SDBUS_THROW_ERROR_IF(!event, "Invalid sd_event handle", EINVAL);
+
+    return Slot{event, [](void* event){ sd_event_unref((sd_event*)event); }};
+}
+
+Slot Connection::createSdTimeEventSourceSlot(sd_event *event, int priority)
+{
+    sd_event_source *timeEventSource{};
+    auto r = sd_event_add_time(event, &timeEventSource, CLOCK_MONOTONIC, 0, 0, onSdTimerEvent, this);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to add timer event", -r);
+    Slot sdTimeEventSource{timeEventSource, [](void* source){ deleteSdEventSource((sd_event_source*)source); }};
+
+    r = sd_event_source_set_priority(timeEventSource, priority);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to set time event priority", -r);
+
+    r = sd_event_source_set_description(timeEventSource, "bus-time");
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to set time event description", -r);
+
+    return sdTimeEventSource;
+}
+
+Slot Connection::createSdIoEventSourceSlot(sd_event *event, int fd, int priority)
+{
+    sd_event_source *ioEventSource{};
+    auto r = sd_event_add_io(event, &ioEventSource, fd, 0, onSdIoEvent, this);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to add io event", -r);
+    Slot sdIoEventSource{ioEventSource, [](void* source){ deleteSdEventSource((sd_event_source*)source); }};
+
+    r = sd_event_source_set_prepare(ioEventSource, onSdEventPrepare);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to set prepare callback for IO event", -r);
+
+    r = sd_event_source_set_priority(ioEventSource, priority);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to set priority for IO event", -r);
+
+    r = sd_event_source_set_description(ioEventSource, "bus-input");
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to set priority for IO event", -r);
+
+    return sdIoEventSource;
+}
+
+Slot Connection::createSdInternalEventSourceSlot(sd_event *event, int fd, int priority)
+{
+    sd_event_source *internalEventSource{};
+    auto r = sd_event_add_io(event, &internalEventSource, fd, 0, onSdInternalEvent, this);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to add internal event", -r);
+    Slot sdInternalEventSource{internalEventSource, [](void* source){ deleteSdEventSource((sd_event_source*)source); }};
+
+    // sd-event loop calls prepare callbacks for all event sources, not just for the one that fired now.
+    // So since onSdEventPrepare is already registered on ioEventSource, we don't need to duplicate it here.
+    //r = sd_event_source_set_prepare(internalEventSource, onSdEventPrepare);
+    //SDBUS_THROW_ERROR_IF(r < 0, "Failed to set prepare callback for internal event", -r);
+
+    r = sd_event_source_set_priority(internalEventSource, priority);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to set priority for internal event", -r);
+
+    r = sd_event_source_set_description(internalEventSource, "internal-event");
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to set priority for IO event", -r);
+
+    return sdInternalEventSource;
+}
+
+int Connection::onSdTimerEvent(sd_event_source */*s*/, uint64_t /*usec*/, void *userdata)
+{
+    auto connection = static_cast<Connection*>(userdata);
+    assert(connection != nullptr);
+
+    (void)connection->processPendingEvent();
+
+    return 1;
+}
+
+int Connection::onSdIoEvent(sd_event_source */*s*/, int /*fd*/, uint32_t /*revents*/, void *userdata)
+{
+    auto connection = static_cast<Connection*>(userdata);
+    assert(connection != nullptr);
+
+    (void)connection->processPendingEvent();
+
+    return 1;
+}
+
+int Connection::onSdInternalEvent(sd_event_source */*s*/, int /*fd*/, uint32_t /*revents*/, void *userdata)
+{
+    auto connection = static_cast<Connection*>(userdata);
+    assert(connection != nullptr);
+
+    // It's not really necessary to processPendingEvent() here. We just clear the event fd.
+    // The sd-event loop will before the next poll call prepare callbacks for all event sources,
+    // including I/O bus fd. This will get up-to-date poll timeout, which will be zero if there
+    // are pending D-Bus messages in the read queue, which will immediately wake up next poll
+    // and go to onSdIoEvent() handler, which calls processPendingEvent(). Viola.
+    // For external event loops that only have access to public sdbus-c++ API, processPendingEvent()
+    // is the only option to clear event fd (it comes at a little extra cost but on the other hand
+    // the solution is simpler for clients -- we don't provide an extra method for just clearing
+    // the event fd. There is one method for both fd's -- and that's processPendingEvent().
+
+    // Kept here so that potential readers know what to do in their custom external event loops.
+    //(void)connection->processPendingEvent();
+
+    connection->eventFd_.clear();
+
+    return 1;
+}
+
+int Connection::onSdEventPrepare(sd_event_source */*s*/, void *userdata)
+{
+    auto connection = static_cast<Connection*>(userdata);
+    assert(connection != nullptr);
+
+    auto sdbusPollData = connection->getEventLoopPollData();
+
+    // Set poll events to watch out for on I/O fd
+    auto* sdIoEventSource = static_cast<sd_event_source*>(connection->sdEvent_->sdIoEventSource.get());
+    auto r = sd_event_source_set_io_events(sdIoEventSource, sdbusPollData.events);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to set poll events for IO event source", -r);
+
+    // Set poll events to watch out for on internal event fd
+    auto* sdInternalEventSource = static_cast<sd_event_source*>(connection->sdEvent_->sdInternalEventSource.get());
+    r = sd_event_source_set_io_events(sdInternalEventSource, POLLIN);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to set poll events for internal event source", -r);
+
+    // Set current timeout to the time event source (it may be zero if there are messages in the sd-bus queues to be processed)
+    auto* sdTimeEventSource = static_cast<sd_event_source*>(connection->sdEvent_->sdTimeEventSource.get());
+    r = sd_event_source_set_time(sdTimeEventSource, static_cast<uint64_t>(sdbusPollData.timeout.count()));
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to set timeout for time event source", -r);
+    r = sd_event_source_set_enabled(sdTimeEventSource, SD_EVENT_ON);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to enable time event source", -r);
+
+    return 1;
+}
+
+void Connection::deleteSdEventSource(sd_event_source *s)
+{
+#if LIBSYSTEMD_VERSION>=243
+    sd_event_source_disable_unref(s);
+#else
+    sd_event_source_set_enabled(s, SD_EVENT_OFF);
+    sd_event_source_unref(s);
+#endif
+}
+
+#endif // SDBUS_basu
 
 Slot Connection::addObjectVTable( const std::string& objectPath
                                 , const std::string& interfaceName

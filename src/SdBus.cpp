@@ -300,11 +300,13 @@ int SdBus::sd_bus_open_server(sd_bus **ret, int fd)
 
 int SdBus::sd_bus_open_system_remote(sd_bus **ret, const char *host)
 {
-#ifdef SDBUS_basu
+#ifndef SDBUS_basu
+    return ::sd_bus_open_system_remote(ret, host);
+#else
+    (void)ret;
+    (void)host;
     // https://git.sr.ht/~emersion/basu/commit/01d33b244eb6
     return -EOPNOTSUPP;
-#else
-    return ::sd_bus_open_system_remote(ret, host);
 #endif
 }
 
