@@ -441,7 +441,7 @@ On the **server** side, we generally need to create D-Bus objects and publish th
   * its internal event loop
     * either in a blocking way, through `enterEventLoop()`,
     * or in a non-blocking async way, through `enterEventLoopAsync()`,
-  * or an external event loop. This is suitable if we use in our application an event loop implementation of our choice (e.g., GLib Event Loop, boost::asio, ...) and we want to hook up our sdbus-c++ connections with it. See [Using sdbus-c++ in external event loops](#using-sdbus-c-in-external-event-loops) section for more information.
+  * or an external event loop. This is suitable if we use in our application an event loop implementation of our choice (e.g., sd-event, GLib Event Loop, boost::asio, ...) and we want to hook up our sdbus-c++ connections with it. See [Using sdbus-c++ in external event loops](#using-sdbus-c-in-external-event-loops) section for more information.
 
 The object takes the D-Bus connection as a reference in its constructor. This is the only way to wire the connection and the object together. We must make sure the connection exists as long as objects using it exist.
 
@@ -1723,7 +1723,13 @@ Note that the returned timeout should be considered only a maximum sleeping time
 
 `PollData::fd` is a bus I/O fd. `PollData::eventFd` is an sdbus-c++ internal fd for communicating important changes from other threads to the event loop thread, so the event loop retrieves new poll data (with updated timeout, for example) and, potentially, processes pending D-Bus messages (like signals that came in during a blocking synchronous call from other thread, or queued outgoing messages that are very big to be able to have been sent in one shot from another thread), before the next poll.
 
-Consult `IConnection::PollData` and `IConnection::getEventLoopPollData()` documentation for more potentially more information.
+Consult `IConnection::PollData` and `IConnection::getEventLoopPollData()` documentation for potentially more information.
+
+### Integration of sd-event event loop
+
+sdbus-c++ provides built-in integration of sd-event, which makes it very convenient to hook sdbus-c++ connection up with an sd-event event loop.
+
+See documentation of `IConnection::attachSdEventLoop()`, `IConnection::detachSdEventLoop()`, and `IConnection::getSdEventLoop()` methods, or sdbus-c++ integration tests for an example of use. These methods are sdbus-c++ counterparts to and mimic the behavior of these underlying sd-bus functions: `sd_bus_attach_event()`, `sd_bus_detach_event()`, and `sd_bus_get_event()`. Their manual pages provide much more details about their behavior.
 
 Conclusion
 ----------
