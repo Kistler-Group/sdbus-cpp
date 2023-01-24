@@ -107,12 +107,21 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 add_executable(sdbus-c++-unit-tests ${UNITTESTS_SRCS})
 target_compile_definitions(sdbus-c++-unit-tests PRIVATE
     LIBSYSTEMD_VERSION=${LIBSYSTEMD_VERSION}
+    SDBUS_${LIBSYSTEMD_IMPL}
     SDBUS_HEADER=<${LIBSYSTEMD_IMPL}/sd-bus.h>)
 target_link_libraries(sdbus-c++-unit-tests sdbus-c++-objlib GTest::gmock)
 
 add_executable(sdbus-c++-integration-tests ${INTEGRATIONTESTS_SRCS})
-target_compile_definitions(sdbus-c++-integration-tests PRIVATE LIBSYSTEMD_VERSION=${LIBSYSTEMD_VERSION})
-target_link_libraries(sdbus-c++-integration-tests sdbus-c++ GTest::gmock)
+target_compile_definitions(sdbus-c++-integration-tests PRIVATE
+    LIBSYSTEMD_VERSION=${LIBSYSTEMD_VERSION}
+    SDBUS_${LIBSYSTEMD})
+if(NOT LIBSYSTEMD STREQUAL "basu")
+    # Systemd::Libsystemd is included because integration tests use sd-event. Otherwise sdbus-c++ encapsulates and hides libsystemd.
+    target_link_libraries(sdbus-c++-integration-tests sdbus-c++ Systemd::Libsystemd GTest::gmock)
+else()
+    # sd-event implementation is not part of basu, so its integration tests will be skipped
+    target_link_libraries(sdbus-c++-integration-tests sdbus-c++ GTest::gmock)
+endif()
 
 # Manual performance and stress tests
 option(ENABLE_PERF_TESTS "Build and install manual performance tests (default OFF)" OFF)
