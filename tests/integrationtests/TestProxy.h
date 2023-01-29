@@ -32,6 +32,7 @@
 #include <thread>
 #include <chrono>
 #include <atomic>
+#include <future>
 
 namespace sdbus { namespace test {
 
@@ -94,6 +95,9 @@ public:
     void installDoOperationClientSideAsyncReplyHandler(std::function<void(uint32_t res, const sdbus::Error* err)> handler);
     uint32_t doOperationWithTimeout(const std::chrono::microseconds &timeout, uint32_t param);
     sdbus::PendingAsyncCall doOperationClientSideAsync(uint32_t param);
+    std::future<uint32_t> doOperationClientSideAsync(uint32_t param, with_future_t);
+    std::future<MethodReply> doOperationClientSideAsyncOnBasicAPILevel(uint32_t param);
+    std::future<void> doErroneousOperationClientSideAsync(with_future_t);
     void doErroneousOperationClientSideAsync();
     void doOperationClientSideAsyncWithTimeout(const std::chrono::microseconds &timeout, uint32_t param);
     int32_t callNonexistentMethod();

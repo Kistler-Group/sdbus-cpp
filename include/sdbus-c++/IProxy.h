@@ -28,10 +28,12 @@
 #define SDBUS_CXX_IPROXY_H_
 
 #include <sdbus-c++/ConvenienceApiClasses.h>
+#include <sdbus-c++/TypeTraits.h>
 #include <string>
 #include <memory>
 #include <functional>
 #include <chrono>
+#include <future>
 
 // Forward declarations
 namespace sdbus {
@@ -322,6 +324,33 @@ namespace sdbus {
          * @return A pointer to the currently processed D-Bus message
          */
         virtual const Message* getCurrentlyProcessedMessage() const = 0;
+
+        /*!
+         * @brief Calls method on the proxied D-Bus object asynchronously
+         *
+         * @param[in] message Message representing an async method call
+         * @param[in] asyncReplyCallback Handler for the async reply
+         * @param[in] timeout Timeout for dbus call in microseconds
+         * @return Cookie for the the pending asynchronous call
+         *
+         * The call is non-blocking. It doesn't wait for the reply. Once the reply arrives,
+         * the provided async reply handler will get invoked from the context of the connection
+         * I/O event loop thread.
+         *
+         * Note: To avoid messing with messages, use higher-level API defined below.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual std::future<MethodReply> callMethod(const MethodCall& message, with_future_t) = 0;
+        virtual std::future<MethodReply> callMethod(const MethodCall& message, uint64_t timeout, with_future_t) = 0;
+
+        /*!
+         * @copydoc IProxy::callMethod(const MethodCall&,uint64_t,with_future_t)
+         */
+        template <typename _Rep, typename _Period>
+        std::future<MethodReply> callMethod( const MethodCall& message
+                                           , const std::chrono::duration<_Rep, _Period>& timeout
+                                           , with_future_t );
     };
 
     /********************************************//**
@@ -382,6 +411,15 @@ namespace sdbus {
         return callMethod(message, std::move(asyncReplyCallback), microsecs.count());
     }
 
+    template <typename _Rep, typename _Period>
+    inline std::future<MethodReply> IProxy::callMethod( const MethodCall& message
+                                                      , const std::chrono::duration<_Rep, _Period>& timeout
+                                                      , with_future_t )
+    {
+        auto microsecs = std::chrono::duration_cast<std::chrono::microseconds>(timeout);
+        return callMethod(message, microsecs.count(), with_future);
+    }
+
     inline MethodInvoker IProxy::callMethod(const std::string& methodName)
     {
         return MethodInvoker(*this, methodName);
@@ -411,11 +449,6 @@ namespace sdbus {
     {
         return PropertySetter(*this, propertyName);
     }
-
-    // Tag specifying that the proxy shall not run an event loop thread on its D-Bus connection.
-    // Such proxies are typically created to carry out a simple synchronous D-Bus call(s) and then are destroyed.
-    struct dont_run_event_loop_thread_t { explicit dont_run_event_loop_thread_t() = default; };
-    inline constexpr dont_run_event_loop_thread_t dont_run_event_loop_thread{};
 
     /*!
      * @brief Creates a proxy object for a specific remote D-Bus object

@@ -131,6 +131,29 @@ PendingAsyncCall Proxy::callMethod(const MethodCall& message, async_reply_handle
     return {weakData};
 }
 
+std::future<MethodReply> Proxy::callMethod(const MethodCall& message, with_future_t)
+{
+    return Proxy::callMethod(message, {}, with_future);
+}
+
+std::future<MethodReply> Proxy::callMethod(const MethodCall& message, uint64_t timeout, with_future_t)
+{
+    auto promise = std::make_shared<std::promise<MethodReply>>();
+    auto future = promise->get_future();
+
+    async_reply_handler asyncReplyCallback = [promise = std::move(promise)](MethodReply& reply, const Error* error) noexcept
+    {
+        if (error == nullptr)
+            promise->set_value(reply); // TODO: std::move? Can't move now because currently processed message. TODO: Refactor
+        else
+            promise->set_exception(std::make_exception_ptr(*error));
+    };
+
+    (void)Proxy::callMethod(message, std::move(asyncReplyCallback), timeout);
+
+    return future;
+}
+
 MethodReply Proxy::sendMethodCallMessageAndWaitForReply(const MethodCall& message, uint64_t timeout)
 {
     /*thread_local*/ SyncCallReplyData syncCallReplyData;

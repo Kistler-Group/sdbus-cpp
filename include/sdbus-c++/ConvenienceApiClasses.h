@@ -34,6 +34,7 @@
 #include <vector>
 #include <type_traits>
 #include <chrono>
+#include <future>
 #include <cstdint>
 
 // Forward declarations
@@ -195,6 +196,10 @@ namespace sdbus {
         AsyncMethodInvoker& withTimeout(const std::chrono::duration<_Rep, _Period>& timeout);
         template <typename... _Args> AsyncMethodInvoker& withArguments(_Args&&... args);
         template <typename _Function> PendingAsyncCall uponReplyInvoke(_Function&& callback);
+        // Returned future will be std::future<void> for no (void) D-Bus method return value
+        //                      or std::future<T> for single D-Bus method return value
+        //                      or std::future<std::tuple<...>> for multiple method return values
+        template <typename... _Args> std::future<future_return_t<_Args...>> getResultAsFuture();
 
     private:
         IProxy& proxy_;

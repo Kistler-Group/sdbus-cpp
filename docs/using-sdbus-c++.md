@@ -1066,11 +1066,11 @@ For a real example of a server-side asynchronous D-Bus method, please look at sd
 Asynchronous client-side methods
 --------------------------------
 
-sdbus-c++ also supports asynchronous approach at the client (the proxy) side. With this approach, we can issue a D-Bus method call without blocking current thread's execution while waiting for the reply. We go on doing other things, and when the reply comes, a given callback is invoked within the context of the D-Bus dispatcher thread.
+sdbus-c++ also supports asynchronous approach at the client (the proxy) side. With this approach, we can issue a D-Bus method call without blocking current thread's execution while waiting for the reply. We go on doing other things, and when the reply comes, either a given callback handler will be invoked within the context of the event loop thread, or a future object returned by the async call will be set the returned value.6
 
 ### Lower-level API
 
-Considering the Concatenator example based on lower-level API, if we wanted to call `concatenate` in an async way, we'd have to pass a callback to the proxy when issuing the call, and that callback gets invoked when the reply arrives:
+Considering the Concatenator example based on lower-level API, if we wanted to call `concatenate` in an async way, we have two options: We either pass a callback to the proxy when issuing the call, and that callback gets invoked when the reply arrives:
 
 ```c++
 int main(int argc, char *argv[])
@@ -1115,9 +1115,34 @@ int main(int argc, char *argv[])
 
 The callback is a void-returning function taking two arguments: a reference to the reply message, and a pointer to the prospective `sdbus::Error` instance. Zero `Error` pointer means that no D-Bus error occurred while making the call, and the reply message contains valid reply. Non-zero `Error` pointer, however, points to the valid `Error` instance, meaning that an error occurred. Error name and message can then be read out by the client from that instance.
 
+There is also an overload of this `IProxy::callMethod()` function taking method call timeout argument.
+
+Another option is to use `std::future`-based overload of the `IProxy::callMethod()` function. A future object will be returned which will later, when the reply arrives, be set to contain the returned reply message. Or if the call returns an error, `sdbus::Error` will be thrown by `std::future::get()`.
+
+```c++
+    ...
+    // Invoke concatenate on given interface of the object
+    {
+        auto method = concatenatorProxy->createMethodCall(interfaceName, "concatenate");
+        method << numbers << separator;
+        auto future = concatenatorProxy->callMethod(method, sdbus::with_future);
+        try
+        {
+            auto reply = future.get(); // This will throw if call ends with an error
+            std::string result;
+            reply >> result;
+            std::cout << "Got concatenate result: " << result << std::endl;
+        }
+        catch (const sdbus::Error& e)
+        {
+            std::cerr << "Got concatenate error " << e.getName() << " with message " << e.getMessage() << std::endl;
+        }
+    }
+```
+
 ### Convenience API
 
-On the convenience API level, the call statement starts with `callMethodAsync()`, and ends with `uponReplyInvoke()` that takes a callback handler. The callback is a void-returning function that takes at least one argument: pointer to the `sdbus::Error` instance. All subsequent arguments shall exactly reflect the D-Bus method output arguments. A concatenator example:
+On the convenience API level, the call statement starts with `callMethodAsync()`, and one option is to finish the statement with `uponReplyInvoke()` that takes a callback handler. The callback is a void-returning function that takes at least one argument: pointer to the `sdbus::Error` instance. All subsequent arguments shall exactly reflect the D-Bus method output arguments. A concatenator example:
 
 ```c++
 int main(int argc, char *argv[])
@@ -1151,6 +1176,25 @@ int main(int argc, char *argv[])
 ```
 
 When the `Error` pointer is zero, it means that no D-Bus error occurred while making the call, and subsequent arguments are valid D-Bus method return values. Non-zero `Error` pointer, however, points to the valid `Error` instance, meaning that an error occurred during the call (and subsequent arguments are simply default-constructed). Error name and message can then be read out by the client from `Error` instance.
+
+Another option is to finish the async call statement with `getResultAsFuture()`, which is a template function which takes the list of types returned by the D-Bus method (empty list in case of `void`-returning method) which returns a `std::future` object, which will later, when the reply arrives, be set to contain the return value(s). Or if the call returns an error, `sdbus::Error` will be thrown by `std::future::get()`.
+
+The future object will contain void for a void-returning D-Bus method, a single type for a single value returning D-Bus method, and a `std::tuple` to hold multiple return values of a D-Bus method.
+
+```c++
+        ...
+        auto future = concatenatorProxy->callMethodAsync("concatenate").onInterface(interfaceName).withArguments(numbers, separator).getResultAsFuture<std::string>();
+        try
+        {
+            auto concatenatedString = future.get(); // This waits for the reply
+            std::cout << "Got concatenate result: " << concatenatedString << std::endl;
+        }
+        catch (const sdbus::Error& e)
+        {
+            std::cerr << "Got concatenate error " << e.getName() << " with message " << e.getMessage() << std::endl;
+        }
+        ...
+```
 
 ### Marking client-side async methods in the IDL
 
