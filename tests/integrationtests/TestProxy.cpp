@@ -123,6 +123,22 @@ sdbus::PendingAsyncCall TestProxy::doOperationClientSideAsync(uint32_t param)
                                       });
 }
 
+std::future<uint32_t> TestProxy::doOperationClientSideAsync(uint32_t param, with_future_t)
+{
+    return getProxy().callMethodAsync("doOperation")
+                     .onInterface(sdbus::test::INTERFACE_NAME)
+                     .withArguments(param)
+                     .getResultAsFuture<uint32_t>();
+}
+
+std::future<MethodReply> TestProxy::doOperationClientSideAsyncOnBasicAPILevel(uint32_t param)
+{
+    auto methodCall = getProxy().createMethodCall(sdbus::test::INTERFACE_NAME, "doOperation");
+    methodCall << param;
+
+    return getProxy().callMethod(methodCall, sdbus::with_future);
+}
+
 void TestProxy::doErroneousOperationClientSideAsync()
 {
     getProxy().callMethodAsync("throwError")
@@ -131,6 +147,13 @@ void TestProxy::doErroneousOperationClientSideAsync()
                                {
                                    this->onDoOperationReply(0, error);
                                });
+}
+
+std::future<void> TestProxy::doErroneousOperationClientSideAsync(with_future_t)
+{
+    return getProxy().callMethodAsync("throwError")
+                     .onInterface(sdbus::test::INTERFACE_NAME)
+                     .getResultAsFuture<>();;
 }
 
 void TestProxy::doOperationClientSideAsyncWithTimeout(const std::chrono::microseconds &timeout, uint32_t param)

@@ -58,6 +58,8 @@ namespace sdbus::internal {
         MethodCall createMethodCall(const std::string& interfaceName, const std::string& methodName) override;
         MethodReply callMethod(const MethodCall& message, uint64_t timeout) override;
         PendingAsyncCall callMethod(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout) override;
+        std::future<MethodReply> callMethod(const MethodCall& message, with_future_t) override;
+        std::future<MethodReply> callMethod(const MethodCall& message, uint64_t timeout, with_future_t) override;
 
         void registerSignalHandler( const std::string& interfaceName
                                   , const std::string& signalName

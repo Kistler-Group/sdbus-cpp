@@ -161,6 +161,24 @@ TEST_F(SdbusTestObject, InvokesMethodAsynchronouslyOnClientSide)
     ASSERT_THAT(future.get(), Eq(100));
 }
 
+TEST_F(SdbusTestObject, InvokesMethodAsynchronouslyOnClientSideWithFuture)
+{
+    auto future = m_proxy->doOperationClientSideAsync(100, sdbus::with_future);
+
+    ASSERT_THAT(future.get(), Eq(100));
+}
+
+TEST_F(SdbusTestObject, InvokesMethodAsynchronouslyOnClientSideWithFutureOnBasicAPILevel)
+{
+    auto future = m_proxy->doOperationClientSideAsyncOnBasicAPILevel(100);
+
+    auto methodReply = future.get();
+    uint32_t returnValue{};
+    methodReply >> returnValue;
+
+    ASSERT_THAT(returnValue, Eq(100));
+}
+
 TEST_F(SdbusTestObject, AnswersThatAsyncCallIsPendingIfItIsInProgress)
 {
     m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t /*res*/, const sdbus::Error* /*err*/){});
@@ -222,7 +240,7 @@ TEST_F(SdbusTestObject, SupportsAsyncCallCopyAssignment)
     ASSERT_TRUE(call.isPending());
 }
 
-TEST_F(SdbusTestObject, InvokesErroneousMethodAsynchronouslyOnClientSide)
+TEST_F(SdbusTestObject, ReturnsNonnullErrorWhenAsynchronousMethodCallFails)
 {
     std::promise<uint32_t> promise;
     auto future = promise.get_future();
@@ -235,6 +253,13 @@ TEST_F(SdbusTestObject, InvokesErroneousMethodAsynchronouslyOnClientSide)
     });
 
     m_proxy->doErroneousOperationClientSideAsync();
+
+    ASSERT_THROW(future.get(), sdbus::Error);
+}
+
+TEST_F(SdbusTestObject, ThrowsErrorWhenClientSideAsynchronousMethodCallWithFutureFails)
+{
+    auto future = m_proxy->doErroneousOperationClientSideAsync(sdbus::with_future);
 
     ASSERT_THROW(future.get(), sdbus::Error);
 }

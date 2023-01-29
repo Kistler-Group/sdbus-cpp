@@ -81,6 +81,13 @@ namespace sdbus {
     // Tag denoting the assumption that the caller has already obtained fd ownership
     struct adopt_fd_t { explicit adopt_fd_t() = default; };
     inline constexpr adopt_fd_t adopt_fd{};
+    // Tag specifying that the proxy shall not run an event loop thread on its D-Bus connection.
+    // Such proxies are typically created to carry out a simple synchronous D-Bus call(s) and then are destroyed.
+    struct dont_run_event_loop_thread_t { explicit dont_run_event_loop_thread_t() = default; };
+    inline constexpr dont_run_event_loop_thread_t dont_run_event_loop_thread{};
+    // Tag denoting an asynchronous call that returns std::future as a handle
+    struct with_future_t { explicit with_future_t() = default; };
+    inline constexpr with_future_t with_future{};
 
     // Template specializations for getting D-Bus signatures from C++ types
     template <typename _T>
@@ -539,6 +546,26 @@ namespace sdbus {
             return aggregate_signature<tuple_of_function_output_arg_types_t<_Function>>::str();
         }
     };
+
+
+    template <typename... _Args> struct future_return
+    {
+        typedef std::tuple<_Args...> type;
+    };
+
+    template <> struct future_return<>
+    {
+        typedef void type;
+    };
+
+    template <typename _Type> struct future_return<_Type>
+    {
+        typedef _Type type;
+    };
+
+    template <typename... _Args>
+    using future_return_t = typename future_return<_Args...>::type;
+
 
     namespace detail
     {
