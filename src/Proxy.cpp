@@ -125,8 +125,7 @@ PendingAsyncCall Proxy::callMethod(const MethodCall& message, async_reply_handle
 
     callData->slot = message.send(callback, callData.get(), timeout);
 
-    auto slotPtr = callData->slot.get();
-    pendingAsyncCalls_.addCall(slotPtr, std::move(callData));
+    pendingAsyncCalls_.addCall(std::move(callData));
 
     return {weakData};
 }
@@ -276,7 +275,6 @@ int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userDat
     assert(asyncCallData != nullptr);
     assert(asyncCallData->callback);
     auto& proxy = asyncCallData->proxy;
-    auto slot = asyncCallData->slot.get();
 
     // We are removing the CallData item at the complete scope exit, after the callback has been invoked.
     // We can't do it earlier (before callback invocation for example), because CallBack data (slot release)
@@ -284,8 +282,7 @@ int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userDat
     SCOPE_EXIT
     {
         // Remove call meta-data if it's a real async call (a sync call done in terms of async has slot == nullptr)
-        if (slot)
-            proxy.pendingAsyncCalls_.removeCall(slot);
+        proxy.pendingAsyncCalls_.removeCall(asyncCallData);
     };
 
     auto message = Message::Factory::create<MethodReply>(sdbusMessage, &proxy.connection_->getSdBusInterface());
@@ -357,7 +354,7 @@ void PendingAsyncCall::cancel()
     if (auto ptr = callData_.lock(); ptr != nullptr)
     {
         auto* callData = static_cast<internal::Proxy::AsyncCalls::CallData*>(ptr.get());
-        callData->proxy.pendingAsyncCalls_.removeCall(callData->slot.get());
+        callData->proxy.pendingAsyncCalls_.removeCall(callData);
 
         // At this point, the callData item is being deleted, leading to the release of the
         // sd-bus slot pointer. This release locks the global sd-bus mutex. If the async
