@@ -143,18 +143,19 @@ namespace sdbus::internal {
                 clear();
             }
 
-            bool addCall(void* slot, std::shared_ptr<CallData> asyncCallData)
+            bool addCall(std::shared_ptr<CallData> asyncCallData)
             {
                 std::lock_guard lock(mutex_);
-                return calls_.emplace(slot, std::move(asyncCallData)).second;
+                calls_.emplace_back(std::move(asyncCallData));
+                return true;
             }
 
-            void removeCall(void* slot)
+            void removeCall(CallData const* data)
             {
                 std::unique_lock lock(mutex_);
-                if (auto it = calls_.find(slot); it != calls_.end())
+                if (auto it = std::find_if(calls_.begin(), calls_.end(), [data](auto const& entry){ return entry.get() == data; }); it != calls_.end())
                 {
-                    auto callData = std::move(it->second);
+                    auto callData = std::move(*it);
                     calls_.erase(it);
                     lock.unlock();
 
@@ -180,7 +181,7 @@ namespace sdbus::internal {
 
         private:
             std::mutex mutex_;
-            std::unordered_map<void*, std::shared_ptr<CallData>> calls_;
+            std::vector<std::shared_ptr<CallData>> calls_;
         } pendingAsyncCalls_;
 
         std::atomic<const Message*> m_CurrentlyProcessedMessage{nullptr};
