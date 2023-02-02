@@ -92,7 +92,7 @@ namespace sdbus {
          * The call does not block if the method call has dont-expect-reply flag set. In that case,
          * the call returns immediately and the return value is an empty, invalid method reply.
          *
-         * The call blocks otherwise, waiting for the remote peer to send back a reply, or an error,
+         * The call blocks otherwise, waiting for the remote peer to send back a reply or an error,
          * or until the call times out.
          *
          * While blocking, other concurrent operations (in other threads) on the underlying bus
@@ -102,8 +102,8 @@ namespace sdbus {
          * callMethod() function overload, which does not block the bus connection, or do the synchronous
          * call from another Proxy instance created just before the call and then destroyed (which is
          * anyway quite a typical approach in D-Bus implementations). Such proxy instance must have
-         * its own bus connection. Slim proxies created with `dont_run_event_loop_thread` tag are
-         * designed for exactly that purpose.
+         * its own bus connection. So-called light-weight proxies (ones created with `dont_run_event_loop_thread`
+         * tag are designed for exactly that purpose.
          *
          * Note: To avoid messing with messages, use API on a higher level of abstraction defined below.
          *
@@ -125,7 +125,9 @@ namespace sdbus {
          * @param[in] timeout Timeout for dbus call in microseconds
          * @return Cookie for the the pending asynchronous call
          *
-         * The call is non-blocking. It doesn't wait for the reply. Once the reply arrives,
+         * This is a callback-based way of asynchronously calling a remote D-Bus method.
+         *
+         * The call itself is non-blocking. It doesn't wait for the reply. Once the reply arrives,
          * the provided async reply handler will get invoked from the context of the bus
          * connection I/O event loop thread.
          *
@@ -140,6 +142,53 @@ namespace sdbus {
          */
         template <typename _Rep, typename _Period>
         PendingAsyncCall callMethod(const MethodCall& message, async_reply_handler asyncReplyCallback, const std::chrono::duration<_Rep, _Period>& timeout);
+
+        /*!
+         * @brief Calls method on the D-Bus object asynchronously
+         *
+         * @param[in] message Message representing an async method call
+         * @param[in] Tag denoting a std::future-based overload
+         * @return Future object providing access to the future method reply message
+         *
+         * This is a std::future-based way of asynchronously calling a remote D-Bus method.
+         *
+         * The call itself is non-blocking. It doesn't wait for the reply. Once the reply arrives,
+         * the provided future object will be set to contain the reply (or sdbus::Error
+         * in case the remote method threw an exception).
+         *
+         * Note: To avoid messing with messages, use higher-level API defined below.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual std::future<MethodReply> callMethod(const MethodCall& message, with_future_t) = 0;
+
+        /*!
+         * @brief Calls method on the D-Bus object asynchronously, with custom timeout
+         *
+         * @param[in] message Message representing an async method call
+         * @param[in] timeout Method call timeout
+         * @param[in] Tag denoting a std::future-based overload
+         * @return Future object providing access to the future method reply message
+         *
+         * This is a std::future-based way of asynchronously calling a remote D-Bus method.
+         *
+         * The call itself is non-blocking. It doesn't wait for the reply. Once the reply arrives,
+         * the provided future object will be set to contain the reply (or sdbus::Error
+         * in case the remote method threw an exception, or the call timed out).
+         *
+         * Note: To avoid messing with messages, use higher-level API defined below.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual std::future<MethodReply> callMethod(const MethodCall& message, uint64_t timeout, with_future_t) = 0;
+
+        /*!
+         * @copydoc IProxy::callMethod(const MethodCall&,uint64_t,with_future_t)
+         */
+        template <typename _Rep, typename _Period>
+        std::future<MethodReply> callMethod( const MethodCall& message
+                                           , const std::chrono::duration<_Rep, _Period>& timeout
+                                           , with_future_t );
 
         /*!
          * @brief Registers a handler for the desired signal emitted by the D-Bus object
@@ -397,47 +446,19 @@ namespace sdbus {
         virtual const std::string& getObjectPath() const = 0;
 
         /*!
-         * @brief Provides currently processed D-Bus message
+         * @brief Provides access to the currently processed D-Bus message
          *
-         * This method provides immutable access to the currently processed incoming D-Bus message.
+         * This method provides access to the currently processed incoming D-Bus message.
          * "Currently processed" means that the registered callback handler(s) for that message
          * are being invoked. This method is meant to be called from within a callback handler
          * (e.g. from a D-Bus signal handler, or async method reply handler, etc.). In such a case it is
-         * guaranteed to return a valid pointer to the D-Bus message for which the handler is called.
-         * If called from other contexts/threads, it may return a nonzero pointer or a nullptr, depending
-         * on whether a message was processed at the time of call or not, but the value is nondereferencable,
-         * since the pointed-to message may have gone in the meantime.
+         * guaranteed to return a valid D-Bus message instance for which the handler is called.
+         * If called from other contexts/threads, it may return a valid or invalid message, depending
+         * on whether a message was processed or not at the time of the call.
          *
-         * @return A pointer to the currently processed D-Bus message
+         * @return Currently processed D-Bus message
          */
-        virtual const Message* getCurrentlyProcessedMessage() const = 0;
-
-        /*!
-         * @brief Calls method on the D-Bus object asynchronously
-         *
-         * @param[in] message Message representing an async method call
-         * @param[in] asyncReplyCallback Handler for the async reply
-         * @param[in] timeout Timeout for dbus call in microseconds
-         * @return Cookie for the the pending asynchronous call
-         *
-         * The call is non-blocking. It doesn't wait for the reply. Once the reply arrives,
-         * the provided async reply handler will get invoked from the context of the connection
-         * I/O event loop thread.
-         *
-         * Note: To avoid messing with messages, use higher-level API defined below.
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        virtual std::future<MethodReply> callMethod(const MethodCall& message, with_future_t) = 0;
-        virtual std::future<MethodReply> callMethod(const MethodCall& message, uint64_t timeout, with_future_t) = 0;
-
-        /*!
-         * @copydoc IProxy::callMethod(const MethodCall&,uint64_t,with_future_t)
-         */
-        template <typename _Rep, typename _Period>
-        std::future<MethodReply> callMethod( const MethodCall& message
-                                           , const std::chrono::duration<_Rep, _Period>& timeout
-                                           , with_future_t );
+        virtual Message getCurrentlyProcessedMessage() const = 0;
     };
 
     /********************************************//**

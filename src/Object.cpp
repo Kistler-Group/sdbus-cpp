@@ -240,9 +240,9 @@ const std::string& Object::getObjectPath() const
     return objectPath_;
 }
 
-const Message* Object::getCurrentlyProcessedMessage() const
+Message Object::getCurrentlyProcessedMessage() const
 {
-    return m_CurrentlyProcessedMessage.load(std::memory_order_relaxed);
+    return connection_.getCurrentlyProcessedMessage();
 }
 
 Object::InterfaceData& Object::getInterface(const std::string& interfaceName)
@@ -338,12 +338,6 @@ int Object::sdbus_method_callback(sd_bus_message *sdbusMessage, void *userData, 
 
     auto message = Message::Factory::create<MethodCall>(sdbusMessage, &object.connection_.getSdBusInterface());
 
-    object.m_CurrentlyProcessedMessage.store(&message, std::memory_order_relaxed);
-    SCOPE_EXIT
-    {
-        object.m_CurrentlyProcessedMessage.store(nullptr, std::memory_order_relaxed);
-    };
-
     auto& callback = interfaceData->methods[message.getMemberName()].callback;
     assert(callback);
 
@@ -395,12 +389,6 @@ int Object::sdbus_property_set_callback( sd_bus */*bus*/
     assert(callback);
 
     auto value = Message::Factory::create<PropertySetCall>(sdbusValue, &object.connection_.getSdBusInterface());
-
-    object.m_CurrentlyProcessedMessage.store(&value, std::memory_order_relaxed);
-    SCOPE_EXIT
-    {
-        object.m_CurrentlyProcessedMessage.store(nullptr, std::memory_order_relaxed);
-    };
 
     auto ok = invokeHandlerAndCatchErrors([&](){ callback(value); }, retError);
 

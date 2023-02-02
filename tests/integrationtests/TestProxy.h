@@ -33,6 +33,7 @@
 #include <chrono>
 #include <atomic>
 #include <future>
+#include <memory>
 
 namespace sdbus { namespace test {
 
@@ -118,7 +119,7 @@ public: // for tests
     std::function<void(uint32_t res, const sdbus::Error* err)> m_DoOperationClientSideAsyncReplyHandler;
     std::function<void(const std::string&, const std::map<std::string, sdbus::Variant>&, const std::vector<std::string>&)> m_onPropertiesChangedHandler;
 
-    const Message* m_signalMsg{};
+    std::unique_ptr<const Message> m_signalMsg;
     std::string m_signalMemberName;
 };
 
