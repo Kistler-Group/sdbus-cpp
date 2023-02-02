@@ -122,7 +122,7 @@ uint32_t TestAdaptor::doOperation(const uint32_t& param)
 {
     std::this_thread::sleep_for(std::chrono::milliseconds(param));
 
-    m_methodCallMsg = getObject().getCurrentlyProcessedMessage();
+    m_methodCallMsg = std::make_unique<const Message>(getObject().getCurrentlyProcessedMessage());
     m_methodCallMemberName = m_methodCallMsg->getMemberName();
 
     return param;
@@ -130,7 +130,7 @@ uint32_t TestAdaptor::doOperation(const uint32_t& param)
 
 void TestAdaptor::doOperationAsync(sdbus::Result<uint32_t>&& result, uint32_t param)
 {
-    m_methodCallMsg = getObject().getCurrentlyProcessedMessage();
+    m_methodCallMsg = std::make_unique<const Message>(getObject().getCurrentlyProcessedMessage());
     m_methodCallMemberName = m_methodCallMsg->getMemberName();
 
     if (param == 0)
@@ -234,7 +234,7 @@ bool TestAdaptor::blocking()
 
 void TestAdaptor::blocking(const bool& value)
 {
-    m_propertySetMsg = getObject().getCurrentlyProcessedMessage();
+    m_propertySetMsg = std::make_unique<const Message>(getObject().getCurrentlyProcessedMessage());
     m_propertySetSender = m_propertySetMsg->getSender();
 
     m_blocking = value;
