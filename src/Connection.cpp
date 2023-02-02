@@ -738,6 +738,13 @@ bool Connection::arePendingMessagesInReadQueue() const
     return readQueueSize > 0;
 }
 
+Message Connection::getCurrentlyProcessedMessage() const
+{
+    auto* sdbusMsg = sdbus_->sd_bus_get_current_message(bus_.get());
+
+    return Message::Factory::create<Message>(sdbusMsg, sdbus_.get());
+}
+
 std::string Connection::composeSignalMatchFilter( const std::string &sender
                                                 , const std::string &objectPath
                                                 , const std::string &interfaceName

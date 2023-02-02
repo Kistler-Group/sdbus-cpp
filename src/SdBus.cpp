@@ -375,6 +375,11 @@ int SdBus::sd_bus_process(sd_bus *bus, sd_bus_message **r)
     return ::sd_bus_process(bus, r);
 }
 
+sd_bus_message* SdBus::sd_bus_get_current_message(sd_bus *bus)
+{
+    return ::sd_bus_get_current_message(bus);
+}
+
 int SdBus::sd_bus_get_poll_data(sd_bus *bus, PollData* data)
 {
     std::lock_guard lock(sdbusMutex_);

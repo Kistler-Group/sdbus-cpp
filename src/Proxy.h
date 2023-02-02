@@ -35,7 +35,6 @@
 #include <map>
 #include <deque>
 #include <mutex>
-#include <atomic>
 #include <condition_variable>
 
 namespace sdbus::internal {
@@ -72,7 +71,7 @@ namespace sdbus::internal {
 
         sdbus::IConnection& getConnection() const override;
         const std::string& getObjectPath() const override;
-        const Message* getCurrentlyProcessedMessage() const override;
+        Message getCurrentlyProcessedMessage() const override;
 
     private:
         void registerSignalHandlers(sdbus::internal::IConnection& connection);
@@ -178,8 +177,6 @@ namespace sdbus::internal {
             std::mutex mutex_;
             std::deque<std::shared_ptr<CallData>> calls_;
         } pendingAsyncCalls_;
-
-        std::atomic<const Message*> m_CurrentlyProcessedMessage{nullptr};
     };
 
 }
