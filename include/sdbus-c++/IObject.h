@@ -442,20 +442,19 @@ namespace sdbus {
         virtual const std::string& getObjectPath() const = 0;
 
         /*!
-         * @brief Provides currently processed D-Bus message
+         * @brief Provides access to the currently processed D-Bus message
          *
-         * This method provides immutable access to the currently processed incoming D-Bus message.
+         * This method provides access to the currently processed incoming D-Bus message.
          * "Currently processed" means that the registered callback handler(s) for that message
          * are being invoked. This method is meant to be called from within a callback handler
-         * (e.g. D-Bus method implementation handler). In such a case it is guaranteed to return
-         * a valid pointer to the D-Bus message for which the handler is called. If called from other
-         * contexts/threads, it may return a nonzero pointer or a nullptr, depending on whether a message
-         * was processed at the time of call or not, but the value is nondereferencable, since the pointed-to
-         * message may have gone in the meantime.
+         * (e.g. from a D-Bus signal handler, or async method reply handler, etc.). In such a case it is
+         * guaranteed to return a valid D-Bus message instance for which the handler is called.
+         * If called from other contexts/threads, it may return a valid or invalid message, depending
+         * on whether a message was processed or not at the time of the call.
          *
-         * @return A pointer to the currently processed D-Bus message
+         * @return Currently processed D-Bus message
          */
-        virtual const Message* getCurrentlyProcessedMessage() const = 0;
+        virtual Message getCurrentlyProcessedMessage() const = 0;
     };
 
     // Out-of-line member definitions

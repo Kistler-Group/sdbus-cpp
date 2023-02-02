@@ -61,7 +61,7 @@ TestProxy::~TestProxy()
 
 void TestProxy::onSimpleSignal()
 {
-    m_signalMsg = getProxy().getCurrentlyProcessedMessage();
+    m_signalMsg = std::make_unique<sdbus::Message>(getProxy().getCurrentlyProcessedMessage());
     m_signalMemberName = m_signalMsg->getMemberName();
 
     m_gotSimpleSignal = true;
