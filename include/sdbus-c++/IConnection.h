@@ -36,6 +36,9 @@
 
 struct sd_bus;
 struct sd_event;
+namespace sdbus {
+  class Message;
+}
 
 namespace sdbus {
 
@@ -208,6 +211,21 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         virtual bool processPendingEvent() = 0;
+
+        /*!
+         * @brief Provides access to the currently processed D-Bus message
+         *
+         * This method provides access to the currently processed incoming D-Bus message.
+         * "Currently processed" means that the registered callback handler(s) for that message
+         * are being invoked. This method is meant to be called from within a callback handler
+         * (e.g. from a D-Bus signal handler, or async method reply handler, etc.). In such a case it is
+         * guaranteed to return a valid D-Bus message instance for which the handler is called.
+         * If called from other contexts/threads, it may return a valid or invalid message, depending
+         * on whether a message was processed or not at the time of the call.
+         *
+         * @return Currently processed D-Bus message
+         */
+        virtual Message getCurrentlyProcessedMessage() const = 0;
 
         /*!
          * @brief Sets general method call timeout
