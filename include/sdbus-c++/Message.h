@@ -69,13 +69,19 @@ namespace sdbus {
      * Serialization and deserialization functions are provided for types supported
      * by D-Bus.
      *
-     * You don't need to work with this class directly if you use high-level APIs
-     * of @c IObject and @c IProxy.
+     * You mostly don't need to work with this class directly if you use high-level
+     * APIs of @c IObject and @c IProxy.
      *
      ***********************************************/
     class [[nodiscard]] Message
     {
     public:
+        Message(const Message&) noexcept;
+        Message& operator=(const Message&) noexcept;
+        Message(Message&& other) noexcept;
+        Message& operator=(Message&& other) noexcept;
+        ~Message();
+
         Message& operator<<(bool item);
         Message& operator<<(int16_t item);
         Message& operator<<(int32_t item);
@@ -217,13 +223,6 @@ namespace sdbus {
         explicit Message(internal::ISdBus* sdbus) noexcept;
         Message(void *msg, internal::ISdBus* sdbus) noexcept;
         Message(void *msg, internal::ISdBus* sdbus, adopt_message_t) noexcept;
-
-        Message(const Message&) noexcept;
-        Message& operator=(const Message&) noexcept;
-        Message(Message&& other) noexcept;
-        Message& operator=(Message&& other) noexcept;
-
-        ~Message();
 
         friend Factory;
 

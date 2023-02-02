@@ -87,6 +87,7 @@ namespace sdbus::internal {
         virtual int sd_bus_start(sd_bus *bus) = 0;
 
         virtual int sd_bus_process(sd_bus *bus, sd_bus_message **r) = 0;
+        virtual sd_bus_message* sd_bus_get_current_message(sd_bus *bus) = 0;
         virtual int sd_bus_get_poll_data(sd_bus *bus, PollData* data) = 0;
         virtual int sd_bus_get_n_queued_read(sd_bus *bus, uint64_t *ret) = 0;
         virtual int sd_bus_flush(sd_bus *bus) = 0;
