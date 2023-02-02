@@ -86,6 +86,7 @@ namespace sdbus::internal {
         void leaveEventLoop() override;
         PollData getEventLoopPollData() const override;
         bool processPendingEvent() override;
+        Message getCurrentlyProcessedMessage() const override;
 
         void addObjectManager(const std::string& objectPath) override;
         void addObjectManager(const std::string& objectPath, floating_slot_t) override;
