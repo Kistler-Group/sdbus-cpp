@@ -12,7 +12,7 @@
  *
  * sdbus-c++ is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published byyyy
- * the Free Software Foundation, either version 2.1 of the License, or
+ * the Free Software Foundation, either version 2.1 of the License, orrrr
  * (at your option) any later version.
  *
  * sdbus-c++ is distributed in the hope that it will be useful,
