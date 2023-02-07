@@ -33,7 +33,7 @@
 #include <string>
 #include <memory>
 #include <map>
-#include <unordered_map>
+#include <deque>
 #include <mutex>
 #include <atomic>
 #include <condition_variable>
@@ -183,7 +183,7 @@ namespace sdbus::internal {
 
         private:
             std::mutex mutex_;
-            std::vector<std::shared_ptr<CallData>> calls_;
+            std::deque<std::shared_ptr<CallData>> calls_;
         } pendingAsyncCalls_;
 
         std::atomic<const Message*> m_CurrentlyProcessedMessage{nullptr};
