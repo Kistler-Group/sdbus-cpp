@@ -136,6 +136,7 @@ namespace sdbus::internal {
                 Proxy& proxy;
                 async_reply_handler callback;
                 Slot slot;
+                bool finished { false };
             };
 
             ~AsyncCalls()
@@ -143,16 +144,17 @@ namespace sdbus::internal {
                 clear();
             }
 
-            bool addCall(std::shared_ptr<CallData> asyncCallData)
+            void addCall(std::shared_ptr<CallData> asyncCallData)
             {
                 std::lock_guard lock(mutex_);
-                calls_.emplace_back(std::move(asyncCallData));
-                return true;
+                if (!asyncCallData->finished) // The call may have finished in the mean time
+                    calls_.emplace_back(std::move(asyncCallData));
             }
 
-            void removeCall(CallData const* data)
+            void removeCall(CallData* data)
             {
                 std::unique_lock lock(mutex_);
+                data->finished = true;
                 if (auto it = std::find_if(calls_.begin(), calls_.end(), [data](auto const& entry){ return entry.get() == data; }); it != calls_.end())
                 {
                     auto callData = std::move(*it);

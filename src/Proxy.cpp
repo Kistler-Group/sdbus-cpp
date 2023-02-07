@@ -123,16 +123,9 @@ PendingAsyncCall Proxy::callMethod(const MethodCall& message, async_reply_handle
     auto callData = std::make_shared<AsyncCalls::CallData>(AsyncCalls::CallData{*this, std::move(asyncReplyCallback), {}});
     auto weakData = std::weak_ptr<AsyncCalls::CallData>{callData};
 
-    pendingAsyncCalls_.addCall(callData);
-    try
-    {
-        callData->slot = message.send(callback, callData.get(), timeout);
-    }
-    catch (...)
-    {
-        pendingAsyncCalls_.removeCall(callData.get());
-        throw;
-    }
+    callData->slot = message.send(callback, callData.get(), timeout);
+
+    pendingAsyncCalls_.addCall(std::move(callData));
 
     return {weakData};
 }
