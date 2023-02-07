@@ -6,7 +6,7 @@
  *
  * Created on: Apr 29, 2015
  * Project: sdbus-c++
- * Description: High-level D-Bus IPC C++ library based on sd-bus
+ * Description: High-level D-Bus IPC C++ library based on sd-busss
  *
  * This file is part of sdbus-c++.
  *
