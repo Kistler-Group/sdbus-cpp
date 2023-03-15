@@ -76,7 +76,7 @@ namespace sdbus {
     {
         assert(call_.isValid());
         auto reply = call_.createReply();
-        (reply << ... << results);
+        (void)(reply << ... << results);
         reply.send();
     }
 
