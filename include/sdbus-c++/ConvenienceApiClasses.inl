@@ -71,7 +71,7 @@ namespace sdbus {
         // Bottomline is, to be on the safe side, the caller must take care of catching and reacting
         // to the exception thrown from here if the caller is a destructor itself.
         object_.registerMethod( interfaceName_
-                              , std::move(methodName_)
+                              , methodName_
                               , std::move(inputSignature_)
                               , std::move(inputParamNames_)
                               , std::move(outputSignature_)
@@ -202,7 +202,7 @@ namespace sdbus {
         // Bottomline is, to be on the safe side, the caller must take care of catching and reacting
         // to the exception thrown from here if the caller is a destructor itself.
         object_.registerSignal( interfaceName_
-                              , std::move(signalName_)
+                              , signalName_
                               , std::move(signalSignature_)
                               , std::move(paramNames_)
                               , std::move(flags_) );
