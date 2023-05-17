@@ -19,10 +19,16 @@ if (NOT TARGET GTest::gmock)
     if (NOT TARGET GTest::gmock)
         include(FetchContent)
 
-        message("Fetching googletest v${GOOGLETEST_VERSION}...")
+        if (GOOGLETEST_VERSION VERSION_GREATER_EQUAL 1.13.0)
+            set(GOOGLETEST_TAG "v${GOOGLETEST_VERSION}")
+        else()
+            set(GOOGLETEST_TAG "release-${GOOGLETEST_VERSION}")
+        endif()
+
+        message("Manually fetching & building googletest v${GOOGLETEST_VERSION}...")
         FetchContent_Declare(googletest
                             GIT_REPOSITORY ${GOOGLETEST_GIT_REPO}
-                            GIT_TAG        release-${GOOGLETEST_VERSION}
+                            GIT_TAG        ${GOOGLETEST_TAG}
                             GIT_SHALLOW    1
                             UPDATE_COMMAND "")
 
