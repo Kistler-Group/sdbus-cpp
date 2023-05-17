@@ -412,7 +412,10 @@ int Connection::onSdEventPrepare(sd_event_source */*s*/, void *userdata)
     auto* sdTimeEventSource = static_cast<sd_event_source*>(connection->sdEvent_->sdTimeEventSource.get());
     r = sd_event_source_set_time(sdTimeEventSource, static_cast<uint64_t>(sdbusPollData.timeout.count()));
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to set timeout for time event source", -r);
-    r = sd_event_source_set_enabled(sdTimeEventSource, SD_EVENT_ON);
+    // In case the timeout is infinite, we disable the timer in the sd_event loop.
+    // This prevents a syscall error, where `timerfd_settime` returns `EINVAL`,
+    // because the value is too big. See #324 for details
+    r = sd_event_source_set_enabled(sdTimeEventSource, sdbusPollData.timeout != sdbusPollData.timeout.max() ? SD_EVENT_ONESHOT : SD_EVENT_OFF);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to enable time event source", -r);
 
     return 1;
