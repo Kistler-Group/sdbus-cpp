@@ -45,9 +45,19 @@ jobs:
         sudo update-alternatives --remove-all c++
         sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++ 10
     - name: install-googletest
-      if: matrix.os == 'ubuntu-22.04' # On older ubuntus the libgmock-dev package is either unavailable or has faulty pkg-config file
+      if: matrix.os == 'ubuntu-22.04'
       run: |
         sudo apt-get install -y libgmock-dev
+    - name: install-googletest
+      if: matrix.os == 'ubuntu-20.04' # On older ubuntus the libgmock-dev package is either unavailable or has faulty pkg-config file, so we build & install manually
+      run: |
+        git clone https://github.com/google/googletest.git
+        cd googletest
+        mkdir build
+        cd build
+        cmake ..
+        cmake --build . -j4
+        sudo cmake --build . --target install
     - name: configure-debug
       if: matrix.build == 'shared-libsystemd' && matrix.os == 'ubuntu-20.04'
       run: |
