@@ -862,15 +862,56 @@ void Signal::setDestination(const std::string& destination)
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to set signal destination", -r);
 }
 
+namespace {
+
+// Pseudo-connection lifetime handling. In standard cases, we could do with simply function-local static pseudo
+// connection instance below. However, it may happen that client's sdbus-c++ objects outlive this static connection
+// instance (because they are used in global application objects that were created before this connection, and thus
+// are destroyed later). This by itself sounds like a smell in client's application design, but it is downright bad
+// in sdbus-c++ because it has no control over when client's dependent statics get destroyed. A "Phoenix" pattern
+// (see Modern C++ Design - Generic Programming and Design Patterns Applied, by Andrei Alexandrescu) is applied to fix
+// this by re-creating the connection again in such cases and keeping it alive until the next exit handler is invoked.
+// Another common solution is global sdbus-c++ startup/shutdown functions, but that would be an intrusive change.
+
+/*constinit (C++20 keyword) */ static bool pseudoConnectionDestroyed{};
+
+std::unique_ptr<sdbus::internal::IConnection, void(*)(sdbus::internal::IConnection*)> createPseudoConnection()
+{
+    auto deleter = [](sdbus::internal::IConnection* con)
+    {
+        delete con;
+        pseudoConnectionDestroyed = true;
+    };
+
+    return {internal::createPseudoConnection().release(), std::move(deleter)};
+}
+
+sdbus::internal::IConnection& getPseudoConnectionInstance()
+{
+    static auto connection = createPseudoConnection();
+
+    if (pseudoConnectionDestroyed)
+    {
+        connection = createPseudoConnection(); // Phoenix rising from the ashes
+        atexit([](){ connection.~unique_ptr(); }); // We have to manually take care of deleting the phoenix
+        pseudoConnectionDestroyed = false;
+    }
+
+    assert(connection != nullptr);
+
+    return *connection;
+}
+
+}
+
 PlainMessage createPlainMessage()
 {
-    //static auto connection = internal::createConnection();
     // Let's create a pseudo connection -- one that does not really connect to the real bus.
     // This is a bit of a hack, but it enables use to work with D-Bus message locally without
     // the need of D-Bus daemon. This is especially useful in unit tests of both sdbus-c++ and client code.
     // Additionally, it's light-weight and fast solution.
-    static auto connection = internal::createPseudoConnection();
-    return connection->createPlainMessage();
+    auto& connection = getPseudoConnectionInstance();
+    return connection.createPlainMessage();
 }
 
 }
