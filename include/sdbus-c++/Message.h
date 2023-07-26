@@ -85,7 +85,9 @@ namespace sdbus {
         Message& operator<<(const ObjectPath &item);
         Message& operator<<(const Signature &item);
         Message& operator<<(const UnixFd &item);
-
+        template <typename _Element>
+        Message& appendArray(const std::vector<_Element>& items);
+        
         Message& operator>>(bool& item);
         Message& operator>>(int16_t& item);
         Message& operator>>(int32_t& item);
@@ -93,14 +95,16 @@ namespace sdbus {
         Message& operator>>(uint8_t& item);
         Message& operator>>(uint16_t& item);
         Message& operator>>(uint32_t& item);
-        Message& operator>>(uint64_t& item);
+        Message& operator>>(uint64_t& item);        
         Message& operator>>(double& item);
         Message& operator>>(char*& item);
         Message& operator>>(std::string &item);
         Message& operator>>(Variant &item);
         Message& operator>>(ObjectPath &item);
         Message& operator>>(Signature &item);
-        Message& operator>>(UnixFd &item);
+        Message& operator>>(UnixFd &item);        
+        template <typename _Element>
+        Message& readArray(std::vector<_Element>& items);
 
         Message& openContainer(const std::string& signature);
         Message& closeContainer();
@@ -244,6 +248,8 @@ namespace sdbus {
         PlainMessage() = default;
     };
 
+    // Below template is used for any _Element type except the ones explicitly
+    // specialized below
     template <typename _Element>
     inline Message& operator<<(Message& msg, const std::vector<_Element>& items)
     {
@@ -256,6 +262,31 @@ namespace sdbus {
 
         return msg;
     }
+    
+    // Specialize std::vector<int16_t>
+    template <> inline Message& operator<<(Message& msg, const std::vector<int16_t>& items) 
+    { return msg.appendArray(items); }
+    // Specialize std::vector<int32_t>
+    template <> inline Message& operator<<(Message& msg, const std::vector<int32_t>& items) 
+    { return msg.appendArray(items); }
+    // Specialize std::vector<int64_t>
+    template <> inline Message& operator<<(Message& msg, const std::vector<int64_t>& items) 
+    { return msg.appendArray(items); }
+    // Specialize std::vector<uint8_t>
+    template <> inline Message& operator<<(Message& msg, const std::vector<uint8_t>& items) 
+    { return msg.appendArray(items); }
+    // Specialize std::vector<uint16_t>
+    template <> inline Message& operator<<(Message& msg, const std::vector<uint16_t>& items) 
+    { return msg.appendArray(items); }
+    // Specialize std::vector<uint32_t>
+    template <> inline Message& operator<<(Message& msg, const std::vector<uint32_t>& items) 
+    { return msg.appendArray(items); }
+    // Specialize std::vector<uint64_t>
+    template <> inline Message& operator<<(Message& msg, const std::vector<uint64_t>& items) 
+    { return msg.appendArray(items); }
+    // Specialize std::vector<double>
+    template <> inline Message& operator<<(Message& msg, const std::vector<double>& items) 
+    { return msg.appendArray(items); }
 
     template <typename _Key, typename _Value>
     inline Message& operator<<(Message& msg, const std::map<_Key, _Value>& items)
@@ -318,6 +349,8 @@ namespace sdbus {
     }
 
 
+    // Below template is used for any _Element type except the ones explicitly
+    // specialized below
     template <typename _Element>
     inline Message& operator>>(Message& msg, std::vector<_Element>& items)
     {
@@ -339,6 +372,32 @@ namespace sdbus {
 
         return msg;
     }
+    
+    
+    // Specialize std::vector<int16_t>
+    template <> inline Message& operator>>(Message& msg, std::vector<int16_t>& items) 
+    { return msg.readArray(items); }
+    // Specialize std::vector<int32_t>
+    template <> inline Message& operator>>(Message& msg, std::vector<int32_t>& items) 
+    { return msg.readArray(items); }
+    // Specialize std::vector<int64_t>
+    template <> inline Message& operator>>(Message& msg, std::vector<int64_t>& items) 
+    { return msg.readArray(items); }
+    // Specialize std::vector<uint8_t>
+    template <> inline Message& operator>>(Message& msg, std::vector<uint8_t>& items) 
+    { return msg.readArray(items); }
+    // Specialize std::vector<uint16_t>
+    template <> inline Message& operator>>(Message& msg, std::vector<uint16_t>& items) 
+    { return msg.readArray(items); }
+    // Specialize std::vector<uint32_t>
+    template <> inline Message& operator>>(Message& msg, std::vector<uint32_t>& items) 
+    { return msg.readArray(items); }
+    // Specialize std::vector<uint64_t>
+    template <> inline Message& operator>>(Message& msg, std::vector<uint64_t>& items) 
+    { return msg.readArray(items); }
+    // Specialize std::vector<double>
+    template <> inline Message& operator>>(Message& msg, std::vector<double>& items) 
+    { return msg.readArray(items); }
 
     template <typename _Key, typename _Value>
     inline Message& operator>>(Message& msg, std::map<_Key, _Value>& items)

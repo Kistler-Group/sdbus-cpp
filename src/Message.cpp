@@ -226,6 +226,27 @@ Message& Message::operator<<(const UnixFd &item)
     return *this;
 }
 
+// Arrays of known types use sd_bus_message_append_array(...)
+template <typename _Element>
+Message& Message::appendArray(const std::vector<_Element>& items)
+{    
+    auto r = sd_bus_message_append_array((sd_bus_message*)msg_, *signature_of<_Element>::str().c_str(), items.data(), items.size()*sizeof(_Element));
+    
+    if(r < 0)
+        SDBUS_THROW_ERROR(std::string("Failed to serialize array of ").append(signature_of<_Element>::str()), -r);
+    
+    return *this;
+}
+
+// Force the creation of those types since those are the ones recognized
+template Message& Message::appendArray(const std::vector<int16_t>& items);
+template Message& Message::appendArray(const std::vector<int32_t>& items);
+template Message& Message::appendArray(const std::vector<int64_t>& items);
+template Message& Message::appendArray(const std::vector<uint8_t>& items);
+template Message& Message::appendArray(const std::vector<uint16_t>& items);
+template Message& Message::appendArray(const std::vector<uint32_t>& items);
+template Message& Message::appendArray(const std::vector<uint64_t>& items);
+template Message& Message::appendArray(const std::vector<double>& items);
 
 Message& Message::operator>>(bool& item)
 {
@@ -317,6 +338,38 @@ Message& Message::operator>>(uint64_t& item)
 
     return *this;
 }
+
+// Arrays of known types use sd_bus_message_read_array(...)
+template <typename _Element>
+Message& Message::readArray(std::vector<_Element>& items)
+{
+    size_t size = 0;
+    const _Element* array_ptr;
+    
+    auto r = sd_bus_message_read_array((sd_bus_message*)msg_, *signature_of<_Element>::str().c_str(), (const void**)&array_ptr, &size);
+    
+    if (r < 0) {
+        ok_ = false; 
+        SDBUS_THROW_ERROR(std::string("Failed to deserialize array of ").append(signature_of<_Element>::str()), -r);
+    }
+    
+    // Copy content to a temporary vector
+    std::vector<_Element> content(array_ptr, array_ptr + (size/sizeof(_Element)));
+    // Swap now
+    items.swap(content);
+
+    return *this;
+}
+
+// Force the creation of those types since those are the ones recognized
+template Message& Message::readArray(std::vector<int16_t>& items);
+template Message& Message::readArray(std::vector<int32_t>& items);
+template Message& Message::readArray(std::vector<int64_t>& items);
+template Message& Message::readArray(std::vector<uint8_t>& items);
+template Message& Message::readArray(std::vector<uint16_t>& items);
+template Message& Message::readArray(std::vector<uint32_t>& items);
+template Message& Message::readArray(std::vector<uint64_t>& items);
+template Message& Message::readArray(std::vector<double>& items);
 
 Message& Message::operator>>(double& item)
 {
