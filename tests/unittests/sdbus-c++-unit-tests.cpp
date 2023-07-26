@@ -26,6 +26,26 @@
 
 #include "gmock/gmock.h"
 
+#include "sdbus-c++/sdbus-c++.h"
+
+// There are some data races reported thread sanitizer in unit/intg tests. TODO: investigate, it looks like this example is not well written:
+class Global
+{
+public:
+    ~Global()
+    {
+        std::thread t([]() {
+            sdbus::Variant v((int) 5);
+            printf("%d\n", v.get<int>());
+        });
+        t.detach();
+    }
+};
+
+Global g1;
+Global g2;
+Global g3;
+
 int main(int argc, char **argv)
 {
     ::testing::InitGoogleMock(&argc, argv);

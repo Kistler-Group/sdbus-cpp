@@ -33,6 +33,8 @@
 #include "ScopeGuard.h"
 #include <systemd/sd-bus.h>
 #include <cassert>
+#include <mutex>
+#include <atomic>
 
 namespace sdbus {
 
@@ -871,35 +873,49 @@ namespace {
 // in sdbus-c++ because it has no control over when client's dependent statics get destroyed. A "Phoenix" pattern
 // (see Modern C++ Design - Generic Programming and Design Patterns Applied, by Andrei Alexandrescu) is applied to fix
 // this by re-creating the connection again in such cases and keeping it alive until the next exit handler is invoked.
+// The pattern is combined with double-checked locking pattern to ensure safe re-creation across threads/CPU cores.
 // Another common solution is global sdbus-c++ startup/shutdown functions, but that would be an intrusive change.
 
-/*constinit (C++20 keyword) */ static bool pseudoConnectionDestroyed{};
+// Working notes (TODO: please remove)
+// https://preshing.com/20130930/double-checked-locking-is-fixed-in-cpp11/
+// https://preshing.com/20140709/the-purpose-of-memory_order_consume-in-cpp11/
+
+constinit std::atomic<sdbus::internal::IConnection*> pseudoConnectionPtr;
+constinit std::mutex pseudoConnectionMutex;
 
 std::unique_ptr<sdbus::internal::IConnection, void(*)(sdbus::internal::IConnection*)> createPseudoConnection()
 {
     auto deleter = [](sdbus::internal::IConnection* con)
     {
         delete con;
-        pseudoConnectionDestroyed = true;
+        pseudoConnectionPtr.store(nullptr, std::memory_order_release);
     };
 
-    return {internal::createPseudoConnection().release(), std::move(deleter)};
+    auto pseudoConnection = internal::createPseudoConnection();
+    pseudoConnectionPtr.store(pseudoConnection.get(), std::memory_order_release);
+    return {pseudoConnection.release(), std::move(deleter)};
 }
 
 sdbus::internal::IConnection& getPseudoConnectionInstance()
 {
-    static auto connection = createPseudoConnection();
+    static auto pseudoConnection = createPseudoConnection();
 
-    if (pseudoConnectionDestroyed)
+    if (pseudoConnectionPtr.load(std::memory_order_consume) == nullptr)
     {
-        connection = createPseudoConnection(); // Phoenix rising from the ashes
-        atexit([](){ connection.~unique_ptr(); }); // We have to manually take care of deleting the phoenix
-        pseudoConnectionDestroyed = false;
+        // The connection has been destroyed already (we are in exit handlers).
+        // Double-checked locking pattern is used to re-create the connection in a thread-safe manner.
+        std::lock_guard lock(pseudoConnectionMutex);
+        if (pseudoConnectionPtr.load(std::memory_order_consume) == nullptr)
+        {
+            pseudoConnection = createPseudoConnection(); // Phoenix rising from the ashes
+            atexit([]() { pseudoConnection.~unique_ptr(); }); // We have to manually take care of deleting the phoenix
+            pseudoConnectionPtr.store(pseudoConnection.get(), std::memory_order_release);
+        }
     }
 
-    assert(connection != nullptr);
+    assert(pseudoConnection != nullptr);
 
-    return *connection;
+    return *pseudoConnectionPtr.load(std::memory_order_relaxed);
 }
 
 }
