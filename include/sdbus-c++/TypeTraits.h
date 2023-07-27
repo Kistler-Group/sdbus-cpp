@@ -94,6 +94,7 @@ namespace sdbus {
     struct signature_of
     {
         static constexpr bool is_valid = false;
+        static constexpr bool is_trivial_dbus_type = false;
 
         static const std::string str()
         {
@@ -108,6 +109,7 @@ namespace sdbus {
     struct signature_of<void>
     {
         static constexpr bool is_valid = true;
+        static constexpr bool is_trivial_dbus_type = false;
 
         static const std::string str()
         {
@@ -119,6 +121,7 @@ namespace sdbus {
     struct signature_of<bool>
     {
         static constexpr bool is_valid = true;
+        static constexpr bool is_trivial_dbus_type = true;
 
         static const std::string str()
         {
@@ -130,6 +133,7 @@ namespace sdbus {
     struct signature_of<uint8_t>
     {
         static constexpr bool is_valid = true;
+        static constexpr bool is_trivial_dbus_type = true;
 
         static const std::string str()
         {
@@ -141,6 +145,7 @@ namespace sdbus {
     struct signature_of<int16_t>
     {
         static constexpr bool is_valid = true;
+        static constexpr bool is_trivial_dbus_type = true;
 
         static const std::string str()
         {
@@ -152,6 +157,7 @@ namespace sdbus {
     struct signature_of<uint16_t>
     {
         static constexpr bool is_valid = true;
+        static constexpr bool is_trivial_dbus_type = true;
 
         static const std::string str()
         {
@@ -163,6 +169,7 @@ namespace sdbus {
     struct signature_of<int32_t>
     {
         static constexpr bool is_valid = true;
+        static constexpr bool is_trivial_dbus_type = true;
 
         static const std::string str()
         {
@@ -174,6 +181,7 @@ namespace sdbus {
     struct signature_of<uint32_t>
     {
         static constexpr bool is_valid = true;
+        static constexpr bool is_trivial_dbus_type = true;
 
         static const std::string str()
         {
@@ -185,6 +193,7 @@ namespace sdbus {
     struct signature_of<int64_t>
     {
         static constexpr bool is_valid = true;
+        static constexpr bool is_trivial_dbus_type = true;
 
         static const std::string str()
         {
@@ -196,6 +205,7 @@ namespace sdbus {
     struct signature_of<uint64_t>
     {
         static constexpr bool is_valid = true;
+        static constexpr bool is_trivial_dbus_type = true;
 
         static const std::string str()
         {
@@ -207,6 +217,7 @@ namespace sdbus {
     struct signature_of<double>
     {
         static constexpr bool is_valid = true;
+        static constexpr bool is_trivial_dbus_type = true;
 
         static const std::string str()
         {
@@ -218,6 +229,7 @@ namespace sdbus {
     struct signature_of<char*>
     {
         static constexpr bool is_valid = true;
+        static constexpr bool is_trivial_dbus_type = false;
 
         static const std::string str()
         {
@@ -229,6 +241,7 @@ namespace sdbus {
     struct signature_of<const char*>
     {
         static constexpr bool is_valid = true;
+        static constexpr bool is_trivial_dbus_type = false;
 
         static const std::string str()
         {
@@ -240,6 +253,7 @@ namespace sdbus {
     struct signature_of<char[_N]>
     {
         static constexpr bool is_valid = true;
+        static constexpr bool is_trivial_dbus_type = false;
 
         static const std::string str()
         {
@@ -251,6 +265,7 @@ namespace sdbus {
     struct signature_of<const char[_N]>
     {
         static constexpr bool is_valid = true;
+        static constexpr bool is_trivial_dbus_type = false;
 
         static const std::string str()
         {
@@ -262,6 +277,7 @@ namespace sdbus {
     struct signature_of<std::string>
     {
         static constexpr bool is_valid = true;
+        static constexpr bool is_trivial_dbus_type = false;
 
         static const std::string str()
         {
@@ -273,6 +289,7 @@ namespace sdbus {
     struct signature_of<Struct<_ValueTypes...>>
     {
         static constexpr bool is_valid = true;
+        static constexpr bool is_trivial_dbus_type = false;
 
         static const std::string str()
         {
@@ -288,6 +305,7 @@ namespace sdbus {
     struct signature_of<Variant>
     {
         static constexpr bool is_valid = true;
+        static constexpr bool is_trivial_dbus_type = false;
 
         static const std::string str()
         {
@@ -299,6 +317,7 @@ namespace sdbus {
     struct signature_of<ObjectPath>
     {
         static constexpr bool is_valid = true;
+        static constexpr bool is_trivial_dbus_type = false;
 
         static const std::string str()
         {
@@ -310,6 +329,7 @@ namespace sdbus {
     struct signature_of<Signature>
     {
         static constexpr bool is_valid = true;
+        static constexpr bool is_trivial_dbus_type = false;
 
         static const std::string str()
         {
@@ -321,6 +341,7 @@ namespace sdbus {
     struct signature_of<UnixFd>
     {
         static constexpr bool is_valid = true;
+        static constexpr bool is_trivial_dbus_type = false;
 
         static const std::string str()
         {
@@ -332,6 +353,7 @@ namespace sdbus {
     struct signature_of<std::vector<_Element>>
     {
         static constexpr bool is_valid = true;
+        static constexpr bool is_trivial_dbus_type = false;
 
         static const std::string str()
         {
@@ -343,6 +365,7 @@ namespace sdbus {
     struct signature_of<std::map<_Key, _Value>>
     {
         static constexpr bool is_valid = true;
+        static constexpr bool is_trivial_dbus_type = false;
 
         static const std::string str()
         {

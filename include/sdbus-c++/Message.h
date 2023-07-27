@@ -85,6 +85,10 @@ namespace sdbus {
         Message& operator<<(const ObjectPath &item);
         Message& operator<<(const Signature &item);
         Message& operator<<(const UnixFd &item);
+        template <typename _Element> Message& operator<<(const std::vector<_Element>& items);
+        template <typename _Key, typename _Value> Message& operator<<(const std::map<_Key, _Value>& items);
+        template <typename... _ValueTypes> Message& operator<<(const Struct<_ValueTypes...>& item);
+        template <typename... _ValueTypes> Message& operator<<(const std::tuple<_ValueTypes...>& item);
 
         Message& operator>>(bool& item);
         Message& operator>>(int16_t& item);
@@ -101,6 +105,10 @@ namespace sdbus {
         Message& operator>>(ObjectPath &item);
         Message& operator>>(Signature &item);
         Message& operator>>(UnixFd &item);
+        template <typename _Element> Message& operator>>(std::vector<_Element>& items);
+        template <typename _Key, typename _Value> Message& operator>>(std::map<_Key, _Value>& items);
+        template <typename... _ValueTypes> Message& operator>>(Struct<_ValueTypes...>& item);
+        template <typename... _ValueTypes> Message& operator>>(std::tuple<_ValueTypes...>& item);
 
         Message& openContainer(const std::string& signature);
         Message& closeContainer();
@@ -145,6 +153,10 @@ namespace sdbus {
         std::string getSELinuxContext() const;
 
         class Factory;
+
+    private:
+        void appendArray(char type, const void *ptr, size_t size);
+        void readArray(char type, const void **ptr, size_t *size);
 
     protected:
         Message() = default;
@@ -245,37 +257,46 @@ namespace sdbus {
     };
 
     template <typename _Element>
-    inline Message& operator<<(Message& msg, const std::vector<_Element>& items)
+    inline Message& Message::operator<<(const std::vector<_Element>& items)
     {
-        msg.openContainer(signature_of<_Element>::str());
+        // Use faster, one-step serialization of contiguous array of elements of trivial D-Bus types except bool,
+        // otherwise use step-by-step serialization of individual elements.
+        if constexpr (signature_of<_Element>::is_trivial_dbus_type && !std::is_same_v<_Element, bool>)
+        {
+            appendArray(*signature_of<_Element>::str().c_str(), items.data(), items.size() * sizeof(_Element));
+        }
+        else
+        {
+            openContainer(signature_of<_Element>::str());
 
-        for (const auto& item : items)
-            msg << item;
+            for (const auto& item : items)
+                *this << item;
 
-        msg.closeContainer();
+            closeContainer();
+        }
 
-        return msg;
+        return *this;
     }
 
     template <typename _Key, typename _Value>
-    inline Message& operator<<(Message& msg, const std::map<_Key, _Value>& items)
+    inline Message& Message::operator<<(const std::map<_Key, _Value>& items)
     {
         const std::string dictEntrySignature = signature_of<_Key>::str() + signature_of<_Value>::str();
         const std::string arraySignature = "{" + dictEntrySignature + "}";
 
-        msg.openContainer(arraySignature);
+        openContainer(arraySignature);
 
         for (const auto& item : items)
         {
-            msg.openDictEntry(dictEntrySignature);
-            msg << item.first;
-            msg << item.second;
-            msg.closeDictEntry();
+            openDictEntry(dictEntrySignature);
+            *this << item.first;
+            *this << item.second;
+            closeDictEntry();
         }
 
-        msg.closeContainer();
+        closeContainer();
 
-        return msg;
+        return *this;
     }
 
     namespace detail
@@ -296,78 +317,91 @@ namespace sdbus {
     }
 
     template <typename... _ValueTypes>
-    inline Message& operator<<(Message& msg, const Struct<_ValueTypes...>& item)
+    inline Message& Message::operator<<(const Struct<_ValueTypes...>& item)
     {
         auto structSignature = signature_of<Struct<_ValueTypes...>>::str();
         assert(structSignature.size() > 2);
         // Remove opening and closing parenthesis from the struct signature to get contents signature
         auto structContentSignature = structSignature.substr(1, structSignature.size()-2);
 
-        msg.openStruct(structContentSignature);
-        detail::serialize_tuple(msg, item, std::index_sequence_for<_ValueTypes...>{});
-        msg.closeStruct();
+        openStruct(structContentSignature);
+        detail::serialize_tuple(*this, item, std::index_sequence_for<_ValueTypes...>{});
+        closeStruct();
 
-        return msg;
+        return *this;
     }
 
     template <typename... _ValueTypes>
-    inline Message& operator<<(Message& msg, const std::tuple<_ValueTypes...>& item)
+    inline Message& Message::operator<<(const std::tuple<_ValueTypes...>& item)
     {
-        detail::serialize_tuple(msg, item, std::index_sequence_for<_ValueTypes...>{});
-        return msg;
+        detail::serialize_tuple(*this, item, std::index_sequence_for<_ValueTypes...>{});
+        return *this;
     }
 
-
     template <typename _Element>
-    inline Message& operator>>(Message& msg, std::vector<_Element>& items)
+    inline Message& Message::operator>>(std::vector<_Element>& items)
     {
-        if(!msg.enterContainer(signature_of<_Element>::str()))
-            return msg;
-
-        while (true)
+        // Use faster, one-step deserialization of contiguous array of elements of trivial D-Bus types except bool,
+        // otherwise use step-by-step deserialization of individual elements.
+        if constexpr (signature_of<_Element>::is_trivial_dbus_type && !std::is_same_v<_Element, bool>)
         {
-            _Element elem;
-            if (msg >> elem)
-                items.emplace_back(std::move(elem));
-            else
-                break;
+            size_t arraySize{};
+            const _Element* arrayPtr{};
+
+            readArray(*signature_of<_Element>::str().c_str(), (const void**)&arrayPtr, &arraySize);
+
+            items.insert(items.end(), arrayPtr, arrayPtr + (arraySize / sizeof(_Element)));
+        }
+        else
+        {
+            if(!enterContainer(signature_of<_Element>::str()))
+                return *this;
+
+            while (true)
+            {
+                _Element elem;
+                if (*this >> elem)
+                    items.emplace_back(std::move(elem));
+                else
+                    break;
+            }
+
+            clearFlags();
+
+            exitContainer();
         }
 
-        msg.clearFlags();
-
-        msg.exitContainer();
-
-        return msg;
+        return *this;
     }
 
     template <typename _Key, typename _Value>
-    inline Message& operator>>(Message& msg, std::map<_Key, _Value>& items)
+    inline Message& Message::operator>>(std::map<_Key, _Value>& items)
     {
         const std::string dictEntrySignature = signature_of<_Key>::str() + signature_of<_Value>::str();
         const std::string arraySignature = "{" + dictEntrySignature + "}";
 
-        if (!msg.enterContainer(arraySignature))
-            return msg;
+        if (!enterContainer(arraySignature))
+            return *this;
 
         while (true)
         {
-            if (!msg.enterDictEntry(dictEntrySignature))
+            if (!enterDictEntry(dictEntrySignature))
                 break;
 
             _Key key;
             _Value value;
-            msg >> key >> value;
+            *this >> key >> value;
 
             items.emplace(std::move(key), std::move(value));
 
-            msg.exitDictEntry();
+            exitDictEntry();
         }
 
-        msg.clearFlags();
+        clearFlags();
 
-        msg.exitContainer();
+        exitContainer();
 
-        return msg;
+        return *this;
     }
 
     namespace detail
@@ -388,27 +422,27 @@ namespace sdbus {
     }
 
     template <typename... _ValueTypes>
-    inline Message& operator>>(Message& msg, Struct<_ValueTypes...>& item)
+    inline Message& Message::operator>>(Struct<_ValueTypes...>& item)
     {
         auto structSignature = signature_of<Struct<_ValueTypes...>>::str();
         // Remove opening and closing parenthesis from the struct signature to get contents signature
         auto structContentSignature = structSignature.substr(1, structSignature.size()-2);
 
-        if (!msg.enterStruct(structContentSignature))
-            return msg;
+        if (!enterStruct(structContentSignature))
+            return *this;
 
-        detail::deserialize_tuple(msg, item, std::index_sequence_for<_ValueTypes...>{});
+        detail::deserialize_tuple(*this, item, std::index_sequence_for<_ValueTypes...>{});
 
-        msg.exitStruct();
+        exitStruct();
 
-        return msg;
+        return *this;
     }
 
     template <typename... _ValueTypes>
-    inline Message& operator>>(Message& msg, std::tuple<_ValueTypes...>& item)
+    inline Message& Message::operator>>(std::tuple<_ValueTypes...>& item)
     {
-        detail::deserialize_tuple(msg, item, std::index_sequence_for<_ValueTypes...>{});
-        return msg;
+        detail::deserialize_tuple(*this, item, std::index_sequence_for<_ValueTypes...>{});
+        return *this;
     }
 
 }
