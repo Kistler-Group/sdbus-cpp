@@ -45,7 +45,7 @@
             <arg type="(ix)" direction="in" />
             <arg type="i" direction="out" />
         </method>
-        <method name="sumVectorItems">
+        <method name="sumArrayItems">
             <arg type="aq" direction="in" />
             <arg type="at" direction="in" />
             <arg type="u" direction="out" />

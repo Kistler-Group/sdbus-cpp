@@ -30,7 +30,12 @@
 #include <type_traits>
 #include <string>
 #include <vector>
+#include <array>
+#if __cplusplus >= 202002L
+#include <span>
+#endif
 #include <map>
+#include <unordered_map>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -104,6 +109,11 @@ namespace sdbus {
             return "";
         }
     };
+
+    template <typename _T>
+    struct signature_of<const _T>
+        : public signature_of<_T>
+    {};
 
     template <>
     struct signature_of<void>
@@ -349,8 +359,8 @@ namespace sdbus {
         }
     };
 
-    template <typename _Element>
-    struct signature_of<std::vector<_Element>>
+    template <typename _Element, typename _Allocator>
+    struct signature_of<std::vector<_Element, _Allocator>>
     {
         static constexpr bool is_valid = true;
         static constexpr bool is_trivial_dbus_type = false;
@@ -361,8 +371,46 @@ namespace sdbus {
         }
     };
 
-    template <typename _Key, typename _Value>
-    struct signature_of<std::map<_Key, _Value>>
+    template <typename _Element, std::size_t _Size>
+    struct signature_of<std::array<_Element, _Size>>
+    {
+        static constexpr bool is_valid = true;
+        static constexpr bool is_trivial_dbus_type = false;
+
+        static const std::string str()
+        {
+            return "a" + signature_of<_Element>::str();
+        }
+    };
+
+#if __cplusplus >= 202002L
+    template <typename _Element, std::size_t _Extent>
+    struct signature_of<std::span<_Element, _Extent>>
+    {
+        static constexpr bool is_valid = true;
+        static constexpr bool is_trivial_dbus_type = false;
+
+        static const std::string str()
+        {
+            return "a" + signature_of<_Element>::str();
+        }
+    };
+#endif
+
+    template <typename _Key, typename _Value, typename _Compare, typename _Allocator>
+    struct signature_of<std::map<_Key, _Value, _Compare, _Allocator>>
+    {
+        static constexpr bool is_valid = true;
+        static constexpr bool is_trivial_dbus_type = false;
+
+        static const std::string str()
+        {
+            return "a{" + signature_of<_Key>::str() + signature_of<_Value>::str() + "}";
+        }
+    };
+
+    template <typename _Key, typename _Value, typename _Hash, typename _KeyEqual, typename _Allocator>
+    struct signature_of<std::unordered_map<_Key, _Value, _Hash, _KeyEqual, _Allocator>>
     {
         static constexpr bool is_valid = true;
         static constexpr bool is_trivial_dbus_type = false;

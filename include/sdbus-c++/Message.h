@@ -31,7 +31,12 @@
 #include <sdbus-c++/Error.h>
 #include <string>
 #include <vector>
+#include <array>
+#if __cplusplus >= 202002L
+#include <span>
+#endif
 #include <map>
+#include <unordered_map>
 #include <utility>
 #include <cstdint>
 #include <cassert>
@@ -85,10 +90,23 @@ namespace sdbus {
         Message& operator<<(const ObjectPath &item);
         Message& operator<<(const Signature &item);
         Message& operator<<(const UnixFd &item);
-        template <typename _Element> Message& operator<<(const std::vector<_Element>& items);
-        template <typename _Key, typename _Value> Message& operator<<(const std::map<_Key, _Value>& items);
-        template <typename... _ValueTypes> Message& operator<<(const Struct<_ValueTypes...>& item);
-        template <typename... _ValueTypes> Message& operator<<(const std::tuple<_ValueTypes...>& item);
+
+        template <typename _Element, typename _Allocator>
+        Message& operator<<(const std::vector<_Element, _Allocator>& items);
+        template <typename _Element, std::size_t _Size>
+        Message& operator<<(const std::array<_Element, _Size>& items);
+#if __cplusplus >= 202002L
+        template <typename _Element, std::size_t _Extent>
+        Message& operator<<(const std::span<_Element, _Extent>& items);
+#endif
+        template <typename _Key, typename _Value, typename _Compare, typename _Allocator>
+        Message& operator<<(const std::map<_Key, _Value, _Compare, _Allocator>& items);
+        template <typename _Key, typename _Value, typename _Hash, typename _KeyEqual, typename _Allocator>
+        Message& operator<<(const std::unordered_map<_Key, _Value, _Hash, _KeyEqual, _Allocator>& items);
+        template <typename... _ValueTypes>
+        Message& operator<<(const Struct<_ValueTypes...>& item);
+        template <typename... _ValueTypes>
+        Message& operator<<(const std::tuple<_ValueTypes...>& item);
 
         Message& operator>>(bool& item);
         Message& operator>>(int16_t& item);
@@ -105,10 +123,22 @@ namespace sdbus {
         Message& operator>>(ObjectPath &item);
         Message& operator>>(Signature &item);
         Message& operator>>(UnixFd &item);
-        template <typename _Element> Message& operator>>(std::vector<_Element>& items);
-        template <typename _Key, typename _Value> Message& operator>>(std::map<_Key, _Value>& items);
-        template <typename... _ValueTypes> Message& operator>>(Struct<_ValueTypes...>& item);
-        template <typename... _ValueTypes> Message& operator>>(std::tuple<_ValueTypes...>& item);
+        template <typename _Element, typename _Allocator>
+        Message& operator>>(std::vector<_Element, _Allocator>& items);
+        template <typename _Element, std::size_t _Size>
+        Message& operator>>(std::array<_Element, _Size>& items);
+#if __cplusplus >= 202002L
+        template <typename _Element, std::size_t _Extent>
+        Message& operator>>(std::span<_Element, _Extent>& items);
+#endif
+        template <typename _Key, typename _Value, typename _Compare, typename _Allocator>
+        Message& operator>>(std::map<_Key, _Value, _Compare, _Allocator>& items);
+        template <typename _Key, typename _Value, typename _Hash, typename _KeyEqual, typename _Allocator>
+        Message& operator>>(std::unordered_map<_Key, _Value, _Hash, _KeyEqual, _Allocator>& items);
+        template <typename... _ValueTypes>
+        Message& operator>>(Struct<_ValueTypes...>& item);
+        template <typename... _ValueTypes>
+        Message& operator>>(std::tuple<_ValueTypes...>& item);
 
         Message& openContainer(const std::string& signature);
         Message& closeContainer();
@@ -139,6 +169,7 @@ namespace sdbus {
         void peekType(std::string& type, std::string& contents) const;
         bool isValid() const;
         bool isEmpty() const;
+        bool isAtEnd(bool complete) const;
 
         void copyTo(Message& destination, bool complete) const;
         void seal();
@@ -155,8 +186,26 @@ namespace sdbus {
         class Factory;
 
     private:
+        template <typename _Array>
+        void serializeArray(const _Array& items);
+        template <typename _Array>
+        void deserializeArray(_Array& items);
+        template <typename _Array>
+        void deserializeArrayFast(_Array& items);
+        template <typename _Element, typename _Allocator>
+        void deserializeArrayFast(std::vector<_Element, _Allocator>& items);
+        template <typename _Array>
+        void deserializeArraySlow(_Array& items);
+        template <typename _Element, typename _Allocator>
+        void deserializeArraySlow(std::vector<_Element, _Allocator>& items);
+
         void appendArray(char type, const void *ptr, size_t size);
         void readArray(char type, const void **ptr, size_t *size);
+
+        template <typename _Dictionary>
+        void serializeDictionary(const _Dictionary& items);
+        template <typename _Dictionary>
+        void deserializeDictionary(_Dictionary& items);
 
     protected:
         Message() = default;
@@ -256,32 +305,77 @@ namespace sdbus {
         PlainMessage() = default;
     };
 
-    template <typename _Element>
-    inline Message& Message::operator<<(const std::vector<_Element>& items)
+    template <typename _Element, typename _Allocator>
+    inline Message& Message::operator<<(const std::vector<_Element, _Allocator>& items)
     {
+        serializeArray(items);
+
+        return *this;
+    }
+
+    template <typename _Element, std::size_t _Size>
+    inline Message& Message::operator<<(const std::array<_Element, _Size>& items)
+    {
+        serializeArray(items);
+
+        return *this;
+    }
+
+#if __cplusplus >= 202002L
+    template <typename _Element, std::size_t _Extent>
+    inline Message& Message::operator<<(const std::span<_Element, _Extent>& items)
+    {
+        serializeArray(items);
+
+        return *this;
+    }
+#endif
+
+    template <typename _Array>
+    inline void Message::serializeArray(const _Array& items)
+    {
+        using ElementType = typename _Array::value_type;
+
         // Use faster, one-step serialization of contiguous array of elements of trivial D-Bus types except bool,
         // otherwise use step-by-step serialization of individual elements.
-        if constexpr (signature_of<_Element>::is_trivial_dbus_type && !std::is_same_v<_Element, bool>)
+        if constexpr (signature_of<ElementType>::is_trivial_dbus_type && !std::is_same_v<ElementType, bool>)
         {
-            appendArray(*signature_of<_Element>::str().c_str(), items.data(), items.size() * sizeof(_Element));
+            appendArray(*signature_of<ElementType>::str().c_str(), items.data(), items.size() * sizeof(ElementType));
         }
         else
         {
-            openContainer(signature_of<_Element>::str());
+            openContainer(signature_of<ElementType>::str());
 
             for (const auto& item : items)
                 *this << item;
 
             closeContainer();
         }
+    }
+
+    template <typename _Key, typename _Value, typename _Compare, typename _Allocator>
+    inline Message& Message::operator<<(const std::map<_Key, _Value, _Compare, _Allocator>& items)
+    {
+        serializeDictionary(items);
 
         return *this;
     }
 
-    template <typename _Key, typename _Value>
-    inline Message& Message::operator<<(const std::map<_Key, _Value>& items)
+    template <typename _Key, typename _Value, typename _Hash, typename _KeyEqual, typename _Allocator>
+    inline Message& Message::operator<<(const std::unordered_map<_Key, _Value, _Hash, _KeyEqual, _Allocator>& items)
     {
-        const std::string dictEntrySignature = signature_of<_Key>::str() + signature_of<_Value>::str();
+        serializeDictionary(items);
+
+        return *this;
+    }
+
+    template <typename _Dictionary>
+    inline void Message::serializeDictionary(const _Dictionary& items)
+    {
+        using KeyType = typename _Dictionary::key_type;
+        using ValueType = typename _Dictionary::mapped_type;
+
+        const std::string dictEntrySignature = signature_of<KeyType>::str() + signature_of<ValueType>::str();
         const std::string arraySignature = "{" + dictEntrySignature + "}";
 
         openContainer(arraySignature);
@@ -295,8 +389,6 @@ namespace sdbus {
         }
 
         closeContainer();
-
-        return *this;
     }
 
     namespace detail
@@ -322,7 +414,7 @@ namespace sdbus {
         auto structSignature = signature_of<Struct<_ValueTypes...>>::str();
         assert(structSignature.size() > 2);
         // Remove opening and closing parenthesis from the struct signature to get contents signature
-        auto structContentSignature = structSignature.substr(1, structSignature.size()-2);
+        auto structContentSignature = structSignature.substr(1, structSignature.size() - 2);
 
         openStruct(structContentSignature);
         detail::serialize_tuple(*this, item, std::index_sequence_for<_ValueTypes...>{});
@@ -338,58 +430,152 @@ namespace sdbus {
         return *this;
     }
 
-    template <typename _Element>
-    inline Message& Message::operator>>(std::vector<_Element>& items)
+    template <typename _Element, typename _Allocator>
+    inline Message& Message::operator>>(std::vector<_Element, _Allocator>& items)
     {
-        // Use faster, one-step deserialization of contiguous array of elements of trivial D-Bus types except bool,
-        // otherwise use step-by-step deserialization of individual elements.
-        if constexpr (signature_of<_Element>::is_trivial_dbus_type && !std::is_same_v<_Element, bool>)
-        {
-            size_t arraySize{};
-            const _Element* arrayPtr{};
-
-            readArray(*signature_of<_Element>::str().c_str(), (const void**)&arrayPtr, &arraySize);
-
-            items.insert(items.end(), arrayPtr, arrayPtr + (arraySize / sizeof(_Element)));
-        }
-        else
-        {
-            if(!enterContainer(signature_of<_Element>::str()))
-                return *this;
-
-            while (true)
-            {
-                _Element elem;
-                if (*this >> elem)
-                    items.emplace_back(std::move(elem));
-                else
-                    break;
-            }
-
-            clearFlags();
-
-            exitContainer();
-        }
+        deserializeArray(items);
 
         return *this;
     }
 
-    template <typename _Key, typename _Value>
-    inline Message& Message::operator>>(std::map<_Key, _Value>& items)
+    template <typename _Element, std::size_t _Size>
+    inline Message& Message::operator>>(std::array<_Element, _Size>& items)
     {
-        const std::string dictEntrySignature = signature_of<_Key>::str() + signature_of<_Value>::str();
+        deserializeArray(items);
+
+        return *this;
+    }
+
+#if __cplusplus >= 202002L
+    template <typename _Element, std::size_t _Extent>
+    inline Message& Message::operator>>(std::span<_Element, _Extent>& items)
+    {
+        deserializeArray(items);
+
+        return *this;
+    }
+#endif
+
+    template <typename _Array>
+    inline void Message::deserializeArray(_Array& items)
+    {
+        using ElementType = typename _Array::value_type;
+
+        // Use faster, one-step deserialization of contiguous array of elements of trivial D-Bus types except bool,
+        // otherwise use step-by-step deserialization of individual elements.
+        if constexpr (signature_of<ElementType>::is_trivial_dbus_type && !std::is_same_v<ElementType, bool>)
+        {
+            deserializeArrayFast(items);
+        }
+        else
+        {
+            deserializeArraySlow(items);
+        }
+    }
+
+    template <typename _Array>
+    inline void Message::deserializeArrayFast(_Array& items)
+    {
+        using ElementType = typename _Array::value_type;
+
+        size_t arraySize{};
+        const ElementType* arrayPtr{};
+
+        readArray(*signature_of<ElementType>::str().c_str(), (const void**)&arrayPtr, &arraySize);
+
+        size_t elementsInMsg = arraySize / sizeof(ElementType);
+        bool notEnoughSpace = items.size() < elementsInMsg;
+        SDBUS_THROW_ERROR_IF(notEnoughSpace, "Failed to deserialize array: not enough space in destination sequence", EINVAL);
+
+        std::copy_n(arrayPtr, elementsInMsg, items.begin());
+    }
+
+    template <typename _Element, typename _Allocator>
+    void Message::deserializeArrayFast(std::vector<_Element, _Allocator>& items)
+    {
+        size_t arraySize{};
+        const _Element* arrayPtr{};
+
+        readArray(*signature_of<_Element>::str().c_str(), (const void**)&arrayPtr, &arraySize);
+
+        items.insert(items.end(), arrayPtr, arrayPtr + (arraySize / sizeof(_Element)));
+    }
+
+    template <typename _Array>
+    inline void Message::deserializeArraySlow(_Array& items)
+    {
+        using ElementType = typename _Array::value_type;
+
+        if(!enterContainer(signature_of<ElementType>::str()))
+            return;
+
+        for (auto& elem : items)
+            if (!(*this >> elem))
+                break; // Keep the rest in the destination sequence untouched
+
+        SDBUS_THROW_ERROR_IF(!isAtEnd(false), "Failed to deserialize array: not enough space in destination sequence", EINVAL);
+
+        clearFlags();
+
+        exitContainer();
+    }
+
+    template <typename _Element, typename _Allocator>
+    void Message::deserializeArraySlow(std::vector<_Element, _Allocator>& items)
+    {
+        if(!enterContainer(signature_of<_Element>::str()))
+            return;
+
+        while (true)
+        {
+            _Element elem;
+            // TODO: Is there a way to find D-Bus message container size upfront? We could reserve space in vector upfront.
+            if (*this >> elem)
+                items.emplace_back(std::move(elem));
+            else
+                break;
+        }
+
+        clearFlags();
+
+        exitContainer();
+    }
+
+    template <typename _Key, typename _Value, typename _Compare, typename _Allocator>
+    inline Message& Message::operator>>(std::map<_Key, _Value, _Compare, _Allocator>& items)
+    {
+        deserializeDictionary(items);
+
+        return *this;
+    }
+
+    template <typename _Key, typename _Value, typename _Hash, typename _KeyEqual, typename _Allocator>
+    inline Message& Message::operator>>(std::unordered_map<_Key, _Value, _Hash, _KeyEqual, _Allocator>& items)
+    {
+        deserializeDictionary(items);
+
+        return *this;
+    }
+
+    template <typename _Dictionary>
+    inline void Message::deserializeDictionary(_Dictionary& items)
+    {
+        using KeyType = typename _Dictionary::key_type;
+        using ValueType = typename _Dictionary::mapped_type;
+
+        const std::string dictEntrySignature = signature_of<KeyType>::str() + signature_of<ValueType>::str();
         const std::string arraySignature = "{" + dictEntrySignature + "}";
 
         if (!enterContainer(arraySignature))
-            return *this;
+            return;
 
         while (true)
         {
             if (!enterDictEntry(dictEntrySignature))
                 break;
 
-            _Key key;
-            _Value value;
+            KeyType key;
+            ValueType value;
             *this >> key >> value;
 
             items.emplace(std::move(key), std::move(value));
@@ -400,8 +586,6 @@ namespace sdbus {
         clearFlags();
 
         exitContainer();
-
-        return *this;
     }
 
     namespace detail

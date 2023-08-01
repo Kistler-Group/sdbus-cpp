@@ -77,7 +77,12 @@ namespace
     TYPE(sdbus::Struct<bool>)HAS_DBUS_TYPE_SIGNATURE("(b)")
     TYPE(sdbus::Struct<uint16_t, double, std::string, sdbus::Variant>)HAS_DBUS_TYPE_SIGNATURE("(qdsv)")
     TYPE(std::vector<int16_t>)HAS_DBUS_TYPE_SIGNATURE("an")
+    TYPE(std::array<int16_t, 3>)HAS_DBUS_TYPE_SIGNATURE("an")
+#if __cplusplus >= 202002L
+    TYPE(std::span<int16_t>)HAS_DBUS_TYPE_SIGNATURE("ao")
+#endif
     TYPE(std::map<int32_t, int64_t>)HAS_DBUS_TYPE_SIGNATURE("a{ix}")
+    TYPE(std::unordered_map<int32_t, int64_t>)HAS_DBUS_TYPE_SIGNATURE("a{ix}")
     using ComplexType = std::map<
                             uint64_t,
                             sdbus::Struct<
@@ -86,9 +91,10 @@ namespace
                                     std::vector<
                                         sdbus::Struct<
                                             sdbus::ObjectPath,
+                                            std::array<int16_t, 3>,
                                             bool,
                                             sdbus::Variant,
-                                            std::map<int, std::string>
+                                            std::unordered_map<int, std::string>
                                         >
                                     >
                                 >,
@@ -97,7 +103,7 @@ namespace
                                 const char*
                             >
                         >;
-    TYPE(ComplexType)HAS_DBUS_TYPE_SIGNATURE("a{t(a{ya(obva{is})}ghs)}")
+    TYPE(ComplexType)HAS_DBUS_TYPE_SIGNATURE("a{t(a{ya(oanbva{is})}ghs)}")
 
     typedef ::testing::Types< bool
                             , uint8_t
@@ -117,7 +123,12 @@ namespace
                             , sdbus::Struct<bool>
                             , sdbus::Struct<uint16_t, double, std::string, sdbus::Variant>
                             , std::vector<int16_t>
+                            , std::array<int16_t, 3>
+#if __cplusplus >= 202002L
+                            , std::span<int16_t>
+#endif
                             , std::map<int32_t, int64_t>
+                            , std::unordered_map<int32_t, int64_t>
                             , ComplexType
                             > DBusSupportedTypes;
 

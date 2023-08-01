@@ -70,13 +70,13 @@ protected:
     std::map<int32_t, sdbus::Variant> getMapOfVariants(const std::vector<int32_t>& x, const sdbus::Struct<sdbus::Variant, sdbus::Variant>& y) override;
     sdbus::Struct<std::string, sdbus::Struct<std::map<int32_t, int32_t>>> getStructInStruct() override;
     int32_t sumStructItems(const sdbus::Struct<uint8_t, uint16_t>& arg0, const sdbus::Struct<int32_t, int64_t>& arg1) override;
-    uint32_t sumVectorItems(const std::vector<uint16_t>& arg0, const std::vector<uint64_t>& arg1) override;
+    uint32_t sumArrayItems(const std::vector<uint16_t>& arg0, const std::array<uint64_t, 3>& arg1) override;
     uint32_t doOperation(const uint32_t& arg0) override;
     void doOperationAsync(sdbus::Result<uint32_t>&& result, uint32_t arg0) override;
     sdbus::Signature getSignature() override;
     sdbus::ObjectPath getObjPath() override;
     sdbus::UnixFd getUnixFd() override;
-    std::map<uint64_t, sdbus::Struct<std::map<uint8_t, std::vector<sdbus::Struct<sdbus::ObjectPath, bool, sdbus::Variant, std::map<int32_t, std::string>>>>, sdbus::Signature, std::string>> getComplex() override;
+    std::unordered_map<uint64_t, sdbus::Struct<std::map<uint8_t, std::vector<sdbus::Struct<sdbus::ObjectPath, bool, sdbus::Variant, std::map<int32_t, std::string>>>>, sdbus::Signature, std::string>> getComplex() override;
     void throwError() override;
     void throwErrorWithNoReply() override;
     void doPrivilegedStuff() override;
@@ -127,13 +127,13 @@ protected:
     std::map<int32_t, sdbus::Variant> getMapOfVariants(const std::vector<int32_t>&, const sdbus::Struct<sdbus::Variant, sdbus::Variant>&) override { return {}; }
     sdbus::Struct<std::string, sdbus::Struct<std::map<int32_t, int32_t>>> getStructInStruct() override { return {}; }
     int32_t sumStructItems(const sdbus::Struct<uint8_t, uint16_t>&, const sdbus::Struct<int32_t, int64_t>&) override { return {}; }
-    uint32_t sumVectorItems(const std::vector<uint16_t>&, const std::vector<uint64_t>&) override { return {}; }
+    uint32_t sumArrayItems(const std::vector<uint16_t>&, const std::array<uint64_t, 3>&) override { return {}; }
     uint32_t doOperation(const uint32_t&) override { return {}; }
     void doOperationAsync(sdbus::Result<uint32_t>&&, uint32_t) override {}
     sdbus::Signature getSignature() override { return {}; }
     sdbus::ObjectPath getObjPath() override { return {}; }
     sdbus::UnixFd getUnixFd() override { return {}; }
-    std::map<uint64_t, sdbus::Struct<std::map<uint8_t, std::vector<sdbus::Struct<sdbus::ObjectPath, bool, sdbus::Variant, std::map<int32_t, std::string>>>>, sdbus::Signature, std::string>> getComplex() override { return {}; }
+    std::unordered_map<uint64_t, sdbus::Struct<std::map<uint8_t, std::vector<sdbus::Struct<sdbus::ObjectPath, bool, sdbus::Variant, std::map<int32_t, std::string>>>>, sdbus::Signature, std::string>> getComplex() override { return {}; }
     void throwError() override {}
     void throwErrorWithNoReply() override {}
     void doPrivilegedStuff() override {}
