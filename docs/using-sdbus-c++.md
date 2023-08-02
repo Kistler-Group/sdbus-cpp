@@ -100,7 +100,7 @@ $ ninja libsystemd.so.0.26.0  # or another version number depending which system
 
 ### Building and distributing libsystemd as part of sdbus-c++
 
-sdbus-c++ provides `BUILD_LIBSYSTEMD` configuration option. When turned on, sdbus-c++ will automatically download and build libsystemd as a static library and make it an opaque part of sdbus-c++ shared library for you. This is the most convenient and effective approach to build, distribute and use sdbus-c++ as a self-contained, systemd-independent library in non-systemd enviroments. Just make sure your build machine has all dependencies needed by libsystemd build process. That includes, among others, `meson`, `ninja`, `git`, `gperf`, and -- primarily -- libraries and library headers for `libmount`, `libcap` and `librt` (part of glibc). Be sure to check out the systemd documentation for the  Also, when distributing, make sure these dependency libraries are installed on the production machine.
+sdbus-c++ provides `BUILD_LIBSYSTEMD` configuration option. When turned on, sdbus-c++ will automatically download and build libsystemd as a static library and make it an opaque part of sdbus-c++ shared library for you. This is the most convenient and effective approach to build, distribute and use sdbus-c++ as a self-contained, systemd-independent library in non-systemd environments. Just make sure your build machine has all dependencies needed by libsystemd build process. That includes, among others, `meson`, `ninja`, `git`, `gperf`, and -- primarily -- libraries and library headers for `libmount`, `libcap` and `librt` (part of glibc). Be sure to check out the systemd documentation for the  Also, when distributing, make sure these dependency libraries are installed on the production machine.
 
 You may additionally set the `LIBSYSTEMD_VERSION` configuration flag to fine-tune the version of systemd to be taken in. (The default value is 242).
 
@@ -203,7 +203,7 @@ sdbus-c++ is completely thread-aware by design. Though sdbus-c++ is not thread-s
   * Creating and emitting signals on an `Object` instance.
   * Creating and sending method calls (both synchronously and asynchronously) on an `Proxy` instance. (But it's generally better that our threads use their own exclusive instances of proxy, to minimize shared state and contention.)
 
-sdbus-c++ is designed such that all the above operations are thread-safe also on a connection that is running an event loop (usually in a separate thread) at that time. It's an internal thread safety. For example, a signal arrives and is processed by sdbus-c++ even loop at an appropriate `Proxy` instance, while the user is going to destroy that instance in their application thread. The user cannot explicitly control these situations (or they could, but that would be very limiting and cubersome on the API level).
+sdbus-c++ is designed such that all the above operations are thread-safe also on a connection that is running an event loop (usually in a separate thread) at that time. It's an internal thread safety. For example, a signal arrives and is processed by sdbus-c++ even loop at an appropriate `Proxy` instance, while the user is going to destroy that instance in their application thread. The user cannot explicitly control these situations (or they could, but that would be very limiting and cumbersome on the API level).
 
 However, other combinations, that the user invokes explicitly from within more threads are NOT thread-safe in sdbus-c++ by design, and the user should make sure by their design that these cases never occur. For example, destroying an `Object` instance in one thread while emitting a signal on it in another thread is not thread-safe. In this specific case, the user should make sure in their application that all threads stop working with a specific instance before a thread proceeds with deleting that instance.
 
@@ -307,7 +307,7 @@ int main(int argc, char *argv[])
 }
 ```
 
-We establish a D-Bus sytem connection and request `org.sdbuscpp.concatenator` D-Bus name on it. This name will be used by D-Bus clients to find the service. We then create an object with path `/org/sdbuscpp/concatenator` on this connection. We register  interfaces, its methods, signals that the object provides, and, through `finishRegistration()`, export the object (i.e., make it visible to clients) on the bus. Then we need to make sure to run the event loop upon the connection, which handles all incoming, outgoing and other requests.
+We establish a D-Bus system connection and request `org.sdbuscpp.concatenator` D-Bus name on it. This name will be used by D-Bus clients to find the service. We then create an object with path `/org/sdbuscpp/concatenator` on this connection. We register  interfaces, its methods, signals that the object provides, and, through `finishRegistration()`, export the object (i.e., make it visible to clients) on the bus. Then we need to make sure to run the event loop upon the connection, which handles all incoming, outgoing and other requests.
 
 The callback for any D-Bus object method on this level is any callable of signature `void(sdbus::MethodCall call)`. The `call` parameter is the incoming method call message. We need to deserialize our method input arguments from it. Then we can invoke the logic of the method and get the results. Then for the given `call`, we create a `reply` message, pack results into it and send it back to the caller through `send()`. (If we had a void-returning method, we'd just send an empty `reply` back.) We also fire a signal with the results. To do this, we need to create a signal message via object's `createSignal()`, serialize the results into it, and then send it out to subscribers by invoking object's `emitSignal()`.
 
@@ -587,7 +587,7 @@ Yes, there is -- we can access the corresponding D-Bus message in:
 * property set implementation callback handlers (server side),
 * signal callback handlers (client side).
 
-Both `IObject` and `IProxy` provide the `getCurrentlyProcessedMessage()` method. This method is meant to be called from within a callback handler. It returns a pointer to the corresponding D-Bus message that caused invocation of the handler. The pointer is only valid (dereferencable) as long as the flow of execution does not leave the callback handler. When called from other contexts/threads, the pointer may be both zero or non-zero, and its dereferencing is undefined behavior.
+Both `IObject` and `IProxy` provide the `getCurrentlyProcessedMessage()` method. This method is meant to be called from within a callback handler. It returns a pointer to the corresponding D-Bus message that caused invocation of the handler. The pointer is only valid (dereferenceable) as long as the flow of execution does not leave the callback handler. When called from other contexts/threads, the pointer may be both zero or non-zero, and its dereferencing is undefined behavior.
 
 An excerpt of the above example of concatenator modified to print out a name of the sender of method call:
 
@@ -765,7 +765,7 @@ In our object class we need to:
 
   * Give an implementation to the D-Bus object's methods by overriding corresponding virtual functions,
   * call `registerAdaptor()` in the constructor, which makes the adaptor (the D-Bus object underneath it) available for remote calls,
-  * call `unregisterAdaptor()`, which, conversely, unregisters the adaptor from the bus.
+  * call `unregisterAdaptor()`, which, conversely, deregisters the adaptor from the bus.
 
 Calling `registerAdaptor()` and `unregisterAdaptor()` was not necessary in previous sdbus-c++ versions, as it was handled by the parent class. This was convenient, but suffered from a potential pure virtual function call issue. Only the class that implements virtual functions can do the registration, hence this slight inconvenience on user's shoulders.
 
@@ -844,7 +844,7 @@ In our proxy class we need to:
 
   * Give an implementation to signal handlers and asynchronous method reply handlers (if any) by overriding corresponding virtual functions,
   * call `registerProxy()` in the constructor, which makes the proxy (the D-Bus proxy object underneath it) ready to receive signals and async call replies,
-  * call `unregisterProxy()`, which, conversely, unregisters the proxy from the bus.
+  * call `unregisterProxy()`, which, conversely, deregisters the proxy from the bus.
 
 Calling `registerProxy()` and `unregisterProxy()` was not necessary in previous versions of sdbus-c++, as it was handled by the parent class. This was convenient, but suffered from a potential pure virtual function call issue. Only the class that implements virtual functions can do the registration, hence this slight inconvenience on user's shoulders.
 
@@ -1002,7 +1002,7 @@ Callbacks of async methods based on convenience sdbus-c++ API have slightly diff
   * The result holder is of type `Result<Types...>&&`, where `Types...` is a list of method output argument types.
   * The result object must be the first physical parameter of the callback taken by r-value ref. `Result` class template is move-only.
   * The callback itself is physically a void-returning function.
-  * Method input arguments are taken by value rathern than by const ref, because we usually want to `std::move` them to the worker thread. Moving is usually a lot cheaper than copying, and it's idiomatic. For non-movable types, this falls back to copying.
+  * Method input arguments are taken by value rather than by const ref, because we usually want to `std::move` them to the worker thread. Moving is usually a lot cheaper than copying, and it's idiomatic. For non-movable types, this falls back to copying.
 
 So the concatenate callback signature would change from `std::string concatenate(const std::vector<int32_t>& numbers, const std::string& separator)` to `void concatenate(sdbus::Result<std::string>&& result, std::vector<int32_t> numbers, std::string separator)`:
 
@@ -1037,7 +1037,7 @@ void concatenate(sdbus::Result<std::string>&& result, std::vector<int32_t> numbe
 
 The `Result` is a convenience class that represents a future method result, and it is where we write the results (`returnResults()`) or an error (`returnError()`) which we want to send back to the client.
 
-Registraion (`implementedAs()`) doesn't change. Nothing else needs to change.
+Registration (`implementedAs()`) doesn't change. Nothing else needs to change.
 
 ### Marking server-side async methods in the IDL
 
