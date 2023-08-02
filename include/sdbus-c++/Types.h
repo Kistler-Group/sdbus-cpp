@@ -104,6 +104,10 @@ namespace sdbus {
      *
      * Representation of struct D-Bus type
      *
+     * Struct implements tuple protocol, i.e. it's a tuple-like class.
+     * It can be used with std::get<>(), std::tuple_element,
+     * std::tuple_size and in structured bindings.
+     *
      ***********************************************/
     template <typename... _ValueTypes>
     class Struct
@@ -134,6 +138,9 @@ namespace sdbus {
             return std::get<_I>(*this);
         }
     };
+
+    template <typename... _Elements>
+    Struct(_Elements...) -> Struct<_Elements...>;
 
     template<typename... _Elements>
     constexpr Struct<std::decay_t<_Elements>...>
@@ -279,5 +286,15 @@ namespace sdbus {
     };
 
 }
+
+template <size_t _I, typename... _ValueTypes>
+struct std::tuple_element<_I, sdbus::Struct<_ValueTypes...>>
+    : std::tuple_element<_I, std::tuple<_ValueTypes...>>
+{};
+
+template <typename... _ValueTypes>
+struct std::tuple_size<sdbus::Struct<_ValueTypes...>>
+    : std::tuple_size<std::tuple<_ValueTypes...>>
+{};
 
 #endif /* SDBUS_CXX_TYPES_H_ */

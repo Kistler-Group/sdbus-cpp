@@ -93,7 +93,7 @@ std::map<int32_t, sdbus::Variant> TestAdaptor::getMapOfVariants(const std::vecto
 
 sdbus::Struct<std::string, sdbus::Struct<std::map<int32_t, int32_t>>> TestAdaptor::getStructInStruct()
 {
-    return sdbus::make_struct(STRING_VALUE, sdbus::make_struct(std::map<int32_t, int32_t>{{INT32_VALUE, INT32_VALUE}}));
+    return sdbus::Struct{STRING_VALUE, sdbus::Struct{std::map<int32_t, int32_t>{{INT32_VALUE, INT32_VALUE}}}};
 }
 
 int32_t TestAdaptor::sumStructItems(const sdbus::Struct<uint8_t, uint16_t>& a, const sdbus::Struct<int32_t, int64_t>& b)
