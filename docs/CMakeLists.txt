@@ -15,7 +15,7 @@ if(BUILD_DOXYGEN_DOC)
         # workaround bug https://github.com/doxygen/doxygen/pull/6787
         add_custom_command(TARGET doc POST_BUILD
           COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/sdbus-c++-class-diagram.png ${CMAKE_CURRENT_BINARY_DIR}/html/.)
-        
+
         install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/html DESTINATION ${CMAKE_INSTALL_DOCDIR} OPTIONAL COMPONENT doc)
     else()
         message(WARNING "Documentation enabled, but Doxygen cannot be found")

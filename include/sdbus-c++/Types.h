@@ -42,7 +42,7 @@ namespace sdbus {
      * @class Variant
      *
      * Variant can hold value of any D-Bus-supported type.
-     * 
+     *
      * Note: Even though thread-aware, Variant objects are not thread-safe.
      * Some const methods are conceptually const, but not physically const,
      * thus are not thread-safe. This is by design: normally, clients
@@ -116,7 +116,7 @@ namespace sdbus {
     public:
         using std::tuple<_ValueTypes...>::tuple;
 
-        // Disable constructor if an older then 7.1.0 version of GCC is used 
+        // Disable constructor if an older then 7.1.0 version of GCC is used
 #if !((defined(__GNUC__) || defined(__GNUG__)) && !defined(__clang__) && !(__GNUC__ > 7 || (__GNUC__ == 7 && (__GNUC_MINOR__ > 1 || (__GNUC_MINOR__ == 1 && __GNUC_PATCHLEVEL__ > 0)))))
         Struct() = default;
 

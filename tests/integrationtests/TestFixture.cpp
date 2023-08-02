@@ -27,7 +27,7 @@
 #include "TestFixture.h"
 
 namespace sdbus { namespace test {
-    
+
 std::unique_ptr<sdbus::IConnection> TestFixture::s_adaptorConnection = sdbus::createSystemBusConnection();
 std::unique_ptr<sdbus::IConnection> TestFixture::s_proxyConnection = sdbus::createSystemBusConnection();
 
