@@ -67,7 +67,7 @@ TEST(AVariant, CanBeConstructedFromASimpleValue)
 TEST(AVariant, CanBeConstructedFromAComplexValue)
 {
     using ComplexType = std::map<uint64_t, std::vector<sdbus::Struct<std::string, double>>>;
-    ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{sdbus::make_struct("hello"s, ANY_DOUBLE), sdbus::make_struct("world"s, ANY_DOUBLE)}} };
+    ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{{"hello"s, ANY_DOUBLE}, {"world"s, ANY_DOUBLE}}} };
 
     ASSERT_NO_THROW(sdbus::Variant{value});
 }
@@ -103,7 +103,7 @@ TEST(ASimpleVariant, ReturnsTheSimpleValueWhenAsked)
 TEST(AComplexVariant, ReturnsTheComplexValueWhenAsked)
 {
     using ComplexType = std::map<uint64_t, std::vector<sdbus::Struct<std::string, double>>>;
-    ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{sdbus::make_struct("hello"s, ANY_DOUBLE), sdbus::make_struct("world"s, ANY_DOUBLE)}} };
+    ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{{"hello"s, ANY_DOUBLE}, {"world"s, ANY_DOUBLE}}} };
 
     sdbus::Variant variant(value);
 
@@ -123,7 +123,7 @@ TEST(AVariant, HasConceptuallyNonmutableGetMethodWhichCanBeCalledXTimes)
 TEST(AVariant, ReturnsTrueWhenAskedIfItContainsTheTypeItReallyContains)
 {
     using ComplexType = std::map<uint64_t, std::vector<sdbus::Struct<std::string, double>>>;
-    ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{sdbus::make_struct("hello"s, ANY_DOUBLE), sdbus::make_struct("world"s, ANY_DOUBLE)}} };
+    ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{{"hello"s, ANY_DOUBLE}, {"world"s, ANY_DOUBLE}}} };
 
     sdbus::Variant variant(value);
 
@@ -143,8 +143,8 @@ TEST(AVariant, CanContainOtherEmbeddedVariants)
 {
     using TypeWithVariants = std::vector<sdbus::Struct<sdbus::Variant, double>>;
     TypeWithVariants value;
-    value.emplace_back(sdbus::make_struct(sdbus::Variant("a string"), ANY_DOUBLE));
-    value.emplace_back(sdbus::make_struct(sdbus::Variant(ANY_UINT64), ANY_DOUBLE));
+    value.push_back({sdbus::Variant("a string"), ANY_DOUBLE});
+    value.push_back({sdbus::Variant(ANY_UINT64), ANY_DOUBLE});
 
     sdbus::Variant variant(value);
 
@@ -172,7 +172,7 @@ TEST(AnEmptyVariant, ThrowsWhenBeingSerializedToAMessage)
 TEST(ANonEmptyVariant, SerializesToAndDeserializesFromAMessageSuccessfully)
 {
     using ComplexType = std::map<uint64_t, std::vector<sdbus::Struct<std::string, double>>>;
-    ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{sdbus::make_struct("hello"s, ANY_DOUBLE), sdbus::make_struct("world"s, ANY_DOUBLE)}} };
+    ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{{"hello"s, ANY_DOUBLE}, {"world"s, ANY_DOUBLE}}} };
     sdbus::Variant variant(value);
 
     auto msg = sdbus::createPlainMessage();
@@ -187,7 +187,7 @@ TEST(ANonEmptyVariant, SerializesToAndDeserializesFromAMessageSuccessfully)
 TEST(CopiesOfVariant, SerializeToAndDeserializeFromMessageSuccessfully)
 {
     using ComplexType = std::map<uint64_t, std::vector<sdbus::Struct<std::string, double>>>;
-    ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{sdbus::make_struct("hello"s, ANY_DOUBLE), sdbus::make_struct("world"s, ANY_DOUBLE)}} };
+    ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{{"hello"s, ANY_DOUBLE}, {"world"s, ANY_DOUBLE}}} };
     sdbus::Variant variant(value);
     auto variantCopy1{variant};
     auto variantCopy2 = variant;
@@ -207,13 +207,39 @@ TEST(CopiesOfVariant, SerializeToAndDeserializeFromMessageSuccessfully)
     ASSERT_THAT(receivedVariant3.get<decltype(value)>(), Eq(value));
 }
 
-TEST(AStruct, CreatesStructFromTuple)
+TEST(AStruct, CanBeCreatedFromStdTuple)
 {
     std::tuple<int32_t, std::string> value{1234, "abcd"};
-    sdbus::Struct<int32_t, std::string> valueStruct{value};
+    sdbus::Struct valueStruct{value};
+
+    ASSERT_THAT(valueStruct.get<0>(), Eq(std::get<0>(value)));
+    ASSERT_THAT(valueStruct.get<1>(), Eq(std::get<1>(value)));
+}
+
+TEST(AStruct, CanProvideItsDataThroughStdGet)
+{
+    std::tuple<int32_t, std::string> value{1234, "abcd"};
+    sdbus::Struct valueStruct{value};
 
     ASSERT_THAT(std::get<0>(valueStruct), Eq(std::get<0>(value)));
     ASSERT_THAT(std::get<1>(valueStruct), Eq(std::get<1>(value)));
+}
+
+TEST(AStruct, CanBeUsedLikeStdTupleType)
+{
+    using StructType = sdbus::Struct<int, std::string, bool>;
+
+    static_assert(std::tuple_size_v<StructType> == 3);
+    static_assert(std::is_same_v<std::tuple_element_t<1, StructType>, std::string>);
+}
+
+TEST(AStruct, CanBeUsedInStructuredBinding)
+{
+    sdbus::Struct valueStruct(1234, "abcd", true);
+
+    auto [first, second, third] = valueStruct;
+
+    ASSERT_THAT(std::tie(first, second, third), Eq(std::tuple{1234, "abcd", true}));
 }
 
 TEST(AnObjectPath, CanBeConstructedFromCString)
