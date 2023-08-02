@@ -1349,22 +1349,22 @@ Using D-Bus Types
 For many D-Bus interactions dealing with D-Bus types is necessary. For that, sdbus-c++ provides many predefined D-Bus types. The table below shows which C++ type corresponds to which D-Bus type.
 
 
-| Category            | Code        | Code ASCII | Conventional Name	 | C++ Type                        |
+| Category            | Code        | Code ASCII | Conventional Name  | C++ Type                        |
 |---------------------|-------------|------------|--------------------|---------------------------------|
 | reserved            | 0           | NUL        | INVALID            | -                               |
-| fixed, basic	       | 121         | y          | BYTE               | `uint8_t`                         |
-| fixed, basic	       | 98          | b          | BOOLEAN            | `bool`                            |
-| fixed, basic	       | 110         | n          | INT16              | `int16_t`                         |
-| fixed, basic	       | 113         | q          | UINT16             | `uint16_t`                        |
-| fixed, basic	       | 105         | i          | INT32              | `int32_t`                         |
-| fixed, basic	       | 117         | u          | UINT32             | `uint32_t`                        |
-| fixed, basic	       | 120         | x          | INT64              | `int64_t`                         |
-| fixed, basic	       | 116         | t          | UINT64             | `uint64_t`                        |
-| fixed, basic	       | 100         | d          | DOUBLE             | `double`                          |
-| string-like, basic	 | 115         | s          | STRING             | `const char*`, `std::string`        |
-| string-like, basic	 | 111         | o          | OBJECT_PATH        | `sdbus::ObjectPath`               |
-| string-like, basic	 | 103         | g          | SIGNATURE          | `sdbus::Signature`                |
-| container           | 97          | a          | ARRAY              | `std::vector<T>` (if used as an array followed by a single complete type T), or `std::map<T1, T2>` (if used as an array of dict entries) |
+| fixed, basic        | 121         | y          | BYTE               | `uint8_t`                         |
+| fixed, basic        | 98          | b          | BOOLEAN            | `bool`                            |
+| fixed, basic        | 110         | n          | INT16              | `int16_t`                         |
+| fixed, basic        | 113         | q          | UINT16             | `uint16_t`                        |
+| fixed, basic        | 105         | i          | INT32              | `int32_t`                         |
+| fixed, basic        | 117         | u          | UINT32             | `uint32_t`                        |
+| fixed, basic        | 120         | x          | INT64              | `int64_t`                         |
+| fixed, basic        | 116         | t          | UINT64             | `uint64_t`                        |
+| fixed, basic        | 100         | d          | DOUBLE             | `double`                          |
+| string-like, basic  | 115         | s          | STRING             | `const char*`, `std::string`        |
+| string-like, basic  | 111         | o          | OBJECT_PATH        | `sdbus::ObjectPath`               |
+| string-like, basic  | 103         | g          | SIGNATURE          | `sdbus::Signature`                |
+| container           | 97          | a          | ARRAY              | `std::vector<T>`, `std::array<T>`, `std::span<T>` - if used as an array followed by a single complete type `T` <br /> `std::map<T1, T2>`, `std::unordered_map<T1, T2>` - if used as an array of dict entries |
 | container           | 114,40,41   | r()        | STRUCT             | `sdbus::Struct<T1, T2, ...>` variadic class template                               |
 | container           | 118         | v          | VARIANT            | `sdbus::Variant`                  |
 | container           | 101,123,125 | e{}        | DICT_ENTRY         | -                               |
