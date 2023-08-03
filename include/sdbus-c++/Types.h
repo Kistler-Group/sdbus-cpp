@@ -289,12 +289,12 @@ namespace sdbus {
 
 template <size_t _I, typename... _ValueTypes>
 struct std::tuple_element<_I, sdbus::Struct<_ValueTypes...>>
-        : std::tuple_element<_I, std::tuple<_ValueTypes...>>
+    : std::tuple_element<_I, std::tuple<_ValueTypes...>>
 {};
 
 template <typename... _ValueTypes>
 struct std::tuple_size<sdbus::Struct<_ValueTypes...>>
-        : std::tuple_size<std::tuple<_ValueTypes...>>
+    : std::tuple_size<std::tuple<_ValueTypes...>>
 {};
 
 #endif /* SDBUS_CXX_TYPES_H_ */
