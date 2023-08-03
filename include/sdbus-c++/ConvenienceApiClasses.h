@@ -51,7 +51,7 @@ namespace sdbus {
     class MethodRegistrator
     {
     public:
-        MethodRegistrator(IObject& object, const std::string& methodName);
+        MethodRegistrator(IObject& object, std::string methodName);
         MethodRegistrator(MethodRegistrator&& other) = default;
         ~MethodRegistrator() noexcept(false);
 
@@ -67,7 +67,7 @@ namespace sdbus {
 
     private:
         IObject& object_;
-        const std::string& methodName_;
+        std::string methodName_;
         std::string interfaceName_;
         std::string inputSignature_;
         std::vector<std::string> inputParamNames_;
@@ -81,7 +81,7 @@ namespace sdbus {
     class SignalRegistrator
     {
     public:
-        SignalRegistrator(IObject& object, const std::string& signalName);
+        SignalRegistrator(IObject& object, std::string signalName);
         SignalRegistrator(SignalRegistrator&& other) = default;
         ~SignalRegistrator() noexcept(false);
 
@@ -93,7 +93,7 @@ namespace sdbus {
 
     private:
         IObject& object_;
-        const std::string& signalName_;
+        std::string signalName_;
         std::string interfaceName_;
         std::string signalSignature_;
         std::vector<std::string> paramNames_;

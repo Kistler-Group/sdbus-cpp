@@ -45,9 +45,9 @@ namespace sdbus {
     /*** MethodRegistrator ***/
     /*** ----------------- ***/
 
-    inline MethodRegistrator::MethodRegistrator(IObject& object, const std::string& methodName)
+    inline MethodRegistrator::MethodRegistrator(IObject& object, std::string methodName)
         : object_(object)
-        , methodName_(methodName)
+        , methodName_(std::move(methodName))
         , exceptions_(std::uncaught_exceptions())
     {
     }
@@ -73,9 +73,9 @@ namespace sdbus {
         object_.registerMethod( interfaceName_
                               , std::move(methodName_)
                               , std::move(inputSignature_)
-                              , std::move(inputParamNames_)
+                              , inputParamNames_
                               , std::move(outputSignature_)
-                              , std::move(outputParamNames_)
+                              , outputParamNames_
                               , std::move(methodCallback_)
                               , std::move(flags_));
     }
@@ -177,9 +177,9 @@ namespace sdbus {
     /*** SignalRegistrator ***/
     /*** ----------------- ***/
 
-    inline SignalRegistrator::SignalRegistrator(IObject& object, const std::string& signalName)
+    inline SignalRegistrator::SignalRegistrator(IObject& object, std::string signalName)
         : object_(object)
-        , signalName_(signalName)
+        , signalName_(std::move(signalName))
         , exceptions_(std::uncaught_exceptions())
     {
     }
@@ -204,7 +204,7 @@ namespace sdbus {
         object_.registerSignal( interfaceName_
                               , std::move(signalName_)
                               , std::move(signalSignature_)
-                              , std::move(paramNames_)
+                              , paramNames_
                               , std::move(flags_) );
     }
 
