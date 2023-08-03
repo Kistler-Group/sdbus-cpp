@@ -125,8 +125,8 @@ TEST_F(SdbusTestObject, CallsMethodWithTwoStructsSuccesfully)
 
 TEST_F(SdbusTestObject, CallsMethodWithTwoVectorsSuccesfully)
 {
-    auto val = m_proxy->sumVectorItems({1, 7}, {2, 3});
-    ASSERT_THAT(val, Eq(1 + 7 + 2 + 3));
+    auto val = m_proxy->sumArrayItems({1, 7}, {2, 3, 4});
+    ASSERT_THAT(val, Eq(1 + 7 + 2 + 3 + 4));
 }
 
 TEST_F(SdbusTestObject, CallsMethodWithSignatureSuccesfully)

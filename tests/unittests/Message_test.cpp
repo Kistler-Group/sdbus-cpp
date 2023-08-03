@@ -116,7 +116,7 @@ TEST(AMessage, CanCarryASimpleInteger)
 {
     auto msg = sdbus::createPlainMessage();
 
-    int dataWritten = 5;
+    const int dataWritten = 5;
 
     msg << dataWritten;
     msg.seal();
@@ -131,7 +131,7 @@ TEST(AMessage, CanCarryAUnixFd)
 {
     auto msg = sdbus::createPlainMessage();
 
-    sdbus::UnixFd dataWritten{0};
+    const sdbus::UnixFd dataWritten{0};
     msg << dataWritten;
 
     msg.seal();
@@ -146,7 +146,7 @@ TEST(AMessage, CanCarryAVariant)
 {
     auto msg = sdbus::createPlainMessage();
 
-    auto dataWritten = sdbus::Variant((double)3.14);
+    const auto dataWritten = sdbus::Variant((double)3.14);
 
     msg << dataWritten;
     msg.seal();
@@ -162,7 +162,7 @@ TEST(AMessage, CanCarryACollectionOfEmbeddedVariants)
     auto msg = sdbus::createPlainMessage();
 
     auto value = std::vector<sdbus::Variant>{"hello"s, (double)3.14};
-    auto dataWritten = sdbus::Variant{value};
+    const auto dataWritten = sdbus::Variant{value};
 
     msg << dataWritten;
     msg.seal();
@@ -174,11 +174,11 @@ TEST(AMessage, CanCarryACollectionOfEmbeddedVariants)
     ASSERT_THAT(dataRead.get<decltype(value)>()[1].get<double>(), Eq(value[1].get<double>()));
 }
 
-TEST(AMessage, CanCarryAnArray)
+TEST(AMessage, CanCarryDBusArrayOfTrivialTypesGivenAsStdVector)
 {
     auto msg = sdbus::createPlainMessage();
 
-    std::vector<int64_t> dataWritten{3545342, 43643532, 324325};
+    const std::vector<int64_t> dataWritten{3545342, 43643532, 324325};
 
     msg << dataWritten;
     msg.seal();
@@ -188,6 +188,116 @@ TEST(AMessage, CanCarryAnArray)
 
     ASSERT_THAT(dataRead, Eq(dataWritten));
 }
+
+TEST(AMessage, CanCarryDBusArrayOfNontrivialTypesGivenAsStdVector)
+{
+    auto msg = sdbus::createPlainMessage();
+
+    const std::vector<sdbus::Signature> dataWritten{"s", "u", "b"};
+
+    msg << dataWritten;
+    msg.seal();
+
+    std::vector<sdbus::Signature> dataRead;
+    msg >> dataRead;
+
+    ASSERT_THAT(dataRead, Eq(dataWritten));
+}
+
+TEST(AMessage, CanCarryDBusArrayOfTrivialTypesGivenAsStdArray)
+{
+    auto msg = sdbus::createPlainMessage();
+
+    const std::array<int, 3> dataWritten{3545342, 43643532, 324325};
+
+    msg << dataWritten;
+    msg.seal();
+
+    std::array<int, 3> dataRead;
+    msg >> dataRead;
+
+    ASSERT_THAT(dataRead, Eq(dataWritten));
+}
+
+TEST(AMessage, CanCarryDBusArrayOfNontrivialTypesGivenAsStdArray)
+{
+    auto msg = sdbus::createPlainMessage();
+
+    const std::array<sdbus::Signature, 3> dataWritten{"s", "u", "b"};
+
+    msg << dataWritten;
+    msg.seal();
+
+    std::array<sdbus::Signature, 3> dataRead;
+    msg >> dataRead;
+
+    ASSERT_THAT(dataRead, Eq(dataWritten));
+}
+
+#if __cplusplus >= 202002L
+TEST(AMessage, CanCarryDBusArrayOfTrivialTypesGivenAsStdSpan)
+{
+    auto msg = sdbus::createPlainMessage();
+
+    const std::array<int, 3> sourceArray{3545342, 43643532, 324325};
+    const std::span dataWritten{sourceArray};
+
+    msg << dataWritten;
+    msg.seal();
+
+    std::array<int, 3> destinationArray;
+    std::span dataRead{destinationArray};
+    msg >> dataRead;
+
+    ASSERT_THAT(std::vector(dataRead.begin(), dataRead.end()), Eq(std::vector(dataWritten.begin(), dataWritten.end())));
+}
+
+TEST(AMessage, CanCarryDBusArrayOfNontrivialTypesGivenAsStdSpan)
+{
+    auto msg = sdbus::createPlainMessage();
+
+    const std::array<sdbus::Signature, 3> sourceArray{"s", "u", "b"};
+    const std::span dataWritten{sourceArray};
+
+    msg << dataWritten;
+    msg.seal();
+
+    std::array<sdbus::Signature, 3> destinationArray;
+    std::span dataRead{destinationArray};
+    msg >> dataRead;
+
+    ASSERT_THAT(std::vector(dataRead.begin(), dataRead.end()), Eq(std::vector(dataWritten.begin(), dataWritten.end())));
+}
+#endif
+
+TEST(AMessage, ThrowsWhenDestinationStdArrayIsTooSmallDuringDeserialization)
+{
+    auto msg = sdbus::createPlainMessage();
+
+    const std::vector<int> dataWritten{3545342, 43643532, 324325, 89789, 15343};
+
+    msg << dataWritten;
+    msg.seal();
+
+    std::array<int, 3> dataRead;
+    ASSERT_THROW(msg >> dataRead, sdbus::Error);
+}
+
+#if __cplusplus >= 202002L
+TEST(AMessage, ThrowsWhenDestinationStdSpanIsTooSmallDuringDeserialization)
+{
+    auto msg = sdbus::createPlainMessage();
+
+    const std::array<int, 3> dataWritten{3545342, 43643532, 324325};
+
+    msg << dataWritten;
+    msg.seal();
+
+    std::array<int, 2> destinationArray;
+    std::span dataRead{destinationArray};
+    ASSERT_THROW(msg >> dataRead, sdbus::Error);
+}
+#endif
 
 TEST(AMessage, CanCarryADictionary)
 {

@@ -644,6 +644,11 @@ bool Message::isEmpty() const
     return sd_bus_message_is_empty((sd_bus_message*)msg_) != 0;
 }
 
+bool Message::isAtEnd(bool complete) const
+{
+    return sd_bus_message_at_end((sd_bus_message*)msg_, complete) > 0;
+}
+
 pid_t Message::getCredsPid() const
 {
     uint64_t mask = SD_BUS_CREDS_PID | SD_BUS_CREDS_AUGMENT;

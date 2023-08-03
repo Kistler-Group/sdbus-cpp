@@ -105,10 +105,10 @@ public:
         return result;
     }
 
-    uint32_t sumVectorItems(const std::vector<uint16_t>& arg0, const std::vector<uint64_t>& arg1)
+    uint32_t sumArrayItems(const std::vector<uint16_t>& arg0, const std::array<uint64_t, 3>& arg1)
     {
         uint32_t result;
-        proxy_->callMethod("sumVectorItems").onInterface(INTERFACE_NAME).withArguments(arg0, arg1).storeResultsTo(result);
+        proxy_->callMethod("sumArrayItems").onInterface(INTERFACE_NAME).withArguments(arg0, arg1).storeResultsTo(result);
         return result;
     }
 
@@ -147,9 +147,9 @@ public:
         return result;
     }
 
-    std::map<uint64_t, sdbus::Struct<std::map<uint8_t, std::vector<sdbus::Struct<sdbus::ObjectPath, bool, sdbus::Variant, std::map<int32_t, std::string>>>>, sdbus::Signature, std::string>> getComplex()
+    std::map<uint64_t, sdbus::Struct<std::map<uint8_t, std::vector<sdbus::Struct<sdbus::ObjectPath, bool, sdbus::Variant, std::unordered_map<int32_t, std::string>>>>, sdbus::Signature, std::string>> getComplex()
     {
-        std::map<uint64_t, sdbus::Struct<std::map<uint8_t, std::vector<sdbus::Struct<sdbus::ObjectPath, bool, sdbus::Variant, std::map<int32_t, std::string>>>>, sdbus::Signature, std::string>> result;
+        std::map<uint64_t, sdbus::Struct<std::map<uint8_t, std::vector<sdbus::Struct<sdbus::ObjectPath, bool, sdbus::Variant, std::unordered_map<int32_t, std::string>>>>, sdbus::Signature, std::string>> result;
         proxy_->callMethod("getComplex").onInterface(INTERFACE_NAME).storeResultsTo(result);
         return result;
     }

@@ -33,7 +33,7 @@ protected:
         object_->registerMethod("getMapOfVariants").onInterface(INTERFACE_NAME).withInputParamNames("x", "y").withOutputParamNames("aMapOfVariants").implementedAs([this](const std::vector<int32_t>& x, const sdbus::Struct<sdbus::Variant, sdbus::Variant>& y){ return this->getMapOfVariants(x, y); });
         object_->registerMethod("getStructInStruct").onInterface(INTERFACE_NAME).withOutputParamNames("aMapOfVariants").implementedAs([this](){ return this->getStructInStruct(); });
         object_->registerMethod("sumStructItems").onInterface(INTERFACE_NAME).withInputParamNames("arg0", "arg1").withOutputParamNames("arg0").implementedAs([this](const sdbus::Struct<uint8_t, uint16_t>& arg0, const sdbus::Struct<int32_t, int64_t>& arg1){ return this->sumStructItems(arg0, arg1); });
-        object_->registerMethod("sumVectorItems").onInterface(INTERFACE_NAME).withInputParamNames("arg0", "arg1").withOutputParamNames("arg0").implementedAs([this](const std::vector<uint16_t>& arg0, const std::vector<uint64_t>& arg1){ return this->sumVectorItems(arg0, arg1); });
+        object_->registerMethod("sumArrayItems").onInterface(INTERFACE_NAME).withInputParamNames("arg0", "arg1").withOutputParamNames("arg0").implementedAs([this](const std::vector<uint16_t>& arg0, const std::array<uint64_t, 3>& arg1){ return this->sumArrayItems(arg0, arg1); });
         object_->registerMethod("doOperation").onInterface(INTERFACE_NAME).withInputParamNames("arg0").withOutputParamNames("arg0").implementedAs([this](const uint32_t& arg0){ return this->doOperation(arg0); });
         object_->registerMethod("doOperationAsync").onInterface(INTERFACE_NAME).withInputParamNames("arg0").withOutputParamNames("arg0").implementedAs([this](sdbus::Result<uint32_t>&& result, uint32_t arg0){ this->doOperationAsync(std::move(result), std::move(arg0)); });
         object_->registerMethod("getSignature").onInterface(INTERFACE_NAME).withOutputParamNames("arg0").implementedAs([this](){ return this->getSignature(); });
@@ -86,13 +86,13 @@ private:
     virtual std::map<int32_t, sdbus::Variant> getMapOfVariants(const std::vector<int32_t>& x, const sdbus::Struct<sdbus::Variant, sdbus::Variant>& y) = 0;
     virtual sdbus::Struct<std::string, sdbus::Struct<std::map<int32_t, int32_t>>> getStructInStruct() = 0;
     virtual int32_t sumStructItems(const sdbus::Struct<uint8_t, uint16_t>& arg0, const sdbus::Struct<int32_t, int64_t>& arg1) = 0;
-    virtual uint32_t sumVectorItems(const std::vector<uint16_t>& arg0, const std::vector<uint64_t>& arg1) = 0;
+    virtual uint32_t sumArrayItems(const std::vector<uint16_t>& arg0, const std::array<uint64_t, 3>& arg1) = 0;
     virtual uint32_t doOperation(const uint32_t& arg0) = 0;
     virtual void doOperationAsync(sdbus::Result<uint32_t>&& result, uint32_t arg0) = 0;
     virtual sdbus::Signature getSignature() = 0;
     virtual sdbus::ObjectPath getObjPath() = 0;
     virtual sdbus::UnixFd getUnixFd() = 0;
-    virtual std::map<uint64_t, sdbus::Struct<std::map<uint8_t, std::vector<sdbus::Struct<sdbus::ObjectPath, bool, sdbus::Variant, std::map<int32_t, std::string>>>>, sdbus::Signature, std::string>> getComplex() = 0;
+    virtual std::unordered_map<uint64_t, sdbus::Struct<std::map<uint8_t, std::vector<sdbus::Struct<sdbus::ObjectPath, bool, sdbus::Variant, std::map<int32_t, std::string>>>>, sdbus::Signature, std::string>> getComplex() = 0;
     virtual void throwError() = 0;
     virtual void throwErrorWithNoReply() = 0;
     virtual void doPrivilegedStuff() = 0;
