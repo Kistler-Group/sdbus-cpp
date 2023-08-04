@@ -30,7 +30,7 @@
 #include <atomic>
 
 namespace sdbus { namespace test {
-    
+
 TestAdaptor::TestAdaptor(sdbus::IConnection& connection, const std::string& path) :
     AdaptorInterfaces(connection, path)
 {

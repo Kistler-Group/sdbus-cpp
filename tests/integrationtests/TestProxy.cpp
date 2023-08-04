@@ -30,7 +30,7 @@
 #include <atomic>
 
 namespace sdbus { namespace test {
-    
+
 TestProxy::TestProxy(std::string destination, std::string objectPath)
     : ProxyInterfaces(std::move(destination), std::move(objectPath))
 {

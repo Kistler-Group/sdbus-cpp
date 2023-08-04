@@ -509,6 +509,6 @@ int main(int argc, char *argv[])
 
     exitLogger = true;
     loggerThread.join();
-    
+
     return 0;
 }

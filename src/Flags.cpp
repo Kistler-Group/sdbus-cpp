@@ -47,7 +47,7 @@ namespace sdbus
             sdbusFlags |= SD_BUS_VTABLE_PROPERTY_CONST;
         else if (flags_.test(Flags::EMITS_NO_SIGNAL))
             sdbusFlags |= 0;
-        
+
         return sdbusFlags;
     }
 

@@ -87,7 +87,7 @@ static void _parse_signature(const std::string &signature, std::string &type, un
                     }
                     case '\0':
                     {
-                        std::cerr << 
+                        std::cerr <<
                             "Invalid array definition. Type is missing after '" << signature
                             << "'."
                             << std::endl;

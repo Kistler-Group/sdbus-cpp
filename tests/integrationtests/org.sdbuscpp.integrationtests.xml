@@ -82,7 +82,7 @@
         </method>
         <method name="emitTwoSimpleSignals">
         </method>
-        
+
         <signal name="simpleSignal">
             <annotation name="org.freedesktop.DBus.Deprecated" value="true" />
         </signal>
@@ -102,4 +102,4 @@
             <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="const"/>
         </property>
     </interface>
-</node>        
+</node>
