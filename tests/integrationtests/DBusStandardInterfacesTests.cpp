@@ -86,7 +86,7 @@ TEST_F(SdbusTestObject, SetsPropertyViaPropertiesInterface)
 {
     uint32_t newActionValue = 2345;
 
-    m_proxy->Set(INTERFACE_NAME, "action", newActionValue);
+    m_proxy->Set(INTERFACE_NAME, "action", sdbus::Variant{newActionValue});
 
     ASSERT_THAT(m_proxy->action(), Eq(newActionValue));
 }
