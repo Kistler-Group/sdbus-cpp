@@ -39,6 +39,10 @@
 #include <future>
 #include <unistd.h>
 #include <variant>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/un.h>
 
 using ::testing::ElementsAre;
 using ::testing::Eq;
@@ -143,4 +147,37 @@ TEST_F(AConnection, WillNotPassToMatchCallbackMessagesThatDoNotMatchTheRule)
 
     ASSERT_TRUE(waitUntil([&](){ return numberOfMatchingMessages == 2; }));
     ASSERT_FALSE(waitUntil([&](){ return numberOfMatchingMessages > 2; }, 1s));
+}
+
+TEST_F(AConnection, WillCreateDirectConnection)
+{
+	int sock = socket(AF_UNIX, SOCK_STREAM|SOCK_CLOEXEC, 0);
+	ASSERT_TRUE(sock >= 0);
+
+	sockaddr_un sa;
+	memset(&sa, 0, sizeof(sa));
+	sa.sun_family = AF_UNIX;
+	snprintf(sa.sun_path, sizeof(sa.sun_path), "%s", "/tmp/sdbus-direct-test");
+
+	unlink("/tmp/sdbus-direct-test");
+
+	umask(0000);
+	int r = bind(sock, (const sockaddr*) &sa, sizeof(sa.sun_path));
+	ASSERT_TRUE(r >= 0);
+
+	r = listen(sock, 5);
+	ASSERT_TRUE(r >= 0);
+
+	sdbus::UnixFd newConnection;
+	std::thread t1([&]() {
+		sdbus::UnixFd fd{ accept4(sock, NULL, NULL, SOCK_NONBLOCK|SOCK_CLOEXEC) };
+		newConnection = fd;
+		auto server = sdbus::createServerBus(newConnection.get());
+	});
+	std::thread t2([]() {
+		auto client = sdbus::createDirectBusConnection("unix:path=/tmp/sdbus-direct-test");
+	});
+
+	t1.join();
+	t2.join();
 }

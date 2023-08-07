@@ -458,6 +458,24 @@ namespace sdbus {
      * @throws sdbus::Error in case of failure
      */
     [[nodiscard]] std::unique_ptr<sdbus::IConnection> createRemoteSystemBusConnection(const std::string& host);
+
+    /*!
+     * @brief Opens direct D-Bus connection at a custom address
+     *
+     * @param[in] address ";"-separated kist of addresses of sockets toinstance
+     *
+     * @throws sdbus::Error in case of failure
+     */
+    [[nodiscard]] std::unique_ptr<sdbus::IConnection> createDirectBusConnection(const std::string &address);
+
+    /*!
+     * @brief Opens direct D-Bus connection at fd
+     *
+     * @param[in] fd file desctiptor to use for DBus connection. Caller owns the fd so its caller response to close it.
+     *
+     * @throws sdbus::Error in case of failure
+     */
+    [[nodiscard]] std::unique_ptr<sdbus::IConnection> createServerBus(int fd);
 }
 
 #endif /* SDBUS_CXX_ICONNECTION_H_ */

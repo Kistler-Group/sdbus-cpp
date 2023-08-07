@@ -222,6 +222,57 @@ int SdBus::sd_bus_open_user_with_address(sd_bus **ret, const char* address)
     return 0;
 }
 
+int SdBus::sd_bus_open_direct(sd_bus **ret, const char* address)
+{
+    sd_bus* bus = nullptr;
+
+    int r = sd_bus_new(&bus);
+    if (r < 0)
+        return r;
+
+    r = sd_bus_set_address(bus, address);
+    if (r < 0)
+        return r;
+
+    r = sd_bus_start(bus);
+    if (r < 0)
+        return r;
+
+    *ret = bus;
+
+    return 0;
+}
+
+int SdBus::sd_bus_open_server(sd_bus **ret, int fd)
+{
+    sd_bus* bus = nullptr;
+
+    int r = sd_bus_new(&bus);
+    if (r < 0)
+        return r;
+
+    r = ::sd_bus_set_fd(bus, fd, fd);
+    if (r < 0)
+        return r;
+
+    sd_id128_t id;
+    r = ::sd_id128_randomize(&id);
+    if (r < 0)
+        return r;
+
+    r = ::sd_bus_set_server(bus, true, id);
+    if (r < 0)
+        return r;
+
+    r = sd_bus_start(bus);
+    if (r < 0)
+        return r;
+
+    *ret = bus;
+
+    return 0;
+}
+
 int SdBus::sd_bus_open_system_remote(sd_bus **ret, const char *host)
 {
     return ::sd_bus_open_system_remote(ret, host);

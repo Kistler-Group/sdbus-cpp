@@ -474,6 +474,27 @@ namespace sdbus {
                                                             , std::string objectPath );
 
     /*!
+     * @brief Creates a proxy object for a direct connection to the DBus server
+     *
+     * @param[in] connection D-Bus connection to be used by the proxy object
+     * @param[in] objectPath Path of the remote D-Bus object
+     * @return Pointer to the proxy object instance
+     *
+     * The provided connection will be used by the proxy to issue calls against the object,
+     * and signals, if any, will be subscribed to on this connection. The caller still
+     * remains the owner of the connection (the proxy just keeps a reference to it), and
+     * should make sure that an I/O event loop is running on that connection, so the proxy
+     * may receive incoming signals and asynchronous method replies.
+     *
+     * Code example:
+     * @code
+     * auto proxy = sdbus::createProxy(connection, "/com/kistler/foo");
+     * @endcode
+     */
+    [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( sdbus::IConnection& connection
+                                                            , std::string objectPath );
+
+    /*!
      * @brief Creates a proxy object for a specific remote D-Bus object
      *
      * @param[in] connection D-Bus connection to be used by the proxy object
@@ -497,6 +518,28 @@ namespace sdbus {
                                                             , std::string objectPath );
 
     /*!
+     * @brief Creates a proxy object for a direct connection to the DBus server
+     *
+     * @param[in] connection D-Bus connection to be used by the proxy object
+     * @param[in] objectPath Path of the remote D-Bus object
+     * @return Pointer to the object proxy instance
+     *
+     * The provided connection will be used by the proxy to issue calls against the object,
+     * and signals, if any, will be subscribed to on this connection. The Object proxy becomes
+     * an exclusive owner of this connection, and will automatically start a procesing loop
+     * upon that connection in a separate internal thread. Handlers for incoming signals and
+     * asynchronous method replies will be executed in the context of that thread.
+     *
+     * Code example:
+     * @code
+     * auto proxy = sdbus::createProxy(std::move(connection), "/com/kistler/foo");
+     * @endcode
+     */
+    [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( std::unique_ptr<sdbus::IConnection>&& connection
+                                                            , std::string objectPath );
+
+
+    /*!
      * @brief Creates a proxy object for a specific remote D-Bus object
      *
      * @param[in] connection D-Bus connection to be used by the proxy object
@@ -517,6 +560,28 @@ namespace sdbus {
      */
     [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( std::unique_ptr<sdbus::IConnection>&& connection
                                                             , std::string destination
+                                                            , std::string objectPath
+                                                            , dont_run_event_loop_thread_t );
+
+    /*!
+     * @brief Creates a proxy object for a direct connection to the DBus server
+     *
+     * @param[in] connection D-Bus connection to be used by the proxy object
+     * @param[in] objectPath Path of the remote D-Bus object
+     * @return Pointer to the object proxy instance
+     *
+     * The provided connection will be used by the proxy to issue calls against the object.
+     * The Object proxy becomes an exclusive owner of this connection, but will not start an event loop
+     * thread on this connection. This is cheap construction and is suitable for short-lived proxies
+     * created just to execute simple synchronous D-Bus calls and then destroyed. Such blocking request-reply
+     * calls will work without an event loop (but signals, async calls, etc. won't).
+     *
+     * Code example:
+     * @code
+     * auto proxy = sdbus::createProxy(std::move(connection), "/com/kistler/foo", sdbus::dont_run_event_loop_thread);
+     * @endcode
+     */
+    [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( std::unique_ptr<sdbus::IConnection>&& connection
                                                             , std::string objectPath
                                                             , dont_run_event_loop_thread_t );
 
