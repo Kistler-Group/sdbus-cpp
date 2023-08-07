@@ -19,7 +19,7 @@ Using sdbus-c++ library
 14. [Asynchronous client-side methods](#asynchronous-client-side-methods)
 15. [Using D-Bus properties](#using-d-bus-properties)
 16. [Standard D-Bus interfaces](#standard-d-bus-interfaces)
-17. [Using D-Bus Types](#using-d-bus-types)
+17. [Representing D-Bus Types in sdbus-c++](#representing-d-bus-types-in-sdbus-c)
 18. [Support for match rules](#support-for-match-rules)
 19. [Conclusion](#conclusion)
 
@@ -1343,10 +1343,10 @@ Note that signals of afore-mentioned standard D-Bus interfaces are not emitted b
 
 Working examples of using standard D-Bus interfaces can be found in [sdbus-c++ integration tests](/tests/integrationtests/DBusStandardInterfacesTests.cpp) or the [examples](/examples) directory.
 
-Using D-Bus Types
------------------
+Representing D-Bus Types in sdbus-c++
+-------------------------------------
 
-For many D-Bus interactions dealing with D-Bus types is necessary. For that, sdbus-c++ provides many predefined D-Bus types. The table below shows which C++ type corresponds to which D-Bus type.
+sdbus-c++ provides many default, pre-defined C++ type representations for D-Bus types. The table below shows which C++ type corresponds to which D-Bus type.
 
 
 | Category            | Code        | Code ASCII | Conventional Name  | C++ Type                        |
@@ -1383,6 +1383,108 @@ A few examples:
 To see how C++ types are mapped to D-Bus types (including container types) in sdbus-c++, have a look at individual [specializations of `sdbus::signature_of` class template](https://github.com/Kistler-Group/sdbus-cpp/blob/master/include/sdbus-c%2B%2B/TypeTraits.h#L87) in TypeTraits.h header file. For more examples of type mappings, look into [TypeTraits unit tests](https://github.com/Kistler-Group/sdbus-cpp/blob/master/tests/unittests/TypeTraits_test.cpp#L62).
 
 For more information on basic D-Bus types, D-Bus container types, and D-Bus type system in general, make sure to consult the [D-Bus specification](https://dbus.freedesktop.org/doc/dbus-specification.html#type-system).
+
+### Extending sdbus-c++ type system
+
+The above mapping between D-Bus and C++ types is what sdbus-c++ provides by default. However, the mapping can be extended. Clients can implement additional mapping between a D-Bus type and their custom type.
+
+We need two things to do that:
+
+* implement `sdbus::Message` insertion and extraction operators, so sdbus-c++ knows how to serialize/deserialize our custom type,
+* specialize `sdbus::signature_of` template for our custom type, so sdbus-c++ knows the mapping to D-Bus type and other necessary information about our type.
+
+Say, we would like to represent D-Bus arrays as `std::list`s in our application. Since sdbus-c++ comes with pre-defined support for `std::vector`s, `std::array`s and `std::span`s as D-Bus array representations, we have to provide an extension:
+
+```c++
+#include <list>
+#include <sdbus-c++/sdbus-c++.h>
+
+namespace sdbus {
+
+// Implementing serialization for std::list
+template <typename _ElementType>
+sdbus::Message& operator<<(sdbus::Message& msg, const std::list<_ElementType>& items)
+{
+    msg.openContainer(sdbus::signature_of<_ElementType>::str());
+
+    for (const auto& item : items)
+        msg << item;
+
+    msg.closeContainer();
+
+    return msg;
+}
+
+// Implementing deserialization for std::list
+template <typename _ElementType>
+sdbus::Message& operator>>(sdbus::Message& msg, std::list<_ElementType>& items)
+{
+    if(!msg.enterContainer(sdbus::signature_of<_ElementType>::str()))
+        return msg;
+
+    while (true)
+    {
+        _ElementType elem;
+        if (msg >> elem)
+            items.emplace_back(std::move(elem));
+        else
+            break;
+    }
+
+    msg.clearFlags();
+
+    msg.exitContainer();
+
+    return msg;
+}
+
+} // namespace sdbus
+
+// Implementing type traits for std::list, and since we map it to D-Bus array,
+// we can re-use std::vector type traits because it's the same stuff.
+template <typename _Element, typename _Allocator>
+struct sdbus::signature_of<std::list<_Element, _Allocator>>
+        : sdbus::signature_of<std::vector<_Element, _Allocator>>
+{};
+};
+```
+
+Then we can simply use `std::list`s, serialize/deserialize them in a D-Bus message, in D-Bus method calls or return values... and they will be simply transmitted as D-Bus arrays.
+
+As another example, say we have our custom type `my::Struct` which we'd like to use as a D-Bus structure representation (sdbus-c++ provides `sdbus::Struct` type for that, but we don't want to use it because using our custom type directly is more convenient). Again, we have to provide type traits and message serialization/deserialization functions for our custom type. We build our functions and specializations on top of `sdbus::Struct`, so we don't have to copy and write a lot of boiler-plate:
+
+```c++
+namespace my {
+    struct Struct
+    {
+        int i;
+        std::string s;
+        std::list<double> l;
+    };
+
+    sdbus::Message& operator<<(sdbus::Message& msg, const Struct& items)
+    {
+        // Re-use sdbus::Struct functionality for simplicity -- view of my::Struct through sdbus::Struct with reference types
+        return msg << sdbus::Struct{std::forward_as_tuple(items.i, items.s, items.l)};
+    }
+
+    sdbus::Message& operator>>(sdbus::Message& msg, Struct& items)
+    {
+        // Re-use sdbus::Struct functionality for simplicity -- view of my::Struct through sdbus::Struct with reference types
+        sdbus::Struct s{std::forward_as_tuple(items.i, items.s, items.l)};
+        return msg >> s;
+    }
+}
+
+template <>
+struct sdbus::signature_of<my::Struct>
+    : sdbus::signature_of<sdbus::Struct<int, std::string, std::list<double>>>
+{};
+```
+
+> **_Note_:** One of `my::Struct` members is `std::list`. Thanks to the above custom support for `std::list`, it's now automatically accepted by sdbus-c++ as a D-Bus array representation.
+
+Live examples of extending sdbus-c++ types can be found in [Message unit tests](/tests/unittests/Message_test.cpp).
 
 Support for match rules
 -----------------------
