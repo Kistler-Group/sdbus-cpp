@@ -103,7 +103,9 @@ TEST_F(SdbusTestObject, CallsMethodWithStructVariantsAndGetMapSuccesfully)
     std::vector<int32_t> x{-2, 0, 2};
     sdbus::Struct<sdbus::Variant, sdbus::Variant> y{false, true};
     auto mapOfVariants = m_proxy->getMapOfVariants(x, y);
-    decltype(mapOfVariants) res{{-2, false}, {0, false}, {2, true}};
+    decltype(mapOfVariants) res{ {sdbus::Variant{-2}, sdbus::Variant{false}}
+                               , {sdbus::Variant{0}, sdbus::Variant{false}}
+                               , {sdbus::Variant{2}, sdbus::Variant{true}}};
 
     ASSERT_THAT(mapOfVariants[-2].get<bool>(), Eq(res[-2].get<bool>()));
     ASSERT_THAT(mapOfVariants[0].get<bool>(), Eq(res[0].get<bool>()));

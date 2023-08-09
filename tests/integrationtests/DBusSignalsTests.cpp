@@ -104,7 +104,7 @@ TEST_F(SdbusTestObject, EmitsSignalWithLargeMapSuccesfully)
 TEST_F(SdbusTestObject, EmitsSignalWithVariantSuccesfully)
 {
     double d = 3.14;
-    m_adaptor->emitSignalWithVariant(d);
+    m_adaptor->emitSignalWithVariant(sdbus::Variant{d});
 
     ASSERT_TRUE(waitUntil(m_proxy->m_gotSignalWithVariant));
     ASSERT_THAT(m_proxy->m_variantFromSignal, DoubleEq(d));

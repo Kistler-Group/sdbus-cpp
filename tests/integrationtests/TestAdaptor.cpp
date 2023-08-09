@@ -77,7 +77,7 @@ std::vector<int16_t> TestAdaptor::getInts16FromStruct(const sdbus::Struct<uint8_
 
 sdbus::Variant TestAdaptor::processVariant(const sdbus::Variant& v)
 {
-    sdbus::Variant res = static_cast<int32_t>(v.get<double>());
+    sdbus::Variant res{static_cast<int32_t>(v.get<double>())};
     return res;
 }
 

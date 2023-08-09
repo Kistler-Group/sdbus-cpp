@@ -158,6 +158,9 @@ namespace sdbus {
         Message& enterStruct(const std::string& signature);
         Message& exitStruct();
 
+        Message& appendArray(char type, const void *ptr, size_t size);
+        Message& readArray(char type, const void **ptr, size_t *size);
+
         explicit operator bool() const;
         void clearFlags();
 
@@ -198,9 +201,6 @@ namespace sdbus {
         void deserializeArraySlow(_Array& items);
         template <typename _Element, typename _Allocator>
         void deserializeArraySlow(std::vector<_Element, _Allocator>& items);
-
-        void appendArray(char type, const void *ptr, size_t size);
-        void readArray(char type, const void **ptr, size_t *size);
 
         template <typename _Dictionary>
         void serializeDictionary(const _Dictionary& items);
@@ -529,7 +529,6 @@ namespace sdbus {
         while (true)
         {
             _Element elem;
-            // TODO: Is there a way to find D-Bus message container size upfront? We could reserve space in vector upfront.
             if (*this >> elem)
                 items.emplace_back(std::move(elem));
             else

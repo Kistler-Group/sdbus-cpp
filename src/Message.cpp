@@ -226,10 +226,12 @@ Message& Message::operator<<(const UnixFd &item)
     return *this;
 }
 
-void Message::appendArray(char type, const void *ptr, size_t size)
+Message& Message::appendArray(char type, const void *ptr, size_t size)
 {
     auto r = sd_bus_message_append_array((sd_bus_message*)msg_, type, ptr, size);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize an array", -r);
+
+    return *this;
 }
 
 Message& Message::operator>>(bool& item)
@@ -323,13 +325,15 @@ Message& Message::operator>>(uint64_t& item)
     return *this;
 }
 
-void Message::readArray(char type, const void **ptr, size_t *size)
+Message& Message::readArray(char type, const void **ptr, size_t *size)
 {
     auto r = sd_bus_message_read_array((sd_bus_message*)msg_, type, ptr, size);
     if (r == 0)
         ok_ = false;
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to deserialize an array", -r);
+
+    return *this;
 }
 
 Message& Message::operator>>(double& item)
