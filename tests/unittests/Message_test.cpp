@@ -29,6 +29,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <cstdint>
+#include <list>
 
 using ::testing::Eq;
 using ::testing::Gt;
@@ -44,6 +45,82 @@ namespace
         return str;
     }
 }
+
+namespace sdbus {
+
+    template <typename _ElementType>
+    sdbus::Message& operator<<(sdbus::Message& msg, const std::list<_ElementType>& items)
+    {
+        msg.openContainer(sdbus::signature_of<_ElementType>::str());
+
+        for (const auto& item : items)
+            msg << item;
+
+        msg.closeContainer();
+
+        return msg;
+    }
+
+    template <typename _ElementType>
+    sdbus::Message& operator>>(sdbus::Message& msg, std::list<_ElementType>& items)
+    {
+        if(!msg.enterContainer(sdbus::signature_of<_ElementType>::str()))
+            return msg;
+
+        while (true)
+        {
+            _ElementType elem;
+            if (msg >> elem)
+                items.emplace_back(std::move(elem));
+            else
+                break;
+        }
+
+        msg.clearFlags();
+
+        msg.exitContainer();
+
+        return msg;
+    }
+
+}
+
+template <typename _Element, typename _Allocator>
+struct sdbus::signature_of<std::list<_Element, _Allocator>>
+        : sdbus::signature_of<std::vector<_Element, _Allocator>>
+{};
+
+namespace my {
+
+    struct Struct
+    {
+        int i;
+        std::string s;
+        std::list<double> l;
+    };
+
+    bool operator==(const Struct& lhs, const Struct& rhs)
+    {
+        return lhs.i == rhs.i && lhs.s == rhs.s && lhs.l == rhs.l;
+    }
+
+    sdbus::Message& operator<<(sdbus::Message& msg, const Struct& items)
+    {
+        return msg << sdbus::Struct{std::forward_as_tuple(items.i, items.s, items.l)};
+    }
+
+    sdbus::Message& operator>>(sdbus::Message& msg, Struct& items)
+    {
+        sdbus::Struct s{std::forward_as_tuple(items.i, items.s, items.l)};
+        return msg >> s;
+    }
+
+}
+
+template <>
+struct sdbus::signature_of<my::Struct>
+        : sdbus::signature_of<sdbus::Struct<int, std::string, std::list<double>>>
+{};
 
 /*-------------------------------------*/
 /* --          TEST CASES           -- */
@@ -161,7 +238,7 @@ TEST(AMessage, CanCarryACollectionOfEmbeddedVariants)
 {
     auto msg = sdbus::createPlainMessage();
 
-    auto value = std::vector<sdbus::Variant>{"hello"s, (double)3.14};
+    std::vector<sdbus::Variant> value{sdbus::Variant{"hello"s}, sdbus::Variant{(double)3.14}};
     const auto dataWritten = sdbus::Variant{value};
 
     msg << dataWritten;
@@ -373,4 +450,36 @@ TEST(AMessage, CanPeekContainerContents)
     msg.peekType(type, contents);
     ASSERT_THAT(type, "a");
     ASSERT_THAT(contents, "{is}");
+}
+
+TEST(AMessage, CanCarryDBusArrayGivenAsCustomType)
+{
+    auto msg = sdbus::createPlainMessage();
+
+    const std::list<int64_t> dataWritten{3545342, 43643532, 324325};
+    //custom::MyType t;
+
+    msg << dataWritten;
+    // msg << t;
+    msg.seal();
+
+    std::list<int64_t> dataRead;
+    msg >> dataRead;
+
+    ASSERT_THAT(dataRead, Eq(dataWritten));
+}
+
+TEST(AMessage, CanCarryDBusStructGivenAsCustomType)
+{
+    auto msg = sdbus::createPlainMessage();
+
+    const my::Struct dataWritten{3545342, "hello"s, {3.14, 2.4568546}};
+
+    msg << dataWritten;
+    msg.seal();
+
+    my::Struct dataRead;
+    msg >> dataRead;
+
+    ASSERT_THAT(dataRead, Eq(dataWritten));
 }
