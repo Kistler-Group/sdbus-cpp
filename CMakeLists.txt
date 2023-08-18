@@ -12,11 +12,22 @@ include(GNUInstallDirs) # Installation directories for `install` command and pkg
 # PERFORMING CHECKS & PREPARING THE DEPENDENCIES
 #-------------------------------
 
+set(LIBSYSTEMD "libsystemd")
+
 option(BUILD_LIBSYSTEMD "Build libsystemd static library and incorporate it into libsdbus-c++" OFF)
 
 if(NOT BUILD_LIBSYSTEMD)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(Systemd IMPORTED_TARGET GLOBAL libsystemd>=236)
+    if(NOT TARGET PkgConfig::Systemd)
+        message(WARNING "libsystemd not found, checking for libelogind instead")
+        pkg_check_modules(Systemd IMPORTED_TARGET GLOBAL libelogind>=236)
+        if(TARGET PkgConfig::Systemd)
+            set(LIBSYSTEMD "libelogind")
+            string(REPLACE "." ";" VERSION_LIST ${Systemd_VERSION})
+            list(GET VERSION_LIST 0 Systemd_VERSION)
+        endif()
+    endif()
     if(NOT TARGET PkgConfig::Systemd)
         message(FATAL_ERROR "libsystemd of version at least 236 is required, but was not found "
                             "(if you have systemd in your OS, you may want to install package containing pkgconfig "
