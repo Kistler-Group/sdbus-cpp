@@ -14,7 +14,7 @@ Using sdbus-c++ library
 9. [An example: Number concatenator](#an-example-number-concatenator)
 10. [Implementing the Concatenator example using basic sdbus-c++ API layer](#implementing-the-concatenator-example-using-basic-sdbus-c-api-layer)
 11. [Implementing the Concatenator example using convenience sdbus-c++ API layer](#implementing-the-concatenator-example-using-convenience-sdbus-c-api-layer)
-12. [Implementing the Concatenator example using sdbus-c++-generated stubs](#implementing-the-concatenator-example-using-sdbus-c-generated-stubs)
+12. [Implementing the Concatenator example using generated C++ bindings](#implementing-the-concatenator-example-using-generated-c-bindings)
 13. [Asynchronous server-side methods](#asynchronous-server-side-methods)
 14. [Asynchronous client-side methods](#asynchronous-client-side-methods)
 15. [Using D-Bus properties](#using-d-bus-properties)
@@ -55,7 +55,7 @@ PKG_CHECK_MODULES(SDBUSCPP, [sdbus-c++ >= 0.6],,
 
 > **_Note_:** sdbus-c++ library uses a number of modern C++17 features. Please make certain you have a recent compiler (gcc >= 7, clang >= 6).
 
-If you intend to use stub generator (explained later) in your project to generate interface headers from XML, you can integrate that too with CMake or `pkg-config`:
+If you intend to use xml-to-c++ generator tool (explained later) in your project to generate interface headers from XML, you can integrate that too with CMake or `pkg-config`:
 
 ```cmake
 # First, find sdbus-c++-tools
@@ -215,7 +215,7 @@ sdbus-c++ API comes in two layers:
   * [the basic layer](#implementing-the-concatenator-example-using-basic-sdbus-c-api-layer), which is a simple wrapper layer on top of sd-bus, using mechanisms that are native to C++ (e.g. serialization/deserialization of data from messages),
   * [the convenience layer](#implementing-the-concatenator-example-using-convenience-sdbus-c-api-layer), building on top of the basic layer, which aims at alleviating users from unnecessary details and enables them to write shorter, safer, and more expressive code.
 
-sdbus-c++ also ships with a stub generator tool that converts D-Bus IDL in XML format into stub code for the adaptor as well as the proxy part. Hierarchically, these stubs provide yet another layer of convenience (the "stubs layer"), making it possible for D-Bus RPC calls to completely look like native C++ calls on a local object.
+sdbus-c++ also ships with sdbus-c++-xml2cpp tool that converts D-Bus IDL in XML format into C++ bindings for the adaptor as well as the proxy part. This is the highest level of API provided by sdbus-c++ (the "C++ bindings layer"), which makes it possible for D-Bus RPC calls to completely look like native C++ calls on a local object.
 
 An example: Number concatenator
 -------------------------------
@@ -554,7 +554,7 @@ int main(int argc, char *argv[])
 
 When registering methods, calling methods or emitting signals, multiple lines of code have shrunk into simple one-liners. Signatures of provided callbacks are introspected and types of provided arguments are deduced at compile time, so the D-Bus signatures as well as serialization and deserialization of arguments to and from D-Bus messages are generated for us completely by the compiler.
 
-sdbus-c++ users shall prefer the convenience API to the lower level, basic API. When feasible, using generated adaptor and proxy stubs is even better. These stubs provide yet another, higher API level built on top of the convenience API. They are described in the following section.
+We recommend that sdbus-c++ users prefer the convenience API to the lower level, basic API. When feasible, using generated adaptor and proxy C++ bindings is even better as it provides yet slightly higher abstraction built on top of the convenience API, where remote calls look simply like local, native calls of object methods. They are described in the following section.
 
 > **_Note_:** By default, signal callback handlers are not invoked (i.e., the signal is silently dropped) if there is a signal signature mismatch. If clients want to be informed of such situations, they can prepend `const sdbus::Error*` parameter to their signal callback handler's parameter list. This argument will be `nullptr` in normal cases, and will provide access to the corresponding `sdbus::Error` object in case of deserialization failures. An example of a handler with the signature (`int`) different from the real signal contents (`string`):
 > ```c++
@@ -601,10 +601,10 @@ An excerpt of the above example of concatenator modified to print out a name of 
     };
 ```
 
-Implementing the Concatenator example using sdbus-c++-generated stubs
----------------------------------------------------------------------
+Implementing the Concatenator example using generated C++ bindings
+------------------------------------------------------------------
 
-sdbus-c++ ships with the native stub generator tool called `sdbus-c++-xml2cpp`. The tool is very similar to `dbusxx-xml2cpp` tool that comes with the dbus-c++ library.
+sdbus-c++ ships with native C++ binding generator tool called `sdbus-c++-xml2cpp`. The tool is very similar to `dbusxx-xml2cpp` tool that comes with the dbus-c++ library.
 
 The generator tool takes D-Bus XML IDL description of D-Bus interfaces on its input, and can be instructed to generate one or both of these: an adaptor header file for use on the server side, and a proxy header file for use on the client side. Like this:
 
@@ -1041,7 +1041,7 @@ Registration (`implementedAs()`) doesn't change. Nothing else needs to change.
 
 ### Marking server-side async methods in the IDL
 
-sdbus-c++ stub generator can generate stub code for server-side async methods. We just need to annotate the method with `org.freedesktop.DBus.Method.Async`. The annotation element value must be either `server` (async method on server-side only) or `clientserver` (async method on both client- and server-side):
+sdbus-c++-xml2cpp tool can generate C++ code for server-side async methods. We just need to annotate the method with `org.freedesktop.DBus.Method.Async`. The annotation element value must be either `server` (async method on server-side only) or `client-server` (async method on both client- and server-side):
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -1198,7 +1198,7 @@ The future object will contain void for a void-returning D-Bus method, a single 
 
 ### Marking client-side async methods in the IDL
 
-sdbus-c++ stub generator can generate stub code for client-side async methods. We just need to annotate the method with `org.freedesktop.DBus.Method.Async`. The annotation element value must be either `client` (async on the client-side only) or `clientserver` (async method on both client- and server-side):
+sdbus-c++-xml2cpp can generate C++ code for client-side async methods. We just need to annotate the method with `org.freedesktop.DBus.Method.Async`. The annotation element value must be either `client` (async on the client-side only) or `client-server` (async method on both client- and server-side):
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -1218,11 +1218,19 @@ sdbus-c++ stub generator can generate stub code for client-side async methods. W
 </node>
 ```
 
+An asynchronous method can be generated as a callback-based method or `std::future`-based method. This can optionally be customized through an additional `org.freedesktop.DBus.Method.Async.ClientImpl` annotation. Its supported values are `callback` and `std::future`. The default behavior is callback-based method.
+
+#### Generating callback-based async methods
+
 For each client-side async method, a corresponding `on<MethodName>Reply` pure virtual function, where `<MethodName>` is the capitalized D-Bus method name, is generated in the generated proxy class. This function is the callback invoked when the D-Bus method reply arrives, and must be provided a body by overriding it in the implementation class.
 
-So in the specific example above, the stub generator will generate a `Concatenator_proxy` class similar to one shown in a [dedicated section above](#concatenator-client-glueh), with the difference that it will also generate an additional `virtual void onConcatenateReply(const sdbus::Error* error, const std::string& concatenatedString);` method, which we shall override in derived `ConcatenatorProxy`.
+So in the specific example above, the tool will generate a `Concatenator_proxy` class similar to one shown in a [dedicated section above](#concatenator-client-glueh), with the difference that it will also generate an additional `virtual void onConcatenateReply(const sdbus::Error* error, const std::string& concatenatedString);` method, which we shall override in derived `ConcatenatorProxy`.
 
-For a real example of a client-side asynchronous D-Bus method, please look at sdbus-c++ [stress tests](/tests/stresstests).
+#### Generating std:future-based async methods
+
+In this case, a `std::future` is returned by the method, which will later, when the reply arrives, get set to contain the return value. Or if the call returns an error, `sdbus::Error` will be thrown by `std::future::get()`.
+
+For a real example of a client-side asynchronous D-Bus methods, please look at sdbus-c++ [stress tests](/tests/stresstests).
 
 ## Method call timeout
 
@@ -1268,7 +1276,7 @@ An example of a read-write property `status`:
 </node>
 ```
 
-### Generated stubs
+### Generated C++ bindings
 
 This is how generated adaptor and proxy classes would look like with the read-write `status` property. The adaptor:
 

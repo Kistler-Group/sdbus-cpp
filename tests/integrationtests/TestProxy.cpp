@@ -153,7 +153,7 @@ std::future<void> TestProxy::doErroneousOperationClientSideAsync(with_future_t)
 {
     return getProxy().callMethodAsync("throwError")
                      .onInterface(sdbus::test::INTERFACE_NAME)
-                     .getResultAsFuture<>();;
+                     .getResultAsFuture<>();
 }
 
 void TestProxy::doOperationClientSideAsyncWithTimeout(const std::chrono::microseconds &timeout, uint32_t param)

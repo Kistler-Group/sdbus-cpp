@@ -192,7 +192,7 @@ std::tuple<std::string, std::string> AdaptorGenerator::processMethods(const Node
             }
             else if (annotationName == "org.freedesktop.DBus.Method.Async")
             {
-                if (annotationValue == "server" || annotationValue == "clientserver")
+                if (annotationValue == "server" || annotationValue == "clientserver" || annotationValue == "client-server")
                     async = true;
             }
             else if (annotationName == "org.freedesktop.systemd1.Privileged")
