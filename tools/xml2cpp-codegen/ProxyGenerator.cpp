@@ -151,19 +151,30 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes&
 
         bool dontExpectReply{false};
         bool async{false};
+        bool future{false}; // Async methods implemented by means of either std::future or callbacks
         std::string timeoutValue;
         std::smatch smTimeout;
 
         Nodes annotations = (*method)["annotation"];
         for (const auto& annotation : annotations)
         {
-            if (annotation->get("name") == "org.freedesktop.DBus.Method.NoReply" && annotation->get("value") == "true")
+            const auto annotationName = annotation->get("name");
+            const auto annotationValue = annotation->get("value");
+
+            if (annotationName == "org.freedesktop.DBus.Method.NoReply" && annotationValue == "true")
                 dontExpectReply = true;
-            else if (annotation->get("name") == "org.freedesktop.DBus.Method.Async"
-                     && (annotation->get("value") == "client" || annotation->get("value") == "clientserver"))
-                async = true;
-            if (annotation->get("name") == "org.freedesktop.DBus.Method.Timeout")
-                timeoutValue = annotation->get("value");
+            else
+            {
+                if (annotationName == "org.freedesktop.DBus.Method.Async"
+                     && (annotationValue == "client" || annotationValue == "clientserver" || annotationValue == "client-server"))
+                    async = true;
+                else if (annotationName == "org.freedesktop.DBus.Method.Async.ClientImpl" && annotationValue == "callback")
+                    future = false;
+                else if (annotationName == "org.freedesktop.DBus.Method.Async.ClientImpl" && (annotationValue == "future" || annotationValue == "std::future"))
+                    future = true;
+            }
+            if (annotationName == "org.freedesktop.DBus.Method.Timeout")
+                timeoutValue = annotationValue;
         }
         if (dontExpectReply && outArgs.size() > 0)
         {
@@ -186,12 +197,13 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes&
         }
 
         auto retType = outArgsToType(outArgs);
+        auto retTypeBare = outArgsToType(outArgs, true);
         std::string inArgStr, inArgTypeStr;
         std::tie(inArgStr, inArgTypeStr, std::ignore, std::ignore) = argsToNamesAndTypes(inArgs);
         std::string outArgStr, outArgTypeStr;
         std::tie(outArgStr, outArgTypeStr, std::ignore, std::ignore) = argsToNamesAndTypes(outArgs);
 
-        const std::string realRetType = (async && !dontExpectReply ? "sdbus::PendingAsyncCall" : async ? "void" : retType);
+        const std::string realRetType = (async && !dontExpectReply ? (future ? "std::future<" + retType + ">" : "sdbus::PendingAsyncCall") : async ? "void" : retType);
         definitionSS << tab << realRetType << " " << nameSafe << "(" << inArgTypeStr << ")" << endl
                 << tab << "{" << endl;
 
@@ -225,11 +237,18 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes&
             auto nameBigFirst = name;
             nameBigFirst[0] = islower(nameBigFirst[0]) ? nameBigFirst[0] + 'A' - 'a' : nameBigFirst[0];
 
-            definitionSS << ".uponReplyInvoke([this](const sdbus::Error* error" << (outArgTypeStr.empty() ? "" : ", ") << outArgTypeStr << ")"
-                                             "{ this->on" << nameBigFirst << "Reply(" << outArgStr << (outArgStr.empty() ? "" : ", ") << "error); })";
+            if (future) // Async methods implemented through future
+            {
+                definitionSS << ".getResultAsFuture<" << retTypeBare << ">()";
+            }
+            else // Async methods implemented through callbacks
+            {
+                definitionSS << ".uponReplyInvoke([this](const sdbus::Error* error" << (outArgTypeStr.empty() ? "" : ", ") << outArgTypeStr << ")"
+                                                 "{ this->on" << nameBigFirst << "Reply(" << outArgStr << (outArgStr.empty() ? "" : ", ") << "error); })";
 
-            asyncDeclarationSS << tab << "virtual void on" << nameBigFirst << "Reply("
-                               << outArgTypeStr << (outArgTypeStr.empty() ? "" : ", ")  << "const sdbus::Error* error) = 0;" << endl;
+                asyncDeclarationSS << tab << "virtual void on" << nameBigFirst << "Reply("
+                                   << outArgTypeStr << (outArgTypeStr.empty() ? "" : ", ")  << "const sdbus::Error* error) = 0;" << endl;
+            }
         }
         else if (outArgs.size() > 0)
         {
