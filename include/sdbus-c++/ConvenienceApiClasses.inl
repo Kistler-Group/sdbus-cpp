@@ -293,7 +293,7 @@ namespace sdbus {
     template <typename _Function>
     inline PropertyRegistrator& PropertyRegistrator::withGetter(_Function&& callback)
     {
-        static_assert(function_traits<_Function>::arity == 0, "Property getter function must not take any arguments");
+        static_assert(function_argument_count_v<_Function> == 0, "Property getter function must not take any arguments");
         static_assert(!std::is_void<function_result_t<_Function>>::value, "Property getter function must return property value");
 
         if (propertySignature_.empty())
@@ -311,7 +311,7 @@ namespace sdbus {
     template <typename _Function>
     inline PropertyRegistrator& PropertyRegistrator::withSetter(_Function&& callback)
     {
-        static_assert(function_traits<_Function>::arity == 1, "Property setter function must take one parameter - the property value");
+        static_assert(function_argument_count_v<_Function> == 1, "Property setter function must take one parameter - the property value");
         static_assert(std::is_void<function_result_t<_Function>>::value, "Property setter function must not return any value");
 
         if (propertySignature_.empty())
@@ -704,7 +704,7 @@ namespace sdbus {
     {
     }
 
-    inline void SignalUnsubscriber::onInterface(std::string interfaceName)
+    inline void SignalUnsubscriber::onInterface(const std::string& interfaceName)
     {
         proxy_.unregisterSignalHandler(interfaceName, signalName_);
     }
@@ -719,15 +719,54 @@ namespace sdbus {
     {
     }
 
-    inline sdbus::Variant PropertyGetter::onInterface(const std::string& interfaceName)
+    inline Variant PropertyGetter::onInterface(const std::string& interfaceName)
     {
-        sdbus::Variant var;
-        proxy_
-            .callMethod("Get")
-            .onInterface("org.freedesktop.DBus.Properties")
-            .withArguments(interfaceName, propertyName_)
-            .storeResultsTo(var);
+        Variant var;
+        proxy_.callMethod("Get")
+              .onInterface("org.freedesktop.DBus.Properties")
+              .withArguments(interfaceName, propertyName_)
+              .storeResultsTo(var);
         return var;
+    }
+
+    /*** ------------------- ***/
+    /*** AsyncPropertyGetter ***/
+    /*** ------------------- ***/
+
+    inline AsyncPropertyGetter::AsyncPropertyGetter(IProxy& proxy, const std::string& propertyName)
+            : proxy_(proxy)
+            , propertyName_(propertyName)
+    {
+    }
+
+    inline AsyncPropertyGetter& AsyncPropertyGetter::onInterface(const std::string& interfaceName)
+    {
+        interfaceName_ = &interfaceName;
+
+        return *this;
+    }
+
+    template <typename _Function>
+    PendingAsyncCall AsyncPropertyGetter::uponReplyInvoke(_Function&& callback)
+    {
+        static_assert(std::is_invocable_r_v<void, _Function, const Error*, Variant>, "Property get callback function must accept Error* and property value as Variant");
+
+        assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
+
+        return proxy_.callMethodAsync("Get")
+                     .onInterface("org.freedesktop.DBus.Properties")
+                     .withArguments(*interfaceName_, propertyName_)
+                     .uponReplyInvoke(std::forward<_Function>(callback));
+    }
+
+    inline std::future<Variant> AsyncPropertyGetter::getResultAsFuture()
+    {
+        assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
+
+        return proxy_.callMethodAsync("Get")
+                     .onInterface("org.freedesktop.DBus.Properties")
+                     .withArguments(*interfaceName_, propertyName_)
+                     .getResultAsFuture<Variant>();
     }
 
     /*** -------------- ***/
@@ -740,9 +779,9 @@ namespace sdbus {
     {
     }
 
-    inline PropertySetter& PropertySetter::onInterface(std::string interfaceName)
+    inline PropertySetter& PropertySetter::onInterface(const std::string& interfaceName)
     {
-        interfaceName_ = std::move(interfaceName);
+        interfaceName_ = &interfaceName;
 
         return *this;
     }
@@ -750,18 +789,74 @@ namespace sdbus {
     template <typename _Value>
     inline void PropertySetter::toValue(const _Value& value)
     {
-        PropertySetter::toValue(sdbus::Variant{value});
+        PropertySetter::toValue(Variant{value});
     }
 
-    inline void PropertySetter::toValue(const sdbus::Variant& value)
+    inline void PropertySetter::toValue(const Variant& value)
     {
-        assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
+        assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
 
-        proxy_
-            .callMethod("Set")
-            .onInterface("org.freedesktop.DBus.Properties")
-            .withArguments(interfaceName_, propertyName_, value);
+        proxy_.callMethod("Set")
+              .onInterface("org.freedesktop.DBus.Properties")
+              .withArguments(*interfaceName_, propertyName_, value);
     }
+
+    /*** ------------------- ***/
+    /*** AsyncPropertySetter ***/
+    /*** ------------------- ***/
+
+    inline AsyncPropertySetter::AsyncPropertySetter(IProxy& proxy, const std::string& propertyName)
+            : proxy_(proxy)
+            , propertyName_(propertyName)
+    {
+    }
+
+    inline AsyncPropertySetter& AsyncPropertySetter::onInterface(const std::string& interfaceName)
+    {
+        interfaceName_ = &interfaceName;
+
+        return *this;
+    }
+
+    template <typename _Value>
+    inline void AsyncPropertySetter::toValue(_Value&& value)
+    {
+        AsyncPropertySetter::toValue(Variant{std::forward<_Value>(value)});
+    }
+
+    inline void AsyncPropertySetter::toValue(Variant value)
+    {
+        value_ = std::move(value);
+    }
+
+    template <typename _Function>
+    PendingAsyncCall AsyncPropertySetter::uponReplyInvoke(_Function&& callback)
+    {
+        static_assert(std::is_invocable_r_v<void, _Function, const Error*>, "Property set callback function must accept Error* only");
+
+        assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
+
+        return proxy_.callMethodAsync("Set")
+                     .onInterface("org.freedesktop.DBus.Properties")
+                     .withArguments(interfaceName_, propertyName_, std::move(value_))
+                     .uponReplyInvoke(std::forward<_Function>(callback));
+    }
+
+    inline std::future<void> AsyncPropertySetter::getResultAsFuture()
+    {
+        assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
+
+        return proxy_.callMethodAsync("Set")
+                     .onInterface("org.freedesktop.DBus.Properties")
+                     .withArguments(*interfaceName_, propertyName_)
+                     .getResultAsFuture<>();
+    }
+
+//    TODO: 1. Extend DBus Properties Proxy with overloads sdbus::async and sdbus::with_future.
+//          2. Write tests for these async getters and setters
+//          3. Write codegen for these cases.
+//          4. Potentially add GetAll convenience function classes here? (and rewrite what is done in Adaptor)
+//          5. Document and ship!
 
 }
 

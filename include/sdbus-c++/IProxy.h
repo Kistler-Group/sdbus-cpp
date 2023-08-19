@@ -278,6 +278,9 @@ namespace sdbus {
          */
         [[nodiscard]] PropertyGetter getProperty(const std::string& propertyName);
 
+        // TODO: Docs
+        [[nodiscard]] AsyncPropertyGetter getPropertyAsync(const std::string& propertyName);
+
         /*!
          * @brief Sets value of a property of the proxied D-Bus object
          *
@@ -296,6 +299,9 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         [[nodiscard]] PropertySetter setProperty(const std::string& propertyName);
+
+        // TODO: docs
+        [[nodiscard]] AsyncPropertySetter setPropertyAsync(const std::string& propertyName);
 
         /*!
          * @brief Provides D-Bus connection used by the proxy
@@ -445,9 +451,19 @@ namespace sdbus {
         return PropertyGetter(*this, propertyName);
     }
 
+    inline AsyncPropertyGetter IProxy::getPropertyAsync(const std::string& propertyName)
+    {
+        return AsyncPropertyGetter(*this, propertyName);
+    }
+
     inline PropertySetter IProxy::setProperty(const std::string& propertyName)
     {
         return PropertySetter(*this, propertyName);
+    }
+
+    inline AsyncPropertySetter IProxy::setPropertyAsync(const std::string& propertyName)
+    {
+        return AsyncPropertySetter(*this, propertyName);
     }
 
     /*!
