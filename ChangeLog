@@ -216,3 +216,19 @@ v1.2.0
 - Add printer for std::chrono in googletest v1.11.0
 - Fix potential undefined behavior in creation of sdbus::Error
 - Additional little fixes and improvements in code, build system, and documentation
+
+v1.3.0
+- Add support for light-weight proxies (proxies without own event loop threads)
+- Extend documentation with explicit mapping between D-Bus and corresponding C++ types
+- Support move semantics in generated adaptor and proxy classes
+- Adaptations for libsystemd v251
+- Fix for proper complete sending of long D-Bus messages by explicitly flushing them
+- Add support for std::future-based async calls
+- Fix race condition in async Proxy::callMethod
+- Fix pseudo-connection static lifetime issue with Phoenix pattern
+- Speed up performance of of serialization of arrays of trivial D-Bus types
+- Make sdbus::Struct a tuple-like class, so it's usable wherever std::tuple is
+- Add support for std::array, std::span and std::unordered_map as additional C++ types for D-Bus array types
+- Add support for libelogind as an addition to libsystemd
+- Add support for std::future-based async methods in codegen tool
+- Additional little fixes and improvements in code, build system, CI, and documentation
