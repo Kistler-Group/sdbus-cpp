@@ -792,6 +792,12 @@ namespace sdbus {
         PropertySetter::toValue(Variant{value});
     }
 
+    template <typename _Value>
+    inline void PropertySetter::toValue(const _Value& value, dont_expect_reply_t)
+    {
+        PropertySetter::toValue(Variant{value}, dont_expect_reply);
+    }
+
     inline void PropertySetter::toValue(const Variant& value)
     {
         assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
@@ -799,6 +805,16 @@ namespace sdbus {
         proxy_.callMethod("Set")
               .onInterface("org.freedesktop.DBus.Properties")
               .withArguments(*interfaceName_, propertyName_, value);
+    }
+
+    inline void PropertySetter::toValue(const Variant& value, dont_expect_reply_t)
+    {
+        assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
+
+        proxy_.callMethod("Set")
+                .onInterface("org.freedesktop.DBus.Properties")
+                .withArguments(*interfaceName_, propertyName_, value)
+                .dontExpectReply();
     }
 
     /*** ------------------- ***/
@@ -819,14 +835,16 @@ namespace sdbus {
     }
 
     template <typename _Value>
-    inline void AsyncPropertySetter::toValue(_Value&& value)
+    inline AsyncPropertySetter& AsyncPropertySetter::toValue(_Value&& value)
     {
-        AsyncPropertySetter::toValue(Variant{std::forward<_Value>(value)});
+        return AsyncPropertySetter::toValue(Variant{std::forward<_Value>(value)});
     }
 
-    inline void AsyncPropertySetter::toValue(Variant value)
+    inline AsyncPropertySetter& AsyncPropertySetter::toValue(Variant value)
     {
         value_ = std::move(value);
+
+        return *this;
     }
 
     template <typename _Function>

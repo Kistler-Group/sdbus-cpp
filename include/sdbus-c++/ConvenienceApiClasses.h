@@ -263,7 +263,9 @@ namespace sdbus {
         PropertySetter(IProxy& proxy, const std::string& propertyName);
         PropertySetter& onInterface(const std::string& interfaceName);
         template <typename _Value> void toValue(const _Value& value);
+        template <typename _Value> void toValue(const _Value& value, dont_expect_reply_t);
         void toValue(const Variant& value);
+        void toValue(const Variant& value, dont_expect_reply_t);
 
     private:
         IProxy& proxy_;
@@ -276,8 +278,8 @@ namespace sdbus {
     public:
         AsyncPropertySetter(IProxy& proxy, const std::string& propertyName);
         AsyncPropertySetter& onInterface(const std::string& interfaceName);
-        template <typename _Value> void toValue(_Value&& value);
-        void toValue(Variant value);
+        template <typename _Value> AsyncPropertySetter& toValue(_Value&& value);
+        AsyncPropertySetter& toValue(Variant value);
         template <typename _Function> PendingAsyncCall uponReplyInvoke(_Function&& callback);
         std::future<void> getResultAsFuture();
 
