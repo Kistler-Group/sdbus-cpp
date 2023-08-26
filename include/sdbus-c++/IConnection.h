@@ -458,6 +458,18 @@ namespace sdbus {
      * @throws sdbus::Error in case of failure
      */
     [[nodiscard]] std::unique_ptr<sdbus::IConnection> createRemoteSystemBusConnection(const std::string& host);
+
+    /*!
+     * @brief Creates/opens a peer-to-peer D-Bus connection at a custom address
+     *
+     * @param[in] address ";"-separated list of addresses to try to connect
+     * @return Connection instance
+     *
+     * @throws sdbus::Error in case of failure
+     *
+     * Consult manual pages for `sd_bus_set_address` of the underlying sd-bus library for more information.
+     */
+    [[nodiscard]] std::unique_ptr<sdbus::IConnection> createPeerToPeerConnectionWithAddress(const std::string& address);
 }
 
 #endif /* SDBUS_CXX_ICONNECTION_H_ */

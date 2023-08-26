@@ -227,6 +227,27 @@ int SdBus::sd_bus_open_system_remote(sd_bus **ret, const char *host)
     return ::sd_bus_open_system_remote(ret, host);
 }
 
+int SdBus::sd_bus_open_p2p_with_address(sd_bus **ret, const char* address)
+{
+    sd_bus* bus = nullptr;
+
+    int r = sd_bus_new(&bus);
+    if (r < 0)
+        return r;
+
+    r = sd_bus_set_address(bus, address);
+    if (r < 0)
+        return r;
+
+    r = sd_bus_start(bus);
+    if (r < 0)
+        return r;
+
+    *ret = bus;
+
+    return 0;
+}
+
 int SdBus::sd_bus_request_name(sd_bus *bus, const char *name, uint64_t flags)
 {
     std::lock_guard lock(sdbusMutex_);

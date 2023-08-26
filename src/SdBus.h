@@ -63,6 +63,7 @@ public:
     virtual int sd_bus_open_user(sd_bus **ret) override;
     virtual int sd_bus_open_user_with_address(sd_bus **ret, const char* address) override;
     virtual int sd_bus_open_system_remote(sd_bus **ret, const char* hsot) override;
+    virtual int sd_bus_open_p2p_with_address(sd_bus **ret, const char* address) override;
     virtual int sd_bus_request_name(sd_bus *bus, const char *name, uint64_t flags) override;
     virtual int sd_bus_release_name(sd_bus *bus, const char *name) override;
     virtual int sd_bus_get_unique_name(sd_bus *bus, const char **name) override;

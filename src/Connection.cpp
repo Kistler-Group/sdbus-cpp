@@ -77,6 +77,11 @@ Connection::Connection(std::unique_ptr<ISdBus>&& interface, pseudo_bus_t)
     assert(iface_ != nullptr);
 }
 
+Connection::Connection(std::unique_ptr<ISdBus>&& interface, p2p_bus_t, const std::string& address)
+    : Connection(std::move(interface), [this, &address](sd_bus** bus){ return iface_->sd_bus_open_p2p_with_address(bus, address.c_str()); })
+{
+}
+
 Connection::~Connection()
 {
     Connection::leaveEventLoop();
@@ -669,6 +674,12 @@ std::unique_ptr<sdbus::IConnection> createRemoteSystemBusConnection(const std::s
 {
     auto interface = std::make_unique<sdbus::internal::SdBus>();
     return std::make_unique<sdbus::internal::Connection>(std::move(interface), Connection::remote_system_bus, host);
+}
+
+std::unique_ptr<sdbus::IConnection> createPeerToPeerConnectionWithAddress(const std::string& address)
+{
+    auto interface = std::make_unique<sdbus::internal::SdBus>();
+    return std::make_unique<sdbus::internal::Connection>(std::move(interface), Connection::p2p_bus, address);
 }
 
 } // namespace sdbus
