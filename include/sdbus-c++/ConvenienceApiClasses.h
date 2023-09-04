@@ -290,6 +290,29 @@ namespace sdbus {
         Variant value_;
     };
 
+    class AllPropertiesGetter
+    {
+    public:
+        AllPropertiesGetter(IProxy& proxy);
+        std::map<std::string, Variant> onInterface(const std::string& interfaceName);
+
+    private:
+        IProxy& proxy_;
+    };
+
+    class AsyncAllPropertiesGetter
+    {
+    public:
+        AsyncAllPropertiesGetter(IProxy& proxy);
+        AsyncAllPropertiesGetter& onInterface(const std::string& interfaceName);
+        template <typename _Function> PendingAsyncCall uponReplyInvoke(_Function&& callback);
+        std::future<std::map<std::string, Variant>> getResultAsFuture();
+
+    private:
+        IProxy& proxy_;
+        const std::string* interfaceName_{};
+    };
+
 }
 
 #endif /* SDBUS_CXX_CONVENIENCEAPICLASSES_H_ */

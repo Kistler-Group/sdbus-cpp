@@ -870,11 +870,64 @@ namespace sdbus {
                      .getResultAsFuture<>();
     }
 
-//    TODO: 1. Extend DBus Properties Proxy with overloads sdbus::async and sdbus::with_future.
-//          2. Write tests for these async getters and setters
-//          3. Write codegen for these cases.
-//          4. Potentially add GetAll convenience function classes here? (and rewrite what is done in Adaptor)
-//          5. Document and ship!
+    /*** ------------------- ***/
+    /*** AllPropertiesGetter ***/
+    /*** ------------------- ***/
+
+    inline AllPropertiesGetter::AllPropertiesGetter(IProxy& proxy)
+            : proxy_(proxy)
+    {
+    }
+
+    inline std::map<std::string, Variant> AllPropertiesGetter::onInterface(const std::string& interfaceName)
+    {
+        std::map<std::string, Variant> props;
+        proxy_.callMethod("GetAll")
+                .onInterface("org.freedesktop.DBus.Properties")
+                .withArguments(interfaceName)
+                .storeResultsTo(props);
+        return props;
+    }
+
+    /*** ------------------------ ***/
+    /*** AsyncAllPropertiesGetter ***/
+    /*** ------------------------ ***/
+
+    inline AsyncAllPropertiesGetter::AsyncAllPropertiesGetter(IProxy& proxy)
+            : proxy_(proxy)
+    {
+    }
+
+    inline AsyncAllPropertiesGetter& AsyncAllPropertiesGetter::onInterface(const std::string& interfaceName)
+    {
+        interfaceName_ = &interfaceName;
+
+        return *this;
+    }
+
+    template <typename _Function>
+    PendingAsyncCall AsyncAllPropertiesGetter::uponReplyInvoke(_Function&& callback)
+    {
+        static_assert( std::is_invocable_r_v<void, _Function, const Error*, std::map<std::string, Variant>>
+                     , "All properties get callback function must accept Error* and a map of property names to their values" );
+
+        assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
+
+        return proxy_.callMethodAsync("GetAll")
+                     .onInterface("org.freedesktop.DBus.Properties")
+                     .withArguments(*interfaceName_)
+                     .uponReplyInvoke(std::forward<_Function>(callback));
+    }
+
+    inline std::future<std::map<std::string, Variant>> AsyncAllPropertiesGetter::getResultAsFuture()
+    {
+        assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
+
+        return proxy_.callMethodAsync("GetAll")
+                     .onInterface("org.freedesktop.DBus.Properties")
+                     .withArguments(*interfaceName_)
+                     .getResultAsFuture<std::map<std::string, Variant>>();
+    }
 
 }
 

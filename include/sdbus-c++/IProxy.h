@@ -303,6 +303,12 @@ namespace sdbus {
         // TODO: docs
         [[nodiscard]] AsyncPropertySetter setPropertyAsync(const std::string& propertyName);
 
+        // TODO: Docs
+        [[nodiscard]] AllPropertiesGetter getAllProperties();
+
+        // TODO: Docs
+        [[nodiscard]] AsyncAllPropertiesGetter getAllPropertiesAsync();
+
         /*!
          * @brief Provides D-Bus connection used by the proxy
          *
@@ -464,6 +470,16 @@ namespace sdbus {
     inline AsyncPropertySetter IProxy::setPropertyAsync(const std::string& propertyName)
     {
         return AsyncPropertySetter(*this, propertyName);
+    }
+
+    inline AllPropertiesGetter IProxy::getAllProperties()
+    {
+        return AllPropertiesGetter(*this);
+    }
+
+    inline AsyncAllPropertiesGetter IProxy::getAllPropertiesAsync()
+    {
+        return AsyncAllPropertiesGetter(*this);
     }
 
     /*!

@@ -172,9 +172,18 @@ namespace sdbus {
 
         std::map<std::string, sdbus::Variant> GetAll(const std::string& interfaceName)
         {
-            std::map<std::string, sdbus::Variant> props;
-            proxy_->callMethod("GetAll").onInterface(INTERFACE_NAME).withArguments(interfaceName).storeResultsTo(props);
-            return props;
+            return proxy_->getAllProperties().onInterface(interfaceName);
+        }
+
+        template <typename _Function>
+        PendingAsyncCall GetAllAsync(const std::string& interfaceName, _Function&& callback)
+        {
+            return proxy_->getAllPropertiesAsync().onInterface(interfaceName).uponReplyInvoke(std::forward<_Function>(callback));
+        }
+
+        std::future<std::map<std::string, sdbus::Variant>> GetAllAsync(const std::string& interfaceName, with_future_t)
+        {
+            return proxy_->getAllPropertiesAsync().onInterface(interfaceName).getResultAsFuture();
         }
 
     private:
