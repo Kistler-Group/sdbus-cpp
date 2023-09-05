@@ -856,7 +856,7 @@ namespace sdbus {
 
         return proxy_.callMethodAsync("Set")
                      .onInterface("org.freedesktop.DBus.Properties")
-                     .withArguments(interfaceName_, propertyName_, std::move(value_))
+                     .withArguments(*interfaceName_, propertyName_, std::move(value_))
                      .uponReplyInvoke(std::forward<_Function>(callback));
     }
 
@@ -866,7 +866,7 @@ namespace sdbus {
 
         return proxy_.callMethodAsync("Set")
                      .onInterface("org.freedesktop.DBus.Properties")
-                     .withArguments(*interfaceName_, propertyName_)
+                     .withArguments(*interfaceName_, propertyName_, std::move(value_))
                      .getResultAsFuture<>();
     }
 
