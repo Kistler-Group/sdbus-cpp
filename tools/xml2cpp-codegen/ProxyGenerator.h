@@ -73,7 +73,7 @@ private:
      * @param properties
      * @return source code
      */
-    std::string processProperties(const sdbuscpp::xml::Nodes& properties) const;
+    std::tuple<std::string, std::string> processProperties(const sdbuscpp::xml::Nodes& properties) const;
 
 };
 
