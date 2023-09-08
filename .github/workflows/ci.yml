@@ -84,3 +84,18 @@ jobs:
           build/sdbus-c++*.deb
           build/sdbus-c++*.ddeb
         retention-days: 10
+  freebsd-build:
+    name: build (freebsd, clang/libc++, basu)
+    runs-on: macos-12 # until https://github.com/actions/runner/issues/385
+    steps:
+    - uses: actions/checkout@v2
+    - name: Test in FreeBSD VM
+      uses: vmactions/freebsd-vm@v0
+      with:
+        copyback: false
+        usesh: true
+        prepare: |
+          pkg install -y cmake ninja pkgconf basu expat googletest
+        run: |
+          cmake -B _build -G Ninja -DBUILD_CODE_GEN=ON -DBUILD_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON
+          cmake --build _build
