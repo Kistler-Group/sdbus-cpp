@@ -12,7 +12,7 @@ include(GNUInstallDirs) # Installation directories for `install` command and pkg
 # PERFORMING CHECKS & PREPARING THE DEPENDENCIES
 #-------------------------------
 
-set(LIBSYSTEMD "libsystemd")
+set(LIBSYSTEMD "systemd")
 
 option(BUILD_LIBSYSTEMD "Build libsystemd static library and incorporate it into libsdbus-c++" OFF)
 
@@ -23,7 +23,7 @@ if(NOT BUILD_LIBSYSTEMD)
         message(WARNING "libsystemd not found, checking for libelogind instead")
         pkg_check_modules(Systemd IMPORTED_TARGET GLOBAL libelogind>=236)
         if(TARGET PkgConfig::Systemd)
-            set(LIBSYSTEMD "libelogind")
+            set(LIBSYSTEMD "elogind")
             string(REPLACE "." ";" VERSION_LIST ${Systemd_VERSION})
             list(GET VERSION_LIST 0 Systemd_VERSION)
         endif()
@@ -116,7 +116,10 @@ endif()
 
 # Having an object target allows unit tests to reuse already built sources without re-building
 add_library(sdbus-c++-objlib OBJECT ${SDBUSCPP_SRCS})
-target_compile_definitions(sdbus-c++-objlib PRIVATE BUILD_LIB=1 LIBSYSTEMD_VERSION=${LIBSYSTEMD_VERSION})
+target_compile_definitions(sdbus-c++-objlib PRIVATE
+    BUILD_LIB=1
+    LIBSYSTEMD_VERSION=${LIBSYSTEMD_VERSION}
+    SDBUS_HEADER=<${LIBSYSTEMD}/sd-bus.h>)
 target_include_directories(sdbus-c++-objlib PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                                    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>)
 if(DEFINED BUILD_SHARED_LIBS)

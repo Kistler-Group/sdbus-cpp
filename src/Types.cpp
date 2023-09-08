@@ -27,7 +27,7 @@
 #include <sdbus-c++/Types.h>
 #include <sdbus-c++/Error.h>
 #include "MessageUtils.h"
-#include <systemd/sd-bus.h>
+#include SDBUS_HEADER
 #include <cassert>
 
 namespace sdbus {

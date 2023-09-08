@@ -31,7 +31,7 @@
 #include <sdbus-c++/Message.h>
 #include <sdbus-c++/Error.h>
 #include "ScopeGuard.h"
-#include <systemd/sd-bus.h>
+#include SDBUS_HEADER
 #include <unistd.h>
 #include <poll.h>
 #include <sys/eventfd.h>
