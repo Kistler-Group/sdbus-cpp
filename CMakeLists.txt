@@ -26,6 +26,12 @@ if(NOT BUILD_LIBSYSTEMD)
             set(LIBSYSTEMD "elogind")
             string(REPLACE "." ";" VERSION_LIST ${Systemd_VERSION})
             list(GET VERSION_LIST 0 Systemd_VERSION)
+	else()
+            message(WARNING "libelogind not found, checking for basu instead")
+            pkg_check_modules(Systemd IMPORTED_TARGET GLOBAL basu)
+            set(LIBSYSTEMD "basu")
+            # https://git.sr.ht/~emersion/basu/commit/d4d185d29a26
+            set(Systemd_VERSION "240")
         endif()
     endif()
     if(NOT TARGET PkgConfig::Systemd)
@@ -119,6 +125,7 @@ add_library(sdbus-c++-objlib OBJECT ${SDBUSCPP_SRCS})
 target_compile_definitions(sdbus-c++-objlib PRIVATE
     BUILD_LIB=1
     LIBSYSTEMD_VERSION=${LIBSYSTEMD_VERSION}
+    SDBUS_${LIBSYSTEMD}
     SDBUS_HEADER=<${LIBSYSTEMD}/sd-bus.h>)
 target_include_directories(sdbus-c++-objlib PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                                    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>)
