@@ -29,6 +29,7 @@
 
 #include <sdbus-c++/Message.h>
 #include <sdbus-c++/TypeTraits.h>
+#include <sdbus-c++/Types.h>
 #include <sdbus-c++/Flags.h>
 #include <string>
 #include <vector>
@@ -41,7 +42,6 @@
 namespace sdbus {
     class IObject;
     class IProxy;
-    class Variant;
     class Error;
     class PendingAsyncCall;
 }
@@ -225,7 +225,7 @@ namespace sdbus {
     {
     public:
         SignalUnsubscriber(IProxy& proxy, const std::string& signalName);
-        void onInterface(std::string interfaceName);
+        void onInterface(const std::string& interfaceName);
 
     private:
         IProxy& proxy_;
@@ -236,25 +236,81 @@ namespace sdbus {
     {
     public:
         PropertyGetter(IProxy& proxy, const std::string& propertyName);
-        sdbus::Variant onInterface(const std::string& interfaceName);
+        Variant onInterface(const std::string& interfaceName);
 
     private:
         IProxy& proxy_;
         const std::string& propertyName_;
     };
 
-    class PropertySetter
+    class AsyncPropertyGetter
     {
     public:
-        PropertySetter(IProxy& proxy, const std::string& propertyName);
-        PropertySetter& onInterface(std::string interfaceName);
-        template <typename _Value> void toValue(const _Value& value);
-        void toValue(const sdbus::Variant& value);
+        AsyncPropertyGetter(IProxy& proxy, const std::string& propertyName);
+        AsyncPropertyGetter& onInterface(const std::string& interfaceName);
+        template <typename _Function> PendingAsyncCall uponReplyInvoke(_Function&& callback);
+        std::future<Variant> getResultAsFuture();
 
     private:
         IProxy& proxy_;
         const std::string& propertyName_;
-        std::string interfaceName_;
+        const std::string* interfaceName_{};
+    };
+
+    class PropertySetter
+    {
+    public:
+        PropertySetter(IProxy& proxy, const std::string& propertyName);
+        PropertySetter& onInterface(const std::string& interfaceName);
+        template <typename _Value> void toValue(const _Value& value);
+        template <typename _Value> void toValue(const _Value& value, dont_expect_reply_t);
+        void toValue(const Variant& value);
+        void toValue(const Variant& value, dont_expect_reply_t);
+
+    private:
+        IProxy& proxy_;
+        const std::string& propertyName_;
+        const std::string* interfaceName_{};
+    };
+
+    class AsyncPropertySetter
+    {
+    public:
+        AsyncPropertySetter(IProxy& proxy, const std::string& propertyName);
+        AsyncPropertySetter& onInterface(const std::string& interfaceName);
+        template <typename _Value> AsyncPropertySetter& toValue(_Value&& value);
+        AsyncPropertySetter& toValue(Variant value);
+        template <typename _Function> PendingAsyncCall uponReplyInvoke(_Function&& callback);
+        std::future<void> getResultAsFuture();
+
+    private:
+        IProxy& proxy_;
+        const std::string& propertyName_;
+        const std::string* interfaceName_{};
+        Variant value_;
+    };
+
+    class AllPropertiesGetter
+    {
+    public:
+        AllPropertiesGetter(IProxy& proxy);
+        std::map<std::string, Variant> onInterface(const std::string& interfaceName);
+
+    private:
+        IProxy& proxy_;
+    };
+
+    class AsyncAllPropertiesGetter
+    {
+    public:
+        AsyncAllPropertiesGetter(IProxy& proxy);
+        AsyncAllPropertiesGetter& onInterface(const std::string& interfaceName);
+        template <typename _Function> PendingAsyncCall uponReplyInvoke(_Function&& callback);
+        std::future<std::map<std::string, Variant>> getResultAsFuture();
+
+    private:
+        IProxy& proxy_;
+        const std::string* interfaceName_{};
     };
 
 }

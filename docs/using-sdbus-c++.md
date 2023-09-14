@@ -1256,9 +1256,67 @@ Annotate the element with `org.freedesktop.DBus.Method.Timeout` in order to spec
 Using D-Bus properties
 ----------------------
 
+sdbus-c++ provides functionality for convenient working with D-Bus properties, on both convenience and generated code API level.
+
+### Convenience API
+
+Let's say a remote D-Bus object provides property `status` of type `u` under interface `org.sdbuscpp.Concatenator`.
+
+#### Reading a property
+
+We read property value easily through `IProxy::getProperty()` method:
+
+```c++
+uint32_t status = proxy->getProperty("status").onInterface("org.sdbuscpp.Concatenator");
+```
+
+Getting a property in asynchronous manner is also possible, in both callback-based and future-based way, by calling `IProxy::getPropertyAsync()` method:
+
+```c++
+// Callback-based method:
+auto callback = [](const sdbus::Error* err, sdbus::Variant value)
+{
+    std::cout << "Got property value: " << value.get<uint32_t>() << std::endl;
+};
+uint32_t status = proxy->getPropertyAsync("status").onInterface("org.sdbuscpp.Concatenator").uponReplyInvoke(std::move(callback));
+// Future-based method:
+std::future<sdbus::Variant> statusFuture = object.getPropertyAsync("status").onInterface("org.sdbuscpp.Concatenator").getResultAsFuture();
+...
+std::cout << "Got property value: " << statusFuture.get().get<uint32_t>() << std::endl;
+```
+
+More information on `error` callback handler parameter, on behavior of `future` in erroneous situations, can be found in section [Asynchronous client-side methods](#asynchronous-client-side-methods).
+
+#### Writing a property
+
+Writing a property is equally simple, through `IProxy::setProperty()`:
+
+```c++
+uint32_t status = ...;
+proxy->setProperty("status").onInterface("org.sdbuscpp.Concatenator").toValue(status);
+```
+
+Setting a property in asynchronous manner is also possible, in both callback-based and future-based way, by calling `IProxy::setPropertyAsync()` method:
+
+```c++
+// Callback-based method:
+auto callback = [](const sdbus::Error* err) { /*... Error handling in case err is non-null...*/ };
+uint32_t status = proxy->setPropertyAsync("status").onInterface("org.sdbuscpp.Concatenator").toValue(status).uponReplyInvoke(std::move(callback));
+// Future-based method:
+std::future<void> statusFuture = object.setPropertyAsync("status").onInterface("org.sdbuscpp.Concatenator").getResultAsFuture();
+```
+
+More information on `error` callback handler parameter, on behavior of `future` in erroneous situations, can be found in section [Asynchronous client-side methods](#asynchronous-client-side-methods).
+
+#### Getting all properties
+
+In a very analogous way, with both synchronous and asynchronous options, it's possible to read all properties of an object under given interface at once. `IProxy::getAllProperties()` is what you're looking for.
+
+### Generated bindings API
+
 Defining and working with D-Bus properties using XML description is quite easy.
 
-### Defining a property in the IDL
+#### Defining a property in the IDL
 
 A property element has no arg child element. It just has the attributes name, type and access, which are all mandatory. The access attribute allows the values ‘readwrite’, ‘read’, and ‘write’.
 
@@ -1276,7 +1334,9 @@ An example of a read-write property `status`:
 </node>
 ```
 
-### Generated C++ bindings
+The property may also have annotations. In addition to standard annotations defined in D-Bus specification, there are sdbus-c++-specific ones, discussed further below.
+
+#### Generated C++ bindings
 
 This is how generated adaptor and proxy classes would look like with the read-write `status` property. The adaptor:
 
@@ -1329,7 +1389,60 @@ public:
 };
 ```
 
-When implementing the adaptor, we simply need to provide the body for `status` getter and setter method by overriding them. Then in the proxy, we just call them.
+When implementing the adaptor, we simply need to provide the body for the `status` getter and setter methods by overriding them. Then in the proxy, we just call them.
+
+#### Client-side asynchronous properties
+
+We can mark the property so that the generator generates either asynchronous variant of getter method, or asynchronous variant of setter method, or both. Annotations names are `org.freedesktop.DBus.Property.Get.Async`, or `org.freedesktop.DBus.Property.Set.Async`, respectively. Their values must be set to `client`.
+
+In addition, we can choose through annotations `org.freedesktop.DBus.Property.Get.Async.ClientImpl`, or `org.freedesktop.DBus.Property.Set.Async.ClientImpl`, respectively, whether a callback-based or future-based variant will be generated. The concept is analogous to the one for asynchronous D-Bus methods described above in this document.
+
+The callback-based method will generate a pure virtual function `On<PropertyName>Property[Get|Set]Reply()`, which must be overridden by the derived class.
+
+For example, this description:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<node name="/org/sdbuscpp/propertyprovider">
+    <interface name="org.sdbuscpp.PropertyProvider">
+        <!--...-->
+        <property name="status" type="u" access="readwrite">
+            <annotation name="org.freedesktop.DBus.Property.Get.Async" value="client"/>
+            <annotation name="org.freedesktop.DBus.Property.Get.Async.ClientImpl" value="callback"/>
+        </property>
+        <!--...-->
+    </interface>
+</node>
+```
+
+will get generated into this C++ code on client side:
+
+```cpp
+class PropertyProvider_proxy
+{
+    /*...*/
+
+    virtual void onStatusPropertyGetReply(const uint32_t& value, const sdbus::Error* error) = 0;
+
+public:
+    // getting the property value
+    sdbus::PendingAsyncCall status()
+    {
+        return object_->getPropertyAsync("status").onInterface(INTERFACE_NAME).uponReplyInvoke([this](const sdbus::Error* error, const sdbus::Variant& value){ this->onActionPropertyGetReply(value.get<uint32_t>(), error); });
+    }
+
+    // setting the property value
+    void status(const uint32_t& value)
+    {
+        object_->setProperty("status").onInterface(INTERFACE_NAME).toValue(value);
+    }
+
+    /*...*/
+};
+```
+
+In addition to custom generated code for getting/setting properties, `org.freedesktop.DBus.Properties` standard D-Bus interface, implemented through pre-defined `sdbus::Properties_proxy` in `sdbus-c++/StandardInterfaces.h`, can also be used for reading/writing properties. See next section.
 
 Standard D-Bus interfaces
 -------------------------

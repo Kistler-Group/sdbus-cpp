@@ -93,6 +93,9 @@ namespace sdbus {
     // Tag denoting an asynchronous call that returns std::future as a handle
     struct with_future_t { explicit with_future_t() = default; };
     inline constexpr with_future_t with_future{};
+    // Tag denoting a call where the reply shouldn't be waited for
+    struct dont_expect_reply_t { explicit dont_expect_reply_t() = default; };
+    inline constexpr dont_expect_reply_t dont_expect_reply{};
 
     // Template specializations for getting D-Bus signatures from C++ types
     template <typename _T>
