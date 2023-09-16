@@ -29,7 +29,7 @@
 
 #include <sdbus-c++/IObject.h>
 #include "IConnection.h"
-#include SDBUS_HEADER
+#include <systemd/sd-bus.h>
 #include <string>
 #include <map>
 #include <vector>

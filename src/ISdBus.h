@@ -28,7 +28,7 @@
 #ifndef SDBUS_CXX_ISDBUS_H
 #define SDBUS_CXX_ISDBUS_H
 
-#include SDBUS_HEADER
+#include <systemd/sd-bus.h>
 
 namespace sdbus::internal {
 

@@ -224,12 +224,7 @@ int SdBus::sd_bus_open_user_with_address(sd_bus **ret, const char* address)
 
 int SdBus::sd_bus_open_system_remote(sd_bus **ret, const char *host)
 {
-#ifdef SDBUS_basu
-    // https://git.sr.ht/~emersion/basu/commit/01d33b244eb6
-    return -EOPNOTSUPP;
-#else
     return ::sd_bus_open_system_remote(ret, host);
-#endif
 }
 
 int SdBus::sd_bus_request_name(sd_bus *bus, const char *name, uint64_t flags)

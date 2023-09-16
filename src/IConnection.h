@@ -28,7 +28,7 @@
 #define SDBUS_CXX_INTERNAL_ICONNECTION_H_
 
 #include <sdbus-c++/IConnection.h>
-#include SDBUS_HEADER
+#include <systemd/sd-bus.h>
 #include <string>
 #include <memory>
 #include <functional>

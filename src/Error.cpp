@@ -25,7 +25,7 @@
  */
 
 #include <sdbus-c++/Error.h>
-#include SDBUS_HEADER
+#include <systemd/sd-bus.h>
 #include "ScopeGuard.h"
 
 namespace sdbus

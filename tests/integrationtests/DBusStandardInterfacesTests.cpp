@@ -61,9 +61,12 @@ TEST_F(SdbusTestObject, PingsViaPeerInterface)
 
 TEST_F(SdbusTestObject, AnswersMachineUuidViaPeerInterface)
 {
-    if (::access("/etc/machine-id", F_OK) == -1 &&
-        ::access("/var/lib/dbus/machine-id", F_OK) == -1)
-        GTEST_SKIP() << "/etc/machine-id and /var/lib/dbus/machine-id files do not exist, GetMachineId() will not work";
+    // If /etc/machine-id does not exist in your system (which is very likely because you have
+    // a non-systemd Linux), org.freedesktop.DBus.Peer.GetMachineId() will not work. To solve
+    // this, you can create /etc/machine-id yourself as symlink to /var/lib/dbus/machine-id,
+    // and then org.freedesktop.DBus.Peer.GetMachineId() will start to work.
+    if (::access("/etc/machine-id", F_OK) == -1)
+        GTEST_SKIP() << "/etc/machine-id file does not exist, GetMachineId() will not work";
 
     ASSERT_NO_THROW(m_proxy->GetMachineId());
 }
