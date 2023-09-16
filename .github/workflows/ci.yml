@@ -99,3 +99,7 @@ jobs:
         run: |
           cmake -B _build -G Ninja -DBUILD_CODE_GEN=ON -DBUILD_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON
           cmake --build _build
+          cmake --install _build
+          pkg install -y dbus
+          service dbus onestart
+          ctest --output-on-failure --test-dir _build
