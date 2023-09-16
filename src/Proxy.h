@@ -29,7 +29,7 @@
 
 #include <sdbus-c++/IProxy.h>
 #include "IConnection.h"
-#include <systemd/sd-bus.h>
+#include SDBUS_HEADER
 #include <string>
 #include <memory>
 #include <map>

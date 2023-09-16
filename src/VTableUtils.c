@@ -25,7 +25,7 @@
  */
 
 #include "VTableUtils.h"
-#include <systemd/sd-bus.h>
+#include SDBUS_HEADER
 
 sd_bus_vtable createVTableStartItem(uint64_t flags)
 {
