@@ -32,7 +32,7 @@
 #include "IConnection.h"
 #include "ScopeGuard.h"
 #include "ISdBus.h"
-#include <systemd/sd-bus.h>
+#include SDBUS_HEADER
 #include <memory>
 #include <thread>
 #include <string>

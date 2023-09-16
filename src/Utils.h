@@ -28,7 +28,7 @@
 #define SDBUS_CXX_INTERNAL_UTILS_H_
 
 #include <sdbus-c++/Error.h>
-#include <systemd/sd-bus.h>
+#include SDBUS_HEADER
 
 #if LIBSYSTEMD_VERSION>=246
 #define SDBUS_CHECK_OBJECT_PATH(_PATH)                                                                                              \

@@ -31,7 +31,7 @@
 #include "ISdBus.h"
 #include "IConnection.h"
 #include "ScopeGuard.h"
-#include <systemd/sd-bus.h>
+#include SDBUS_HEADER
 #include <cassert>
 
 namespace sdbus {

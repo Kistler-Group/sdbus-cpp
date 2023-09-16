@@ -32,7 +32,7 @@
 #include "sdbus-c++/IConnection.h"
 #include "sdbus-c++/Error.h"
 #include "ScopeGuard.h"
-#include <systemd/sd-bus.h>
+#include SDBUS_HEADER
 #include <cassert>
 #include <chrono>
 #include <utility>

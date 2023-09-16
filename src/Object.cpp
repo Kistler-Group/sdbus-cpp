@@ -35,7 +35,7 @@
 #include "IConnection.h"
 #include "Utils.h"
 #include "VTableUtils.h"
-#include <systemd/sd-bus.h>
+#include SDBUS_HEADER
 #include <utility>
 #include <cassert>
 

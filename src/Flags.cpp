@@ -25,7 +25,7 @@
  */
 
 #include <sdbus-c++/Flags.h>
-#include <systemd/sd-bus.h>
+#include SDBUS_HEADER
 
 namespace sdbus
 {
