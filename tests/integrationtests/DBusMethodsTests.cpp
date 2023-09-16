@@ -277,6 +277,10 @@ TEST_F(SdbusTestObject, CannotSetGeneralMethodTimeoutWithLibsystemdVersionLessTh
 
 TEST_F(SdbusTestObject, CanCallMethodSynchronouslyWithoutAnEventLoopThread)
 {
+#if defined(__clang__) && defined(__FreeBSD__)
+    GTEST_SKIP() << "https://github.com/Kistler-Group/sdbus-cpp/issues/359";
+#endif
+
     auto proxy = std::make_unique<TestProxy>(BUS_NAME, OBJECT_PATH, sdbus::dont_run_event_loop_thread);
 
     auto multiplyRes = proxy->multiply(INT64_VALUE, DOUBLE_VALUE);
