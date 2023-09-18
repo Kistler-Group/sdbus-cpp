@@ -115,7 +115,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(SDBUSCPP_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
 set(SDBUSCPP_VERSION "${PROJECT_VERSION}")
 
-# We promote BUILD_SHARED_LIBS flags to (global) option only if we are the main project
+# We promote the BUILD_SHARED_LIBS flag to a (global) option only if we are the main project
 if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     option(BUILD_SHARED_LIBS "Build shared libraries (.so) instead of static ones (.a)" ON)
 endif()
@@ -129,8 +129,8 @@ target_compile_definitions(sdbus-c++-objlib PRIVATE
     SDBUS_HEADER=<${LIBSYSTEMD}/sd-bus.h>)
 target_include_directories(sdbus-c++-objlib PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                                    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>)
-if(DEFINED BUILD_SHARED_LIBS)
-    set_target_properties(sdbus-c++-objlib PROPERTIES POSITION_INDEPENDENT_CODE ${BUILD_SHARED_LIBS})
+if(BUILD_SHARED_LIBS)
+    set_target_properties(sdbus-c++-objlib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
 if(BUILD_LIBSYSTEMD)
     add_dependencies(sdbus-c++-objlib LibsystemdBuildProject)
