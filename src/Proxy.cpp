@@ -120,7 +120,7 @@ PendingAsyncCall Proxy::callMethod(const MethodCall& message, async_reply_handle
     SDBUS_THROW_ERROR_IF(!message.isValid(), "Invalid async method call message provided", EINVAL);
 
     auto callback = (void*)&Proxy::sdbus_async_reply_handler;
-    auto callData = std::make_shared<AsyncCalls::CallData>(AsyncCalls::CallData{*this, std::move(asyncReplyCallback), {}});
+    auto callData = std::make_shared<AsyncCalls::CallData>(AsyncCalls::CallData{*this, std::move(asyncReplyCallback), {}, AsyncCalls::CallData::STATE_RUNNING});
     auto weakData = std::weak_ptr<AsyncCalls::CallData>{callData};
 
     callData->slot = message.send(callback, callData.get(), timeout);
@@ -162,7 +162,7 @@ MethodReply Proxy::sendMethodCallMessageAndWaitForReply(const MethodCall& messag
         syncCallReplyData.sendMethodReplyToWaitingThread(reply, error);
     };
     auto callback = (void*)&Proxy::sdbus_async_reply_handler;
-    AsyncCalls::CallData callData{*this, std::move(asyncReplyCallback), {}};
+    AsyncCalls::CallData callData{*this, std::move(asyncReplyCallback), {}, AsyncCalls::CallData::STATE_NOT_ASYNC};
 
     message.send(callback, &callData, timeout, floating_slot);
 
@@ -275,14 +275,16 @@ int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userDat
     assert(asyncCallData != nullptr);
     assert(asyncCallData->callback);
     auto& proxy = asyncCallData->proxy;
+    auto state = asyncCallData->state;
 
     // We are removing the CallData item at the complete scope exit, after the callback has been invoked.
     // We can't do it earlier (before callback invocation for example), because CallBack data (slot release)
     // is the synchronization point between callback invocation and Proxy::unregister.
     SCOPE_EXIT
     {
-        // Remove call meta-data if it's a real async call (a sync call done in terms of async has slot == nullptr)
-        proxy.pendingAsyncCalls_.removeCall(asyncCallData);
+        // Remove call meta-data if it's a real async call (a sync call done in terms of async has STATE_NOT_ASYNC)
+        if (state != AsyncCalls::CallData::STATE_NOT_ASYNC)
+            proxy.pendingAsyncCalls_.removeCall(asyncCallData);
     };
 
     auto message = Message::Factory::create<MethodReply>(sdbusMessage, &proxy.connection_->getSdBusInterface());
