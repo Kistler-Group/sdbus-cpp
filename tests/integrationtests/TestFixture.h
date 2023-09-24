@@ -120,7 +120,7 @@ private:
         unlink(DIRECT_CONNECTION_SOCKET_PATH.c_str());
 
         umask(0000);
-        int r = bind(sock, (const sockaddr*) &sa, sizeof(sa.sun_path));
+        [[maybe_unused]] int r = bind(sock, (const sockaddr*) &sa, sizeof(sa.sun_path));
         assert(r >= 0);
 
         r = listen(sock, 5);
