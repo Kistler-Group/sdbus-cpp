@@ -194,26 +194,26 @@ int SdBus::sd_bus_open_user_with_address(sd_bus **ret, const char* address)
 {
     sd_bus* bus = nullptr;
 
-    int r = sd_bus_new(&bus);
+    int r = ::sd_bus_new(&bus);
     if (r < 0)
         return r;
 
-    r = sd_bus_set_address(bus, address);
+    r = ::sd_bus_set_address(bus, address);
     if (r < 0)
         return r;
 
-    r = sd_bus_set_bus_client(bus, true);
+    r = ::sd_bus_set_bus_client(bus, true);
     if (r < 0)
         return r;
 
     // Copying behavior from
     // https://github.com/systemd/systemd/blob/fee6441601c979165ebcbb35472036439f8dad5f/src/libsystemd/sd-bus/sd-bus.c#L1381
     // Here, we make the bus as trusted
-    r = sd_bus_set_trusted(bus, true);
+    r = ::sd_bus_set_trusted(bus, true);
     if (r < 0)
         return r;
 
-    r = sd_bus_start(bus);
+    r = ::sd_bus_start(bus);
     if (r < 0)
         return r;
 
@@ -226,15 +226,36 @@ int SdBus::sd_bus_open_direct(sd_bus **ret, const char* address)
 {
     sd_bus* bus = nullptr;
 
-    int r = sd_bus_new(&bus);
+    int r = ::sd_bus_new(&bus);
     if (r < 0)
         return r;
 
-    r = sd_bus_set_address(bus, address);
+    r = ::sd_bus_set_address(bus, address);
     if (r < 0)
         return r;
 
-    r = sd_bus_start(bus);
+    r = ::sd_bus_start(bus);
+    if (r < 0)
+        return r;
+
+    *ret = bus;
+
+    return 0;
+}
+
+int SdBus::sd_bus_open_direct(sd_bus **ret, int fd)
+{
+    sd_bus* bus = nullptr;
+
+    int r = ::sd_bus_new(&bus);
+    if (r < 0)
+        return r;
+
+    r = ::sd_bus_set_fd(bus, fd, fd);
+    if (r < 0)
+        return r;
+
+    r = ::sd_bus_start(bus);
     if (r < 0)
         return r;
 
@@ -247,7 +268,7 @@ int SdBus::sd_bus_open_server(sd_bus **ret, int fd)
 {
     sd_bus* bus = nullptr;
 
-    int r = sd_bus_new(&bus);
+    int r = ::sd_bus_new(&bus);
     if (r < 0)
         return r;
 
@@ -264,7 +285,7 @@ int SdBus::sd_bus_open_server(sd_bus **ret, int fd)
     if (r < 0)
         return r;
 
-    r = sd_bus_start(bus);
+    r = ::sd_bus_start(bus);
     if (r < 0)
         return r;
 
@@ -316,7 +337,7 @@ int SdBus::sd_bus_add_match(sd_bus *bus, sd_bus_slot **slot, const char *match, 
 {
     std::lock_guard lock(sdbusMutex_);
 
-    return :: sd_bus_add_match(bus, slot, match, callback, userdata);
+    return ::sd_bus_add_match(bus, slot, match, callback, userdata);
 }
 
 sd_bus_slot* SdBus::sd_bus_slot_unref(sd_bus_slot *slot)

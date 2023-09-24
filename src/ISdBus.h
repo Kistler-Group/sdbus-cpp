@@ -72,6 +72,7 @@ namespace sdbus::internal {
         virtual int sd_bus_open_user_with_address(sd_bus **ret, const char* address) = 0;
         virtual int sd_bus_open_system_remote(sd_bus **ret, const char* host) = 0;
         virtual int sd_bus_open_direct(sd_bus **ret, const char* address) = 0;
+        virtual int sd_bus_open_direct(sd_bus **ret, int fd) = 0;
         virtual int sd_bus_open_server(sd_bus **ret, int fd) = 0;
         virtual int sd_bus_request_name(sd_bus *bus, const char *name, uint64_t flags) = 0;
         virtual int sd_bus_release_name(sd_bus *bus, const char *name) = 0;

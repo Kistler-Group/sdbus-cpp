@@ -39,10 +39,6 @@
 #include <future>
 #include <unistd.h>
 #include <variant>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/un.h>
 
 using ::testing::ElementsAre;
 using ::testing::Eq;
@@ -50,6 +46,7 @@ using namespace std::chrono_literals;
 using namespace sdbus::test;
 
 using AConnection = TestFixture;
+using ADirectConnection = TestFixtureWithDirectConnection;
 
 /*-------------------------------------*/
 /* --          TEST CASES           -- */
@@ -149,35 +146,13 @@ TEST_F(AConnection, WillNotPassToMatchCallbackMessagesThatDoNotMatchTheRule)
     ASSERT_FALSE(waitUntil([&](){ return numberOfMatchingMessages > 2; }, 1s));
 }
 
-TEST_F(AConnection, WillCreateDirectConnection)
+// A simple direct connection test similar in nature to https://github.com/systemd/systemd/blob/main/src/libsystemd/sd-bus/test-bus-server.c
+TEST_F(ADirectConnection, CanBeUsedBetweenClientAndServer)
 {
-	int sock = socket(AF_UNIX, SOCK_STREAM|SOCK_CLOEXEC, 0);
-	ASSERT_TRUE(sock >= 0);
+    auto val = m_proxy->sumArrayItems({1, 7}, {2, 3, 4});
+    m_adaptor->emitSimpleSignal();
 
-	sockaddr_un sa;
-	memset(&sa, 0, sizeof(sa));
-	sa.sun_family = AF_UNIX;
-	snprintf(sa.sun_path, sizeof(sa.sun_path), "%s", "/tmp/sdbus-direct-test");
-
-	unlink("/tmp/sdbus-direct-test");
-
-	umask(0000);
-	int r = bind(sock, (const sockaddr*) &sa, sizeof(sa.sun_path));
-	ASSERT_TRUE(r >= 0);
-
-	r = listen(sock, 5);
-	ASSERT_TRUE(r >= 0);
-
-	sdbus::UnixFd newConnection;
-	std::thread t1([&]() {
-		sdbus::UnixFd fd{ accept4(sock, NULL, NULL, SOCK_NONBLOCK|SOCK_CLOEXEC) };
-		newConnection = fd;
-		auto server = sdbus::createServerBus(newConnection.get());
-	});
-	std::thread t2([]() {
-		auto client = sdbus::createDirectBusConnection("unix:path=/tmp/sdbus-direct-test");
-	});
-
-	t1.join();
-	t2.join();
+    // Make sure method call passes and emitted signal is received
+    ASSERT_THAT(val, Eq(1 + 7 + 2 + 3 + 4));
+    ASSERT_TRUE(waitUntil(m_proxy->m_gotSimpleSignal));
 }

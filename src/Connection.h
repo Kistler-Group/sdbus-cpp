@@ -70,6 +70,7 @@ namespace sdbus::internal {
         Connection(std::unique_ptr<ISdBus>&& interface, custom_session_bus_t, const std::string& address);
         Connection(std::unique_ptr<ISdBus>&& interface, remote_system_bus_t, const std::string& host);
         Connection(std::unique_ptr<ISdBus>&& interface, private_bus_t, const std::string& address);
+        Connection(std::unique_ptr<ISdBus>&& interface, private_bus_t, int fd);
         Connection(std::unique_ptr<ISdBus>&& interface, server_bus_t, int fd);
         Connection(std::unique_ptr<ISdBus>&& interface, pseudo_bus_t);
         ~Connection() override;
@@ -102,7 +103,7 @@ namespace sdbus::internal {
                             , void* userData ) override;
 
         PlainMessage createPlainMessage() const override;
-        MethodCall createMethodCall( const std::optional<std::string>& destination
+        MethodCall createMethodCall( const std::string& destination
                                    , const std::string& objectPath
                                    , const std::string& interfaceName
                                    , const std::string& methodName ) const override;
@@ -120,7 +121,7 @@ namespace sdbus::internal {
         void emitInterfacesRemovedSignal( const std::string& objectPath
                                         , const std::vector<std::string>& interfaces ) override;
 
-        Slot registerSignalHandler( const std::optional<std::string>& sender
+        Slot registerSignalHandler( const std::string& sender
                                   , const std::string& objectPath
                                   , const std::string& interfaceName
                                   , const std::string& signalName
@@ -138,7 +139,7 @@ namespace sdbus::internal {
         BusPtr openPseudoBus();
         void finishHandshake(sd_bus* bus);
         bool waitForNextRequest();
-        static std::string composeSignalMatchFilter( const std::optional<std::string>& sender
+        static std::string composeSignalMatchFilter( const std::string &sender
                                                    , const std::string &objectPath
                                                    , const std::string &interfaceName
                                                    , const std::string &signalName);
