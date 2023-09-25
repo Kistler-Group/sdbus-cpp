@@ -562,6 +562,9 @@ namespace sdbus {
      * should make sure that an I/O event loop is running on that connection, so the proxy
      * may receive incoming signals and asynchronous method replies.
      *
+     * The destination parameter may be an empty string (useful e.g. in case of direct
+     * D-Bus connections to a custom server bus).
+     *
      * Code example:
      * @code
      * auto proxy = sdbus::createProxy(connection, "com.kistler.foo", "/com/kistler/foo");
@@ -585,6 +588,9 @@ namespace sdbus {
      * upon that connection in a separate internal thread. Handlers for incoming signals and
      * asynchronous method replies will be executed in the context of that thread.
      *
+     * The destination parameter may be an empty string (useful e.g. in case of direct
+     * D-Bus connections to a custom server bus).
+     *
      * Code example:
      * @code
      * auto proxy = sdbus::createProxy(std::move(connection), "com.kistler.foo", "/com/kistler/foo");
@@ -603,10 +609,14 @@ namespace sdbus {
      * @return Pointer to the object proxy instance
      *
      * The provided connection will be used by the proxy to issue calls against the object.
-     * The Object proxy becomes an exclusive owner of this connection, but will not start an event loop
-     * thread on this connection. This is cheap construction and is suitable for short-lived proxies
-     * created just to execute simple synchronous D-Bus calls and then destroyed. Such blocking request-reply
-     * calls will work without an event loop (but signals, async calls, etc. won't).
+     * The Object proxy becomes an exclusive owner of this connection, but will not start
+     * an event loop thread on this connection. This is cheap construction and is suitable
+     * for short-lived proxies created just to execute simple synchronous D-Bus calls and
+     * then destroyed. Such blocking request-reply calls will work without an event loop
+     * (but signals, async calls, etc. won't).
+     *
+     * The destination parameter may be an empty string (useful e.g. in case of direct
+     * D-Bus connections to a custom server bus).
      *
      * Code example:
      * @code

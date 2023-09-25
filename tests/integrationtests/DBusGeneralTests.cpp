@@ -46,6 +46,7 @@ using namespace std::chrono_literals;
 using namespace sdbus::test;
 
 using AConnection = TestFixture;
+using ADirectConnection = TestFixtureWithDirectConnection;
 
 /*-------------------------------------*/
 /* --          TEST CASES           -- */
@@ -143,4 +144,15 @@ TEST_F(AConnection, WillNotPassToMatchCallbackMessagesThatDoNotMatchTheRule)
 
     ASSERT_TRUE(waitUntil([&](){ return numberOfMatchingMessages == 2; }));
     ASSERT_FALSE(waitUntil([&](){ return numberOfMatchingMessages > 2; }, 1s));
+}
+
+// A simple direct connection test similar in nature to https://github.com/systemd/systemd/blob/main/src/libsystemd/sd-bus/test-bus-server.c
+TEST_F(ADirectConnection, CanBeUsedBetweenClientAndServer)
+{
+    auto val = m_proxy->sumArrayItems({1, 7}, {2, 3, 4});
+    m_adaptor->emitSimpleSignal();
+
+    // Make sure method call passes and emitted signal is received
+    ASSERT_THAT(val, Eq(1 + 7 + 2 + 3 + 4));
+    ASSERT_TRUE(waitUntil(m_proxy->m_gotSimpleSignal));
 }

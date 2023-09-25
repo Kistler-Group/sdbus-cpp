@@ -458,6 +458,45 @@ namespace sdbus {
      * @throws sdbus::Error in case of failure
      */
     [[nodiscard]] std::unique_ptr<sdbus::IConnection> createRemoteSystemBusConnection(const std::string& host);
+
+    /*!
+     * @brief Opens direct D-Bus connection at a custom address
+     *
+     * @param[in] address ";"-separated list of addresses of bus brokers to try to connect to
+     * @return Connection instance
+     *
+     * @throws sdbus::Error in case of failure
+     */
+    [[nodiscard]] std::unique_ptr<sdbus::IConnection> createDirectBusConnection(const std::string& address);
+
+    /*!
+     * @brief Opens direct D-Bus connection at the given file descriptor
+     *
+     * @param[in] fd File descriptor used to communicate directly from/to a D-Bus server
+     * @return Connection instance
+     *
+     * The underlying sdbus-c++ connection instance takes over ownership of fd, so the caller can let it go.
+     * If, however, the call throws an exception, the ownership of fd remains with the caller.
+     *
+     * @throws sdbus::Error in case of failure
+     */
+    [[nodiscard]] std::unique_ptr<sdbus::IConnection> createDirectBusConnection(int fd);
+
+    /*!
+     * @brief Opens direct D-Bus connection at fd as a server
+     *
+     * @param[in] fd File descriptor to use for server DBus connection
+     * @return Server connection instance
+     *
+     * This creates a new, custom bus object in server mode. One can then call createDirectBusConnection()
+     * on client side to connect to this bus.
+     *
+     * The underlying sdbus-c++ connection instance takes over ownership of fd, so the caller can let it go.
+     * If, however, the call throws an exception, the ownership of fd remains with the caller.
+     *
+     * @throws sdbus::Error in case of failure
+     */
+    [[nodiscard]] std::unique_ptr<sdbus::IConnection> createServerBus(int fd);
 }
 
 #endif /* SDBUS_CXX_ICONNECTION_H_ */

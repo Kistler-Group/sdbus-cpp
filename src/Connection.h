@@ -57,6 +57,10 @@ namespace sdbus::internal {
         inline static constexpr custom_session_bus_t custom_session_bus{};
         struct remote_system_bus_t{};
         inline static constexpr remote_system_bus_t remote_system_bus{};
+        struct private_bus_t{};
+        inline static constexpr private_bus_t private_bus{};
+        struct server_bus_t{};
+        inline static constexpr server_bus_t server_bus{};
         struct pseudo_bus_t{}; // A bus connection that is not really established with D-Bus daemon
         inline static constexpr pseudo_bus_t pseudo_bus{};
 
@@ -65,6 +69,9 @@ namespace sdbus::internal {
         Connection(std::unique_ptr<ISdBus>&& interface, session_bus_t);
         Connection(std::unique_ptr<ISdBus>&& interface, custom_session_bus_t, const std::string& address);
         Connection(std::unique_ptr<ISdBus>&& interface, remote_system_bus_t, const std::string& host);
+        Connection(std::unique_ptr<ISdBus>&& interface, private_bus_t, const std::string& address);
+        Connection(std::unique_ptr<ISdBus>&& interface, private_bus_t, int fd);
+        Connection(std::unique_ptr<ISdBus>&& interface, server_bus_t, int fd);
         Connection(std::unique_ptr<ISdBus>&& interface, pseudo_bus_t);
         ~Connection() override;
 
