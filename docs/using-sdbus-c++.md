@@ -21,7 +21,8 @@ Using sdbus-c++ library
 16. [Standard D-Bus interfaces](#standard-d-bus-interfaces)
 17. [Using D-Bus Types](#using-d-bus-types)
 18. [Support for match rules](#support-for-match-rules)
-19. [Conclusion](#conclusion)
+19. [Using direct (peer-to-peer) D-Bus connections](#using-direct-peer-to-peer-d-bus-connections)
+20. [Conclusion](#conclusion)
 
 Introduction
 ------------
@@ -1388,6 +1389,62 @@ Support for match rules
 -----------------------
 
 `IConnection` class provides `addMatch` method that you can use to install match rules. An associated callback handler will be called upon an incoming message matching given match rule. There is support for both client-owned and floating (library-owned) match rules. Consult `IConnection` header or sdbus-c++ doxygen documentation for more information.
+
+Using direct (peer-to-peer) D-Bus connections
+---------------------------------------------
+
+sdbus-c++ provides an API to establish a direct connection between two peers -- between a client and a server, without going via the D-Bus daemon. The methods of interest, which will create a D-Bus server bus, and a client connection to it, respectively, are:
+
+* `sdbus::createServerBus()` creates and returns a new, custom bus object in server mode, out of provided file descriptor parameter.
+* `sdbus::createDirectBusConnection()` opens and returns direct D-Bus connection at the provided custom address(es), or at the provided file descriptor.
+
+Here is an example, extracted from the analogous test case in sdbus-c++ integration tests suite:
+
+```c++
+#include "Concatenator.h"
+#include "ConcatenatorProxy.h"
+#include <sdbus-c++/sdbus-c++.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+
+int main(int argc, char *argv[])
+{
+    int fds[2];
+
+    socketpair(AF_UNIX, SOCK_STREAM, 0, fds);
+
+    std::unique_ptr<sdbus::IConnection> serverConnection;
+    std::unique_ptr<sdbus::IConnection> clientConnection;
+
+    std::thread t([&]()
+    {
+        serverConnection = sdbus::createServerBus(fds[0]);
+        // This is necessary so that createDirectBusConnection() below does not block
+        serverConnection->enterEventLoopAsync();
+    });
+
+    clientConnection = sdbus::createDirectBusConnection(fds[1]);
+    clientConnection->enterEventLoopAsync();
+
+    t.join();
+
+    // We can now use connection objects in a familiar way, e.g. create adaptor and proxy objects on them, and exchange messages.
+    // Here, using Concatenator IDL-generated bindings example from chapters above:
+    const char* objectPath = "/org/sdbuscpp/concatenator";
+    Concatenator concatenator(*serverConnection, objectPath);
+    const char* emptyDestinationName = ""; // Destination may be empty in case of direct connections
+    ConcatenatorProxy concatenatorProxy(*clientConnection, emptyDestinationName, objectPath);
+
+    // Perform call of concatenate D-Bus method
+    std::vector<int> numbers = {1, 2, 3};
+    std::string separator = ":";
+    auto concatenatedString = concatenatorProxy.concatenate(numbers, separator);
+    assert(concatenatedString == "1:2:3");
+
+    clientConnection->leaveEventLoop();
+    serverConnection->leaveEventLoop();
+}
+```
 
 Conclusion
 ----------
