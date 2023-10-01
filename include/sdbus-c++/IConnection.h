@@ -34,6 +34,8 @@
 #include <cstdint>
 #include <optional>
 
+struct sd_bus;
+
 namespace sdbus {
 
     /********************************************//**
@@ -497,6 +499,35 @@ namespace sdbus {
      * @throws sdbus::Error in case of failure
      */
     [[nodiscard]] std::unique_ptr<sdbus::IConnection> createServerBus(int fd);
+
+    /*!
+     * @brief Creates sdbus-c++ bus connection representation out of underlying sd_bus instance
+     *
+     * @param[in] bus File descriptor to use for server DBus connection
+     * @return Connection instance
+     *
+     * This functions is helpful in cases where clients need a custom, tweaked configuration of their
+     * bus object. Since sdbus-c++ does not provide C++ API for all bus connection configuration
+     * functions of the underlying sd-bus library, clients can use these sd-bus functions themselves
+     * to create and configure their sd_bus object, and create sdbus-c++ IConnection on top of it.
+     *
+     * The IConnection instance assumes unique ownership of the provided bus object. The bus object
+     * must have been started by the client before this call.
+     * The bus object will get flushed, closed, and unreffed when the IConnection instance is destroyed.
+     *
+     * @throws sdbus::Error in case of failure
+     *
+     * Code example:
+     * @code
+     * sd_bus* bus{};
+     * ::sd_bus_new(&bus);
+     * ::sd_bus_set_address(bus, address);
+     * ::sd_bus_set_anonymous(bus, true);
+     * ::sd_bus_start(bus);
+     * auto con = sdbus::createBusConnection(bus); // IConnection consumes sd_bus object
+     * @endcode
+     */
+    [[nodiscard]] std::unique_ptr<sdbus::IConnection> createBusConnection(sd_bus *bus);
 }
 
 #endif /* SDBUS_CXX_ICONNECTION_H_ */

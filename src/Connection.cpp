@@ -85,6 +85,11 @@ Connection::Connection(std::unique_ptr<ISdBus>&& interface, server_bus_t, int fd
 {
 }
 
+Connection::Connection(std::unique_ptr<ISdBus>&& interface, sdbus_bus_t, sd_bus *bus)
+        : Connection(std::move(interface), [&](sd_bus** b) { *b = bus; return 0; })
+{
+}
+
 Connection::Connection(std::unique_ptr<ISdBus>&& interface, pseudo_bus_t)
     : iface_(std::move(interface))
     , bus_(openPseudoBus())
@@ -702,6 +707,14 @@ std::unique_ptr<sdbus::IConnection> createServerBus(int fd)
 {
     auto interface = std::make_unique<sdbus::internal::SdBus>();
     return std::make_unique<sdbus::internal::Connection>(std::move(interface), Connection::server_bus, fd);
+}
+
+std::unique_ptr<sdbus::IConnection> createBusConnection(sd_bus *bus)
+{
+    SDBUS_THROW_ERROR_IF(bus == nullptr, "Invalid bus argument", EINVAL);
+
+    auto interface = std::make_unique<sdbus::internal::SdBus>();
+    return std::make_unique<sdbus::internal::Connection>(std::move(interface), Connection::sdbus_bus, bus);
 }
 
 } // namespace sdbus
