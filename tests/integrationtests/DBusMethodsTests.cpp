@@ -180,7 +180,7 @@ TEST_F(SdbusTestObject, ThrowsTimeoutErrorWhenMethodTimesOut)
     catch (const sdbus::Error& e)
     {
         ASSERT_THAT(e.getName(), AnyOf("org.freedesktop.DBus.Error.Timeout", "org.freedesktop.DBus.Error.NoReply"));
-        ASSERT_THAT(e.getMessage(), AnyOf("Connection timed out", "Method call timed out"));
+        ASSERT_THAT(e.getMessage(), AnyOf("Connection timed out", "Operation timed out", "Method call timed out"));
         auto measuredTimeout = std::chrono::steady_clock::now() - start;
         ASSERT_THAT(measuredTimeout, Le(50ms));
     }
