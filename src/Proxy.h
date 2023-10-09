@@ -135,10 +135,16 @@ namespace sdbus::internal {
         public:
             struct CallData
             {
+                enum class State
+                {   NOT_ASYNC
+                ,   RUNNING
+                ,   FINISHED
+                };
+
                 Proxy& proxy;
                 async_reply_handler callback;
                 Slot slot;
-                bool finished { false };
+                State state;
             };
 
             ~AsyncCalls()
@@ -149,14 +155,14 @@ namespace sdbus::internal {
             void addCall(std::shared_ptr<CallData> asyncCallData)
             {
                 std::lock_guard lock(mutex_);
-                if (!asyncCallData->finished) // The call may have finished in the mean time
+                if (asyncCallData->state != CallData::State::FINISHED) // The call may have finished in the meantime
                     calls_.emplace_back(std::move(asyncCallData));
             }
 
             void removeCall(CallData* data)
             {
                 std::unique_lock lock(mutex_);
-                data->finished = true;
+                data->state = CallData::State::FINISHED;
                 if (auto it = std::find_if(calls_.begin(), calls_.end(), [data](auto const& entry){ return entry.get() == data; }); it != calls_.end())
                 {
                     auto callData = std::move(*it);
