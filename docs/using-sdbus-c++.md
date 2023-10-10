@@ -1664,10 +1664,13 @@ int main(int argc, char *argv[])
     auto concatenatedString = concatenatorProxy.concatenate(numbers, separator);
     assert(concatenatedString == "1:2:3");
 
+    // Explicitly stop working on socket fd's to avoid "Connection reset by peer" errors
     clientConnection->leaveEventLoop();
     serverConnection->leaveEventLoop();
 }
 ```
+
+> **_Note_:** The example above explicitly stops the event loops on both sides, before the connection objects are destroyed. This avoids potential `Connection reset by peer` errors caused when one side closes its socket while the other side is still working on the counterpart socket. This is a recommended workflow for closing direct D-Bus connections.
 
 Conclusion
 ----------
