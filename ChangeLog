@@ -232,3 +232,10 @@ v1.3.0
 - Add support for libelogind as an addition to libsystemd
 - Add support for std::future-based async methods in codegen tool
 - Additional little fixes and improvements in code, build system, CI, and documentation
+
+v1.4.0
+- Implement API for convenient asynchronous property get/set on the client-side
+- Add support for FreeBSD systems (including support for basu implementation of sd-bus on non-systemd machines)
+- Add support for direct, peer-to-peer connections
+- Add option to create IConnection directly from an underlying sd_bus instance
+- Some additional fixes
