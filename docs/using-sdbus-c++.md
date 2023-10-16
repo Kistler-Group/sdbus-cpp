@@ -394,6 +394,27 @@ Subsequently, we invoke two RPC calls to object's `concatenate()` method. We cre
 
 Please note that we can create and destroy D-Bus object proxies dynamically, at any time during runtime, even when they share a common D-Bus connection and there is an active event loop upon the connection. So managing D-Bus object proxies' lifecycle (creating and destroying D-Bus object proxies) is completely thread-safe.
 
+### Opening bus connections in sdbus-c++
+
+There are several factory methods to create a bus connection object in sdbus-c++:
+
+* `createConnection()` - opens a connection to the system bus
+* `createConnection(const std::string& name)` - opens a connection with the given name to the system bus
+* `createDefaultBusConnection()` - opens a connection to the session bus when in a user context, and a connection to the system bus, otherwise
+* `createDefaultBusConnection(const std::string& name)` - opens a connection with the given name to the session bus when in a user context, and a connection with the given name to the system bus, otherwise
+* `createSystemBusConnection()` - opens a connection to the system bus
+* `createSystemBusConnection(const std::string& name)` - opens a connection with the given name to the system bus
+* `createSessionBusConnection()` - opens a connection to the session bus
+* `createSessionBusConnection(const std::string& name)` - opens a connection with the given name to the session bus
+* `createSessionBusConnectionWithAddress(const std::string& address)` - opens a connection to the session bus at a custom address
+* `createRemoteSystemBusConnection(const std::string& host)` - opens a connection to the system bus on a remote host using ssh
+* `createDirectBusConnection(const std::string& address)` - opens direct D-Bus connection at a custom address (see [Using direct (peer-to-peer) D-Bus connections](#using-direct-peer-to-peer-d-bus-connections))
+* `createDirectBusConnection(int fd)` - opens direct D-Bus connection at the given file descriptor (see [Using direct (peer-to-peer) D-Bus connections](#using-direct-peer-to-peer-d-bus-connections))
+* `createServerBus(int fd)` - opens direct D-Bus connection at the given file descriptor as a server (see [Using direct (peer-to-peer) D-Bus connections](#using-direct-peer-to-peer-d-bus-connections))
+* `createBusConnection(sd_bus *bus)` - creates a connection directly from the underlying sd_bus connection instance (which has been created and set up upfront directly through sd-bus API).
+
+For more information, peek into [`IConnection.h`](/include/sdbus-c++/IConnection.h) where these functions are declared and documented.
+
 ### Working with D-Bus connections in sdbus-c++
 
 The design of D-Bus connections in sdbus-c++ allows for certain flexibility and enables users to choose simplicity over scalability or scalability (at a finer granularity of user's choice) at the cost of slightly decreased simplicity.
