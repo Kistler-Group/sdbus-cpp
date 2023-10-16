@@ -75,13 +75,19 @@ add_custom_command(
 Solving libsystemd dependency
 -----------------------------
 
-sdbus-c++ depends on libsystemd, a C library that is part of [systemd](https://github.com/systemd/systemd) and that contains underlying sd-bus implementation.
+sdbus-c++ depends on sd-bus API, which is implemented in libsystemd, a C library that is part of [systemd](https://github.com/systemd/systemd).
 
 Minimum required libsystemd shared library version is 0.20.0 (which corresponds to minimum systemd version 236).
 
 If your target Linux distribution is already based on systemd ecosystem of version 236 and higher, then there is no additional effort, just make sure you have corresponding systemd header files available (provided by `libsystemd-dev` package on Debian/Ubuntu, for example), and you may go on building sdbus-c++ seamlessly.
 
-However, sdbus-c++ can perfectly be used in non-systemd environments as well. There are two ways to approach this:
+However, sdbus-c++ can perfectly be used in non-systemd environments as well. If `libsystemd` is not found in the system when configuring sdbus-c++, then
+
+1. sdbus-c++ will try to find `libelogind`, which is an extracted logind from original systemd containing sd-bus implementation. If not found, then
+
+2. sdbus-c++ will try to find `basu`, which is just sd-bus implementation extracted from systemd.
+
+On systems where neither of these is available, we can build sd-bus as a shared lib manually or we can (conveniently) instruct sdbus-c++ to build and integrate sd-bus into itself for us.
 
 ### Building and distributing libsystemd as a shared library yourself
 
@@ -101,7 +107,7 @@ $ ninja libsystemd.so.0.26.0  # or another version number depending which system
 
 ### Building and distributing libsystemd as part of sdbus-c++
 
-sdbus-c++ provides `BUILD_LIBSYSTEMD` configuration option. When turned on, sdbus-c++ will automatically download and build libsystemd as a static library and make it an opaque part of sdbus-c++ shared library for you. This is the most convenient and effective approach to build, distribute and use sdbus-c++ as a self-contained, systemd-independent library in non-systemd environments. Just make sure your build machine has all dependencies needed by libsystemd build process. That includes, among others, `meson`, `ninja`, `git`, `gperf`, and -- primarily -- libraries and library headers for `libmount`, `libcap` and `librt` (part of glibc). Be sure to check out the systemd documentation for the  Also, when distributing, make sure these dependency libraries are installed on the production machine.
+sdbus-c++ provides `BUILD_LIBSYSTEMD` configuration option. When turned on, sdbus-c++ will automatically download and build libsystemd as a static library and make it an opaque part of sdbus-c++ shared library for you. This is the most convenient and effective approach to build, distribute and use sdbus-c++ as a self-contained, systemd-independent library in non-systemd environments. Just make sure your build machine has all dependencies needed by libsystemd build process. That includes, among others, `meson`, `ninja`, `git`, `gperf`, and -- primarily -- libraries and library headers for `libmount`, `libcap` and `librt` (part of glibc). Also, when distributing, make sure these dependency libraries are installed on the production machine.
 
 You may additionally set the `LIBSYSTEMD_VERSION` configuration flag to fine-tune the version of systemd to be taken in. (The default value is 242).
 
@@ -1512,10 +1518,10 @@ The above mapping between D-Bus and C++ types is what sdbus-c++ provides by defa
 
 We need two things to do that:
 
-* implement `sdbus::Message` insertion and extraction operators, so sdbus-c++ knows how to serialize/deserialize our custom type,
+* implement `sdbus::Message` insertion (serialization) and extraction (deserialization) operators, so sdbus-c++ knows how to serialize/deserialize our custom type,
 * specialize `sdbus::signature_of` template for our custom type, so sdbus-c++ knows the mapping to D-Bus type and other necessary information about our type.
 
-Say, we would like to represent D-Bus arrays as `std::list`s in our application. Since sdbus-c++ comes with pre-defined support for `std::vector`s, `std::array`s and `std::span`s as D-Bus array representations, we have to provide an extension:
+Say, we would like to represent D-Bus arrays as `std::list`s in our application. Since sdbus-c++ comes with pre-defined support for `std::vector`s, `std::array`s and `std::span`s as D-Bus array representations, we have to provide an extension. To implement message serialization and deserialization functions for `std::list`, we can simply copy the sdbus-c++ implementation of these functions for `std::vector`, and simply adjust for `std::list`. Then we provide `signature_of` specialization, again written on terms of one specialized for `std::vector`:
 
 ```c++
 #include <list>
@@ -1568,12 +1574,11 @@ template <typename _Element, typename _Allocator>
 struct sdbus::signature_of<std::list<_Element, _Allocator>>
         : sdbus::signature_of<std::vector<_Element, _Allocator>>
 {};
-};
 ```
 
 Then we can simply use `std::list`s, serialize/deserialize them in a D-Bus message, in D-Bus method calls or return values... and they will be simply transmitted as D-Bus arrays.
 
-As another example, say we have our custom type `my::Struct` which we'd like to use as a D-Bus structure representation (sdbus-c++ provides `sdbus::Struct` type for that, but we don't want to use it because using our custom type directly is more convenient). Again, we have to provide type traits and message serialization/deserialization functions for our custom type. We build our functions and specializations on top of `sdbus::Struct`, so we don't have to copy and write a lot of boiler-plate:
+As another example, say we have our custom type `my::Struct` which we'd like to use as a D-Bus structure representation (sdbus-c++ provides `sdbus::Struct` type for that, but we don't want to use it because using our custom type directly is more convenient). Again, we have to provide type traits and message serialization/deserialization functions for our custom type. We build our functions and specializations on top of `sdbus::Struct`, so we don't have to copy and write a lot of boiler-plate. Serialization/deserialization functions can be placed in the same namespace as our custom type, and will be found thanks to the ADR lookup. The `signature_of` specialization must always be in either `sdbus` namespace or in a global namespace:
 
 ```c++
 namespace my {
@@ -1596,7 +1601,7 @@ namespace my {
         sdbus::Struct s{std::forward_as_tuple(items.i, items.s, items.l)};
         return msg >> s;
     }
-}
+} // namespace my
 
 template <>
 struct sdbus::signature_of<my::Struct>
