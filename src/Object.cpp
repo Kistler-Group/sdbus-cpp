@@ -343,7 +343,7 @@ int Object::sdbus_method_callback(sd_bus_message *sdbusMessage, void *userData, 
 
     try
     {
-        callback(message);
+        callback(std::move(message));
     }
     catch (const Error& e)
     {
@@ -406,7 +406,7 @@ int Object::sdbus_property_set_callback( sd_bus */*bus*/
 
     try
     {
-        callback(value);
+        callback(std::move(value));
     }
     catch (const Error& e)
     {

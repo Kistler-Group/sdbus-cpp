@@ -227,7 +227,7 @@ Slot Connection::addMatch(const std::string& match, message_handler callback)
     {
         auto* matchInfo = static_cast<MatchInfo*>(userData);
         auto message = Message::Factory::create<PlainMessage>(sdbusMessage, &matchInfo->connection.getSdBusInterface());
-        matchInfo->callback(message);
+        matchInfo->callback(std::move(message));
         return 0;
     };
 

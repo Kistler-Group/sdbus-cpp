@@ -119,10 +119,10 @@ std::future<MethodReply> Proxy::callMethod(const MethodCall& message, uint64_t t
     auto promise = std::make_shared<std::promise<MethodReply>>();
     auto future = promise->get_future();
 
-    async_reply_handler asyncReplyCallback = [promise = std::move(promise)](MethodReply& reply, const Error* error) noexcept
+    async_reply_handler asyncReplyCallback = [promise = std::move(promise)](MethodReply reply, const Error* error) noexcept
     {
         if (error == nullptr)
-            promise->set_value(reply); // TODO: std::move? Can't move now because currently processed message. TODO: Refactor
+            promise->set_value(std::move(reply));
         else
             promise->set_exception(std::make_exception_ptr(*error));
     };
@@ -230,12 +230,12 @@ int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userDat
         const auto* error = sd_bus_message_get_error(sdbusMessage);
         if (error == nullptr)
         {
-            asyncCallData->callback(message, nullptr);
+            asyncCallData->callback(std::move(message), nullptr);
         }
         else
         {
             Error exception(error->name, error->message);
-            asyncCallData->callback(message, &exception);
+            asyncCallData->callback(std::move(message), &exception);
         }
     }
     catch (const Error&)
@@ -256,7 +256,7 @@ int Proxy::sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd
 
     try
     {
-        signalData->callback(message);
+        signalData->callback(std::move(message));
     }
     catch (const Error&)
     {
