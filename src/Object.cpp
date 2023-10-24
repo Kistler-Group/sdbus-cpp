@@ -341,7 +341,7 @@ int Object::sdbus_method_callback(sd_bus_message *sdbusMessage, void *userData, 
     auto& callback = interfaceData->methods[message.getMemberName()].callback;
     assert(callback);
 
-    auto ok = invokeHandlerAndCatchErrors([&](){ callback(message); }, retError);
+    auto ok = invokeHandlerAndCatchErrors([&](){ callback(std::move(message)); }, retError);
 
     return ok ? 1 : -1;
 }
@@ -390,7 +390,7 @@ int Object::sdbus_property_set_callback( sd_bus */*bus*/
 
     auto value = Message::Factory::create<PropertySetCall>(sdbusValue, &object.connection_.getSdBusInterface());
 
-    auto ok = invokeHandlerAndCatchErrors([&](){ callback(value); }, retError);
+    auto ok = invokeHandlerAndCatchErrors([&](){ callback(std::move(value)); }, retError);
 
     return ok ? 1 : -1;
 }

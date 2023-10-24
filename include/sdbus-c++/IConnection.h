@@ -286,7 +286,7 @@ namespace sdbus {
          * The syntax of the match rule expression passed in match is described in the D-Bus specification.
          * The specified handler function callback is called for each incoming message matching the specified
          * expression. The match is installed synchronously when connected to a bus broker, i.e. the call
-         * sends a control message requested the match to be added to the broker and waits until the broker
+         * sends a control message requesting the match to be added to the broker and waits until the broker
          * confirms the match has been installed successfully.
          *
          * Simply let go of the slot instance to uninstall the match rule from the bus connection. The slot
