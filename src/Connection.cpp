@@ -797,7 +797,7 @@ int Connection::sdbus_match_callback(sd_bus_message *sdbusMessage, void *userDat
 {
     auto* matchInfo = static_cast<MatchInfo*>(userData);
     auto message = Message::Factory::create<PlainMessage>(sdbusMessage, &matchInfo->connection.getSdBusInterface());
-    auto ok = invokeHandlerAndCatchErrors([&](){ matchInfo->callback(message); }, retError);
+    auto ok = invokeHandlerAndCatchErrors([&](){ matchInfo->callback(std::move(message)); }, retError);
     return ok ? 0 : -1;
 }
 
@@ -805,7 +805,7 @@ int Connection::sdbus_match_install_callback(sd_bus_message *sdbusMessage, void 
 {
     auto* matchInfo = static_cast<MatchInfo*>(userData);
     auto message = Message::Factory::create<PlainMessage>(sdbusMessage, &matchInfo->connection.getSdBusInterface());
-    auto ok = invokeHandlerAndCatchErrors([&](){ matchInfo->installCallback(message); }, retError);
+    auto ok = invokeHandlerAndCatchErrors([&](){ matchInfo->installCallback(std::move(message)); }, retError);
     return ok ? 0 : -1;
 }
 
