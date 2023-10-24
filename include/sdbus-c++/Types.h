@@ -56,7 +56,7 @@ namespace sdbus {
         Variant();
 
         template <typename _ValueType>
-        /*explicit*/ Variant(const _ValueType& value) // TODO: Mark explicit in new major version so we don't break client code within v1
+        explicit Variant(const _ValueType& value)
             : Variant()
         {
             msg_.openVariant(signature_of<_ValueType>::str());
