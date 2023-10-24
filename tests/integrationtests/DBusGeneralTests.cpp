@@ -76,7 +76,7 @@ TYPED_TEST(AConnection, WillCallCallbackHandlerForIncomingMessageMatchingMatchRu
 {
     auto matchRule = "sender='" + BUS_NAME + "',path='" + OBJECT_PATH + "'";
     std::atomic<bool> matchingMessageReceived{false};
-    auto slot = this->s_proxyConnection->addMatch(matchRule, [&](sdbus::Message& msg)
+    auto slot = this->s_proxyConnection->addMatch(matchRule, [&](sdbus::Message msg)
     {
         if(msg.getPath() == OBJECT_PATH)
             matchingMessageReceived = true;
@@ -93,12 +93,12 @@ TYPED_TEST(AConnection, CanInstallMatchRuleAsynchronously)
     std::atomic<bool> matchingMessageReceived{false};
     std::atomic<bool> matchRuleInstalled{false};
     auto slot = this->s_proxyConnection->addMatchAsync( matchRule
-                                                      , [&](sdbus::Message& msg)
+                                                      , [&](sdbus::Message msg)
                                                         {
                                                             if(msg.getPath() == OBJECT_PATH)
                                                                 matchingMessageReceived = true;
                                                         }
-                                                      , [&](sdbus::Message& /*msg*/)
+                                                      , [&](sdbus::Message /*msg*/)
                                                         {
                                                             matchRuleInstalled = true;
                                                         } );
@@ -114,7 +114,7 @@ TYPED_TEST(AConnection, WillUnsubscribeMatchRuleWhenClientDestroysTheAssociatedS
 {
     auto matchRule = "sender='" + BUS_NAME + "',path='" + OBJECT_PATH + "'";
     std::atomic<bool> matchingMessageReceived{false};
-    auto slot = this->s_proxyConnection->addMatch(matchRule, [&](sdbus::Message& msg)
+    auto slot = this->s_proxyConnection->addMatch(matchRule, [&](sdbus::Message msg)
     {
         if(msg.getPath() == OBJECT_PATH)
             matchingMessageReceived = true;
@@ -132,7 +132,7 @@ TYPED_TEST(AConnection, CanAddFloatingMatchRule)
     std::atomic<bool> matchingMessageReceived{false};
     auto con = sdbus::createSystemBusConnection();
     con->enterEventLoopAsync();
-    auto callback = [&](sdbus::Message& msg)
+    auto callback = [&](sdbus::Message msg)
     {
         if(msg.getPath() == OBJECT_PATH)
             matchingMessageReceived = true;
@@ -153,7 +153,7 @@ TYPED_TEST(AConnection, WillNotPassToMatchCallbackMessagesThatDoNotMatchTheRule)
 {
     auto matchRule = "type='signal',interface='" + INTERFACE_NAME + "',member='simpleSignal'";
     std::atomic<size_t> numberOfMatchingMessages{};
-    auto slot = this->s_proxyConnection->addMatch(matchRule, [&](sdbus::Message& msg)
+    auto slot = this->s_proxyConnection->addMatch(matchRule, [&](sdbus::Message msg)
     {
         if(msg.getMemberName() == "simpleSignal")
             numberOfMatchingMessages++;
