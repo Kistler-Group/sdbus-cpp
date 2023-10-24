@@ -330,7 +330,7 @@ Please note that we can create and destroy D-Bus objects on a connection dynamic
 #include <iostream>
 #include <unistd.h>
 
-void onConcatenated(sdbus::Signal& signal)
+void onConcatenated(sdbus::Signal signal)
 {
     std::string concatenatedString;
     signal >> concatenatedString;
@@ -389,7 +389,7 @@ int main(int argc, char *argv[])
 
 In simple cases, we don't need to create D-Bus connection explicitly for our proxies. Unless a connection is provided to a proxy object explicitly via factory parameter, the proxy will create a connection of his own (unless it is a light-weight, short-lived proxy created with `dont_run_event_loop_thread_t`), and it will be a system bus connection. This is the case in the example above. (This approach is not scalable and resource-saving if we have plenty of proxies; see section [Working with D-Bus connections](#working-with-d-bus-connections-in-sdbus-c) for elaboration.) So, in the example, we create a proxy for object `/org/sdbuscpp/concatenator` publicly available at bus `org.sdbuscpp.concatenator`. We register signal handlers, if any, and finish the registration, making the proxy ready for use.
 
-The callback for a D-Bus signal handler on this level is any callable of signature `void(sdbus::Signal& signal)`. The one and only parameter `signal` is the incoming signal message. We need to deserialize arguments from it, and then we can do our business logic with it.
+The callback for a D-Bus signal handler on this level is any callable of signature `void(sdbus::Signal signal)`. The one and only parameter `signal` is the incoming signal message. We need to deserialize arguments from it, and then we can do our business logic with it.
 
 Subsequently, we invoke two RPC calls to object's `concatenate()` method. We create a method call message by invoking proxy's `createMethodCall()`. We serialize method input arguments into it, and make a synchronous call via proxy's `callMethod()`. As a return value we get the reply message as soon as it arrives. We deserialize return values from that message, and further use it in our program. The second `concatenate()` RPC call is done with invalid arguments, so we get a D-Bus error reply from the service, which as we can see is manifested via `sdbus::Error` exception being thrown.
 
@@ -1095,7 +1095,7 @@ int main(int argc, char *argv[])
 {
     /* ...  */
 
-    auto callback = [](MethodReply& reply, const sdbus::Error* error)
+    auto callback = [](MethodReply reply, const sdbus::Error* error)
     {
         if (error == nullptr) // No error
         {

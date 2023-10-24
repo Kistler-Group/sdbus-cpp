@@ -317,7 +317,7 @@ namespace sdbus {
         if (propertySignature_.empty())
             propertySignature_ = signature_of_function_input_arguments<_Function>::str();
 
-        setter_ = [callback = std::forward<_Function>(callback)](PropertySetCall& call)
+        setter_ = [callback = std::forward<_Function>(callback)](PropertySetCall call)
         {
             // Default-construct property value
             using property_type = function_argument_t<_Function, 0>;
@@ -580,7 +580,7 @@ namespace sdbus {
     {
         assert(method_.isValid()); // onInterface() must be placed/called prior to this function
 
-        auto asyncReplyHandler = [callback = std::forward<_Function>(callback)](MethodReply& reply, const Error* error)
+        auto asyncReplyHandler = [callback = std::forward<_Function>(callback)](MethodReply reply, const Error* error)
         {
             // Create a tuple of callback input arguments' types, which will be used
             // as a storage for the argument values deserialized from the message.
@@ -657,7 +657,7 @@ namespace sdbus {
 
         proxy_.registerSignalHandler( interfaceName_
                                     , signalName_
-                                    , [callback = std::forward<_Function>(callback)](Signal& signal)
+                                    , [callback = std::forward<_Function>(callback)](Signal signal)
         {
             // Create a tuple of callback input arguments' types, which will be used
             // as a storage for the argument values deserialized from the signal message.
