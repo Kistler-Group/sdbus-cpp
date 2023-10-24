@@ -119,7 +119,7 @@ namespace sdbus::internal {
         public:
             struct CallData
             {
-                enum class State
+                enum class State // TODO: In release/v2.0, we no more have sync-in-terms-of-async, we can simplify code with just bool finished like before
                 {   NOT_ASYNC
                 ,   RUNNING
                 ,   FINISHED
