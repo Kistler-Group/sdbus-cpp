@@ -267,6 +267,7 @@ v2.0.0
     what before had to be obtained through `PollData::getAbsoluteTimeout()` call.
   - `PollData::getRelativeTimeout()` return type was changed to `std::chrono::microseconds`.
   - `IConnection::processPendingRequest()` was renamed to `IConnection::processPendingEvent()`.
+  - `Variant` constructor is now explicit.
 - Systemd of at least v238 is required to compile sdbus-c++
 - A proper fix for timeout handling
 - Fix for external event loops in which the event loop thread ID was not correctly initialized (now fixed and simplified by not needing the thread ID anymore)
