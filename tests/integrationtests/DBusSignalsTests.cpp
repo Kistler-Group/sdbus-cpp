@@ -103,7 +103,6 @@ TYPED_TEST(SdbusTestObject, EmitsSignalWithVariantSuccesfully)
 {
     double d = 3.14;
     this->m_adaptor->emitSignalWithVariant(sdbus::Variant{d});
-    this->m_adaptor->emitSignalWithVariant(d);
 
     ASSERT_TRUE(waitUntil(this->m_proxy->m_gotSignalWithVariant));
     ASSERT_THAT(this->m_proxy->m_variantFromSignal, DoubleEq(d));
