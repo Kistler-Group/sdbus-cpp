@@ -56,7 +56,7 @@ namespace sdbus {
         Variant();
 
         template <typename _ValueType>
-        Variant(const _ValueType& value)
+        explicit Variant(const _ValueType& value)
             : Variant()
         {
             msg_.openVariant(signature_of<_ValueType>::str());
