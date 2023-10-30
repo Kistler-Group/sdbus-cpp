@@ -71,6 +71,7 @@ public:
     MOCK_METHOD6(sd_bus_add_object_vtable, int(sd_bus *bus, sd_bus_slot **slot, const char *path, const char *interface, const sd_bus_vtable *vtable, void *userdata));
     MOCK_METHOD3(sd_bus_add_object_manager, int(sd_bus *bus, sd_bus_slot **slot, const char *path));
     MOCK_METHOD5(sd_bus_add_match, int(sd_bus *bus, sd_bus_slot **slot, const char *match, sd_bus_message_handler_t callback, void *userdata));
+    MOCK_METHOD6(sd_bus_add_match_async, int(sd_bus *bus, sd_bus_slot **slot, const char *match, sd_bus_message_handler_t callback, sd_bus_message_handler_t install_callback, void *userdata));
     MOCK_METHOD1(sd_bus_slot_unref, sd_bus_slot*(sd_bus_slot *slot));
 
     MOCK_METHOD1(sd_bus_new, int(sd_bus **ret));
