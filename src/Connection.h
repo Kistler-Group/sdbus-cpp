@@ -153,10 +153,6 @@ namespace sdbus::internal {
         bool waitForNextEvent();
 
         bool arePendingMessagesInReadQueue() const;
-        static std::string composeSignalMatchFilter( const std::string &sender
-                                                   , const std::string &objectPath
-                                                   , const std::string &interfaceName
-                                                   , const std::string &signalName);
 
         void notifyEventLoopToExit();
         void notifyEventLoopToWakeUpFromPoll();
