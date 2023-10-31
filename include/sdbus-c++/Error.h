@@ -76,6 +76,8 @@ namespace sdbus {
     };
 
     sdbus::Error createError(int errNo, const std::string& customMsg);
+
+    inline const char* SDBUSCPP_ERROR_NAME = "org.sdbuscpp.Error";
 }
 
 #define SDBUS_THROW_ERROR(_MSG, _ERRNO)                         \

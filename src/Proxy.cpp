@@ -269,7 +269,7 @@ const Message* Proxy::getCurrentlyProcessedMessage() const
     return m_CurrentlyProcessedMessage.load(std::memory_order_relaxed);
 }
 
-int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error */*retError*/)
+int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError)
 {
     auto* asyncCallData = static_cast<AsyncCalls::CallData*>(userData);
     assert(asyncCallData != nullptr);
@@ -295,7 +295,7 @@ int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userDat
         proxy.m_CurrentlyProcessedMessage.store(nullptr, std::memory_order_relaxed);
     };
 
-    try
+    auto ok = invokeHandlerAndCatchErrors([&]
     {
         const auto* error = sd_bus_message_get_error(sdbusMessage);
         if (error == nullptr)
@@ -307,16 +307,12 @@ int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userDat
             Error exception(error->name, error->message);
             asyncCallData->callback(message, &exception);
         }
-    }
-    catch (const Error&)
-    {
-        // Intentionally left blank -- sdbus-c++ exceptions shall not bubble up to the underlying C sd-bus library
-    }
+    }, retError);
 
-    return 0;
+    return ok ? 0 : -1;
 }
 
-int Proxy::sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error */*retError*/)
+int Proxy::sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError)
 {
     auto* signalData = static_cast<InterfaceData::SignalData*>(userData);
     assert(signalData != nullptr);
@@ -330,16 +326,9 @@ int Proxy::sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd
         signalData->proxy.m_CurrentlyProcessedMessage.store(nullptr, std::memory_order_relaxed);
     };
 
-    try
-    {
-        signalData->callback(message);
-    }
-    catch (const Error&)
-    {
-        // Intentionally left blank -- sdbus-c++ exceptions shall not bubble up to the underlying C sd-bus library
-    }
+    auto ok = invokeHandlerAndCatchErrors([&](){ signalData->callback(message); }, retError);
 
-    return 0;
+    return ok ? 0 : -1;
 }
 
 }

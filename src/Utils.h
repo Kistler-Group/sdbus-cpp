@@ -50,4 +50,34 @@
 #define SDBUS_CHECK_MEMBER_NAME(_NAME)
 #endif
 
+namespace sdbus::internal {
+
+    template <typename _Callable>
+    bool invokeHandlerAndCatchErrors(_Callable callable, sd_bus_error *retError)
+    {
+        try
+        {
+            callable();
+        }
+        catch (const Error& e)
+        {
+            sd_bus_error_set(retError, e.getName().c_str(), e.getMessage().c_str());
+            return false;
+        }
+        catch (const std::exception& e)
+        {
+            sd_bus_error_set(retError, SDBUSCPP_ERROR_NAME, e.what());
+            return false;
+        }
+        catch (...)
+        {
+            sd_bus_error_set(retError, SDBUSCPP_ERROR_NAME, "Unknown error occurred");
+            return false;
+        }
+
+        return true;
+    }
+
+}
+
 #endif /* SDBUS_CXX_INTERNAL_UTILS_H_ */

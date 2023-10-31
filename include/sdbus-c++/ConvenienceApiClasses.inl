@@ -595,9 +595,8 @@ namespace sdbus {
                 }
                 catch (const Error& e)
                 {
-                    // Catch message unpack exceptions and pass them to the callback
-                    // in the expected manner to avoid propagating them up the call
-                    // stack to the event loop.
+                    // Pass message deserialization exceptions to the client via callback error parameter,
+                    // instead of propagating them up the message loop call stack.
                     sdbus::apply(callback, &e, args);
                     return;
                 }
@@ -676,8 +675,10 @@ namespace sdbus {
                 }
                 catch (const sdbus::Error& e)
                 {
-                    // Invoke callback with error argument and input arguments from the tuple.
+                    // Pass message deserialization exceptions to the client via callback error parameter,
+                    // instead of propagating them up the message loop call stack.
                     sdbus::apply(callback, &e, signalArgs);
+                    return;
                 }
 
                 // Invoke callback with no error and input arguments from the tuple.
