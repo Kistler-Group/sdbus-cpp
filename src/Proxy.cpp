@@ -143,7 +143,7 @@ std::future<MethodReply> Proxy::callMethod(const MethodCall& message, uint64_t t
     async_reply_handler asyncReplyCallback = [promise = std::move(promise)](MethodReply& reply, const Error* error) noexcept
     {
         if (error == nullptr)
-            promise->set_value(reply); // TODO: std::move? Can't move now because currently processed message. TODO: Refactor
+            promise->set_value(reply);
         else
             promise->set_exception(std::make_exception_ptr(*error));
     };
