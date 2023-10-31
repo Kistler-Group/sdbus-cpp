@@ -630,11 +630,14 @@ Slot Connection::registerSignalHandler( const std::string& sender
 {
     sd_bus_slot *slot{};
 
-    // Alternatively to our own composeSignalMatchFilter() implementation, we could use sd_bus_match_signal() from
-    // https://www.freedesktop.org/software/systemd/man/sd_bus_add_match.html .
-    // But this would require libsystemd v237 or higher.
-    auto filter = composeSignalMatchFilter(sender, objectPath, interfaceName, signalName);
-    auto r = sdbus_->sd_bus_add_match(bus_.get(), &slot, filter.c_str(), callback, userData);
+    auto r = sdbus_->sd_bus_match_signal( bus_.get()
+                                        , &slot
+                                        , !sender.empty() ? sender.c_str() : nullptr
+                                        , !objectPath.empty() ? objectPath.c_str() : nullptr
+                                        , !interfaceName.empty() ? interfaceName.c_str() : nullptr
+                                        , !signalName.empty() ? signalName.c_str() : nullptr
+                                        , callback
+                                        , userData );
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to register signal handler", -r);
 
@@ -779,23 +782,6 @@ Message Connection::getCurrentlyProcessedMessage() const
     auto* sdbusMsg = sdbus_->sd_bus_get_current_message(bus_.get());
 
     return Message::Factory::create<Message>(sdbusMsg, sdbus_.get());
-}
-
-std::string Connection::composeSignalMatchFilter( const std::string &sender
-                                                , const std::string &objectPath
-                                                , const std::string &interfaceName
-                                                , const std::string &signalName )
-{
-    std::string filter;
-
-    filter += "type='signal',";
-    if (!sender.empty())
-        filter += "sender='" + sender + "',";
-    filter += "interface='" + interfaceName + "',";
-    filter += "member='" + signalName + "',";
-    filter += "path='" + objectPath + "'";
-
-    return filter;
 }
 
 std::vector</*const */char*> Connection::to_strv(const std::vector<std::string>& strings)
