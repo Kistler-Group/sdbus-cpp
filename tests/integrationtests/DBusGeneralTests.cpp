@@ -88,6 +88,29 @@ TEST_F(AConnection, WillCallCallbackHandlerForIncomingMessageMatchingMatchRule)
     ASSERT_TRUE(waitUntil(matchingMessageReceived));
 }
 
+TEST_F(AConnection, CanInstallMatchRuleAsynchronously)
+{
+    auto matchRule = "sender='" + BUS_NAME + "',path='" + OBJECT_PATH + "'";
+    std::atomic<bool> matchingMessageReceived{false};
+    std::atomic<bool> matchRuleInstalled{false};
+    auto slot = s_proxyConnection->addMatchAsync( matchRule
+                                                , [&](sdbus::Message& msg)
+                                                  {
+                                                      if(msg.getPath() == OBJECT_PATH)
+                                                          matchingMessageReceived = true;
+                                                  }
+                                                , [&](sdbus::Message& /*msg*/)
+                                                  {
+                                                      matchRuleInstalled = true;
+                                                  } );
+
+    EXPECT_TRUE(waitUntil(matchRuleInstalled));
+
+    m_adaptor->emitSimpleSignal();
+
+    ASSERT_TRUE(waitUntil(matchingMessageReceived));
+}
+
 TEST_F(AConnection, WillUnsubscribeMatchRuleWhenClientDestroysTheAssociatedSlot)
 {
     auto matchRule = "sender='" + BUS_NAME + "',path='" + OBJECT_PATH + "'";

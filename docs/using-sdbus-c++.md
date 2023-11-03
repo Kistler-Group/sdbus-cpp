@@ -1637,7 +1637,7 @@ Live examples of extending sdbus-c++ types can be found in [Message unit tests](
 Support for match rules
 -----------------------
 
-`IConnection` class provides `addMatch` method that you can use to install match rules. An associated callback handler will be called upon an incoming message matching given match rule. There is support for both client-owned and floating (library-owned) match rules. Consult `IConnection` header or sdbus-c++ doxygen documentation for more information.
+`IConnection` class provides `addMatch` and `addMatchAsync` family of methods that you can use to install match rules on that bus connection. An associated callback handler will be called when an incoming D-Bus message matches the given match rule. Clients can decide whether they own and control the match rule lifetime, or whether the match rule lifetime is bound the connection object lifetime (so-called floating match rule). Consult `IConnection` header or sdbus-c++ doxygen documentation for more information.
 
 Using direct (peer-to-peer) D-Bus connections
 ---------------------------------------------

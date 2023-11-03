@@ -345,6 +345,13 @@ int SdBus::sd_bus_add_match(sd_bus *bus, sd_bus_slot **slot, const char *match, 
     return ::sd_bus_add_match(bus, slot, match, callback, userdata);
 }
 
+int SdBus::sd_bus_add_match_async(sd_bus *bus, sd_bus_slot **slot, const char *match, sd_bus_message_handler_t callback, sd_bus_message_handler_t install_callback, void *userdata)
+{
+    std::lock_guard lock(sdbusMutex_);
+
+    return ::sd_bus_add_match_async(bus, slot, match, callback, install_callback, userdata);
+}
+
 sd_bus_slot* SdBus::sd_bus_slot_unref(sd_bus_slot *slot)
 {
     std::lock_guard lock(sdbusMutex_);

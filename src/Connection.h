@@ -96,6 +96,8 @@ namespace sdbus::internal {
 
         [[nodiscard]] Slot addMatch(const std::string& match, message_handler callback) override;
         void addMatch(const std::string& match, message_handler callback, floating_slot_t) override;
+        [[nodiscard]] Slot addMatchAsync(const std::string& match, message_handler callback, message_handler installCallback) override;
+        void addMatchAsync(const std::string& match, message_handler callback, message_handler installCallback, floating_slot_t) override;
 
         const ISdBus& getSdBusInterface() const override;
         ISdBus& getSdBusInterface() override;
@@ -151,10 +153,13 @@ namespace sdbus::internal {
         void clearEventLoopNotification(int fd) const;
         void notifyEventLoopNewTimeout() const override;
 
-    private:
         void joinWithEventLoop();
         static std::vector</*const */char*> to_strv(const std::vector<std::string>& strings);
 
+        static int sdbus_match_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
+        static int sdbus_match_install_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
+
+    private:
         struct EventFd
         {
             EventFd();
@@ -165,6 +170,7 @@ namespace sdbus::internal {
         struct MatchInfo
         {
             message_handler callback;
+            message_handler installCallback;
             Connection& connection;
             sd_bus_slot *slot;
         };

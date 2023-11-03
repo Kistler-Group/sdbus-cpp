@@ -268,10 +268,10 @@ namespace sdbus {
         virtual void addObjectManager(const std::string& objectPath, floating_slot_t) = 0;
 
         /*!
-         * @brief Adds a match rule for incoming message dispatching
+         * @brief Installs a match rule for messages received on this bus connection
          *
          * @param[in] match Match expression to filter incoming D-Bus message
-         * @param[in] callback Callback handler to be called upon incoming D-Bus message matching the rule
+         * @param[in] callback Callback handler to be called upon processing an inbound D-Bus message matching the rule
          * @return RAII-style slot handle representing the ownership of the subscription
          *
          * The method installs a match rule for messages received on the specified bus connection.
@@ -291,10 +291,10 @@ namespace sdbus {
         [[nodiscard]] virtual Slot addMatch(const std::string& match, message_handler callback) = 0;
 
         /*!
-         * @brief Adds a floating match rule for incoming message dispatching
+         * @brief Installs a floating match rule for messages received on this bus connection
          *
          * @param[in] match Match expression to filter incoming D-Bus message
-         * @param[in] callback Callback handler to be called upon incoming D-Bus message matching the rule
+         * @param[in] callback Callback handler to be called upon processing an inbound D-Bus message matching the rule
          *
          * The method installs a floating match rule for messages received on the specified bus connection.
          * Floating means that the bus connection object owns the match rule, i.e. lifetime of the match rule
@@ -306,6 +306,45 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         virtual void addMatch(const std::string& match, message_handler callback, floating_slot_t) = 0;
+
+        /*!
+         * @brief Asynchronously installs a match rule for messages received on this bus connection
+         *
+         * @param[in] match Match expression to filter incoming D-Bus message
+         * @param[in] callback Callback handler to be called upon processing an inbound D-Bus message matching the rule
+         * @param[in] installCallback Callback handler to be called upon processing an inbound D-Bus message matching the rule
+         * @return RAII-style slot handle representing the ownership of the subscription
+         *
+         * This method operates the same as `addMatch()` above, just that it installs the match rule asynchronously,
+         * in a non-blocking fashion. A request is sent to the broker, but the call does not wait for a response.
+         * The `installCallback' callable is called when the response is later received, with the response message
+         * from the broker as parameter. If it's an empty function object, a default implementation is used that
+         * terminates the bus connection should installing the match fail.
+         *
+         * Refer to the @c addMatch(const std::string& match, message_handler callback) documentation, and consult
+         * `man sd_bus_add_match`, for more information.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] virtual Slot addMatchAsync(const std::string& match, message_handler callback, message_handler installCallback) = 0;
+
+        /*!
+         * @brief Asynchronously installs a floating match rule for messages received on this bus connection
+         *
+         * @param[in] match Match expression to filter incoming D-Bus message
+         * @param[in] callback Callback handler to be called upon processing an inbound D-Bus message matching the rule
+         * @param[in] installCallback Callback handler to be called upon processing an inbound D-Bus message matching the rule
+         *
+         * The method installs a floating match rule for messages received on the specified bus connection.
+         * Floating means that the bus connection object owns the match rule, i.e. lifetime of the match rule
+         * is bound to the lifetime of the bus connection.
+         *
+         * Refer to the @c addMatch(const std::string& match, message_handler callback, message_handler installCallback)
+         * documentation for more information.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual void addMatchAsync(const std::string& match, message_handler callback, message_handler installCallback, floating_slot_t) = 0;
 
         /*!
          * @copydoc IConnection::enterEventLoop()
