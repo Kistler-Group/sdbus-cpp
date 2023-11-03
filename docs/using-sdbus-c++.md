@@ -592,6 +592,7 @@ We recommend that sdbus-c++ users prefer the convenience API to the lower level,
 >         assert(e->getMessage() == "Failed to deserialize a int32 value");
 >     }
 > ```
+> Signature mismatch in signal handlers is probably the most common reason why signals are not received in the client, while we can see them on the bus with `dbus-monitor`. Use `const sdbus::Error*`-based callback variant and inspect the error to check if that's the cause of such problems.
 
 > **_Tip_:** When registering a D-Bus object, we can additionally provide names of input and output parameters of its methods and names of parameters of its signals. When the object is introspected, these names are listed in the resulting introspection XML, which improves the description of object's interfaces:
 > ```c++

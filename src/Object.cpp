@@ -347,16 +347,9 @@ int Object::sdbus_method_callback(sd_bus_message *sdbusMessage, void *userData, 
     auto& callback = interfaceData->methods[message.getMemberName()].callback;
     assert(callback);
 
-    try
-    {
-        callback(message);
-    }
-    catch (const Error& e)
-    {
-        sd_bus_error_set(retError, e.getName().c_str(), e.getMessage().c_str());
-    }
+    auto ok = invokeHandlerAndCatchErrors([&](){ callback(message); }, retError);
 
-    return 1;
+    return ok ? 1 : -1;
 }
 
 int Object::sdbus_property_get_callback( sd_bus */*bus*/
@@ -381,16 +374,9 @@ int Object::sdbus_property_get_callback( sd_bus */*bus*/
 
     auto reply = Message::Factory::create<PropertyGetReply>(sdbusReply, &object.connection_.getSdBusInterface());
 
-    try
-    {
-        callback(reply);
-    }
-    catch (const Error& e)
-    {
-        sd_bus_error_set(retError, e.getName().c_str(), e.getMessage().c_str());
-    }
+    auto ok = invokeHandlerAndCatchErrors([&](){ callback(reply); }, retError);
 
-    return 1;
+    return ok ? 1 : -1;
 }
 
 int Object::sdbus_property_set_callback( sd_bus */*bus*/
@@ -416,16 +402,9 @@ int Object::sdbus_property_set_callback( sd_bus */*bus*/
         object.m_CurrentlyProcessedMessage.store(nullptr, std::memory_order_relaxed);
     };
 
-    try
-    {
-        callback(value);
-    }
-    catch (const Error& e)
-    {
-        sd_bus_error_set(retError, e.getName().c_str(), e.getMessage().c_str());
-    }
+    auto ok = invokeHandlerAndCatchErrors([&](){ callback(value); }, retError);
 
-    return 1;
+    return ok ? 1 : -1;
 }
 
 }
