@@ -226,6 +226,10 @@ namespace sdbus {
 
         UnixFd& operator=(const UnixFd& other)
         {
+            if (this == &other)
+            {
+                return *this;
+            }
             close();
             fd_ = ::dup(other.fd_);
             return *this;
@@ -238,6 +242,10 @@ namespace sdbus {
 
         UnixFd& operator=(UnixFd&& other)
         {
+            if (this == &other)
+            {
+                return *this;
+            }
             close();
             fd_ = std::exchange(other.fd_, -1);
             return *this;
