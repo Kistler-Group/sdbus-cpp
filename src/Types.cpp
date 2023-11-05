@@ -29,6 +29,8 @@
 #include "MessageUtils.h"
 #include SDBUS_HEADER
 #include <cassert>
+#include <cerrno>
+#include <system_error>
 
 namespace sdbus {
 
@@ -62,6 +64,21 @@ std::string Variant::peekValueType() const
 bool Variant::isEmpty() const
 {
     return msg_.isEmpty();
+}
+
+int UnixFd::checkedDup(int fd)
+{
+    if (fd < 0)
+    {
+        return fd;
+    }
+
+    int ret = ::dup(fd);
+    if (ret < 0)
+    {
+        throw std::system_error(errno, std::generic_category(), "dup failed");
+    }
+    return ret;
 }
 
 }

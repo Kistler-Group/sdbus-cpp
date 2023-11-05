@@ -210,7 +210,7 @@ namespace sdbus {
         UnixFd() = default;
 
         explicit UnixFd(int fd)
-            : fd_(::dup(fd))
+            : fd_(checkedDup(fd))
         {
         }
 
@@ -231,7 +231,7 @@ namespace sdbus {
                 return *this;
             }
             close();
-            fd_ = ::dup(other.fd_);
+            fd_ = checkedDup(other.fd_);
             return *this;
         }
 
@@ -287,6 +287,10 @@ namespace sdbus {
             if (fd_ >= 0)
                 ::close(fd_);
         }
+
+        /// Returns negative argument unchanged.
+        /// Otherwise, call ::dup and throw on failure.
+        static int checkedDup(int fd);
 
         int fd_ = -1;
     };
