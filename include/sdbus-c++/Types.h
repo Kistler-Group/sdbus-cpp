@@ -34,6 +34,7 @@
 #include <typeinfo>
 #include <memory>
 #include <tuple>
+#include <utility>
 #include <unistd.h>
 
 namespace sdbus {
@@ -238,8 +239,7 @@ namespace sdbus {
         UnixFd& operator=(UnixFd&& other)
         {
             close();
-            fd_ = other.fd_;
-            other.fd_ = -1;
+            fd_ = std::exchange(other.fd_, -1);
             return *this;
         }
 
@@ -265,9 +265,7 @@ namespace sdbus {
 
         int release()
         {
-            auto fd = fd_;
-            fd_ = -1;
-            return fd;
+            return std::exchange(fd_, -1);
         }
 
         bool isValid() const
