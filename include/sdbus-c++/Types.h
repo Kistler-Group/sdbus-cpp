@@ -35,7 +35,6 @@
 #include <memory>
 #include <tuple>
 #include <utility>
-#include <unistd.h>
 
 namespace sdbus {
 
@@ -282,11 +281,8 @@ namespace sdbus {
         }
 
     private:
-        void close()
-        {
-            if (fd_ >= 0)
-                ::close(fd_);
-        }
+        /// Closes file descriptor, but does not set it to -1.
+        void close();
 
         /// Returns negative argument unchanged.
         /// Otherwise, call ::dup and throw on failure.

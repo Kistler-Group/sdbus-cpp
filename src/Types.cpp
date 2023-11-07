@@ -31,6 +31,7 @@
 #include <cassert>
 #include <cerrno>
 #include <system_error>
+#include <unistd.h>
 
 namespace sdbus {
 
@@ -64,6 +65,14 @@ std::string Variant::peekValueType() const
 bool Variant::isEmpty() const
 {
     return msg_.isEmpty();
+}
+
+void UnixFd::close()
+{
+    if (fd_ >= 0)
+    {
+        ::close(fd_);
+    }
 }
 
 int UnixFd::checkedDup(int fd)
