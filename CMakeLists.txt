@@ -12,7 +12,7 @@ include(GNUInstallDirs) # Installation directories for `install` command and pkg
 # PERFORMING CHECKS & PREPARING THE DEPENDENCIES
 #-------------------------------
 
-set(LIBSYSTEMD "systemd")
+set(LIBSYSTEMD "libsystemd")
 
 option(BUILD_LIBSYSTEMD "Build libsystemd static library and incorporate it into libsdbus-c++" OFF)
 
@@ -125,8 +125,8 @@ add_library(sdbus-c++-objlib OBJECT ${SDBUSCPP_SRCS})
 target_compile_definitions(sdbus-c++-objlib PRIVATE
     BUILD_LIB=1
     LIBSYSTEMD_VERSION=${LIBSYSTEMD_VERSION}
-    SDBUS_${LIBSYSTEMD}
-    SDBUS_HEADER=<${LIBSYSTEMD}/sd-bus.h>)
+    SDBUS_${Systemd_LIBRARIES}
+    SDBUS_HEADER=<${Systemd_LIBRARIES}/sd-bus.h>)
 target_include_directories(sdbus-c++-objlib PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                                    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>)
 if(BUILD_SHARED_LIBS)
