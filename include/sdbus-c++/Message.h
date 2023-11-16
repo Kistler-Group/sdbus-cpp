@@ -42,6 +42,7 @@
 #include <cassert>
 #include <functional>
 #include <sys/types.h>
+#include <algorithm>
 
 // Forward declarations
 namespace sdbus {
