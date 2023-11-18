@@ -5,7 +5,7 @@ includedir=@CMAKE_INSTALL_FULL_INCLUDEDIR@
 
 Name: @PROJECT_NAME@
 Description: C++ library on top of sd-bus, a systemd D-Bus library
-Requires@PKGCONFIG_REQS@: @LIBSYSTEMD@
+Requires@PKGCONFIG_REQS@: @PKGCONFIG_DEPS@
 Version: @SDBUSCPP_VERSION@
 Libs: -L${libdir} -l@PROJECT_NAME@
 Cflags: -I${includedir}
