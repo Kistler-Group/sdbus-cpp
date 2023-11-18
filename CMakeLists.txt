@@ -169,7 +169,7 @@ install(TARGETS ${EXPORT_SET}
 # TESTS
 #----------------------------------
 
-option(BUILD_TESTS "Build and install tests (default OFF)" OFF)
+option(BUILD_TESTS "Build tests (default OFF)" OFF)
 
 if(BUILD_TESTS)
     message(STATUS "Building with tests")

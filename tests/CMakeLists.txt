@@ -140,22 +140,26 @@ endif()
 # INSTALLATION
 #----------------------------------
 
-include(GNUInstallDirs)
-set(TESTS_INSTALL_PATH "/opt/test/bin" CACHE STRING "Specifies where the test binaries will be installed")
+option(INSTALL_TESTS "Install tests (default OFF)" OFF)
 
-install(TARGETS sdbus-c++-unit-tests DESTINATION ${TESTS_INSTALL_PATH} COMPONENT test)
-install(TARGETS sdbus-c++-integration-tests DESTINATION ${TESTS_INSTALL_PATH} COMPONENT test)
-install(FILES ${INTEGRATIONTESTS_SOURCE_DIR}/files/org.sdbuscpp.integrationtests.conf DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/dbus-1/system.d COMPONENT test)
+if(INSTALL_TESTS)
+    include(GNUInstallDirs)
+    set(TESTS_INSTALL_PATH "tests/${PROJECT_NAME}" CACHE STRING "Specifies where the test binaries will be installed")
 
-if(ENABLE_PERF_TESTS)
-    install(TARGETS sdbus-c++-perf-tests-client DESTINATION ${TESTS_INSTALL_PATH} COMPONENT test)
-    install(TARGETS sdbus-c++-perf-tests-server DESTINATION ${TESTS_INSTALL_PATH} COMPONENT test)
-    install(FILES ${PERFTESTS_SOURCE_DIR}/files/org.sdbuscpp.perftests.conf DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/dbus-1/system.d COMPONENT test)
-endif()
+    install(TARGETS sdbus-c++-unit-tests DESTINATION ${TESTS_INSTALL_PATH} COMPONENT test)
+    install(TARGETS sdbus-c++-integration-tests DESTINATION ${TESTS_INSTALL_PATH} COMPONENT test)
+    install(FILES ${INTEGRATIONTESTS_SOURCE_DIR}/files/org.sdbuscpp.integrationtests.conf DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/dbus-1/system.d COMPONENT test)
 
-if(ENABLE_STRESS_TESTS)
-    install(TARGETS sdbus-c++-stress-tests DESTINATION ${TESTS_INSTALL_PATH} COMPONENT test)
-    install(FILES ${STRESSTESTS_SOURCE_DIR}/files/org.sdbuscpp.stresstests.conf DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/dbus-1/system.d COMPONENT test)
+    if(ENABLE_PERF_TESTS)
+        install(TARGETS sdbus-c++-perf-tests-client DESTINATION ${TESTS_INSTALL_PATH} COMPONENT test)
+        install(TARGETS sdbus-c++-perf-tests-server DESTINATION ${TESTS_INSTALL_PATH} COMPONENT test)
+        install(FILES ${PERFTESTS_SOURCE_DIR}/files/org.sdbuscpp.perftests.conf DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/dbus-1/system.d COMPONENT test)
+    endif()
+
+    if(ENABLE_STRESS_TESTS)
+        install(TARGETS sdbus-c++-stress-tests DESTINATION ${TESTS_INSTALL_PATH} COMPONENT test)
+        install(FILES ${STRESSTESTS_SOURCE_DIR}/files/org.sdbuscpp.stresstests.conf DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/dbus-1/system.d COMPONENT test)
+    endif()
 endif()
 
 #----------------------------------
