@@ -34,7 +34,7 @@
 #include <typeinfo>
 #include <memory>
 #include <tuple>
-#include <unistd.h>
+#include <utility>
 
 namespace sdbus {
 
@@ -209,7 +209,7 @@ namespace sdbus {
         UnixFd() = default;
 
         explicit UnixFd(int fd)
-            : fd_(::dup(fd))
+            : fd_(checkedDup(fd))
         {
         }
 
@@ -225,8 +225,12 @@ namespace sdbus {
 
         UnixFd& operator=(const UnixFd& other)
         {
+            if (this == &other)
+            {
+                return *this;
+            }
             close();
-            fd_ = ::dup(other.fd_);
+            fd_ = checkedDup(other.fd_);
             return *this;
         }
 
@@ -237,9 +241,12 @@ namespace sdbus {
 
         UnixFd& operator=(UnixFd&& other)
         {
+            if (this == &other)
+            {
+                return *this;
+            }
             close();
-            fd_ = other.fd_;
-            other.fd_ = -1;
+            fd_ = std::exchange(other.fd_, -1);
             return *this;
         }
 
@@ -265,9 +272,7 @@ namespace sdbus {
 
         int release()
         {
-            auto fd = fd_;
-            fd_ = -1;
-            return fd;
+            return std::exchange(fd_, -1);
         }
 
         bool isValid() const
@@ -276,11 +281,12 @@ namespace sdbus {
         }
 
     private:
-        void close()
-        {
-            if (fd_ >= 0)
-                ::close(fd_);
-        }
+        /// Closes file descriptor, but does not set it to -1.
+        void close();
+
+        /// Returns negative argument unchanged.
+        /// Otherwise, call ::dup and throw on failure.
+        static int checkedDup(int fd);
 
         int fd_ = -1;
     };
