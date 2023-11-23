@@ -50,9 +50,13 @@ $ sudo cmake --build . --target install
 
       Option for building sdbus-c++ stress tests. Default value: `OFF`.
 
+    * `INSTALL_TESTS` [boolean]
+
+      Option for installing tests that were built. Default value: `OFF`.
+
     * `TESTS_INSTALL_PATH` [string]
 
-      Path where the test binaries shall get installed. Default value: `/opt/test/bin`.
+      Path where the test binaries shall get installed. Default value: `${CMAKE_INSTALL_PREFIX}/tests/sdbus-c++` (previously: `/opt/test/bin`).
 
 * `BUILD_LIBSYSTEMD` [boolean]
 
