@@ -78,6 +78,10 @@ namespace sdbus::internal {
         return true;
     }
 
+    // Implementation of the overload pattern for variant visitation
+    template <class... Ts> struct overload : Ts... { using Ts::operator()...; };
+    template <class... Ts> overload(Ts...) -> overload<Ts...>;
+
 }
 
 #endif /* SDBUS_CXX_INTERNAL_UTILS_H_ */
