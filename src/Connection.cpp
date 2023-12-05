@@ -587,20 +587,20 @@ std::vector</*const */char*> Connection::to_strv(const std::vector<std::string>&
     return strv;
 }
 
-int Connection::sdbus_match_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error */*retError*/)
+int Connection::sdbus_match_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError)
 {
     auto* matchInfo = static_cast<MatchInfo*>(userData);
     auto message = Message::Factory::create<PlainMessage>(sdbusMessage, &matchInfo->connection.getSdBusInterface());
-    matchInfo->callback(message);
-    return 0;
+    auto ok = invokeHandlerAndCatchErrors([&](){ matchInfo->callback(message); }, retError);
+    return ok ? 0 : -1;
 }
 
-int Connection::sdbus_match_install_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error */*retError*/)
+int Connection::sdbus_match_install_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError)
 {
     auto* matchInfo = static_cast<MatchInfo*>(userData);
     auto message = Message::Factory::create<PlainMessage>(sdbusMessage, &matchInfo->connection.getSdBusInterface());
-    matchInfo->installCallback(message);
-    return 0;
+    auto ok = invokeHandlerAndCatchErrors([&](){ matchInfo->installCallback(message); }, retError);
+    return ok ? 0 : -1;
 }
 
 Connection::EventFd::EventFd()
