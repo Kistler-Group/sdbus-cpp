@@ -462,7 +462,7 @@ Slot Connection::addObjectVTable( const std::string& objectPath
 {
     sd_bus_slot *slot{};
 
-    auto r = sdbus_->sd_bus_add_object_vtable(bus_.get()
+    auto r = sdbus_->sd_bus_add_object_vtable( bus_.get()
                                              , &slot
                                              , objectPath.c_str()
                                              , interfaceName.c_str()

@@ -36,6 +36,7 @@
 #include <type_traits>
 #include <chrono>
 #include <future>
+#include <variant>
 #include <cstdint>
 
 // Forward declarations
@@ -45,104 +46,110 @@ namespace sdbus {
     class Error;
     class PendingAsyncCall;
 }
+// TODO: Is this needed?
+namespace sdbus::internal {
+    class Object;
+}
 
 namespace sdbus {
 
-    class MethodRegistrator
+    // TODO: Move these classes to VTableItems.h/.inl?
+    class MethodVTableItem
     {
     public:
-        MethodRegistrator(IObject& object, std::string methodName);
-        MethodRegistrator(MethodRegistrator&& other) = default;
-        ~MethodRegistrator() noexcept(false);
-
-        MethodRegistrator& onInterface(std::string interfaceName);
-        template <typename _Function> MethodRegistrator& implementedAs(_Function&& callback);
-        MethodRegistrator& withInputParamNames(std::vector<std::string> paramNames);
-        template <typename... _String> MethodRegistrator& withInputParamNames(_String... paramNames);
-        MethodRegistrator& withOutputParamNames(std::vector<std::string> paramNames);
-        template <typename... _String> MethodRegistrator& withOutputParamNames(_String... paramNames);
-        MethodRegistrator& markAsDeprecated();
-        MethodRegistrator& markAsPrivileged();
-        MethodRegistrator& withNoReply();
+        MethodVTableItem(std::string methodName);
+        template <typename _Function> MethodVTableItem& implementedAs(_Function&& callback);
+        MethodVTableItem& withInputParamNames(std::vector<std::string> paramNames);
+        template <typename... _String> MethodVTableItem& withInputParamNames(_String... paramNames);
+        MethodVTableItem& withOutputParamNames(std::vector<std::string> paramNames);
+        template <typename... _String> MethodVTableItem& withOutputParamNames(_String... paramNames);
+        MethodVTableItem& markAsDeprecated();
+        MethodVTableItem& markAsPrivileged();
+        MethodVTableItem& withNoReply();
 
     private:
-        IObject& object_;
-        std::string methodName_;
-        std::string interfaceName_;
+        friend internal::Object;
+
+        std::string name_;
         std::string inputSignature_;
         std::vector<std::string> inputParamNames_;
         std::string outputSignature_;
         std::vector<std::string> outputParamNames_;
-        method_callback methodCallback_;
+        method_callback callback_;
         Flags flags_;
-        int exceptions_{}; // Number of active exceptions when SignalRegistrator is constructed
     };
 
-    class SignalRegistrator
+    inline MethodVTableItem registerMethod(std::string methodName);
+
+    class SignalVTableItem
     {
     public:
-        SignalRegistrator(IObject& object, std::string signalName);
-        SignalRegistrator(SignalRegistrator&& other) = default;
-        ~SignalRegistrator() noexcept(false);
-
-        SignalRegistrator& onInterface(std::string interfaceName);
-        template <typename... _Args> SignalRegistrator& withParameters();
-        template <typename... _Args> SignalRegistrator& withParameters(std::vector<std::string> paramNames);
-        template <typename... _Args, typename... _String> SignalRegistrator& withParameters(_String... paramNames);
-        SignalRegistrator& markAsDeprecated();
+        SignalVTableItem(std::string signalName);
+        template <typename... _Args> SignalVTableItem& withParameters();
+        template <typename... _Args> SignalVTableItem& withParameters(std::vector<std::string> paramNames);
+        template <typename... _Args, typename... _String> SignalVTableItem& withParameters(_String... paramNames);
+        SignalVTableItem& markAsDeprecated();
 
     private:
-        IObject& object_;
-        std::string signalName_;
-        std::string interfaceName_;
-        std::string signalSignature_;
+        friend internal::Object;
+
+        std::string name_;
+        std::string signature_;
         std::vector<std::string> paramNames_;
         Flags flags_;
-        int exceptions_{}; // Number of active exceptions when SignalRegistrator is constructed
     };
 
-    class PropertyRegistrator
+    inline SignalVTableItem registerSignal(std::string signalName);
+
+    class PropertyVTableItem
     {
     public:
-        PropertyRegistrator(IObject& object, const std::string& propertyName);
-        PropertyRegistrator(PropertyRegistrator&& other) = default;
-        ~PropertyRegistrator() noexcept(false);
-
-        PropertyRegistrator& onInterface(std::string interfaceName);
-        template <typename _Function> PropertyRegistrator& withGetter(_Function&& callback);
-        template <typename _Function> PropertyRegistrator& withSetter(_Function&& callback);
-        PropertyRegistrator& markAsDeprecated();
-        PropertyRegistrator& markAsPrivileged();
-        PropertyRegistrator& withUpdateBehavior(Flags::PropertyUpdateBehaviorFlags behavior);
+        PropertyVTableItem(std::string propertyName);
+        template <typename _Function> PropertyVTableItem& withGetter(_Function&& callback);
+        template <typename _Function> PropertyVTableItem& withSetter(_Function&& callback);
+        PropertyVTableItem& markAsDeprecated();
+        PropertyVTableItem& markAsPrivileged();
+        PropertyVTableItem& withUpdateBehavior(Flags::PropertyUpdateBehaviorFlags behavior);
 
     private:
-        IObject& object_;
-        const std::string& propertyName_;
-        std::string interfaceName_;
-        std::string propertySignature_;
+        friend internal::Object;
+
+        std::string name_;
+        std::string signature_;
         property_get_callback getter_;
         property_set_callback setter_;
         Flags flags_;
-        int exceptions_{}; // Number of active exceptions when PropertyRegistrator is constructed
     };
 
-    class InterfaceFlagsSetter
+    inline PropertyVTableItem registerProperty(std::string propertyName);
+
+    class InterfaceFlagsVTableItem
     {
     public:
-        InterfaceFlagsSetter(IObject& object, const std::string& interfaceName);
-        InterfaceFlagsSetter(InterfaceFlagsSetter&& other) = default;
-        ~InterfaceFlagsSetter() noexcept(false);
+        InterfaceFlagsVTableItem& markAsDeprecated();
+        InterfaceFlagsVTableItem& markAsPrivileged();
+        InterfaceFlagsVTableItem& withNoReplyMethods();
+        InterfaceFlagsVTableItem& withPropertyUpdateBehavior(Flags::PropertyUpdateBehaviorFlags behavior);
 
-        InterfaceFlagsSetter& markAsDeprecated();
-        InterfaceFlagsSetter& markAsPrivileged();
-        InterfaceFlagsSetter& withNoReplyMethods();
-        InterfaceFlagsSetter& withPropertyUpdateBehavior(Flags::PropertyUpdateBehaviorFlags behavior);
+    private:
+        friend internal::Object;
+
+        Flags flags_;
+    };
+
+    inline InterfaceFlagsVTableItem setInterfaceFlags();
+
+    using VTableItem = std::variant<MethodVTableItem, SignalVTableItem, PropertyVTableItem, InterfaceFlagsVTableItem>;
+
+    class VTableAdder
+    {
+    public:
+        VTableAdder(IObject& object, std::vector<VTableItem> vtable);
+        void forInterface(std::string interfaceName);
 
     private:
         IObject& object_;
-        const std::string& interfaceName_;
-        Flags flags_;
-        int exceptions_{}; // Number of active exceptions when InterfaceFlagsSetter is constructed
+        std::vector<VTableItem> vtable_;
     };
 
     class SignalEmitter

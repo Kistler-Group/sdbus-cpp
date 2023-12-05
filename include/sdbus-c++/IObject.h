@@ -61,145 +61,19 @@ namespace sdbus {
     public:
         virtual ~IObject() = default;
 
-        /*!
-         * @brief Registers method that the object will provide on D-Bus
-         *
-         * @param[in] interfaceName Name of an interface that the method will belong to
-         * @param[in] methodName Name of the method
-         * @param[in] inputSignature D-Bus signature of method input parameters
-         * @param[in] outputSignature D-Bus signature of method output parameters
-         * @param[in] methodCallback Callback that implements the body of the method
-         * @param[in] flags D-Bus method flags (privileged, deprecated, or no reply)
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        virtual void registerMethod( const std::string& interfaceName
-                                   , std::string methodName
-                                   , std::string inputSignature
-                                   , std::string outputSignature
-                                   , method_callback methodCallback
-                                   , Flags flags = {} ) = 0;
+        // TODO: Docs (from sd-bus + strong exception guarantee)
+        template <typename... VTableItems>
+        void addVTable(std::string interfaceName, VTableItems&&... items)
+        {
+            addVTable(std::move(interfaceName), std::vector<VTableItem>{std::forward<VTableItems>(items)...});
+        }
 
-        /*!
-         * @brief Registers method that the object will provide on D-Bus
-         *
-         * @param[in] interfaceName Name of an interface that the method will belong to
-         * @param[in] methodName Name of the method
-         * @param[in] inputSignature D-Bus signature of method input parameters
-         * @param[in] inputNames Names of input parameters
-         * @param[in] outputSignature D-Bus signature of method output parameters
-         * @param[in] outputNames Names of output parameters
-         * @param[in] methodCallback Callback that implements the body of the method
-         * @param[in] flags D-Bus method flags (privileged, deprecated, or no reply)
-         *
-         * Provided names of input and output parameters will be included in the introspection
-         * description (given that at least version 242 of underlying libsystemd library is
-         * used; otherwise, names of parameters are ignored). This usually helps better describe
-         * the API to the introspector.
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        virtual void registerMethod( const std::string& interfaceName
-                                   , std::string methodName
-                                   , std::string inputSignature
-                                   , const std::vector<std::string>& inputNames
-                                   , std::string outputSignature
-                                   , const std::vector<std::string>& outputNames
-                                   , method_callback methodCallback
-                                   , Flags flags = {} ) = 0;
+        // TODO: Docs (from sd-bus + strong exception guarantee)
+        virtual void addVTable(std::string interfaceName, std::vector<VTableItem> vtable) = 0;
 
-        /*!
-         * @brief Registers signal that the object will emit on D-Bus
-         *
-         * @param[in] interfaceName Name of an interface that the signal will fall under
-         * @param[in] signalName Name of the signal
-         * @param[in] signature D-Bus signature of signal parameters
-         * @param[in] flags D-Bus signal flags (deprecated)
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        virtual void registerSignal( const std::string& interfaceName
-                                   , std::string signalName
-                                   , std::string signature
-                                   , Flags flags = {} ) = 0;
-
-        /*!
-         * @brief Registers signal that the object will emit on D-Bus
-         *
-         * @param[in] interfaceName Name of an interface that the signal will fall under
-         * @param[in] signalName Name of the signal
-         * @param[in] signature D-Bus signature of signal parameters
-         * @param[in] paramNames Names of parameters of the signal
-         * @param[in] flags D-Bus signal flags (deprecated)
-         *
-         * Provided names of signal output parameters will be included in the introspection
-         * description (given that at least version 242 of underlying libsystemd library is
-         * used; otherwise, names of parameters are ignored). This usually helps better describe
-         * the API to the introspector.
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        virtual void registerSignal( const std::string& interfaceName
-                                   , std::string signalName
-                                   , std::string signature
-                                   , const std::vector<std::string>& paramNames
-                                   , Flags flags = {} ) = 0;
-
-        /*!
-         * @brief Registers read-only property that the object will provide on D-Bus
-         *
-         * @param[in] interfaceName Name of an interface that the property will fall under
-         * @param[in] propertyName Name of the property
-         * @param[in] signature D-Bus signature of property parameters
-         * @param[in] getCallback Callback that implements the body of the property getter
-         * @param[in] flags D-Bus property flags (deprecated, property update behavior)
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        virtual void registerProperty( const std::string& interfaceName
-                                     , std::string propertyName
-                                     , std::string signature
-                                     , property_get_callback getCallback
-                                     , Flags flags = {} ) = 0;
-
-        /*!
-         * @brief Registers read/write property that the object will provide on D-Bus
-         *
-         * @param[in] interfaceName Name of an interface that the property will fall under
-         * @param[in] propertyName Name of the property
-         * @param[in] signature D-Bus signature of property parameters
-         * @param[in] getCallback Callback that implements the body of the property getter
-         * @param[in] setCallback Callback that implements the body of the property setter
-         * @param[in] flags D-Bus property flags (deprecated, property update behavior)
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        virtual void registerProperty( const std::string& interfaceName
-                                     , std::string propertyName
-                                     , std::string signature
-                                     , property_get_callback getCallback
-                                     , property_set_callback setCallback
-                                     , Flags flags = {} ) = 0;
-
-        /*!
-         * @brief Sets flags for a given interface
-         *
-         * @param[in] interfaceName Name of an interface whose flags will be set
-         * @param[in] flags Flags to be set
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        virtual void setInterfaceFlags(const std::string& interfaceName, Flags flags) = 0;
-
-        /*!
-         * @brief Finishes object API registration and publishes the object on the bus
-         *
-         * The method exports all up to now registered methods, signals and properties on D-Bus.
-         * Must be called after all methods, signals and properties have been registered.
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        virtual void finishRegistration() = 0;
+        template <typename... VTableItems>
+        [[nodiscard]] VTableAdder addVTable(VTableItems&&... items);
+        [[nodiscard]] VTableAdder addVTable(std::vector<VTableItem> vtable);
 
         /*!
          * @brief Unregisters object's API and removes object from the bus
@@ -341,81 +215,6 @@ namespace sdbus {
         virtual sdbus::IConnection& getConnection() const = 0;
 
         /*!
-         * @brief Registers method that the object will provide on D-Bus
-         *
-         * @param[in] methodName Name of the method
-         * @return A helper object for convenient registration of the method
-         *
-         * This is a high-level, convenience way of registering D-Bus methods that abstracts
-         * from the D-Bus message concept. Method arguments/return value are automatically (de)serialized
-         * in a message and D-Bus signatures automatically deduced from the parameters and return type
-         * of the provided native method implementation callback.
-         *
-         * Example of use:
-         * @code
-         * object.registerMethod("doFoo").onInterface("com.kistler.foo").implementedAs([this](int value){ return this->doFoo(value); });
-         * @endcode
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        [[nodiscard]] MethodRegistrator registerMethod(const std::string& methodName);
-
-        /*!
-         * @brief Registers signal that the object will provide on D-Bus
-         *
-         * @param[in] signalName Name of the signal
-         * @return A helper object for convenient registration of the signal
-         *
-         * This is a high-level, convenience way of registering D-Bus signals that abstracts
-         * from the D-Bus message concept. Signal arguments are automatically (de)serialized
-         * in a message and D-Bus signatures automatically deduced from the provided native parameters.
-         *
-         * Example of use:
-         * @code
-         * object.registerSignal("paramChange").onInterface("com.kistler.foo").withParameters<std::map<int32_t, std::string>>();
-         * @endcode
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        [[nodiscard]] SignalRegistrator registerSignal(const std::string& signalName);
-
-        /*!
-         * @brief Registers property that the object will provide on D-Bus
-         *
-         * @param[in] propertyName Name of the property
-         * @return A helper object for convenient registration of the property
-         *
-         * This is a high-level, convenience way of registering D-Bus properties that abstracts
-         * from the D-Bus message concept. Property arguments are automatically (de)serialized
-         * in a message and D-Bus signatures automatically deduced from the provided native callbacks.
-         *
-         * Example of use:
-         * @code
-         * object_.registerProperty("state").onInterface("com.kistler.foo").withGetter([this](){ return this->state(); });
-         * @endcode
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        [[nodiscard]] PropertyRegistrator registerProperty(const std::string& propertyName);
-
-        /*!
-         * @brief Sets flags (annotations) for a given interface
-         *
-         * @param[in] interfaceName Name of an interface whose flags will be set
-         * @return A helper object for convenient setting of Interface flags
-         *
-         * This is a high-level, convenience alternative to the other setInterfaceFlags overload.
-         *
-         * Example of use:
-         * @code
-         * object_.setInterfaceFlags("com.kistler.foo").markAsDeprecated().withPropertyUpdateBehavior(sdbus::Flags::EMITS_NO_SIGNAL);
-         * @endcode
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        [[nodiscard]] InterfaceFlagsSetter setInterfaceFlags(const std::string& interfaceName);
-
-        /*!
          * @brief Emits signal on D-Bus
          *
          * @param[in] signalName Name of the signal
@@ -459,29 +258,20 @@ namespace sdbus {
 
     // Out-of-line member definitions
 
-    inline MethodRegistrator IObject::registerMethod(const std::string& methodName)
-    {
-        return MethodRegistrator(*this, methodName);
-    }
-
-    inline SignalRegistrator IObject::registerSignal(const std::string& signalName)
-    {
-        return SignalRegistrator(*this, signalName);
-    }
-
-    inline PropertyRegistrator IObject::registerProperty(const std::string& propertyName)
-    {
-        return PropertyRegistrator(*this, propertyName);
-    }
-
-    inline InterfaceFlagsSetter IObject::setInterfaceFlags(const std::string& interfaceName)
-    {
-        return InterfaceFlagsSetter(*this, interfaceName);
-    }
-
     inline SignalEmitter IObject::emitSignal(const std::string& signalName)
     {
         return SignalEmitter(*this, signalName);
+    }
+
+    template <typename... VTableItems>
+    VTableAdder IObject::addVTable(VTableItems&&... items)
+    {
+        return addVTable(std::vector<VTableItem>{std::forward<VTableItems>(items)...});
+    }
+
+    inline VTableAdder IObject::addVTable(std::vector<VTableItem> vtable)
+    {
+        return VTableAdder(*this, std::move(vtable));
     }
 
     /*!

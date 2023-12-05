@@ -116,7 +116,7 @@ namespace sdbus {
          */
         void registerAdaptor()
         {
-            getObject().finishRegistration();
+            (_Interfaces::registerAdaptor(), ...);
         }
 
         /*!

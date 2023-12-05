@@ -20,14 +20,18 @@ public:
     static constexpr const char* INTERFACE_NAME = "org.sdbuscpp.ExampleManager.Planet1";
 
 protected:
-    Planet1_adaptor(sdbus::IObject& object)
-        : object_(object)
+    Planet1_adaptor(sdbus::IObject& object) : object_(object)
     {
-        object_.registerMethod("GetPopulation").onInterface(INTERFACE_NAME).withOutputParamNames("population").implementedAs([this](){ return this->GetPopulation(); });
-        object_.registerProperty("Name").onInterface(INTERFACE_NAME).withGetter([this](){ return this->Name(); });
     }
 
     ~Planet1_adaptor() = default;
+
+    void registerAdaptor()
+    {
+        object_.addVTable( sdbus::registerMethod("GetPopulation").withOutputParamNames("population").implementedAs([this](){ return this->GetPopulation(); })
+                         , sdbus::registerProperty("Name").withGetter([this](){ return this->Name(); })
+                         ).forInterface(INTERFACE_NAME);
+    }
 
 private:
     virtual uint64_t GetPopulation() = 0;

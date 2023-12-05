@@ -47,129 +47,28 @@ Object::Object(sdbus::internal::IConnection& connection, std::string objectPath)
     SDBUS_CHECK_OBJECT_PATH(objectPath_);
 }
 
-void Object::registerMethod( const std::string& interfaceName
-                           , std::string methodName
-                           , std::string inputSignature
-                           , std::string outputSignature
-                           , method_callback methodCallback
-                           , Flags flags )
-{
-    registerMethod( interfaceName
-                  , std::move(methodName)
-                  , std::move(inputSignature)
-                  , {}
-                  , std::move(outputSignature)
-                  , {}
-                  , std::move(methodCallback)
-                  , std::move(flags) );
-}
-
-void Object::registerMethod( const std::string& interfaceName
-                           , std::string methodName
-                           , std::string inputSignature
-                           , const std::vector<std::string>& inputNames
-                           , std::string outputSignature
-                           , const std::vector<std::string>& outputNames
-                           , method_callback methodCallback
-                           , Flags flags )
+void Object::addVTable(std::string interfaceName, std::vector<VTableItem> vtable)
 {
     SDBUS_CHECK_INTERFACE_NAME(interfaceName);
-    SDBUS_CHECK_MEMBER_NAME(methodName);
-    SDBUS_THROW_ERROR_IF(!methodCallback, "Invalid method callback provided", EINVAL);
 
-    auto& interface = getInterface(interfaceName);
-    InterfaceData::MethodData methodData{ std::move(inputSignature)
-                                        , std::move(outputSignature)
-                                        , paramNamesToString(inputNames) + paramNamesToString(outputNames)
-                                        , std::move(methodCallback)
-                                        , std::move(flags) };
-    auto inserted = interface.methods.emplace(std::move(methodName), std::move(methodData)).second;
+    // 1st pass -- create vtable structure for internal sdbus-c++ purposes
+    auto internalVTable = createInternalVTable(std::move(interfaceName), std::move(vtable));
 
-    SDBUS_THROW_ERROR_IF(!inserted, "Failed to register method: method already exists", EINVAL);
-}
+    // 2nd pass -- from internal sdbus-c++ vtable, create vtable structure in format expected by underlying sd-bus library
+    internalVTable.sdbusVTable = createInternalSdBusVTable(internalVTable);
 
-void Object::registerSignal( const std::string& interfaceName
-                           , std::string signalName
-                           , std::string signature
-                           , Flags flags )
-{
-    registerSignal(interfaceName, std::move(signalName), std::move(signature), {}, std::move(flags));
-}
+    // 3rd step -- move vtable into the list of vtables
+    vtables_.push_back(std::move(internalVTable));
+    SCOPE_EXIT_FAILURE{ vtables_.pop_back(); }; // To keep the strong exception guarantee
 
-void Object::registerSignal( const std::string& interfaceName
-                           , std::string signalName
-                           , std::string signature
-                           , const std::vector<std::string>& paramNames
-                           , Flags flags )
-{
-    SDBUS_CHECK_INTERFACE_NAME(interfaceName);
-    SDBUS_CHECK_MEMBER_NAME(signalName);
-
-    auto& interface = getInterface(interfaceName);
-
-    InterfaceData::SignalData signalData{std::move(signature), paramNamesToString(paramNames), std::move(flags)};
-    auto inserted = interface.signals.emplace(std::move(signalName), std::move(signalData)).second;
-
-    SDBUS_THROW_ERROR_IF(!inserted, "Failed to register signal: signal already exists", EINVAL);
-}
-
-void Object::registerProperty( const std::string& interfaceName
-                             , std::string propertyName
-                             , std::string signature
-                             , property_get_callback getCallback
-                             , Flags flags )
-{
-    registerProperty( interfaceName
-                    , std::move(propertyName)
-                    , std::move(signature)
-                    , std::move(getCallback)
-                    , {}
-                    , std::move(flags) );
-}
-
-void Object::registerProperty( const std::string& interfaceName
-                             , std::string propertyName
-                             , std::string signature
-                             , property_get_callback getCallback
-                             , property_set_callback setCallback
-                             , Flags flags )
-{
-    SDBUS_CHECK_INTERFACE_NAME(interfaceName);
-    SDBUS_CHECK_MEMBER_NAME(propertyName);
-    SDBUS_THROW_ERROR_IF(!getCallback && !setCallback, "Invalid property callbacks provided", EINVAL);
-
-    auto& interface = getInterface(interfaceName);
-
-    InterfaceData::PropertyData propertyData{ std::move(signature)
-                                            , std::move(getCallback)
-                                            , std::move(setCallback)
-                                            , std::move(flags) };
-    auto inserted = interface.properties.emplace(std::move(propertyName), std::move(propertyData)).second;
-
-    SDBUS_THROW_ERROR_IF(!inserted, "Failed to register property: property already exists", EINVAL);
-}
-
-void Object::setInterfaceFlags(const std::string& interfaceName, Flags flags)
-{
-    auto& interface = getInterface(interfaceName);
-    interface.flags = flags;
-}
-
-void Object::finishRegistration()
-{
-    for (auto& item : interfaces_)
-    {
-        const auto& interfaceName = item.first;
-        auto& interfaceData = item.second;
-
-        const auto& vtable = createInterfaceVTable(interfaceData);
-        activateInterfaceVTable(interfaceName, interfaceData, vtable);
-    }
+    // 4th step -- register the vtable with sd-bus, using an already fixed address of an object already stored in the container
+    auto& justAddedVTable = vtables_.back();
+    justAddedVTable.slot = connection_.addObjectVTable(objectPath_, justAddedVTable.interfaceName, &justAddedVTable.sdbusVTable[0], &justAddedVTable);
 }
 
 void Object::unregister()
 {
-    interfaces_.clear();
+    vtables_.clear();
     removeObjectManager();
 }
 
@@ -245,81 +144,151 @@ Message Object::getCurrentlyProcessedMessage() const
     return connection_.getCurrentlyProcessedMessage();
 }
 
-Object::InterfaceData& Object::getInterface(const std::string& interfaceName)
+Object::VTable Object::createInternalVTable(std::string interfaceName, std::vector<VTableItem> vtable)
 {
-    return interfaces_.emplace(interfaceName, *this).first->second;
-}
+    VTable internalVTable;
 
-const std::vector<sd_bus_vtable>& Object::createInterfaceVTable(InterfaceData& interfaceData)
-{
-    auto& vtable = interfaceData.vtable;
-    assert(vtable.empty());
+    internalVTable.interfaceName = std::move(interfaceName);
 
-    vtable.push_back(createVTableStartItem(interfaceData.flags.toSdBusInterfaceFlags()));
-    registerMethodsToVTable(interfaceData, vtable);
-    registerSignalsToVTable(interfaceData, vtable);
-    registerPropertiesToVTable(interfaceData, vtable);
-    vtable.push_back(createVTableEndItem());
-
-    return vtable;
-}
-
-void Object::registerMethodsToVTable(const InterfaceData& interfaceData, std::vector<sd_bus_vtable>& vtable)
-{
-    for (const auto& item : interfaceData.methods)
+    for (auto& vtableItem : vtable)
     {
-        const auto& methodName = item.first;
-        const auto& methodData = item.second;
-
-        vtable.push_back(createVTableMethodItem( methodName.c_str()
-                                               , methodData.inputArgs.c_str()
-                                               , methodData.outputArgs.c_str()
-                                               , methodData.paramNames.c_str()
-                                               , &Object::sdbus_method_callback
-                                               , methodData.flags.toSdBusMethodFlags() ));
+        std::visit( overload{ [&](InterfaceFlagsVTableItem&& interfaceFlags){ writeInterfaceFlagsToVTable(std::move(interfaceFlags), internalVTable); }
+                            , [&](MethodVTableItem&& method){ writeMethodRecordToVTable(std::move(method), internalVTable); }
+                            , [&](SignalVTableItem&& signal){ writeSignalRecordToVTable(std::move(signal), internalVTable); }
+                            , [&](PropertyVTableItem&& property){ writePropertyRecordToVTable(std::move(property), internalVTable); } }
+                  , std::move(vtableItem) );
     }
+
+    // Sort arrays so we can do fast searching for an item in sd-bus callback handlers
+    std::sort(internalVTable.methods.begin(), internalVTable.methods.end(), [](const auto& a, const auto& b){ return a.name < b.name; });
+    std::sort(internalVTable.signals.begin(), internalVTable.signals.end(), [](const auto& a, const auto& b){ return a.name < b.name; });
+    std::sort(internalVTable.properties.begin(), internalVTable.properties.end(), [](const auto& a, const auto& b){ return a.name < b.name; });
+
+    internalVTable.object = this;
+
+    return internalVTable;
 }
 
-void Object::registerSignalsToVTable(const InterfaceData& interfaceData, std::vector<sd_bus_vtable>& vtable)
+void Object::writeInterfaceFlagsToVTable(InterfaceFlagsVTableItem flags, VTable& vtable)
 {
-    for (const auto& item : interfaceData.signals)
+    vtable.interfaceFlags = std::move(flags.flags_);
+}
+
+void Object::writeMethodRecordToVTable(MethodVTableItem method, VTable& vtable)
+{
+    SDBUS_CHECK_MEMBER_NAME(method.name_);
+    SDBUS_THROW_ERROR_IF(!method.callback_, "Invalid method callback provided", EINVAL);
+
+    vtable.methods.push_back({ std::move(method.name_)
+                             , std::move(method.inputSignature_)
+                             , std::move(method.outputSignature_)
+                             , paramNamesToString(method.inputParamNames_) + paramNamesToString(method.outputParamNames_)
+                             , std::move(method.callback_)
+                             , std::move(method.flags_) });
+}
+
+void Object::writeSignalRecordToVTable(SignalVTableItem signal, VTable& vtable)
+{
+    SDBUS_CHECK_MEMBER_NAME(signal.name_);
+
+    vtable.signals.push_back({ std::move(signal.name_)
+                             , std::move(signal.signature_)
+                             , paramNamesToString(signal.paramNames_)
+                             , std::move(signal.flags_) });
+}
+
+void Object::writePropertyRecordToVTable(PropertyVTableItem property, VTable& vtable)
+{
+    SDBUS_CHECK_MEMBER_NAME(property.name_);
+    SDBUS_THROW_ERROR_IF(!property.getter_ && !property.setter_, "Invalid property callbacks provided", EINVAL);
+
+    vtable.properties.push_back({ std::move(property.name_)
+                                , std::move(property.signature_)
+                                , std::move(property.getter_)
+                                , std::move(property.setter_)
+                                , std::move(property.flags_) });
+}
+
+std::vector<sd_bus_vtable> Object::createInternalSdBusVTable(const VTable& vtable)
+{
+    std::vector<sd_bus_vtable> sdbusVTable;
+
+    startSdBusVTable(vtable.interfaceFlags, sdbusVTable);
+    for (const auto& methodItem : vtable.methods)
+        writeMethodRecordToSdBusVTable(methodItem, sdbusVTable);
+    for (const auto& signalItem : vtable.signals)
+        writeSignalRecordToSdBusVTable(signalItem, sdbusVTable);
+    for (const auto& propertyItem : vtable.properties)
+        writePropertyRecordToSdBusVTable(propertyItem, sdbusVTable);
+    finalizeSdBusVTable(sdbusVTable);
+
+    return sdbusVTable;
+}
+
+void Object::startSdBusVTable(const Flags& interfaceFlags, std::vector<sd_bus_vtable>& vtable)
+{
+    auto vtableItem = createSdBusVTableStartItem(interfaceFlags.toSdBusInterfaceFlags());
+    vtable.push_back(std::move(vtableItem));
+}
+
+void Object::writeMethodRecordToSdBusVTable(const VTable::MethodItem& method, std::vector<sd_bus_vtable>& vtable)
+{
+    auto vtableItem = createSdBusVTableMethodItem( method.name.c_str()
+                                                 , method.inputArgs.c_str()
+                                                 , method.outputArgs.c_str()
+                                                 , method.paramNames.c_str()
+                                                 , &Object::sdbus_method_callback
+                                                 , method.flags.toSdBusMethodFlags() );
+    vtable.push_back(std::move(vtableItem));
+}
+
+void Object::writeSignalRecordToSdBusVTable(const VTable::SignalItem& signal, std::vector<sd_bus_vtable>& vtable)
+{
+    auto vtableItem = createSdBusVTableSignalItem( signal.name.c_str()
+                                                 , signal.signature.c_str()
+                                                 , signal.paramNames.c_str()
+                                                 , signal.flags.toSdBusSignalFlags() );
+    vtable.push_back(std::move(vtableItem));
+}
+
+void Object::writePropertyRecordToSdBusVTable(const VTable::PropertyItem& property, std::vector<sd_bus_vtable>& vtable)
+{
+    auto vtableItem = !property.setCallback
+                    ? createSdBusVTableReadOnlyPropertyItem( property.name.c_str()
+                                                           , property.signature.c_str()
+                                                           , &Object::sdbus_property_get_callback
+                                                           , property.flags.toSdBusPropertyFlags() )
+                    : createSdBusVTableWritablePropertyItem( property.name.c_str()
+                                                           , property.signature.c_str()
+                                                           , &Object::sdbus_property_get_callback
+                                                           , &Object::sdbus_property_set_callback
+                                                           , property.flags.toSdBusWritablePropertyFlags() );
+    vtable.push_back(std::move(vtableItem));
+}
+
+void Object::finalizeSdBusVTable(std::vector<sd_bus_vtable>& vtable)
+{
+    vtable.push_back(createSdBusVTableEndItem());
+}
+
+const Object::VTable::MethodItem* Object::findMethod(const VTable& vtable, const std::string& methodName)
+{
+    auto it = std::lower_bound(vtable.methods.begin(), vtable.methods.end(), methodName, [](const auto& methodItem, const auto& methodName)
     {
-        const auto& signalName = item.first;
-        const auto& signalData = item.second;
+        return methodItem.name < methodName;
+    });
 
-        vtable.push_back(createVTableSignalItem( signalName.c_str()
-                                               , signalData.signature.c_str()
-                                               , signalData.paramNames.c_str()
-                                               , signalData.flags.toSdBusSignalFlags() ));
-    }
+    return it != vtable.methods.end() && it->name == methodName ? &*it : nullptr;
 }
 
-void Object::registerPropertiesToVTable(const InterfaceData& interfaceData, std::vector<sd_bus_vtable>& vtable)
+const Object::VTable::PropertyItem* Object::findProperty(const VTable& vtable, const std::string& propertyName)
 {
-    for (const auto& item : interfaceData.properties)
+    auto it = std::lower_bound(vtable.properties.begin(), vtable.properties.end(), propertyName, [](const auto& propertyItem, const auto& propertyName)
     {
-        const auto& propertyName = item.first;
-        const auto& propertyData = item.second;
+        return propertyItem.name < propertyName;
+    });
 
-        if (!propertyData.setCallback)
-            vtable.push_back(createVTablePropertyItem( propertyName.c_str()
-                                                     , propertyData.signature.c_str()
-                                                     , &Object::sdbus_property_get_callback
-                                                     , propertyData.flags.toSdBusPropertyFlags() ));
-        else
-            vtable.push_back(createVTableWritablePropertyItem( propertyName.c_str()
-                                                             , propertyData.signature.c_str()
-                                                             , &Object::sdbus_property_get_callback
-                                                             , &Object::sdbus_property_set_callback
-                                                             , propertyData.flags.toSdBusWritablePropertyFlags() ));
-    }
-}
-
-void Object::activateInterfaceVTable( const std::string& interfaceName
-                                    , InterfaceData& interfaceData
-                                    , const std::vector<sd_bus_vtable>& vtable )
-{
-    interfaceData.slot = connection_.addObjectVTable(objectPath_, interfaceName, &vtable[0], &interfaceData);
+    return it != vtable.properties.end() && it->name == propertyName ? &*it : nullptr;
 }
 
 std::string Object::paramNamesToString(const std::vector<std::string>& paramNames)
@@ -332,16 +301,17 @@ std::string Object::paramNamesToString(const std::vector<std::string>& paramName
 
 int Object::sdbus_method_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError)
 {
-    auto* interfaceData = static_cast<InterfaceData*>(userData);
-    assert(interfaceData != nullptr);
-    auto& object = interfaceData->object;
+    auto* vtable = static_cast<VTable*>(userData);
+    assert(vtable != nullptr);
+    assert(vtable->object != nullptr);
 
-    auto message = Message::Factory::create<MethodCall>(sdbusMessage, &object.connection_.getSdBusInterface());
+    auto message = Message::Factory::create<MethodCall>(sdbusMessage, &vtable->object->connection_.getSdBusInterface());
 
-    auto& callback = interfaceData->methods[message.getMemberName()].callback;
-    assert(callback);
+    const auto* methodItem = findMethod(*vtable, message.getMemberName());
+    assert(methodItem != nullptr);
+    assert(methodItem->callback);
 
-    auto ok = invokeHandlerAndCatchErrors([&](){ callback(std::move(message)); }, retError);
+    auto ok = invokeHandlerAndCatchErrors([&](){ methodItem->callback(std::move(message)); }, retError);
 
     return ok ? 1 : -1;
 }
@@ -354,21 +324,23 @@ int Object::sdbus_property_get_callback( sd_bus */*bus*/
                                        , void *userData
                                        , sd_bus_error *retError )
 {
-    auto* interfaceData = static_cast<InterfaceData*>(userData);
-    assert(interfaceData != nullptr);
-    auto& object = interfaceData->object;
+    auto* vtable = static_cast<VTable*>(userData);
+    assert(vtable != nullptr);
+    assert(vtable->object != nullptr);
 
-    auto& callback = interfaceData->properties[property].getCallback;
-    // Getter can be empty - the case of "write-only" property
-    if (!callback)
+    const auto* propertyItem = findProperty(*vtable, property);
+    assert(propertyItem != nullptr);
+
+    // Getter may be empty - the case of "write-only" property
+    if (!propertyItem->getCallback)
     {
         sd_bus_error_set(retError, "org.freedesktop.DBus.Error.Failed", "Cannot read property as it is write-only");
         return 1;
     }
 
-    auto reply = Message::Factory::create<PropertyGetReply>(sdbusReply, &object.connection_.getSdBusInterface());
+    auto reply = Message::Factory::create<PropertyGetReply>(sdbusReply, &vtable->object->connection_.getSdBusInterface());
 
-    auto ok = invokeHandlerAndCatchErrors([&](){ callback(reply); }, retError);
+    auto ok = invokeHandlerAndCatchErrors([&](){ propertyItem->getCallback(reply); }, retError);
 
     return ok ? 1 : -1;
 }
@@ -381,16 +353,17 @@ int Object::sdbus_property_set_callback( sd_bus */*bus*/
                                        , void *userData
                                        , sd_bus_error *retError )
 {
-    auto* interfaceData = static_cast<InterfaceData*>(userData);
-    assert(interfaceData != nullptr);
-    auto& object = interfaceData->object;
+    auto* vtable = static_cast<VTable*>(userData);
+    assert(vtable != nullptr);
+    assert(vtable->object != nullptr);
 
-    auto& callback = interfaceData->properties[property].setCallback;
-    assert(callback);
+    const auto* propertyItem = findProperty(*vtable, property);
+    assert(propertyItem != nullptr);
+    assert(propertyItem->setCallback);
 
-    auto value = Message::Factory::create<PropertySetCall>(sdbusValue, &object.connection_.getSdBusInterface());
+    auto value = Message::Factory::create<PropertySetCall>(sdbusValue, &vtable->object->connection_.getSdBusInterface());
 
-    auto ok = invokeHandlerAndCatchErrors([&](){ callback(std::move(value)); }, retError);
+    auto ok = invokeHandlerAndCatchErrors([&](){ propertyItem->setCallback(std::move(value)); }, retError);
 
     return ok ? 1 : -1;
 }

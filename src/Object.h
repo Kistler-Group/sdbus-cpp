@@ -31,7 +31,7 @@
 #include "IConnection.h"
 #include SDBUS_HEADER
 #include <string>
-#include <map>
+#include <list>
 #include <vector>
 #include <functional>
 #include <memory>
@@ -45,46 +45,7 @@ namespace sdbus::internal {
     public:
         Object(sdbus::internal::IConnection& connection, std::string objectPath);
 
-        void registerMethod( const std::string& interfaceName
-                           , std::string methodName
-                           , std::string inputSignature
-                           , std::string outputSignature
-                           , method_callback methodCallback
-                           , Flags flags ) override;
-        void registerMethod( const std::string& interfaceName
-                           , std::string methodName
-                           , std::string inputSignature
-                           , const std::vector<std::string>& inputNames
-                           , std::string outputSignature
-                           , const std::vector<std::string>& outputNames
-                           , method_callback methodCallback
-                           , Flags flags ) override;
-
-        void registerSignal( const std::string& interfaceName
-                           , std::string signalName
-                           , std::string signature
-                           , Flags flags ) override;
-        void registerSignal( const std::string& interfaceName
-                           , std::string signalName
-                           , std::string signature
-                           , const std::vector<std::string>& paramNames
-                           , Flags flags ) override;
-
-        void registerProperty( const std::string& interfaceName
-                             , std::string propertyName
-                             , std::string signature
-                             , property_get_callback getCallback
-                             , Flags flags ) override;
-        void registerProperty( const std::string& interfaceName
-                             , std::string propertyName
-                             , std::string signature
-                             , property_get_callback getCallback
-                             , property_set_callback setCallback
-                             , Flags flags ) override;
-
-        void setInterfaceFlags(const std::string& interfaceName, Flags flags) override;
-
-        void finishRegistration() override;
+        void addVTable(std::string interfaceName, std::vector<VTableItem> vtable) override;
         void unregister() override;
 
         sdbus::Signal createSignal(const std::string& interfaceName, const std::string& signalName) override;
@@ -105,55 +66,79 @@ namespace sdbus::internal {
         Message getCurrentlyProcessedMessage() const override;
 
     private:
-        using InterfaceName = std::string;
-        struct InterfaceData
-        {
-            InterfaceData(Object& object) : object(object) {}
+        // A vtable record comprising methods, signals, properties, flags.
+        // Once created, it cannot be modified. Only new vtables records can be added.
+        // An interface can have any number of vtables attached to it, not only one.
 
-            using MethodName = std::string;
-            struct MethodData
+        // TODO: This could be done also as an object directly inside unique_ptr inside Slot?
+        //   Then vtables_ would be just a vector of slots (consistency with match slots in Connection,
+        //   and perhaps also with Proxy after refactoring of signal slots) in case of floating slots,
+        //   the owning slots would be returned to client.
+        struct VTable
+        {
+            std::string interfaceName;
+            Flags interfaceFlags;
+
+            struct MethodItem
             {
-                const std::string inputArgs;
-                const std::string outputArgs;
-                const std::string paramNames;
+                std::string name;
+                std::string inputArgs;
+                std::string outputArgs;
+                std::string paramNames;
                 method_callback callback;
                 Flags flags;
             };
-            std::map<MethodName, MethodData> methods;
-            using SignalName = std::string;
-            struct SignalData
+            // Array of method records sorted by method name
+            std::vector<MethodItem> methods;
+
+            struct SignalItem
             {
-                const std::string signature;
-                const std::string paramNames;
+                std::string name;
+                std::string signature;
+                std::string paramNames;
                 Flags flags;
             };
-            std::map<SignalName, SignalData> signals;
-            using PropertyName = std::string;
-            struct PropertyData
+            // Array of signal records sorted by signal name
+            std::vector<SignalItem> signals;
+
+            struct PropertyItem
             {
-                const std::string signature;
+                std::string name;
+                std::string signature;
                 property_get_callback getCallback;
                 property_set_callback setCallback;
                 Flags flags;
             };
-            std::map<PropertyName, PropertyData> properties;
-            std::vector<sd_bus_vtable> vtable;
-            Flags flags;
-            Object& object;
+            // Array of signal records sorted by signal name
+            std::vector<PropertyItem> properties;
+
+            // VTable structure in format required by sd-bus API
+            std::vector<sd_bus_vtable> sdbusVTable;
+
+            // Back-reference to the owning object from sd-bus callback handlers
+            Object* object{};
 
             // This is intentionally the last member, because it must be destructed first,
             // releasing callbacks above before the callbacks themselves are destructed.
             Slot slot;
         };
 
-        InterfaceData& getInterface(const std::string& interfaceName);
-        static const std::vector<sd_bus_vtable>& createInterfaceVTable(InterfaceData& interfaceData);
-        static void registerMethodsToVTable(const InterfaceData& interfaceData, std::vector<sd_bus_vtable>& vtable);
-        static void registerSignalsToVTable(const InterfaceData& interfaceData, std::vector<sd_bus_vtable>& vtable);
-        static void registerPropertiesToVTable(const InterfaceData& interfaceData, std::vector<sd_bus_vtable>& vtable);
-        void activateInterfaceVTable( const std::string& interfaceName
-                                    , InterfaceData& interfaceData
-                                    , const std::vector<sd_bus_vtable>& vtable );
+        VTable createInternalVTable(std::string interfaceName, std::vector<VTableItem> vtable);
+        void writeInterfaceFlagsToVTable(InterfaceFlagsVTableItem flags, VTable& vtable);
+        void writeMethodRecordToVTable(MethodVTableItem method, VTable& vtable);
+        void writeSignalRecordToVTable(SignalVTableItem signal, VTable& vtable);
+        void writePropertyRecordToVTable(PropertyVTableItem property, VTable& vtable);
+
+        std::vector<sd_bus_vtable> createInternalSdBusVTable(const VTable& vtable);
+        static void startSdBusVTable(const Flags& interfaceFlags, std::vector<sd_bus_vtable>& vtable);
+        static void writeMethodRecordToSdBusVTable(const VTable::MethodItem& method, std::vector<sd_bus_vtable>& vtable);
+        static void writeSignalRecordToSdBusVTable(const VTable::SignalItem& signal, std::vector<sd_bus_vtable>& vtable);
+        static void writePropertyRecordToSdBusVTable(const VTable::PropertyItem& property, std::vector<sd_bus_vtable>& vtable);
+        static void finalizeSdBusVTable(std::vector<sd_bus_vtable>& vtable);
+
+        static const VTable::MethodItem* findMethod(const VTable& vtable, const std::string& methodName);
+        static const VTable::PropertyItem* findProperty(const VTable& vtable, const std::string& propertyName);
+
         static std::string paramNamesToString(const std::vector<std::string>& paramNames);
 
         static int sdbus_method_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
@@ -175,7 +160,7 @@ namespace sdbus::internal {
     private:
         sdbus::internal::IConnection& connection_;
         std::string objectPath_;
-        std::map<InterfaceName, InterfaceData> interfaces_;
+        std::list<VTable> vtables_;
         Slot objectManagerSlot_;
     };
 
