@@ -55,62 +55,104 @@
 //     return; // exiting scope normally
 // }
 
-#define SCOPE_EXIT                                               \
-    auto ANONYMOUS_VARIABLE(SCOPE_EXIT_STATE)                    \
-        = ::sdbus::internal::detail::ScopeGuardOnExit() + [&]()  \
+#define SCOPE_EXIT                                                \
+    auto ANONYMOUS_VARIABLE(SCOPE_EXIT_STATE)                     \
+        = ::sdbus::internal::ScopeGuardOnExitTag{} + [&]()        \
     /**/
-
-#define SCOPE_EXIT_NAMED(NAME)                                   \
-    auto NAME                                                    \
-        = ::sdbus::internal::detail::ScopeGuardOnExit() + [&]()  \
+#define SCOPE_EXIT_NAMED(NAME)                                    \
+    auto NAME                                                     \
+        = ::sdbus::internal::ScopeGuardOnExitTag{} + [&]()        \
+    /**/
+#define SCOPE_EXIT_SUCCESS                                        \
+    auto ANONYMOUS_VARIABLE(SCOPE_EXIT_STATE)                     \
+        = ::sdbus::internal::ScopeGuardOnExitSuccessTag{} + [&]() \
+    /**/
+#define SCOPE_EXIT_SUCCESS_NAMED(NAME)                            \
+    auto NAME                                                     \
+        = ::sdbus::internal::ScopeGuardOnExitSuccessTag{} + [&]() \
+    /**/
+#define SCOPE_EXIT_FAILURE                                        \
+    auto ANONYMOUS_VARIABLE(SCOPE_EXIT_STATE)                     \
+        = ::sdbus::internal::ScopeGuardOnExitFailureTag{} + [&]() \
+    /**/
+#define SCOPE_EXIT_FAILURE_NAMED(NAME)                            \
+    auto NAME                                                     \
+        = ::sdbus::internal::ScopeGuardOnExitFailureTag{} + [&]() \
     /**/
 
 namespace sdbus::internal {
 
-    template <class _Fun>
+    struct ScopeGuardOnExitTag
+    {
+        static bool holds(int /*originalExceptions*/)
+        {
+            return true; // Always holds
+        }
+    };
+    struct ScopeGuardOnExitSuccessTag
+    {
+        static bool holds(int originalExceptions)
+        {
+            return originalExceptions == std::uncaught_exceptions(); // Only holds when no exception occurred within the scope
+        }
+    };
+    struct ScopeGuardOnExitFailureTag
+    {
+        static bool holds(int originalExceptions)
+        {
+            return originalExceptions != std::uncaught_exceptions(); // Only holds when an exception occurred within the scope
+        }
+    };
+
+    template <class _Fun, typename _Tag>
     class ScopeGuard
     {
-        _Fun fnc_;
-        bool active_;
-
     public:
-        ScopeGuard(_Fun f)
-            : fnc_(std::move(f))
-            , active_(true)
+        ScopeGuard(_Fun f) : fnc_(std::move(f))
         {
         }
-        ~ScopeGuard()
+
+        ScopeGuard() = delete;
+        ScopeGuard(const ScopeGuard&) = delete;
+        ScopeGuard& operator=(const ScopeGuard&) = delete;
+        ScopeGuard(ScopeGuard&& rhs) : fnc_(std::move(rhs.fnc_)), active_(rhs.active_), exceptions_(rhs.exceptions_)
         {
-            if (active_)
-                fnc_();
+            rhs.dismiss();
         }
+
         void dismiss()
         {
             active_ = false;
         }
-        ScopeGuard() = delete;
-        ScopeGuard(const ScopeGuard&) = delete;
-        ScopeGuard& operator=(const ScopeGuard&) = delete;
-        ScopeGuard(ScopeGuard&& rhs)
-            : fnc_(std::move(rhs.fnc_))
-            , active_(rhs.active_)
+
+        ~ScopeGuard()
         {
-            rhs.dismiss();
+            if (active_ && _Tag::holds(exceptions_))
+                fnc_();
         }
+
+    private:
+        _Fun fnc_;
+        int exceptions_{std::uncaught_exceptions()};
+        bool active_{true};
     };
 
-    namespace detail
+    template <typename _Fun>
+    ScopeGuard<_Fun, ScopeGuardOnExitTag> operator+(ScopeGuardOnExitTag, _Fun&& fnc)
     {
-        enum class ScopeGuardOnExit
-        {
-        };
+        return ScopeGuard<_Fun, ScopeGuardOnExitTag>(std::forward<_Fun>(fnc));
+    }
 
-        // Helper function to auto-deduce type of the callable entity
-        template <typename _Fun>
-        ScopeGuard<_Fun> operator+(ScopeGuardOnExit, _Fun&& fnc)
-        {
-            return ScopeGuard<_Fun>(std::forward<_Fun>(fnc));
-        }
+    template <typename _Fun>
+    ScopeGuard<_Fun, ScopeGuardOnExitSuccessTag> operator+(ScopeGuardOnExitSuccessTag, _Fun&& fnc)
+    {
+        return ScopeGuard<_Fun, ScopeGuardOnExitSuccessTag>(std::forward<_Fun>(fnc));
+    }
+
+    template <typename _Fun>
+    ScopeGuard<_Fun, ScopeGuardOnExitFailureTag> operator+(ScopeGuardOnExitFailureTag, _Fun&& fnc)
+    {
+        return ScopeGuard<_Fun, ScopeGuardOnExitFailureTag>(std::forward<_Fun>(fnc));
     }
 
 }
@@ -119,13 +161,9 @@ namespace sdbus::internal {
 #define CONCATENATE(s1, s2) CONCATENATE_IMPL(s1, s2)
 
 #ifdef __COUNTER__
-#define ANONYMOUS_VARIABLE(str)                 \
-    CONCATENATE(str, __COUNTER__)               \
-    /**/
+#define ANONYMOUS_VARIABLE(str) CONCATENATE(str, __COUNTER__)
 #else
-#define ANONYMOUS_VARIABLE(str)                 \
-    CONCATENATE(str, __LINE__)                  \
-    /**/
+#define ANONYMOUS_VARIABLE(str) CONCATENATE(str, __LINE__)
 #endif
 
 #endif /* SDBUS_CPP_INTERNAL_SCOPEGUARD_H_ */
