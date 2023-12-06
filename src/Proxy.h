@@ -32,10 +32,9 @@
 #include SDBUS_HEADER
 #include <string>
 #include <memory>
-#include <map>
 #include <deque>
+#include <vector>
 #include <mutex>
-#include <condition_variable>
 
 namespace sdbus::internal {
 
@@ -63,10 +62,10 @@ namespace sdbus::internal {
         void registerSignalHandler( const std::string& interfaceName
                                   , const std::string& signalName
                                   , signal_handler signalHandler ) override;
-        void unregisterSignalHandler( const std::string& interfaceName
-                                    , const std::string& signalName ) override;
-
-        void finishRegistration() override;
+        Slot registerSignalHandler( const std::string& interfaceName
+                                  , const std::string& signalName
+                                  , signal_handler signalHandler
+                                  , request_slot_t ) override;
         void unregister() override;
 
         sdbus::IConnection& getConnection() const override;
@@ -74,9 +73,7 @@ namespace sdbus::internal {
         Message getCurrentlyProcessedMessage() const override;
 
     private:
-        void registerSignalHandlers(sdbus::internal::IConnection& connection);
         static int sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
-        static int sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
 
     private:
         friend PendingAsyncCall;
@@ -87,28 +84,30 @@ namespace sdbus::internal {
         std::string destination_;
         std::string objectPath_;
 
-        using InterfaceName = std::string;
-        struct InterfaceData
-        {
-            using SignalName = std::string;
-            struct SignalData
-            {
-                SignalData(Proxy& proxy, signal_handler callback, Slot slot)
-                    : proxy(proxy)
-                    , callback(std::move(callback))
-                    , slot(std::move(slot))
-                {}
-                Proxy& proxy;
-                signal_handler callback;
-                // slot must be listed after callback to ensure that slot is destructed first.
-                // Destructing the slot will sd_bus_slot_unref() the callback.
-                // Only after sd_bus_slot_unref(), we can safely delete the callback. The bus mutex (SdBus::sdbusMutex_)
-                // ensures that sd_bus_slot_unref() and the callback execute sequentially.
-                Slot slot;
-            };
-            std::map<SignalName, std::unique_ptr<SignalData>> signals_;
-        };
-        std::map<InterfaceName, InterfaceData> interfaces_;
+        std::vector<Slot> floatingSignalSlots_;
+
+//        using InterfaceName = std::string;
+//        struct InterfaceData
+//        {
+//            using SignalName = std::string;
+//            struct SignalData
+//            {
+//                SignalData(Proxy& proxy, signal_handler callback, Slot slot)
+//                    : proxy(proxy)
+//                    , callback(std::move(callback))
+//                    , slot(std::move(slot))
+//                {}
+//                Proxy& proxy;
+//                signal_handler callback;
+//                // slot must be listed after callback to ensure that slot is destructed first.
+//                // Destructing the slot will sd_bus_slot_unref() the callback.
+//                // Only after sd_bus_slot_unref(), we can safely delete the callback. The bus mutex (SdBus::sdbusMutex_)
+//                // ensures that sd_bus_slot_unref() and the callback execute sequentially.
+//                Slot slot;
+//            };
+//            std::map<SignalName, std::unique_ptr<SignalData>> signals_;
+//        };
+//        std::map<InterfaceName, InterfaceData> interfaces_;
 
         // We need to keep track of pending async calls. When the proxy is being destructed, we must
         // remove all slots of these pending calls, otherwise in case when the connection outlives

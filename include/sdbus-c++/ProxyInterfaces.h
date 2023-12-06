@@ -181,7 +181,7 @@ namespace sdbus {
          */
         void registerProxy()
         {
-            getProxy().finishRegistration();
+            (_Interfaces::registerProxy(), ...);
         }
 
         /*!

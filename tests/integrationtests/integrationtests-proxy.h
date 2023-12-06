@@ -22,9 +22,6 @@ protected:
     integrationtests_proxy(sdbus::IProxy& proxy)
         : proxy_(&proxy)
     {
-        proxy_->uponSignal("simpleSignal").onInterface(INTERFACE_NAME).call([this](){ this->onSimpleSignal(); });
-        proxy_->uponSignal("signalWithMap").onInterface(INTERFACE_NAME).call([this](const std::map<int32_t, std::string>& aMap){ this->onSignalWithMap(aMap); });
-        proxy_->uponSignal("signalWithVariant").onInterface(INTERFACE_NAME).call([this](const sdbus::Variant& aVariant){ this->onSignalWithVariant(aVariant); });
     }
 
     integrationtests_proxy(const integrationtests_proxy&) = delete;
@@ -33,6 +30,13 @@ protected:
     integrationtests_proxy& operator=(integrationtests_proxy&&) = default;
 
     ~integrationtests_proxy() = default;
+
+    void registerProxy()
+    {
+        simpleSignalSlot_ = proxy_->uponSignal("simpleSignal").onInterface(INTERFACE_NAME).call([this](){ this->onSimpleSignal(); }, sdbus::request_slot);
+        proxy_->uponSignal("signalWithMap").onInterface(INTERFACE_NAME).call([this](const std::map<int32_t, std::string>& aMap){ this->onSignalWithMap(aMap); });
+        proxy_->uponSignal("signalWithVariant").onInterface(INTERFACE_NAME).call([this](const sdbus::Variant& aVariant){ this->onSignalWithVariant(aVariant); });
+    }
 
     virtual void onSimpleSignal() = 0;
     virtual void onSignalWithMap(const std::map<int32_t, std::string>& aMap) = 0;
@@ -176,13 +180,12 @@ public:
 
     void unregisterSimpleSignalHandler()
     {
-        proxy_->muteSignal("simpleSignal").onInterface(INTERFACE_NAME);
+        simpleSignalSlot_.reset();
     }
 
     void reRegisterSimpleSignalHandler()
     {
-        proxy_->uponSignal("simpleSignal").onInterface(INTERFACE_NAME).call([this](){ this->onSimpleSignal(); });
-        proxy_->finishRegistration();
+        simpleSignalSlot_ = proxy_->uponSignal("simpleSignal").onInterface(INTERFACE_NAME).call([this](){ this->onSimpleSignal(); }, sdbus::request_slot);
     }
 
 public:
@@ -213,6 +216,7 @@ public:
 
 private:
     sdbus::IProxy* proxy_;
+    sdbus::Slot simpleSignalSlot_;
 };
 
 }} // namespaces

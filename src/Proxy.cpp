@@ -136,58 +136,34 @@ void Proxy::registerSignalHandler( const std::string& interfaceName
                                  , const std::string& signalName
                                  , signal_handler signalHandler )
 {
+    auto slot = Proxy::registerSignalHandler(interfaceName, signalName, std::move(signalHandler), request_slot);
+
+    floatingSignalSlots_.push_back(std::move(slot));
+}
+
+Slot Proxy::registerSignalHandler( const std::string& interfaceName
+                                 , const std::string& signalName
+                                 , signal_handler signalHandler
+                                 , request_slot_t )
+{
     SDBUS_CHECK_INTERFACE_NAME(interfaceName);
     SDBUS_CHECK_MEMBER_NAME(signalName);
     SDBUS_THROW_ERROR_IF(!signalHandler, "Invalid signal handler provided", EINVAL);
 
-    auto& interface = interfaces_[interfaceName];
+    auto slot = connection_->registerSignalHandler( destination_
+                                                  , objectPath_
+                                                  , interfaceName
+                                                  , signalName
+                                                  , std::move(signalHandler) );
 
-    auto signalData = std::make_unique<InterfaceData::SignalData>(*this, std::move(signalHandler), nullptr);
-    auto insertionResult = interface.signals_.emplace(signalName, std::move(signalData));
-
-    auto inserted = insertionResult.second;
-    SDBUS_THROW_ERROR_IF(!inserted, "Failed to register signal handler: handler already exists", EINVAL);
+    return slot;
 }
 
-void Proxy::unregisterSignalHandler( const std::string& interfaceName
-                                   , const std::string& signalName )
-{
-    auto it = interfaces_.find(interfaceName);
-
-    if (it != interfaces_.end())
-        it->second.signals_.erase(signalName);
-}
-
-void Proxy::finishRegistration()
-{
-    registerSignalHandlers(*connection_);
-}
-
-void Proxy::registerSignalHandlers(sdbus::internal::IConnection& connection)
-{
-    for (auto& interfaceItem : interfaces_)
-    {
-        const auto& interfaceName = interfaceItem.first;
-        auto& signalsOnInterface = interfaceItem.second.signals_;
-
-        for (auto& signalItem : signalsOnInterface)
-        {
-            const auto& signalName = signalItem.first;
-            auto* signalData = signalItem.second.get();
-            signalData->slot = connection.registerSignalHandler( destination_
-                                                               , objectPath_
-                                                               , interfaceName
-                                                               , signalName
-                                                               , &Proxy::sdbus_signal_handler
-                                                               , signalData);
-        }
-    }
-}
 
 void Proxy::unregister()
 {
     pendingAsyncCalls_.clear();
-    interfaces_.clear();
+    floatingSignalSlots_.clear();
 }
 
 sdbus::IConnection& Proxy::getConnection() const
@@ -235,19 +211,6 @@ int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userDat
             asyncCallData->callback(std::move(message), &exception);
         }
     }, retError);
-
-    return ok ? 0 : -1;
-}
-
-int Proxy::sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError)
-{
-    auto* signalData = static_cast<InterfaceData::SignalData*>(userData);
-    assert(signalData != nullptr);
-    assert(signalData->callback);
-
-    auto message = Message::Factory::create<Signal>(sdbusMessage, &signalData->proxy.connection_->getSdBusInterface());
-
-    auto ok = invokeHandlerAndCatchErrors([&](){ signalData->callback(std::move(message)); }, retError);
 
     return ok ? 0 : -1;
 }
