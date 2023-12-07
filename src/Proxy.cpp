@@ -150,15 +150,17 @@ Slot Proxy::registerSignalHandler( const std::string& interfaceName
     SDBUS_CHECK_MEMBER_NAME(signalName);
     SDBUS_THROW_ERROR_IF(!signalHandler, "Invalid signal handler provided", EINVAL);
 
-    auto slot = connection_->registerSignalHandler( destination_
-                                                  , objectPath_
-                                                  , interfaceName
-                                                  , signalName
-                                                  , std::move(signalHandler) );
+    auto signalInfo = std::make_unique<SignalInfo>(SignalInfo{std::move(signalHandler), *this, {}});
 
-    return slot;
+    signalInfo->slot = connection_->registerSignalHandler( destination_
+                                                         , objectPath_
+                                                         , interfaceName
+                                                         , signalName
+                                                         , &Proxy::sdbus_signal_handler
+                                                         , signalInfo.get() );
+
+    return {signalInfo.release(), [](void *ptr){ delete static_cast<SignalInfo*>(ptr); }};
 }
-
 
 void Proxy::unregister()
 {
@@ -211,6 +213,20 @@ int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userDat
             asyncCallData->callback(std::move(message), &exception);
         }
     }, retError);
+
+    return ok ? 0 : -1;
+}
+
+int Proxy::sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError)
+{
+    auto* signalInfo = static_cast<SignalInfo*>(userData);
+    assert(signalInfo != nullptr);
+    assert(signalInfo->callback);
+
+    // TODO: Hide Message factory invocation under Connection API (tell, don't ask principle), then we can remove getSdBusInterface()
+    auto message = Message::Factory::create<Signal>(sdbusMessage, &signalInfo->proxy.connection_->getSdBusInterface());
+
+    auto ok = invokeHandlerAndCatchErrors([&](){ signalInfo->callback(std::move(message)); }, retError);
 
     return ok ? 0 : -1;
 }

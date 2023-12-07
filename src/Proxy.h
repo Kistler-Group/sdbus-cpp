@@ -73,6 +73,7 @@ namespace sdbus::internal {
         Message getCurrentlyProcessedMessage() const override;
 
     private:
+        static int sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
         static int sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
 
     private:
@@ -85,6 +86,13 @@ namespace sdbus::internal {
         std::string objectPath_;
 
         std::vector<Slot> floatingSignalSlots_;
+
+        struct SignalInfo
+        {
+            signal_handler callback;
+            Proxy& proxy;
+            Slot slot;
+        };
 
 //        using InterfaceName = std::string;
 //        struct InterfaceData

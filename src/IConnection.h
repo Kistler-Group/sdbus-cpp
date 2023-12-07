@@ -92,7 +92,8 @@ namespace sdbus::internal {
                                                         , const std::string& objectPath
                                                         , const std::string& interfaceName
                                                         , const std::string& signalName
-                                                        , signal_handler callback ) = 0;
+                                                        , sd_bus_message_handler_t callback
+                                                        , void* userData ) = 0;
     };
 
     [[nodiscard]] std::unique_ptr<sdbus::internal::IConnection> createConnection();

@@ -139,7 +139,8 @@ namespace sdbus::internal {
                                   , const std::string& objectPath
                                   , const std::string& interfaceName
                                   , const std::string& signalName
-                                  , signal_handler callback ) override;
+                                  , sd_bus_message_handler_t callback
+                                  , void* userData ) override;
 
     private:
         using BusFactory = std::function<int(sd_bus**)>;
@@ -159,12 +160,8 @@ namespace sdbus::internal {
 
         static std::vector</*const */char*> to_strv(const std::vector<std::string>& strings);
 
-        void releaseMatchInfoSlot(void *ptr);
-        void releaseSignalInfoSlot(void *ptr);
-
         static int sdbus_match_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
         static int sdbus_match_install_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
-        static int sdbus_signal_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
 
     private:
 #ifndef SDBUS_basu // sd_event integration is not supported if instead of libsystemd we are based on basu
@@ -195,17 +192,7 @@ namespace sdbus::internal {
             message_handler callback;
             message_handler installCallback;
             Connection& connection;
-            sd_bus_slot *slot;
-        };
-
-        struct SignalInfo
-        {
-            signal_handler callback;
-            Connection& connection;
-            // TODO: maybe use Slot here too as a thin wrapper upon sd_bus_slot,
-            //   then we can move SignalInfo and callbacks and stuff back to Proxy,
-            //   and keep here only registerSignalHandler with previous signature.
-            sd_bus_slot *slot;
+            Slot slot;
         };
 
         // sd-event integration
