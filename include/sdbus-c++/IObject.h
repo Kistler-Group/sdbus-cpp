@@ -62,17 +62,16 @@ namespace sdbus {
         virtual ~IObject() = default;
 
         // TODO: Docs (from sd-bus + strong exception guarantee)
-        template <typename... VTableItems>
-        void addVTable(std::string interfaceName, VTableItems&&... items)
-        {
-            addVTable(std::move(interfaceName), std::vector<VTableItem>{std::forward<VTableItems>(items)...});
-        }
+        template < typename... VTableItems
+                 , typename = std::enable_if_t<(is_one_of_variants_types<VTableItem, std::decay_t<VTableItems>> && ...)> >
+        void addVTable(std::string interfaceName, VTableItems&&... items);
 
         // TODO: Docs (from sd-bus + strong exception guarantee)
         virtual void addVTable(std::string interfaceName, std::vector<VTableItem> vtable) = 0;
         virtual Slot addVTable(std::string interfaceName, std::vector<VTableItem> vtable, request_slot_t) = 0;
 
-        template <typename... VTableItems>
+        template < typename... VTableItems
+                 , typename = std::enable_if_t<(is_one_of_variants_types<VTableItem, std::decay_t<VTableItems>> && ...)> >
         [[nodiscard]] VTableAdder addVTable(VTableItems&&... items);
         [[nodiscard]] VTableAdder addVTable(std::vector<VTableItem> vtable);
 
@@ -264,7 +263,13 @@ namespace sdbus {
         return SignalEmitter(*this, signalName);
     }
 
-    template <typename... VTableItems>
+    template <typename... VTableItems, typename>
+    void IObject::addVTable(std::string interfaceName, VTableItems&&... items)
+    {
+        addVTable(std::move(interfaceName), {std::forward<VTableItems>(items)...});
+    }
+
+    template <typename... VTableItems, typename>
     VTableAdder IObject::addVTable(VTableItems&&... items)
     {
         return addVTable(std::vector<VTableItem>{std::forward<VTableItems>(items)...});
