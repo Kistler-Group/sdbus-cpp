@@ -132,12 +132,9 @@ namespace sdbus {
         }
 
         /*!
-         * @brief Returns object path of the underlying DBus object
+         * @brief Returns reference to the underlying IObject instance
          */
-        const std::string& getObjectPath() const
-        {
-            return getObject().getObjectPath();
-        }
+        using ObjectHolder::getObject;
 
     protected:
         using base_type = AdaptorInterfaces;

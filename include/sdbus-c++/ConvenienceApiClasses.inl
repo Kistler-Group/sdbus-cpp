@@ -317,6 +317,11 @@ namespace sdbus {
         object_.addVTable(std::move(interfaceName), std::move(vtable_));
     }
 
+    inline Slot VTableAdder::forInterface(std::string interfaceName, request_slot_t)
+    {
+        return object_.addVTable(std::move(interfaceName), std::move(vtable_), request_slot);
+    }
+
     /*** ------------- ***/
     /*** SignalEmitter ***/
     /*** ------------- ***/

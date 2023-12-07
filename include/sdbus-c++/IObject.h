@@ -70,6 +70,7 @@ namespace sdbus {
 
         // TODO: Docs (from sd-bus + strong exception guarantee)
         virtual void addVTable(std::string interfaceName, std::vector<VTableItem> vtable) = 0;
+        virtual Slot addVTable(std::string interfaceName, std::vector<VTableItem> vtable, request_slot_t) = 0;
 
         template <typename... VTableItems>
         [[nodiscard]] VTableAdder addVTable(VTableItems&&... items);

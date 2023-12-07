@@ -146,6 +146,7 @@ namespace sdbus {
     public:
         VTableAdder(IObject& object, std::vector<VTableItem> vtable);
         void forInterface(std::string interfaceName);
+        [[nodiscard]] Slot forInterface(std::string interfaceName, request_slot_t);
 
     private:
         IObject& object_;

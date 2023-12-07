@@ -49,21 +49,26 @@ Object::Object(sdbus::internal::IConnection& connection, std::string objectPath)
 
 void Object::addVTable(std::string interfaceName, std::vector<VTableItem> vtable)
 {
+    auto slot = Object::addVTable(std::move(interfaceName), std::move(vtable), request_slot);
+
+    vtables_.push_back(std::move(slot));
+}
+
+Slot Object::addVTable(std::string interfaceName, std::vector<VTableItem> vtable, request_slot_t)
+{
     SDBUS_CHECK_INTERFACE_NAME(interfaceName);
 
     // 1st pass -- create vtable structure for internal sdbus-c++ purposes
-    auto internalVTable = createInternalVTable(std::move(interfaceName), std::move(vtable));
+    auto internalVTable = std::make_unique<VTable>(createInternalVTable(std::move(interfaceName), std::move(vtable)));
 
     // 2nd pass -- from internal sdbus-c++ vtable, create vtable structure in format expected by underlying sd-bus library
-    internalVTable.sdbusVTable = createInternalSdBusVTable(internalVTable);
+    internalVTable->sdbusVTable = createInternalSdBusVTable(*internalVTable);
 
-    // 3rd step -- move vtable into the list of vtables
-    vtables_.push_back(std::move(internalVTable));
-    SCOPE_EXIT_FAILURE{ vtables_.pop_back(); }; // To keep the strong exception guarantee
+    // 3rd step -- register the vtable with sd-bus
+    internalVTable->slot = connection_.addObjectVTable(objectPath_, internalVTable->interfaceName, &internalVTable->sdbusVTable[0], internalVTable.get());
 
-    // 4th step -- register the vtable with sd-bus, using an already fixed address of an object already stored in the container
-    auto& justAddedVTable = vtables_.back();
-    justAddedVTable.slot = connection_.addObjectVTable(objectPath_, justAddedVTable.interfaceName, &justAddedVTable.sdbusVTable[0], &justAddedVTable);
+    // Return vtable wrapped in a Slot object
+    return {internalVTable.release(), [](void *ptr){ delete static_cast<VTable*>(ptr); }};
 }
 
 void Object::unregister()
