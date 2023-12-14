@@ -70,11 +70,6 @@ namespace sdbus::internal {
         // A vtable record comprising methods, signals, properties, flags.
         // Once created, it cannot be modified. Only new vtables records can be added.
         // An interface can have any number of vtables attached to it, not only one.
-
-        // TODO: This could be done also as an object directly inside unique_ptr inside Slot?
-        //   Then vtables_ would be just a vector of slots (consistency with match slots in Connection,
-        //   and perhaps also with Proxy after refactoring of signal slots) in case of floating slots,
-        //   the owning slots would be returned to client.
         struct VTable
         {
             std::string interfaceName;
