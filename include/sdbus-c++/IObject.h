@@ -27,6 +27,7 @@
 #ifndef SDBUS_CXX_IOBJECT_H_
 #define SDBUS_CXX_IOBJECT_H_
 
+#include <sdbus-c++/VTableItems.h>
 #include <sdbus-c++/ConvenienceApiClasses.h>
 #include <sdbus-c++/TypeTraits.h>
 #include <sdbus-c++/Flags.h>
@@ -382,6 +383,7 @@ namespace sdbus {
 
 }
 
+#include <sdbus-c++/VTableItems.inl>
 #include <sdbus-c++/ConvenienceApiClasses.inl>
 
 #endif /* SDBUS_CXX_IOBJECT_H_ */

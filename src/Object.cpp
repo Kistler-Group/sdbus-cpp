@@ -176,42 +176,42 @@ Object::VTable Object::createInternalVTable(std::string interfaceName, std::vect
 
 void Object::writeInterfaceFlagsToVTable(InterfaceFlagsVTableItem flags, VTable& vtable)
 {
-    vtable.interfaceFlags = std::move(flags.flags_);
+    vtable.interfaceFlags = std::move(flags.flags);
 }
 
 void Object::writeMethodRecordToVTable(MethodVTableItem method, VTable& vtable)
 {
-    SDBUS_CHECK_MEMBER_NAME(method.name_);
-    SDBUS_THROW_ERROR_IF(!method.callback_, "Invalid method callback provided", EINVAL);
+    SDBUS_CHECK_MEMBER_NAME(method.name);
+    SDBUS_THROW_ERROR_IF(!method.callbackHandler, "Invalid method callback provided", EINVAL);
 
-    vtable.methods.push_back({ std::move(method.name_)
-                             , std::move(method.inputSignature_)
-                             , std::move(method.outputSignature_)
-                             , paramNamesToString(method.inputParamNames_) + paramNamesToString(method.outputParamNames_)
-                             , std::move(method.callback_)
-                             , std::move(method.flags_) });
+    vtable.methods.push_back({ std::move(method.name)
+                             , std::move(method.inputSignature)
+                             , std::move(method.outputSignature)
+                             , paramNamesToString(method.inputParamNames) + paramNamesToString(method.outputParamNames)
+                             , std::move(method.callbackHandler)
+                             , std::move(method.flags) });
 }
 
 void Object::writeSignalRecordToVTable(SignalVTableItem signal, VTable& vtable)
 {
-    SDBUS_CHECK_MEMBER_NAME(signal.name_);
+    SDBUS_CHECK_MEMBER_NAME(signal.name);
 
-    vtable.signals.push_back({ std::move(signal.name_)
-                             , std::move(signal.signature_)
-                             , paramNamesToString(signal.paramNames_)
-                             , std::move(signal.flags_) });
+    vtable.signals.push_back({ std::move(signal.name)
+                             , std::move(signal.signature)
+                             , paramNamesToString(signal.paramNames)
+                             , std::move(signal.flags) });
 }
 
 void Object::writePropertyRecordToVTable(PropertyVTableItem property, VTable& vtable)
 {
-    SDBUS_CHECK_MEMBER_NAME(property.name_);
-    SDBUS_THROW_ERROR_IF(!property.getter_ && !property.setter_, "Invalid property callbacks provided", EINVAL);
+    SDBUS_CHECK_MEMBER_NAME(property.name);
+    SDBUS_THROW_ERROR_IF(!property.getter && !property.setter, "Invalid property callbacks provided", EINVAL);
 
-    vtable.properties.push_back({ std::move(property.name_)
-                                , std::move(property.signature_)
-                                , std::move(property.getter_)
-                                , std::move(property.setter_)
-                                , std::move(property.flags_) });
+    vtable.properties.push_back({ std::move(property.name)
+                                , std::move(property.signature)
+                                , std::move(property.getter)
+                                , std::move(property.setter)
+                                , std::move(property.flags) });
 }
 
 std::vector<sd_bus_vtable> Object::createInternalSdBusVTable(const VTable& vtable)

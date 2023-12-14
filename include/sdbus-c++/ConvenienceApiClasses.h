@@ -27,16 +27,15 @@
 #ifndef SDBUS_CXX_CONVENIENCEAPICLASSES_H_
 #define SDBUS_CXX_CONVENIENCEAPICLASSES_H_
 
+#include <sdbus-c++/VTableItems.h>
 #include <sdbus-c++/Message.h>
 #include <sdbus-c++/TypeTraits.h>
 #include <sdbus-c++/Types.h>
-#include <sdbus-c++/Flags.h>
 #include <string>
 #include <vector>
-#include <type_traits>
+#include <map>
 #include <chrono>
 #include <future>
-#include <variant>
 #include <cstdint>
 
 // Forward declarations
@@ -46,100 +45,8 @@ namespace sdbus {
     class Error;
     class PendingAsyncCall;
 }
-// TODO: Is this needed?
-namespace sdbus::internal {
-    class Object;
-}
 
 namespace sdbus {
-
-    // TODO: Move these classes to VTableItems.h/.inl?
-    class MethodVTableItem
-    {
-    public:
-        MethodVTableItem(std::string methodName);
-        template <typename _Function> MethodVTableItem& implementedAs(_Function&& callback);
-        MethodVTableItem& withInputParamNames(std::vector<std::string> paramNames);
-        template <typename... _String> MethodVTableItem& withInputParamNames(_String... paramNames);
-        MethodVTableItem& withOutputParamNames(std::vector<std::string> paramNames);
-        template <typename... _String> MethodVTableItem& withOutputParamNames(_String... paramNames);
-        MethodVTableItem& markAsDeprecated();
-        MethodVTableItem& markAsPrivileged();
-        MethodVTableItem& withNoReply();
-
-    private:
-        friend internal::Object;
-
-        std::string name_;
-        std::string inputSignature_;
-        std::vector<std::string> inputParamNames_;
-        std::string outputSignature_;
-        std::vector<std::string> outputParamNames_;
-        method_callback callback_;
-        Flags flags_;
-    };
-
-    inline MethodVTableItem registerMethod(std::string methodName);
-
-    class SignalVTableItem
-    {
-    public:
-        SignalVTableItem(std::string signalName);
-        template <typename... _Args> SignalVTableItem& withParameters();
-        template <typename... _Args> SignalVTableItem& withParameters(std::vector<std::string> paramNames);
-        template <typename... _Args, typename... _String> SignalVTableItem& withParameters(_String... paramNames);
-        SignalVTableItem& markAsDeprecated();
-
-    private:
-        friend internal::Object;
-
-        std::string name_;
-        std::string signature_;
-        std::vector<std::string> paramNames_;
-        Flags flags_;
-    };
-
-    inline SignalVTableItem registerSignal(std::string signalName);
-
-    class PropertyVTableItem
-    {
-    public:
-        PropertyVTableItem(std::string propertyName);
-        template <typename _Function> PropertyVTableItem& withGetter(_Function&& callback);
-        template <typename _Function> PropertyVTableItem& withSetter(_Function&& callback);
-        PropertyVTableItem& markAsDeprecated();
-        PropertyVTableItem& markAsPrivileged();
-        PropertyVTableItem& withUpdateBehavior(Flags::PropertyUpdateBehaviorFlags behavior);
-
-    private:
-        friend internal::Object;
-
-        std::string name_;
-        std::string signature_;
-        property_get_callback getter_;
-        property_set_callback setter_;
-        Flags flags_;
-    };
-
-    inline PropertyVTableItem registerProperty(std::string propertyName);
-
-    class InterfaceFlagsVTableItem
-    {
-    public:
-        InterfaceFlagsVTableItem& markAsDeprecated();
-        InterfaceFlagsVTableItem& markAsPrivileged();
-        InterfaceFlagsVTableItem& withNoReplyMethods();
-        InterfaceFlagsVTableItem& withPropertyUpdateBehavior(Flags::PropertyUpdateBehaviorFlags behavior);
-
-    private:
-        friend internal::Object;
-
-        Flags flags_;
-    };
-
-    inline InterfaceFlagsVTableItem setInterfaceFlags();
-
-    using VTableItem = std::variant<MethodVTableItem, SignalVTableItem, PropertyVTableItem, InterfaceFlagsVTableItem>;
 
     class VTableAdder
     {
@@ -321,6 +228,6 @@ namespace sdbus {
         const std::string* interfaceName_{};
     };
 
-}
+} // namespace sdbus
 
 #endif /* SDBUS_CXX_CONVENIENCEAPICLASSES_H_ */
