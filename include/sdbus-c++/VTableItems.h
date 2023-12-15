@@ -54,7 +54,7 @@ namespace sdbus {
         Flags flags;
     };
 
-    inline MethodVTableItem registerMethod(std::string methodName);
+    MethodVTableItem registerMethod(std::string methodName);
 
     struct SignalVTableItem
     {
@@ -69,7 +69,7 @@ namespace sdbus {
         Flags flags;
     };
 
-    inline SignalVTableItem registerSignal(std::string signalName);
+    SignalVTableItem registerSignal(std::string signalName);
 
     struct PropertyVTableItem
     {
@@ -86,7 +86,7 @@ namespace sdbus {
         Flags flags;
     };
 
-    inline PropertyVTableItem registerProperty(std::string propertyName);
+    PropertyVTableItem registerProperty(std::string propertyName);
 
     struct InterfaceFlagsVTableItem
     {
@@ -98,7 +98,7 @@ namespace sdbus {
         Flags flags;
     };
 
-    inline InterfaceFlagsVTableItem setInterfaceFlags();
+    InterfaceFlagsVTableItem setInterfaceFlags();
 
     using VTableItem = std::variant<MethodVTableItem, SignalVTableItem, PropertyVTableItem, InterfaceFlagsVTableItem>;
 
