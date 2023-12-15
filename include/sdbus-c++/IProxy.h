@@ -197,6 +197,9 @@ namespace sdbus {
          * @param[in] signalName Name of the signal
          * @param[in] signalHandler Callback that implements the body of the signal handler
          *
+         * A signal can be subscribed to and unsubscribed from at any time during proxy
+         * lifetime. The subscription is active immediately after the call.
+         *
          * @throws sdbus::Error in case of failure
          */
         virtual void registerSignalHandler( const std::string& interfaceName
@@ -211,6 +214,10 @@ namespace sdbus {
          * @param[in] signalHandler Callback that implements the body of the signal handler
          *
          * @return RAII-style slot handle representing the ownership of the subscription
+         *
+         * A signal can be subscribed to and unsubscribed from at any time during proxy
+         * lifetime. The subscription is active immediately after the call. The subscription
+         * is unregistered when the client destroys the returned slot object.
          *
          * @throws sdbus::Error in case of failure
          */
@@ -285,6 +292,9 @@ namespace sdbus {
          * from the D-Bus message concept. Signal arguments are automatically serialized
          * in a message and D-Bus signatures automatically deduced from the parameters
          * of the provided native signal callback.
+         *
+         * A signal can be subscribed to and unsubscribed from at any time during proxy
+         * lifetime. The subscription is active immediately after the call.
          *
          * Example of use:
          * @code
