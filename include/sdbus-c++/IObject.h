@@ -76,6 +76,8 @@ namespace sdbus {
          *
          * An interface can have any number of vtables attached to it.
          *
+         * Consult manual pages for underlying `sd_bus_add_object_vtable` function for more information.
+         *
          * The method can be called at any time during object's lifetime. For each vtable an internal
          * match slot is created and its lifetime is tied to the lifetime of the Object instance.
          *
@@ -101,6 +103,8 @@ namespace sdbus {
          *
          * An interface can have any number of vtables attached to it.
          *
+         * Consult manual pages for underlying `sd_bus_add_object_vtable` function for more information.
+         *
          * The method can be called at any time during object's lifetime. For each vtable an internal
          * match slot is created and its lifetime is tied to the lifetime of the Object instance.
          *
@@ -123,6 +127,8 @@ namespace sdbus {
          * SignalVTableItem struct), or global interface flags (using InterfaceFlagsVTableItem struct).
          *
          * An interface can have any number of vtables attached to it.
+         *
+         * Consult manual pages for underlying `sd_bus_add_object_vtable` function for more information.
          *
          * The method can be called at any time during object's lifetime. For each vtable an internal
          * match slot is created and is returned to the caller. The returned slot should be destroyed
