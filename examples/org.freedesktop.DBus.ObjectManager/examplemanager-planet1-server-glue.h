@@ -20,17 +20,23 @@ public:
     static constexpr const char* INTERFACE_NAME = "org.sdbuscpp.ExampleManager.Planet1";
 
 protected:
-    Planet1_adaptor(sdbus::IObject& object) : object_(object)
+    Planet1_adaptor(sdbus::IObject& object)
+        : object_(&object)
     {
     }
+
+    Planet1_adaptor(const Planet1_adaptor&) = delete;
+    Planet1_adaptor& operator=(const Planet1_adaptor&) = delete;
+    Planet1_adaptor(Planet1_adaptor&&) = default;
+    Planet1_adaptor& operator=(Planet1_adaptor&&) = default;
 
     ~Planet1_adaptor() = default;
 
     void registerAdaptor()
     {
-        object_.addVTable( sdbus::registerMethod("GetPopulation").withOutputParamNames("population").implementedAs([this](){ return this->GetPopulation(); })
-                         , sdbus::registerProperty("Name").withGetter([this](){ return this->Name(); })
-                         ).forInterface(INTERFACE_NAME);
+        object_->addVTable( sdbus::registerMethod("GetPopulation").withOutputParamNames("population").implementedAs([this](){ return this->GetPopulation(); })
+                          , sdbus::registerProperty("Name").withGetter([this](){ return this->Name(); })
+                          ).forInterface(INTERFACE_NAME);
     }
 
 private:
@@ -40,7 +46,7 @@ private:
     virtual std::string Name() = 0;
 
 private:
-    sdbus::IObject& object_;
+    sdbus::IObject* object_;
 };
 
 }}} // namespaces
