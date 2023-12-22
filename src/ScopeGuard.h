@@ -29,6 +29,7 @@
 
 #include <exception>
 #include <utility>
+#include <exception>
 
 // Straightforward, modern, easy-to-use RAII utility to perform work on scope exit in an exception-safe manner.
 //
