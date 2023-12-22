@@ -28,6 +28,7 @@
 #define SDBUS_CPP_INTERNAL_SCOPEGUARD_H_
 
 #include <utility>
+#include <exception>
 
 // Straightforward, modern, easy-to-use RAII utility to perform work on scope exit in an exception-safe manner.
 //
