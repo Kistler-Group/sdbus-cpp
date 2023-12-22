@@ -108,12 +108,20 @@ void Connection::requestName(const std::string& name)
 
     auto r = iface_->sd_bus_request_name(bus_.get(), name.c_str(), 0);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to request bus name", -r);
+
+    // In some cases we need to explicitly notify the event loop
+    // to process messages that may have arrived while executing the call.
+    notifyEventLoop(eventFd_.fd);
 }
 
 void Connection::releaseName(const std::string& name)
 {
     auto r = iface_->sd_bus_release_name(bus_.get(), name.c_str());
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to release bus name", -r);
+
+    // In some cases we need to explicitly notify the event loop
+    // to process messages that may have arrived while executing the call.
+    notifyEventLoop(eventFd_.fd);
 }
 
 std::string Connection::getUniqueName() const
