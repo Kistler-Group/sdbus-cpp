@@ -27,6 +27,7 @@
 #ifndef SDBUS_CXX_IOBJECT_H_
 #define SDBUS_CXX_IOBJECT_H_
 
+#include <sdbus-c++/VTableItems.h>
 #include <sdbus-c++/ConvenienceApiClasses.h>
 #include <sdbus-c++/TypeTraits.h>
 #include <sdbus-c++/Flags.h>
@@ -62,144 +63,104 @@ namespace sdbus {
         virtual ~IObject() = default;
 
         /*!
-         * @brief Registers method that the object will provide on D-Bus
+         * @brief Adds a declaration of methods, properties and signals of the object at a given interface
          *
-         * @param[in] interfaceName Name of an interface that the method will belong to
-         * @param[in] methodName Name of the method
-         * @param[in] inputSignature D-Bus signature of method input parameters
-         * @param[in] outputSignature D-Bus signature of method output parameters
-         * @param[in] methodCallback Callback that implements the body of the method
-         * @param[in] flags D-Bus method flags (privileged, deprecated, or no reply)
+         * @param[in] interfaceName Name of an interface the the vtable is registered for
+         * @param[in] items Individual instances of VTable item structures
+         *
+         * This method is used to declare attributes for the object under the given interface.
+         * Parameter `items' represents a vtable definition that may contain method declarations
+         * (using MethodVTableItem struct), property declarations (using PropertyVTableItem
+         * struct), signal declarations (using SignalVTableItem struct), or global interface
+         * flags (using InterfaceFlagsVTableItem struct).
+         *
+         * An interface can have any number of vtables attached to it.
+         *
+         * Consult manual pages for underlying `sd_bus_add_object_vtable` function for more information.
+         *
+         * The method can be called at any time during object's lifetime. For each vtable an internal
+         * match slot is created and its lifetime is tied to the lifetime of the Object instance.
+         *
+         * The function provides strong exception guarantee. The state of the object remains
+         * unmodified in face of an exception.
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void registerMethod( const std::string& interfaceName
-                                   , std::string methodName
-                                   , std::string inputSignature
-                                   , std::string outputSignature
-                                   , method_callback methodCallback
-                                   , Flags flags = {} ) = 0;
+        template < typename... VTableItems
+                 , typename = std::enable_if_t<(is_one_of_variants_types<VTableItem, std::decay_t<VTableItems>> && ...)> >
+        void addVTable(std::string interfaceName, VTableItems&&... items);
 
         /*!
-         * @brief Registers method that the object will provide on D-Bus
+         * @brief Adds a declaration of methods, properties and signals of the object at a given interface
          *
-         * @param[in] interfaceName Name of an interface that the method will belong to
-         * @param[in] methodName Name of the method
-         * @param[in] inputSignature D-Bus signature of method input parameters
-         * @param[in] inputNames Names of input parameters
-         * @param[in] outputSignature D-Bus signature of method output parameters
-         * @param[in] outputNames Names of output parameters
-         * @param[in] methodCallback Callback that implements the body of the method
-         * @param[in] flags D-Bus method flags (privileged, deprecated, or no reply)
+         * @param[in] interfaceName Name of an interface the the vtable is registered for
+         * @param[in] vtable A list of individual descriptions in the form of VTable item instances
          *
-         * Provided names of input and output parameters will be included in the introspection
-         * description (given that at least version 242 of underlying libsystemd library is
-         * used; otherwise, names of parameters are ignored). This usually helps better describe
-         * the API to the introspector.
+         * This method is used to declare attributes for the object under the given interface.
+         * The `vtable' parameter may contain method declarations (using MethodVTableItem struct),
+         * property declarations (using PropertyVTableItem struct), signal declarations (using
+         * SignalVTableItem struct), or global interface flags (using InterfaceFlagsVTableItem struct).
+         *
+         * An interface can have any number of vtables attached to it.
+         *
+         * Consult manual pages for underlying `sd_bus_add_object_vtable` function for more information.
+         *
+         * The method can be called at any time during object's lifetime. For each vtable an internal
+         * match slot is created and its lifetime is tied to the lifetime of the Object instance.
+         *
+         * The function provides strong exception guarantee. The state of the object remains
+         * unmodified in face of an exception.
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void registerMethod( const std::string& interfaceName
-                                   , std::string methodName
-                                   , std::string inputSignature
-                                   , const std::vector<std::string>& inputNames
-                                   , std::string outputSignature
-                                   , const std::vector<std::string>& outputNames
-                                   , method_callback methodCallback
-                                   , Flags flags = {} ) = 0;
+        virtual void addVTable(std::string interfaceName, std::vector<VTableItem> vtable) = 0;
 
         /*!
-         * @brief Registers signal that the object will emit on D-Bus
+         * @brief Adds a declaration of methods, properties and signals of the object at a given interface
          *
-         * @param[in] interfaceName Name of an interface that the signal will fall under
-         * @param[in] signalName Name of the signal
-         * @param[in] signature D-Bus signature of signal parameters
-         * @param[in] flags D-Bus signal flags (deprecated)
+         * @param[in] interfaceName Name of an interface the the vtable is registered for
+         * @param[in] vtable A list of individual descriptions in the form of VTable item instances
+         *
+         * This method is used to declare attributes for the object under the given interface.
+         * The `vtable' parameter may contain method declarations (using MethodVTableItem struct),
+         * property declarations (using PropertyVTableItem struct), signal declarations (using
+         * SignalVTableItem struct), or global interface flags (using InterfaceFlagsVTableItem struct).
+         *
+         * An interface can have any number of vtables attached to it.
+         *
+         * Consult manual pages for underlying `sd_bus_add_object_vtable` function for more information.
+         *
+         * The method can be called at any time during object's lifetime. For each vtable an internal
+         * match slot is created and is returned to the caller. The returned slot should be destroyed
+         * when the vtable is not needed anymore. This allows for "dynamic" object API where vtables
+         * can be added or removed by the user at runtime.
+         *
+         * The function provides strong exception guarantee. The state of the object remains
+         * unmodified in face of an exception.
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void registerSignal( const std::string& interfaceName
-                                   , std::string signalName
-                                   , std::string signature
-                                   , Flags flags = {} ) = 0;
+        virtual Slot addVTable(std::string interfaceName, std::vector<VTableItem> vtable, request_slot_t) = 0;
 
         /*!
-         * @brief Registers signal that the object will emit on D-Bus
+         * @brief A little more convenient overload of addVTable() above
          *
-         * @param[in] interfaceName Name of an interface that the signal will fall under
-         * @param[in] signalName Name of the signal
-         * @param[in] signature D-Bus signature of signal parameters
-         * @param[in] paramNames Names of parameters of the signal
-         * @param[in] flags D-Bus signal flags (deprecated)
+         * This version allows method chaining for a little safer and more readable VTable registration.
          *
-         * Provided names of signal output parameters will be included in the introspection
-         * description (given that at least version 242 of underlying libsystemd library is
-         * used; otherwise, names of parameters are ignored). This usually helps better describe
-         * the API to the introspector.
-         *
-         * @throws sdbus::Error in case of failure
+         * See addVTable() overloads above for detailed documentation.
          */
-        virtual void registerSignal( const std::string& interfaceName
-                                   , std::string signalName
-                                   , std::string signature
-                                   , const std::vector<std::string>& paramNames
-                                   , Flags flags = {} ) = 0;
+        template < typename... VTableItems
+                 , typename = std::enable_if_t<(is_one_of_variants_types<VTableItem, std::decay_t<VTableItems>> && ...)> >
+        [[nodiscard]] VTableAdder addVTable(VTableItems&&... items);
 
         /*!
-         * @brief Registers read-only property that the object will provide on D-Bus
+         * @brief A little more convenient overload of addVTable() above
          *
-         * @param[in] interfaceName Name of an interface that the property will fall under
-         * @param[in] propertyName Name of the property
-         * @param[in] signature D-Bus signature of property parameters
-         * @param[in] getCallback Callback that implements the body of the property getter
-         * @param[in] flags D-Bus property flags (deprecated, property update behavior)
+         * This version allows method chaining for a little safer and more readable VTable registration.
          *
-         * @throws sdbus::Error in case of failure
+         * See addVTable() overloads above for detailed documentation.
          */
-        virtual void registerProperty( const std::string& interfaceName
-                                     , std::string propertyName
-                                     , std::string signature
-                                     , property_get_callback getCallback
-                                     , Flags flags = {} ) = 0;
-
-        /*!
-         * @brief Registers read/write property that the object will provide on D-Bus
-         *
-         * @param[in] interfaceName Name of an interface that the property will fall under
-         * @param[in] propertyName Name of the property
-         * @param[in] signature D-Bus signature of property parameters
-         * @param[in] getCallback Callback that implements the body of the property getter
-         * @param[in] setCallback Callback that implements the body of the property setter
-         * @param[in] flags D-Bus property flags (deprecated, property update behavior)
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        virtual void registerProperty( const std::string& interfaceName
-                                     , std::string propertyName
-                                     , std::string signature
-                                     , property_get_callback getCallback
-                                     , property_set_callback setCallback
-                                     , Flags flags = {} ) = 0;
-
-        /*!
-         * @brief Sets flags for a given interface
-         *
-         * @param[in] interfaceName Name of an interface whose flags will be set
-         * @param[in] flags Flags to be set
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        virtual void setInterfaceFlags(const std::string& interfaceName, Flags flags) = 0;
-
-        /*!
-         * @brief Finishes object API registration and publishes the object on the bus
-         *
-         * The method exports all up to now registered methods, signals and properties on D-Bus.
-         * Must be called after all methods, signals and properties have been registered.
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        virtual void finishRegistration() = 0;
+        [[nodiscard]] VTableAdder addVTable(std::vector<VTableItem> vtable);
 
         /*!
          * @brief Unregisters object's API and removes object from the bus
@@ -276,10 +237,8 @@ namespace sdbus {
          * @brief Emits InterfacesAdded signal on this object path
          *
          * This emits an InterfacesAdded signal on this object path with explicitly provided list
-         * of registered interfaces. As sdbus-c++ does currently not supported adding/removing
-         * interfaces of an existing object at run time (an object has a fixed set of interfaces
-         * registered by the time of invoking finishRegistration()), emitInterfacesAddedSignal(void)
-         * is probably what you are looking for.
+         * of registered interfaces. Since v2.0, sdbus-c++ supports dynamically addable/removable
+         * object interfaces and their vtables, so this method now makes more sense.
          *
          * @throws sdbus::Error in case of failure
          */
@@ -300,10 +259,8 @@ namespace sdbus {
          * @brief Emits InterfacesRemoved signal on this object path
          *
          * This emits an InterfacesRemoved signal on the given path with explicitly provided list
-         * of registered interfaces. As sdbus-c++ does currently not supported adding/removing
-         * interfaces of an existing object at run time (an object has a fixed set of interfaces
-         * registered by the time of invoking finishRegistration()), emitInterfacesRemovedSignal(void)
-         * is probably what you are looking for.
+         * of registered interfaces. Since v2.0, sdbus-c++ supports dynamically addable/removable
+         * object interfaces and their vtables, so this method now makes more sense.
          *
          * @throws sdbus::Error in case of failure
          */
@@ -339,81 +296,6 @@ namespace sdbus {
          * @return Reference to the D-Bus connection
          */
         virtual sdbus::IConnection& getConnection() const = 0;
-
-        /*!
-         * @brief Registers method that the object will provide on D-Bus
-         *
-         * @param[in] methodName Name of the method
-         * @return A helper object for convenient registration of the method
-         *
-         * This is a high-level, convenience way of registering D-Bus methods that abstracts
-         * from the D-Bus message concept. Method arguments/return value are automatically (de)serialized
-         * in a message and D-Bus signatures automatically deduced from the parameters and return type
-         * of the provided native method implementation callback.
-         *
-         * Example of use:
-         * @code
-         * object.registerMethod("doFoo").onInterface("com.kistler.foo").implementedAs([this](int value){ return this->doFoo(value); });
-         * @endcode
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        [[nodiscard]] MethodRegistrator registerMethod(const std::string& methodName);
-
-        /*!
-         * @brief Registers signal that the object will provide on D-Bus
-         *
-         * @param[in] signalName Name of the signal
-         * @return A helper object for convenient registration of the signal
-         *
-         * This is a high-level, convenience way of registering D-Bus signals that abstracts
-         * from the D-Bus message concept. Signal arguments are automatically (de)serialized
-         * in a message and D-Bus signatures automatically deduced from the provided native parameters.
-         *
-         * Example of use:
-         * @code
-         * object.registerSignal("paramChange").onInterface("com.kistler.foo").withParameters<std::map<int32_t, std::string>>();
-         * @endcode
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        [[nodiscard]] SignalRegistrator registerSignal(const std::string& signalName);
-
-        /*!
-         * @brief Registers property that the object will provide on D-Bus
-         *
-         * @param[in] propertyName Name of the property
-         * @return A helper object for convenient registration of the property
-         *
-         * This is a high-level, convenience way of registering D-Bus properties that abstracts
-         * from the D-Bus message concept. Property arguments are automatically (de)serialized
-         * in a message and D-Bus signatures automatically deduced from the provided native callbacks.
-         *
-         * Example of use:
-         * @code
-         * object_.registerProperty("state").onInterface("com.kistler.foo").withGetter([this](){ return this->state(); });
-         * @endcode
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        [[nodiscard]] PropertyRegistrator registerProperty(const std::string& propertyName);
-
-        /*!
-         * @brief Sets flags (annotations) for a given interface
-         *
-         * @param[in] interfaceName Name of an interface whose flags will be set
-         * @return A helper object for convenient setting of Interface flags
-         *
-         * This is a high-level, convenience alternative to the other setInterfaceFlags overload.
-         *
-         * Example of use:
-         * @code
-         * object_.setInterfaceFlags("com.kistler.foo").markAsDeprecated().withPropertyUpdateBehavior(sdbus::Flags::EMITS_NO_SIGNAL);
-         * @endcode
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        [[nodiscard]] InterfaceFlagsSetter setInterfaceFlags(const std::string& interfaceName);
 
         /*!
          * @brief Emits signal on D-Bus
@@ -459,29 +341,26 @@ namespace sdbus {
 
     // Out-of-line member definitions
 
-    inline MethodRegistrator IObject::registerMethod(const std::string& methodName)
-    {
-        return MethodRegistrator(*this, methodName);
-    }
-
-    inline SignalRegistrator IObject::registerSignal(const std::string& signalName)
-    {
-        return SignalRegistrator(*this, signalName);
-    }
-
-    inline PropertyRegistrator IObject::registerProperty(const std::string& propertyName)
-    {
-        return PropertyRegistrator(*this, propertyName);
-    }
-
-    inline InterfaceFlagsSetter IObject::setInterfaceFlags(const std::string& interfaceName)
-    {
-        return InterfaceFlagsSetter(*this, interfaceName);
-    }
-
     inline SignalEmitter IObject::emitSignal(const std::string& signalName)
     {
         return SignalEmitter(*this, signalName);
+    }
+
+    template <typename... VTableItems, typename>
+    void IObject::addVTable(std::string interfaceName, VTableItems&&... items)
+    {
+        addVTable(std::move(interfaceName), {std::forward<VTableItems>(items)...});
+    }
+
+    template <typename... VTableItems, typename>
+    VTableAdder IObject::addVTable(VTableItems&&... items)
+    {
+        return addVTable(std::vector<VTableItem>{std::forward<VTableItems>(items)...});
+    }
+
+    inline VTableAdder IObject::addVTable(std::vector<VTableItem> vtable)
+    {
+        return VTableAdder(*this, std::move(vtable));
     }
 
     /*!
@@ -506,6 +385,7 @@ namespace sdbus {
 
 }
 
+#include <sdbus-c++/VTableItems.inl>
 #include <sdbus-c++/ConvenienceApiClasses.inl>
 
 #endif /* SDBUS_CXX_IOBJECT_H_ */
