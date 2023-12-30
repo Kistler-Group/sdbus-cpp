@@ -57,7 +57,7 @@ namespace sdbus {
         object_.addVTable(std::move(interfaceName), std::move(vtable_));
     }
 
-    inline Slot VTableAdder::forInterface(std::string interfaceName, return_slot_t)
+    [[nodiscard]] inline Slot VTableAdder::forInterface(std::string interfaceName, return_slot_t)
     {
         return object_.addVTable(std::move(interfaceName), std::move(vtable_), return_slot);
     }
@@ -311,7 +311,7 @@ namespace sdbus {
     }
 
     template <typename _Function>
-    inline Slot SignalSubscriber::call(_Function&& callback, return_slot_t)
+    [[nodiscard]] inline Slot SignalSubscriber::call(_Function&& callback, return_slot_t)
     {
         assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
 
