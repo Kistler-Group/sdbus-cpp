@@ -140,7 +140,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual Slot addVTable(std::string interfaceName, std::vector<VTableItem> vtable, return_slot_t) = 0;
+        [[nodiscard]] virtual Slot addVTable(std::string interfaceName, std::vector<VTableItem> vtable, return_slot_t) = 0;
 
         /*!
          * @brief A little more convenient overload of addVTable() above
@@ -187,7 +187,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual Signal createSignal(const std::string& interfaceName, const std::string& signalName) = 0;
+        [[nodiscard]] virtual Signal createSignal(const std::string& interfaceName, const std::string& signalName) = 0;
 
         /*!
          * @brief Emits signal for this object path
@@ -288,14 +288,14 @@ namespace sdbus {
          * @brief Tests whether ObjectManager interface is added at the path of this D-Bus object
          * @return True if ObjectManager interface is there, false otherwise
          */
-        virtual bool hasObjectManager() const = 0;
+        [[nodiscard]] virtual bool hasObjectManager() const = 0;
 
         /*!
          * @brief Provides D-Bus connection used by the object
          *
          * @return Reference to the D-Bus connection
          */
-        virtual sdbus::IConnection& getConnection() const = 0;
+        [[nodiscard]] virtual sdbus::IConnection& getConnection() const = 0;
 
         /*!
          * @brief Emits signal on D-Bus
@@ -321,7 +321,7 @@ namespace sdbus {
         /*!
          * @brief Returns object path of the underlying DBus object
          */
-        virtual const std::string& getObjectPath() const = 0;
+        [[nodiscard]] virtual const std::string& getObjectPath() const = 0;
 
         /*!
          * @brief Provides access to the currently processed D-Bus message
@@ -336,7 +336,7 @@ namespace sdbus {
          *
          * @return Currently processed D-Bus message
          */
-        virtual Message getCurrentlyProcessedMessage() const = 0;
+        [[nodiscard]] virtual Message getCurrentlyProcessedMessage() const = 0;
     };
 
     // Out-of-line member definitions

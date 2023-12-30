@@ -80,7 +80,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual MethodCall createMethodCall(const std::string& interfaceName, const std::string& methodName) = 0;
+        [[nodiscard]] virtual MethodCall createMethodCall(const std::string& interfaceName, const std::string& methodName) = 0;
 
         /*!
          * @brief Calls method on the remote D-Bus object
@@ -107,7 +107,7 @@ namespace sdbus {
          *
          * Note: To avoid messing with messages, use API on a higher level of abstraction defined below.
          *
-         * @throws sdbus::Error in case of failure
+         * @throws sdbus::Error in case of failure (also in case the remote function returned an error)
          */
         virtual MethodReply callMethod(const MethodCall& message, uint64_t timeout = 0) = 0;
 
@@ -426,12 +426,12 @@ namespace sdbus {
          *
          * @return Reference to the D-Bus connection
          */
-        virtual sdbus::IConnection& getConnection() const = 0;
+        [[nodiscard]] virtual sdbus::IConnection& getConnection() const = 0;
 
         /*!
          * @brief Returns object path of the underlying DBus object
          */
-        virtual const std::string& getObjectPath() const = 0;
+        [[nodiscard]] virtual const std::string& getObjectPath() const = 0;
 
         /*!
          * @brief Provides access to the currently processed D-Bus message
@@ -446,7 +446,7 @@ namespace sdbus {
          *
          * @return Currently processed D-Bus message
          */
-        virtual Message getCurrentlyProcessedMessage() const = 0;
+        [[nodiscard]] virtual Message getCurrentlyProcessedMessage() const = 0;
     };
 
     /********************************************//**
