@@ -306,16 +306,20 @@ int main(int argc, char *argv[])
 
     // Register D-Bus methods and signals on the concatenator object, and exports the object.
     const char* interfaceName = "org.sdbuscpp.Concatenator";
-    concatenator->registerMethod(interfaceName, "concatenate", "ais", "s", &concatenate);
-    concatenator->registerSignal(interfaceName, "concatenated", "s");
-    concatenator->finishRegistration();
+    concatenator->addVTable( sdbus::MethodVTableItem{"concatenate", "ais", {}, "s", {}, &concatenate, {}}
+                           , sdbus::SignalVTableItem{"concatenated", "s", {}, {}} )
+                           .forInterface(interfaceName);
 
     // Run the I/O event loop on the bus connection.
     connection->enterEventLoop();
 }
 ```
 
-We establish a D-Bus system connection and request `org.sdbuscpp.concatenator` D-Bus name on it. This name will be used by D-Bus clients to find the service. We then create an object with path `/org/sdbuscpp/concatenator` on this connection. We register  interfaces, its methods, signals that the object provides, and, through `finishRegistration()`, export the object (i.e., make it visible to clients) on the bus. Then we need to make sure to run the event loop upon the connection, which handles all incoming, outgoing and other requests.
+We establish a D-Bus system connection and request `org.sdbuscpp.concatenator` D-Bus name on it. This name will be used by D-Bus clients to find the service. We then create an object with path `/org/sdbuscpp/concatenator` on this connection. We add a so-called object vtable, where we declare and describe its D-Bus API, i.e. its interface, methods, signals, properties (if any) that the object provides. Then we need to make sure to run the event loop upon the connection, which handles all incoming, outgoing and other requests.
+
+> **_Tip_:** There's also an overload of `addVTable()` method with `request_slot_t` tag parameter which returns a `Slot` object. The slot is a simple RAII-based handle of the associated vtable registration. As long as you keep the slot object, the vtable registration is active. When you let go of the slot, the vtable is automatically removed from the D-Bus object. This gives you the ability to implement "dynamic" D-Bus object API that is addable as well as removable at any time during object lifetime.
+
+> **_Note_:** A D-Bus object can have any number of vtables attached to it. Even a D-Bus interface of an object can have multiple vtables attached to it.
 
 The callback for any D-Bus object method on this level is any callable of signature `void(sdbus::MethodCall call)`. The `call` parameter is the incoming method call message. We need to deserialize our method input arguments from it. Then we can invoke the logic of the method and get the results. Then for the given `call`, we create a `reply` message, pack results into it and send it back to the caller through `send()`. (If we had a void-returning method, we'd just send an empty `reply` back.) We also fire a signal with the results. To do this, we need to create a signal message via object's `createSignal()`, serialize the results into it, and then send it out to subscribers by invoking object's `emitSignal()`.
 
@@ -365,7 +369,7 @@ int main(int argc, char *argv[])
         assert(result == "1:2:3");
     }
 
-    // Invoke concatenate again, this time with no numbers and we shall get an error
+/    // Invoke concatenate again, this time with no numbers and we shall get an error
     {
         auto method = concatenatorProxy->createMethodCall(interfaceName, "concatenate");
         method << std::vector<int>() << separator;
@@ -526,14 +530,18 @@ int main(int argc, char *argv[])
 
     // Register D-Bus methods and signals on the concatenator object, and exports the object.
     const char* interfaceName = "org.sdbuscpp.Concatenator";
-    concatenator->registerMethod("concatenate").onInterface(interfaceName).implementedAs(std::move(concatenate));
-    concatenator->registerSignal("concatenated").onInterface(interfaceName).withParameters<std::string>();
-    concatenator->finishRegistration();
+    concatenator->addVTable( sdbus::registerMethod("concatenate").implementedAs(std::move(concatenate))
+                           , sdbus::registerSignal{"concatenated").withParameters<std::string>() )
+                           .forInterface(interfaceName);
 
     // Run the loop on the connection.
     connection->enterEventLoop();
 }
 ```
+
+> **_Tip_:** There's also an overload of `addVTable(...).forInterface()` method with `request_slot_t` tag parameter which returns a `Slot` object. The slot is a simple RAII-based handle of the associated vtable registration. As long as you keep the slot object, the vtable registration is active. When you let go of the slot, the vtable is automatically removed from the D-Bus object. This gives you the ability to implement "dynamic" D-Bus object API that is addable as well as removable at any time during object lifetime.
+
+> **_Note_:** A D-Bus object can have any number of vtables attached to it. Even a D-Bus interface of an object can have multiple vtables attached to it.
 
 ### Client side
 

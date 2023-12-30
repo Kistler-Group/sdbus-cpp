@@ -59,21 +59,26 @@ private:
      * @param methods
      * @return tuple: registration of methods, declaration of abstract methods
      */
-    std::tuple<std::string, std::string> processMethods(const sdbuscpp::xml::Nodes& methods) const;
+    std::tuple<std::vector<std::string>, std::string> processMethods(const sdbuscpp::xml::Nodes& methods) const;
 
     /**
      * Generate source code for signals
      * @param signals
      * @return tuple: registration of signals, definition of signal methods
      */
-    std::tuple<std::string, std::string> processSignals(const sdbuscpp::xml::Nodes& signals) const;
+    std::tuple<std::vector<std::string>, std::string> processSignals(const sdbuscpp::xml::Nodes& signals) const;
 
     /**
      * Generate source code for properties
      * @param properties
      * @return tuple: registration of properties, declaration of property accessor virtual methods
      */
-    std::tuple<std::string, std::string> processProperties(const sdbuscpp::xml::Nodes& properties) const;
+    std::tuple<std::vector<std::string>, std::string> processProperties(const sdbuscpp::xml::Nodes& properties) const;
+
+    std::string createVTableRegistration(const std::string& annotationRegistration,
+                                         const std::vector<std::string>& methodRegistrations,
+                                         const std::vector<std::string>& signalRegistrations,
+                                         const std::vector<std::string>& propertyRegistrations) const;
 
     /**
      * Get annotations listed for a given node

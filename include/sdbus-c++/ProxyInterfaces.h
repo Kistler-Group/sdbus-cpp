@@ -197,12 +197,9 @@ namespace sdbus {
         }
 
         /*!
-         * @brief Returns object path of the underlying DBus object
+         * @brief Returns reference to the underlying IProxy instance
          */
-        const std::string& getObjectPath() const
-        {
-            return getProxy().getObjectPath();
-        }
+        using ProxyObjectHolder::getProxy;
 
     protected:
         using base_type = ProxyInterfaces;
