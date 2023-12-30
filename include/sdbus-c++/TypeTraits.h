@@ -41,6 +41,7 @@
 #include <functional>
 #include <memory>
 #include <tuple>
+#include <variant>
 
 // Forward declarations
 namespace sdbus {
@@ -657,6 +658,15 @@ namespace sdbus {
 
     template <typename... _Args>
     using future_return_t = typename future_return<_Args...>::type;
+
+
+    // Credit: Piotr Skotnicki (https://stackoverflow.com/a/57639506)
+    template <typename, typename>
+    constexpr bool is_one_of_variants_types = false;
+
+    template <typename... _VariantTypes, typename _QueriedType>
+    constexpr bool is_one_of_variants_types<std::variant<_VariantTypes...>, _QueriedType>
+        = (std::is_same_v<_QueriedType, _VariantTypes> || ...);
 
 
     namespace detail

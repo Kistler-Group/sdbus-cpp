@@ -81,7 +81,6 @@ TYPED_TEST(SdbusTestObject, CallsMethodsWithStructSuccesfully)
     auto vectorRes = this->m_proxy->getInts16FromStruct(a);
     ASSERT_THAT(vectorRes, Eq(std::vector<int16_t>{0})); // because second item is by default initialized to 0
 
-
     sdbus::Struct<uint8_t, int16_t, double, std::string, std::vector<int16_t>> b{
         UINT8_VALUE, INT16_VALUE, DOUBLE_VALUE, STRING_VALUE, {INT16_VALUE, -INT16_VALUE}
     };
@@ -287,4 +286,35 @@ TYPED_TEST(SdbusTestObject, CanCallMethodSynchronouslyWithoutAnEventLoopThread)
     auto multiplyRes = proxy->multiply(INT64_VALUE, DOUBLE_VALUE);
 
     ASSERT_THAT(multiplyRes, Eq(INT64_VALUE * DOUBLE_VALUE));
+}
+
+TYPED_TEST(SdbusTestObject, CanRegisterAdditionalVTableDynamicallyAtAnyTime)
+{
+    auto& object = this->m_adaptor->getObject();
+    auto vtableSlot = object.addVTable( "org.sdbuscpp.integrationtests2"
+                                      , { sdbus::registerMethod("add").implementedAs([](const int64_t& a, const double& b){ return a + b; })
+                                        , sdbus::registerMethod("subtract").implementedAs([](const int& a, const int& b){ return a - b; })}
+                                      , sdbus::request_slot );
+
+    // The new remote vtable is registered as long as we keep vtableSlot, so remote method calls now should pass
+    auto proxy = sdbus::createProxy(BUS_NAME, OBJECT_PATH, sdbus::dont_run_event_loop_thread);
+    int result{};
+    proxy->callMethod("subtract").onInterface("org.sdbuscpp.integrationtests2").withArguments(10, 2).storeResultsTo(result);
+
+    ASSERT_THAT(result, Eq(8));
+}
+
+TYPED_TEST(SdbusTestObject, CanUnregisterAdditionallyRegisteredVTableAtAnyTime)
+{
+    auto& object = this->m_adaptor->getObject();
+
+    auto vtableSlot = object.addVTable( "org.sdbuscpp.integrationtests2"
+                                      , { sdbus::registerMethod("add").implementedAs([](const int64_t& a, const double& b){ return a + b; })
+                                        , sdbus::registerMethod("subtract").implementedAs([](const int& a, const int& b){ return a - b; })}
+                                      , sdbus::request_slot );
+    vtableSlot.reset(); // Letting the slot go means letting go the associated vtable registration
+
+    // No such remote D-Bus method under given interface exists anymore...
+    auto proxy = sdbus::createProxy(BUS_NAME, OBJECT_PATH, sdbus::dont_run_event_loop_thread);
+    ASSERT_THROW(proxy->callMethod("subtract").onInterface("org.sdbuscpp.integrationtests2").withArguments(10, 2), sdbus::Error);
 }
