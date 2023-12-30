@@ -22,9 +22,6 @@ protected:
     perftests_adaptor(sdbus::IObject& object)
         : object_(&object)
     {
-        object_->registerMethod("sendDataSignals").onInterface(INTERFACE_NAME).withInputParamNames("numberOfSignals", "signalMsgSize").implementedAs([this](const uint32_t& numberOfSignals, const uint32_t& signalMsgSize){ return this->sendDataSignals(numberOfSignals, signalMsgSize); });
-        object_->registerMethod("concatenateTwoStrings").onInterface(INTERFACE_NAME).withInputParamNames("string1", "string2").withOutputParamNames("result").implementedAs([this](const std::string& string1, const std::string& string2){ return this->concatenateTwoStrings(string1, string2); });
-        object_->registerSignal("dataSignal").onInterface(INTERFACE_NAME).withParameters<std::string>("data");
     }
 
     perftests_adaptor(const perftests_adaptor&) = delete;
@@ -33,6 +30,14 @@ protected:
     perftests_adaptor& operator=(perftests_adaptor&&) = default;
 
     ~perftests_adaptor() = default;
+
+    void registerAdaptor()
+    {
+        object_->addVTable( sdbus::registerMethod("sendDataSignals").withInputParamNames("numberOfSignals", "signalMsgSize").implementedAs([this](const uint32_t& numberOfSignals, const uint32_t& signalMsgSize){ return this->sendDataSignals(numberOfSignals, signalMsgSize); })
+                          , sdbus::registerMethod("concatenateTwoStrings").withInputParamNames("string1", "string2").withOutputParamNames("result").implementedAs([this](const std::string& string1, const std::string& string2){ return this->concatenateTwoStrings(string1, string2); })
+                          , sdbus::registerSignal("dataSignal").withParameters<std::string>("data")
+                          ).forInterface(INTERFACE_NAME);
+    }
 
 public:
     void emitDataSignal(const std::string& data)

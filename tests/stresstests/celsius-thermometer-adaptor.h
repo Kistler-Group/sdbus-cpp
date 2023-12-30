@@ -24,7 +24,6 @@ protected:
     thermometer_adaptor(sdbus::IObject& object)
         : object_(&object)
     {
-        object_->registerMethod("getCurrentTemperature").onInterface(INTERFACE_NAME).withOutputParamNames("result").implementedAs([this](){ return this->getCurrentTemperature(); });
     }
 
     thermometer_adaptor(const thermometer_adaptor&) = delete;
@@ -33,6 +32,11 @@ protected:
     thermometer_adaptor& operator=(thermometer_adaptor&&) = default;
 
     ~thermometer_adaptor() = default;
+
+    void registerAdaptor()
+    {
+        object_->addVTable(sdbus::registerMethod("getCurrentTemperature").withOutputParamNames("result").implementedAs([this](){ return this->getCurrentTemperature(); })).forInterface(INTERFACE_NAME);
+    }
 
 private:
     virtual uint32_t getCurrentTemperature() = 0;

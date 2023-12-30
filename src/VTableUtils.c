@@ -27,18 +27,18 @@
 #include "VTableUtils.h"
 #include SDBUS_HEADER
 
-sd_bus_vtable createVTableStartItem(uint64_t flags)
+sd_bus_vtable createSdBusVTableStartItem(uint64_t flags)
 {
     struct sd_bus_vtable vtableStart = SD_BUS_VTABLE_START(flags);
     return vtableStart;
 }
 
-sd_bus_vtable createVTableMethodItem( const char *member
-                                    , const char *signature
-                                    , const char *result
-                                    , const char *paramNames
-                                    , sd_bus_message_handler_t handler
-                                    , uint64_t flags )
+sd_bus_vtable createSdBusVTableMethodItem( const char *member
+                                         , const char *signature
+                                         , const char *result
+                                         , const char *paramNames
+                                         , sd_bus_message_handler_t handler
+                                         , uint64_t flags )
 {
 #if LIBSYSTEMD_VERSION>=242
     // We have to expand macro SD_BUS_METHOD_WITH_NAMES manually here, because the macro expects literal char strings
@@ -65,10 +65,10 @@ sd_bus_vtable createVTableMethodItem( const char *member
     return vtableItem;
 }
 
-sd_bus_vtable createVTableSignalItem( const char *member
-                                    , const char *signature
-                                    , const char *outnames
-                                    , uint64_t flags )
+sd_bus_vtable createSdBusVTableSignalItem( const char *member
+                                         , const char *signature
+                                         , const char *outnames
+                                         , uint64_t flags )
 {
 #if LIBSYSTEMD_VERSION>=242
     struct sd_bus_vtable vtableItem = SD_BUS_SIGNAL_WITH_NAMES(member, signature, outnames, flags);
@@ -79,26 +79,26 @@ sd_bus_vtable createVTableSignalItem( const char *member
     return vtableItem;
 }
 
-sd_bus_vtable createVTablePropertyItem( const char *member
-                                      , const char *signature
-                                      , sd_bus_property_get_t getter
-                                      , uint64_t flags )
+sd_bus_vtable createSdBusVTableReadOnlyPropertyItem( const char *member
+                                                   , const char *signature
+                                                   , sd_bus_property_get_t getter
+                                                   , uint64_t flags )
 {
     struct sd_bus_vtable vtableItem = SD_BUS_PROPERTY(member, signature, getter, 0, flags);
     return vtableItem;
 }
 
-sd_bus_vtable createVTableWritablePropertyItem( const char *member
-                                              , const char *signature
-                                              , sd_bus_property_get_t getter
-                                              , sd_bus_property_set_t setter
-                                              , uint64_t flags )
+sd_bus_vtable createSdBusVTableWritablePropertyItem( const char *member
+                                                   , const char *signature
+                                                   , sd_bus_property_get_t getter
+                                                   , sd_bus_property_set_t setter
+                                                   , uint64_t flags )
 {
     struct sd_bus_vtable vtableItem = SD_BUS_WRITABLE_PROPERTY(member, signature, getter, setter, 0, flags);
     return vtableItem;
 }
 
-sd_bus_vtable createVTableEndItem()
+sd_bus_vtable createSdBusVTableEndItem()
 {
     struct sd_bus_vtable vtableEnd = SD_BUS_VTABLE_END;
     return vtableEnd;
