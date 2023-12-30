@@ -224,7 +224,7 @@ namespace sdbus {
         [[nodiscard]] virtual Slot registerSignalHandler( const std::string& interfaceName
                                                         , const std::string& signalName
                                                         , signal_handler signalHandler
-                                                        , request_slot_t ) = 0;
+                                                        , return_slot_t ) = 0;
 
         /*!
          * @brief Unregisters proxy's signal handlers and stops receiving replies to pending async calls
