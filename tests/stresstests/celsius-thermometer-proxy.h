@@ -33,6 +33,10 @@ protected:
 
     ~thermometer_proxy() = default;
 
+    void registerProxy()
+    {
+    }
+
 public:
     uint32_t getCurrentTemperature()
     {

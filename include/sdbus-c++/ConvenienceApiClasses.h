@@ -129,22 +129,15 @@ namespace sdbus {
         SignalSubscriber(IProxy& proxy, const std::string& signalName);
         SignalSubscriber& onInterface(std::string interfaceName);
         template <typename _Function> void call(_Function&& callback);
+        template <typename _Function> [[nodiscard]] Slot call(_Function&& callback, request_slot_t);
+
+    private:
+        template <typename _Function> signal_handler makeSignalHandler(_Function&& callback);
 
     private:
         IProxy& proxy_;
         const std::string& signalName_;
         std::string interfaceName_;
-    };
-
-    class SignalUnsubscriber
-    {
-    public:
-        SignalUnsubscriber(IProxy& proxy, const std::string& signalName);
-        void onInterface(const std::string& interfaceName);
-
-    private:
-        IProxy& proxy_;
-        const std::string& signalName_;
     };
 
     class PropertyGetter

@@ -193,7 +193,7 @@ namespace sdbus::internal {
             message_handler callback;
             message_handler installCallback;
             Connection& connection;
-            sd_bus_slot *slot;
+            Slot slot;
         };
 
         // sd-event integration

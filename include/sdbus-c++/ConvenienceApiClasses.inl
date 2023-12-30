@@ -307,7 +307,24 @@ namespace sdbus {
 
         proxy_.registerSignalHandler( interfaceName_
                                     , signalName_
-                                    , [callback = std::forward<_Function>(callback)](Signal signal)
+                                    , makeSignalHandler(std::forward<_Function>(callback)) );
+    }
+
+    template <typename _Function>
+    inline Slot SignalSubscriber::call(_Function&& callback, request_slot_t)
+    {
+        assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
+
+        return proxy_.registerSignalHandler( interfaceName_
+                                           , signalName_
+                                           , makeSignalHandler(std::forward<_Function>(callback))
+                                           , request_slot );
+    }
+
+    template <typename _Function>
+    inline signal_handler SignalSubscriber::makeSignalHandler(_Function&& callback)
+    {
+        return [callback = std::forward<_Function>(callback)](Signal signal)
         {
             // Create a tuple of callback input arguments' types, which will be used
             // as a storage for the argument values deserialized from the signal message.
@@ -343,22 +360,7 @@ namespace sdbus {
                 // Invoke callback with input arguments from the tuple.
                 sdbus::apply(callback, signalArgs);
             }
-        });
-    }
-
-    /*** ------------------ ***/
-    /*** SignalUnsubscriber ***/
-    /*** ------------------ ***/
-
-    inline SignalUnsubscriber::SignalUnsubscriber(IProxy& proxy, const std::string& signalName)
-        : proxy_(proxy)
-        , signalName_(signalName)
-    {
-    }
-
-    inline void SignalUnsubscriber::onInterface(const std::string& interfaceName)
-    {
-        proxy_.unregisterSignalHandler(interfaceName, signalName_);
+        };
     }
 
     /*** -------------- ***/
