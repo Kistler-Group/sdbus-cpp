@@ -94,29 +94,6 @@ namespace sdbus::internal {
             Slot slot;
         };
 
-//        using InterfaceName = std::string;
-//        struct InterfaceData
-//        {
-//            using SignalName = std::string;
-//            struct SignalData
-//            {
-//                SignalData(Proxy& proxy, signal_handler callback, Slot slot)
-//                    : proxy(proxy)
-//                    , callback(std::move(callback))
-//                    , slot(std::move(slot))
-//                {}
-//                Proxy& proxy;
-//                signal_handler callback;
-//                // slot must be listed after callback to ensure that slot is destructed first.
-//                // Destructing the slot will sd_bus_slot_unref() the callback.
-//                // Only after sd_bus_slot_unref(), we can safely delete the callback. The bus mutex (SdBus::sdbusMutex_)
-//                // ensures that sd_bus_slot_unref() and the callback execute sequentially.
-//                Slot slot;
-//            };
-//            std::map<SignalName, std::unique_ptr<SignalData>> signals_;
-//        };
-//        std::map<InterfaceName, InterfaceData> interfaces_;
-
         // We need to keep track of pending async calls. When the proxy is being destructed, we must
         // remove all slots of these pending calls, otherwise in case when the connection outlives
         // the proxy, we might get async reply handlers invoked for pending async calls after the proxy
