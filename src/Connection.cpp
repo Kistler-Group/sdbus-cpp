@@ -198,7 +198,7 @@ void Connection::addObjectManager(const std::string& objectPath, floating_slot_t
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to add object manager", -r);
 }
 
-Slot Connection::addObjectManager(const std::string& objectPath, request_slot_t)
+Slot Connection::addObjectManager(const std::string& objectPath, return_slot_t)
 {
     sd_bus_slot *slot{};
 
