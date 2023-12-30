@@ -73,7 +73,7 @@ namespace sdbus::internal {
 
         virtual MethodReply callMethod(const MethodCall& message, uint64_t timeout) = 0;
         virtual void callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout, floating_slot_t) = 0;
-        virtual Slot callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout) = 0;
+        [[nodiscard]] virtual Slot callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout) = 0;
 
         virtual void emitPropertiesChangedSignal( const std::string& objectPath
                                                 , const std::string& interfaceName
