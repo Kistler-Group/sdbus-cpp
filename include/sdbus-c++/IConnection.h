@@ -82,7 +82,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual std::string getUniqueName() const = 0;
+        [[nodiscard]] virtual std::string getUniqueName() const = 0;
 
         /*!
          * @brief Enters I/O event loop on this bus connection
@@ -225,7 +225,7 @@ namespace sdbus {
          *
          * @return Currently processed D-Bus message
          */
-        virtual Message getCurrentlyProcessedMessage() const = 0;
+        [[nodiscard]] virtual Message getCurrentlyProcessedMessage() const = 0;
 
         /*!
          * @brief Sets general method call timeout
@@ -256,7 +256,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual uint64_t getMethodCallTimeout() const = 0;
+        [[nodiscard]] virtual uint64_t getMethodCallTimeout() const = 0;
 
         /*!
          * @brief Adds an ObjectManager at the specified D-Bus object path
