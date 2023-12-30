@@ -82,7 +82,7 @@ namespace sdbus::internal {
         void releaseName(const std::string& name) override;
         std::string getUniqueName() const override;
         void enterEventLoop() override;
-        void enterEventLoopAsync() override;
+        void enterEventLoop(async_t) override;
         void leaveEventLoop() override;
         PollData getEventLoopPollData() const override;
         bool processPendingEvent() override;
@@ -97,8 +97,8 @@ namespace sdbus::internal {
 
         [[nodiscard]] Slot addMatch(const std::string& match, message_handler callback) override;
         void addMatch(const std::string& match, message_handler callback, floating_slot_t) override;
-        [[nodiscard]] Slot addMatchAsync(const std::string& match, message_handler callback, message_handler installCallback) override;
-        void addMatchAsync(const std::string& match, message_handler callback, message_handler installCallback, floating_slot_t) override;
+        [[nodiscard]] Slot addMatch(const std::string& match, message_handler callback, message_handler installCallback, async_t) override;
+        void addMatch(const std::string& match, message_handler callback, message_handler installCallback, async_t, floating_slot_t) override;
 
         void attachSdEventLoop(sd_event *event, int priority) override;
         void detachSdEventLoop() override;

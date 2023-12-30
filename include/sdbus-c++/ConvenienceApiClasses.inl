@@ -407,7 +407,7 @@ namespace sdbus {
 
         assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
 
-        return proxy_.callMethodAsync("Get")
+        return proxy_.callMethod("Get", async)
                      .onInterface("org.freedesktop.DBus.Properties")
                      .withArguments(*interfaceName_, propertyName_)
                      .uponReplyInvoke(std::forward<_Function>(callback));
@@ -417,7 +417,7 @@ namespace sdbus {
     {
         assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
 
-        return proxy_.callMethodAsync("Get")
+        return proxy_.callMethod("Get", async)
                      .onInterface("org.freedesktop.DBus.Properties")
                      .withArguments(*interfaceName_, propertyName_)
                      .getResultAsFuture<Variant>();
@@ -508,7 +508,7 @@ namespace sdbus {
 
         assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
 
-        return proxy_.callMethodAsync("Set")
+        return proxy_.callMethod("Set", async)
                      .onInterface("org.freedesktop.DBus.Properties")
                      .withArguments(*interfaceName_, propertyName_, std::move(value_))
                      .uponReplyInvoke(std::forward<_Function>(callback));
@@ -518,7 +518,7 @@ namespace sdbus {
     {
         assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
 
-        return proxy_.callMethodAsync("Set")
+        return proxy_.callMethod("Set", async)
                      .onInterface("org.freedesktop.DBus.Properties")
                      .withArguments(*interfaceName_, propertyName_, std::move(value_))
                      .getResultAsFuture<>();
@@ -567,7 +567,7 @@ namespace sdbus {
 
         assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
 
-        return proxy_.callMethodAsync("GetAll")
+        return proxy_.callMethod("GetAll", async)
                      .onInterface("org.freedesktop.DBus.Properties")
                      .withArguments(*interfaceName_)
                      .uponReplyInvoke(std::forward<_Function>(callback));
@@ -577,7 +577,7 @@ namespace sdbus {
     {
         assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
 
-        return proxy_.callMethodAsync("GetAll")
+        return proxy_.callMethod("GetAll", async)
                      .onInterface("org.freedesktop.DBus.Properties")
                      .withArguments(*interfaceName_)
                      .getResultAsFuture<std::map<std::string, Variant>>();

@@ -72,6 +72,12 @@ namespace sdbus {
     // Type-erased RAII-style handle to callbacks/subscriptions registered to sdbus-c++
     using Slot = std::unique_ptr<void, std::function<void(void*)>>;
 
+    // Tag denoting an asynchronous call or operation
+    struct async_t { explicit async_t() = default; };
+    inline constexpr async_t async{};
+    // Tag denoting a variant of an asynchronous method call that returns std::future instead of accepting
+    struct with_future_t { explicit with_future_t() = default; };
+    inline constexpr with_future_t with_future{};
     // Tag specifying that an owning slot handle shall be returned from a registration/subscription function to the caller
     struct return_slot_t { explicit return_slot_t() = default; };
     inline constexpr return_slot_t return_slot{};
@@ -88,9 +94,6 @@ namespace sdbus {
     // Such proxies are typically created to carry out a simple synchronous D-Bus call(s) and then are destroyed.
     struct dont_run_event_loop_thread_t { explicit dont_run_event_loop_thread_t() = default; };
     inline constexpr dont_run_event_loop_thread_t dont_run_event_loop_thread{};
-    // Tag denoting an asynchronous call that returns std::future as a handle
-    struct with_future_t { explicit with_future_t() = default; };
-    inline constexpr with_future_t with_future{};
     // Tag denoting a call where the reply shouldn't be waited for
     struct dont_expect_reply_t { explicit dont_expect_reply_t() = default; };
     inline constexpr dont_expect_reply_t dont_expect_reply{};

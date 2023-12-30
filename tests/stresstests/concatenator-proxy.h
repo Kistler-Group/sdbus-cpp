@@ -44,7 +44,8 @@ protected:
 public:
     sdbus::PendingAsyncCall concatenate(const std::map<std::string, sdbus::Variant>& params)
     {
-        return proxy_->callMethodAsync("concatenate").onInterface(INTERFACE_NAME).withArguments(params).uponReplyInvoke([this](const sdbus::Error* error, const std::string& result){ this->onConcatenateReply(result, error); });
+        using sdbus::async;
+        return proxy_->callMethod("concatenate", async).onInterface(INTERFACE_NAME).withArguments(params).uponReplyInvoke([this](const sdbus::Error* error, const std::string& result){ this->onConcatenateReply(result, error); });
     }
 
 private:

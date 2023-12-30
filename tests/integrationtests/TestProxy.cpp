@@ -114,7 +114,7 @@ uint32_t TestProxy::doOperationWithTimeout(const std::chrono::microseconds &time
 
 sdbus::PendingAsyncCall TestProxy::doOperationClientSideAsync(uint32_t param)
 {
-    return getProxy().callMethodAsync("doOperation")
+    return getProxy().callMethod("doOperation", async)
                      .onInterface(sdbus::test::INTERFACE_NAME)
                      .withArguments(param)
                      .uponReplyInvoke([this](const sdbus::Error* error, uint32_t returnValue)
@@ -125,7 +125,7 @@ sdbus::PendingAsyncCall TestProxy::doOperationClientSideAsync(uint32_t param)
 
 std::future<uint32_t> TestProxy::doOperationClientSideAsync(uint32_t param, with_future_t)
 {
-    return getProxy().callMethodAsync("doOperation")
+    return getProxy().callMethod("doOperation", async)
                      .onInterface(sdbus::test::INTERFACE_NAME)
                      .withArguments(param)
                      .getResultAsFuture<uint32_t>();
@@ -141,7 +141,7 @@ std::future<MethodReply> TestProxy::doOperationClientSideAsyncOnBasicAPILevel(ui
 
 void TestProxy::doErroneousOperationClientSideAsync()
 {
-    getProxy().callMethodAsync("throwError")
+    getProxy().callMethod("throwError", async)
               .onInterface(sdbus::test::INTERFACE_NAME)
               .uponReplyInvoke([this](const sdbus::Error* error)
                                {
@@ -151,7 +151,7 @@ void TestProxy::doErroneousOperationClientSideAsync()
 
 std::future<void> TestProxy::doErroneousOperationClientSideAsync(with_future_t)
 {
-    return getProxy().callMethodAsync("throwError")
+    return getProxy().callMethod("throwError", async)
                      .onInterface(sdbus::test::INTERFACE_NAME)
                      .getResultAsFuture<>();
 }
@@ -159,7 +159,7 @@ std::future<void> TestProxy::doErroneousOperationClientSideAsync(with_future_t)
 void TestProxy::doOperationClientSideAsyncWithTimeout(const std::chrono::microseconds &timeout, uint32_t param)
 {
     using namespace std::chrono_literals;
-    getProxy().callMethodAsync("doOperation")
+    getProxy().callMethod("doOperation", async)
               .onInterface(sdbus::test::INTERFACE_NAME)
               .withTimeout(timeout)
               .withArguments(param)

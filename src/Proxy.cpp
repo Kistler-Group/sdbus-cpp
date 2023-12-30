@@ -63,7 +63,7 @@ Proxy::Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
 
     // The connection is ours only, i.e. it's us who has to manage the event loop upon this connection,
     // in order that we get and process signals, async call replies, and other messages from D-Bus.
-    connection_->enterEventLoopAsync();
+    connection_->enterEventLoop(async);
 }
 
 Proxy::Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection

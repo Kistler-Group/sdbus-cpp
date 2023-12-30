@@ -92,16 +92,17 @@ TYPED_TEST(AConnection, CanInstallMatchRuleAsynchronously)
     auto matchRule = "sender='" + BUS_NAME + "',path='" + OBJECT_PATH + "'";
     std::atomic<bool> matchingMessageReceived{false};
     std::atomic<bool> matchRuleInstalled{false};
-    auto slot = this->s_proxyConnection->addMatchAsync( matchRule
-                                                      , [&](sdbus::Message msg)
-                                                        {
-                                                            if(msg.getPath() == OBJECT_PATH)
-                                                                matchingMessageReceived = true;
-                                                        }
-                                                      , [&](sdbus::Message /*msg*/)
-                                                        {
-                                                            matchRuleInstalled = true;
-                                                        } );
+    auto slot = this->s_proxyConnection->addMatch( matchRule
+                                                 , [&](sdbus::Message msg)
+                                                   {
+                                                       if(msg.getPath() == OBJECT_PATH)
+                                                           matchingMessageReceived = true;
+                                                   }
+                                                 , [&](sdbus::Message /*msg*/)
+                                                   {
+                                                       matchRuleInstalled = true;
+                                                   }
+                                                 , sdbus::async);
 
     EXPECT_TRUE(waitUntil(matchRuleInstalled));
 
@@ -131,7 +132,7 @@ TYPED_TEST(AConnection, CanAddFloatingMatchRule)
     auto matchRule = "sender='" + BUS_NAME + "',path='" + OBJECT_PATH + "'";
     std::atomic<bool> matchingMessageReceived{false};
     auto con = sdbus::createSystemBusConnection();
-    con->enterEventLoopAsync();
+    con->enterEventLoop(sdbus::async);
     auto callback = [&](sdbus::Message msg)
     {
         if(msg.getPath() == OBJECT_PATH)

@@ -151,14 +151,14 @@ namespace sdbus {
         }
 
         template <typename _Function>
-        PendingAsyncCall GetAsync(const std::string& interfaceName, const std::string& propertyName, _Function&& callback)
+        PendingAsyncCall Get(const std::string& interfaceName, const std::string& propertyName, _Function&& callback, async_t)
         {
-            return proxy_->getPropertyAsync(propertyName).onInterface(interfaceName).uponReplyInvoke(std::forward<_Function>(callback));
+            return proxy_->getProperty(propertyName, async).onInterface(interfaceName).uponReplyInvoke(std::forward<_Function>(callback));
         }
 
-        std::future<sdbus::Variant> GetAsync(const std::string& interfaceName, const std::string& propertyName, with_future_t)
+        std::future<sdbus::Variant> Get(const std::string& interfaceName, const std::string& propertyName, async_t, with_future_t)
         {
-            return proxy_->getPropertyAsync(propertyName).onInterface(interfaceName).getResultAsFuture();
+            return proxy_->getProperty(propertyName, async).onInterface(interfaceName).getResultAsFuture();
         }
 
         void Set(const std::string& interfaceName, const std::string& propertyName, const sdbus::Variant& value)
@@ -172,14 +172,14 @@ namespace sdbus {
         }
 
         template <typename _Function>
-        PendingAsyncCall SetAsync(const std::string& interfaceName, const std::string& propertyName, const sdbus::Variant& value, _Function&& callback)
+        PendingAsyncCall Set(const std::string& interfaceName, const std::string& propertyName, const sdbus::Variant& value, _Function&& callback, async_t)
         {
-            return proxy_->setPropertyAsync(propertyName).onInterface(interfaceName).toValue(value).uponReplyInvoke(std::forward<_Function>(callback));
+            return proxy_->setProperty(propertyName, async).onInterface(interfaceName).toValue(value).uponReplyInvoke(std::forward<_Function>(callback));
         }
 
-        std::future<void> SetAsync(const std::string& interfaceName, const std::string& propertyName, const sdbus::Variant& value, with_future_t)
+        std::future<void> Set(const std::string& interfaceName, const std::string& propertyName, const sdbus::Variant& value, async_t, with_future_t)
         {
-            return proxy_->setPropertyAsync(propertyName).onInterface(interfaceName).toValue(value).getResultAsFuture();
+            return proxy_->setProperty(propertyName, async).onInterface(interfaceName).toValue(value).getResultAsFuture();
         }
 
         std::map<std::string, sdbus::Variant> GetAll(const std::string& interfaceName)
@@ -188,14 +188,14 @@ namespace sdbus {
         }
 
         template <typename _Function>
-        PendingAsyncCall GetAllAsync(const std::string& interfaceName, _Function&& callback)
+        PendingAsyncCall GetAll(const std::string& interfaceName, _Function&& callback, async_t)
         {
-            return proxy_->getAllPropertiesAsync().onInterface(interfaceName).uponReplyInvoke(std::forward<_Function>(callback));
+            return proxy_->getAllProperties(async).onInterface(interfaceName).uponReplyInvoke(std::forward<_Function>(callback));
         }
 
-        std::future<std::map<std::string, sdbus::Variant>> GetAllAsync(const std::string& interfaceName, with_future_t)
+        std::future<std::map<std::string, sdbus::Variant>> GetAll(const std::string& interfaceName, async_t, with_future_t)
         {
-            return proxy_->getAllPropertiesAsync().onInterface(interfaceName).getResultAsFuture();
+            return proxy_->getAllProperties(async).onInterface(interfaceName).getResultAsFuture();
         }
 
     private:

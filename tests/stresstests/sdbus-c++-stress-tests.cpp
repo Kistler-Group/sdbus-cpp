@@ -481,7 +481,7 @@ int main(int argc, char *argv[])
             // We could run the loop in a sync way, but we want it to run also when proxies are destroyed for better
             // coverage of multi-threaded scenarios, so we run it async and use condition variable for exit notification
             //con.enterEventLoop();
-            con.enterEventLoopAsync();
+            con.enterEventLoop(sdbus::async);
 
             std::unique_lock<std::mutex> lock(clientThreadExitMutex);
             clientThreadExitCond.wait(lock, [&]{return clientThreadExit;});

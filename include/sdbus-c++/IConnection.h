@@ -100,7 +100,7 @@ namespace sdbus {
          * The same as enterEventLoop, except that it doesn't block
          * because it runs the loop in a separate, internally managed thread.
          */
-        virtual void enterEventLoopAsync() = 0;
+        virtual void enterEventLoop(async_t) = 0;
 
         /*!
          * @brief Leaves the I/O event loop running on this bus connection
@@ -204,7 +204,7 @@ namespace sdbus {
          *
          * You don't need to directly call this method or getEventLoopPollData() method
          * when using convenient, internal bus connection event loops through
-         * enterEventLoop() or enterEventLoopAsync() calls, or when the bus is
+         * enterEventLoop() or enterEventLoop(async) calls, or when the bus is
          * connected to an sd-event event loop through attachSdEventLoop().
          * It is invoked automatically when necessary.
          *
@@ -334,7 +334,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        [[nodiscard]] virtual Slot addMatchAsync(const std::string& match, message_handler callback, message_handler installCallback) = 0;
+        [[nodiscard]] virtual Slot addMatch(const std::string& match, message_handler callback, message_handler installCallback, async_t) = 0;
 
         /*!
          * @brief Asynchronously installs a floating match rule for messages received on this bus connection
@@ -352,7 +352,9 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void addMatchAsync(const std::string& match, message_handler callback, message_handler installCallback, floating_slot_t) = 0;
+        virtual void addMatch(const std::string& match, message_handler callback, message_handler installCallback, async_t, floating_slot_t) = 0;
+
+        // TODO: addMatchAsync with std::future support?
 
         /*!
          * @copydoc IConnection::enterEventLoop()
@@ -362,11 +364,11 @@ namespace sdbus {
         [[deprecated("This function has been replaced by enterEventLoop()")]] void enterProcessingLoop();
 
         /*!
-         * @copydoc IConnection::enterEventLoopAsync()
+         * @copydoc IConnection::enterEventLoop(sdbus::async_t)
          *
-         * @deprecated This function has been replaced by enterEventLoopAsync()
+         * @deprecated This function has been replaced by enterEventLoop(async_t)
          */
-        [[deprecated("This function has been replaced by enterEventLoopAsync()")]] void enterProcessingLoopAsync();
+        [[deprecated("This function has been replaced by enterEventLoop(async_t)")]] void enterProcessingLoopAsync();
 
         /*!
          * @copydoc IConnection::leaveEventLoop()
@@ -446,7 +448,7 @@ namespace sdbus {
 
     inline void IConnection::enterProcessingLoopAsync()
     {
-        enterEventLoopAsync();
+        enterEventLoop(async);
     }
 
     inline void IConnection::leaveProcessingLoop()

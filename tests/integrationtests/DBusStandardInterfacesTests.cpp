@@ -81,21 +81,22 @@ TYPED_TEST(SdbusTestObject, GetsPropertyAsynchronouslyViaPropertiesInterface)
 {
     std::promise<std::string> promise;
     auto future = promise.get_future();
-
-    this->m_proxy->GetAsync(INTERFACE_NAME, "state", [&](const sdbus::Error* err, sdbus::Variant value)
+    auto getCallback = [&](const sdbus::Error* err, sdbus::Variant value)
     {
         if (err == nullptr)
-           promise.set_value(value.get<std::string>());
+            promise.set_value(value.get<std::string>());
         else
-           promise.set_exception(std::make_exception_ptr(*err));
-    });
+            promise.set_exception(std::make_exception_ptr(*err));
+    };
+
+    this->m_proxy->Get(INTERFACE_NAME, "state", std::move(getCallback), sdbus::async);
 
     ASSERT_THAT(future.get(), Eq(DEFAULT_STATE_VALUE));
 }
 
 TYPED_TEST(SdbusTestObject, GetsPropertyAsynchronouslyViaPropertiesInterfaceWithFuture)
 {
-    auto future = this->m_proxy->GetAsync(INTERFACE_NAME, "state", sdbus::with_future);
+    auto future = this->m_proxy->Get(INTERFACE_NAME, "state", sdbus::async, sdbus::with_future);
 
     ASSERT_THAT(future.get().template get<std::string>(), Eq(DEFAULT_STATE_VALUE));
 }
@@ -114,14 +115,15 @@ TYPED_TEST(SdbusTestObject, SetsPropertyAsynchronouslyViaPropertiesInterface)
     uint32_t newActionValue = 2346;
     std::promise<void> promise;
     auto future = promise.get_future();
-
-    this->m_proxy->SetAsync(INTERFACE_NAME, "action", sdbus::Variant{newActionValue}, [&](const sdbus::Error* err)
+    auto setCallback = [&](const sdbus::Error* err)
     {
         if (err == nullptr)
             promise.set_value();
         else
             promise.set_exception(std::make_exception_ptr(*err));
-    });
+    };
+
+    this->m_proxy->Set(INTERFACE_NAME, "action", sdbus::Variant{newActionValue}, std::move(setCallback), sdbus::async);
 
     ASSERT_NO_THROW(future.get());
     ASSERT_THAT(this->m_proxy->action(), Eq(newActionValue));
@@ -131,7 +133,7 @@ TYPED_TEST(SdbusTestObject, SetsPropertyAsynchronouslyViaPropertiesInterfaceWith
 {
     uint32_t newActionValue = 2347;
 
-    auto future = this->m_proxy->SetAsync(INTERFACE_NAME, "action", sdbus::Variant{newActionValue}, sdbus::with_future);
+    auto future = this->m_proxy->Set(INTERFACE_NAME, "action", sdbus::Variant{newActionValue}, sdbus::async, sdbus::with_future);
 
     ASSERT_NO_THROW(future.get());
     ASSERT_THAT(this->m_proxy->action(), Eq(newActionValue));
@@ -151,14 +153,15 @@ TYPED_TEST(SdbusTestObject, GetsAllPropertiesAsynchronouslyViaPropertiesInterfac
 {
     std::promise<std::map<std::string, sdbus::Variant>> promise;
     auto future = promise.get_future();
-
-    this->m_proxy->GetAllAsync(INTERFACE_NAME, [&](const sdbus::Error* err, std::map<std::string, sdbus::Variant> value)
+    auto getCallback = [&](const sdbus::Error* err, std::map<std::string, sdbus::Variant> value)
     {
         if (err == nullptr)
             promise.set_value(std::move(value));
         else
             promise.set_exception(std::make_exception_ptr(*err));
-    });
+    };
+
+    this->m_proxy->GetAll(INTERFACE_NAME, std::move(getCallback), sdbus::async);
     const auto properties = future.get();
 
     ASSERT_THAT(properties, SizeIs(3));
@@ -169,7 +172,7 @@ TYPED_TEST(SdbusTestObject, GetsAllPropertiesAsynchronouslyViaPropertiesInterfac
 
 TYPED_TEST(SdbusTestObject, GetsAllPropertiesAsynchronouslyViaPropertiesInterfaceWithFuture)
 {
-    auto future = this->m_proxy->GetAllAsync(INTERFACE_NAME, sdbus::with_future);
+    auto future = this->m_proxy->GetAll(INTERFACE_NAME, sdbus::async, sdbus::with_future);
 
     auto properties = future.get();
 

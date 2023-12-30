@@ -272,15 +272,15 @@ namespace sdbus {
          * Example of use:
          * @code
          * int a = ..., b = ...;
-         * object_.callMethodAsync("multiply").onInterface(INTERFACE_NAME).withArguments(a, b).uponReplyInvoke([](int result)
+         * object_.callMethod("multiply").onInterface(INTERFACE_NAME).withArguments(a, b).uponReplyInvoke([](int result)
          * {
          *     std::cout << "Got result of multiplying " << a << " and " << b << ": " << result << std::endl;
-         * });
+         * }, sdbus::async);
          * @endcode
          *
          * @throws sdbus::Error in case of failure
          */
-        [[nodiscard]] AsyncMethodInvoker callMethodAsync(const std::string& methodName);
+        [[nodiscard]] AsyncMethodInvoker callMethod(const std::string& methodName, async_t);
 
         /*!
          * @brief Registers signal handler for a given signal of the D-Bus object
@@ -335,14 +335,14 @@ namespace sdbus {
          *
          * Example of use:
          * @code
-         * std::future<sdbus::Variant> state = object.getPropertyAsync("state").onInterface("com.kistler.foo").getResultAsFuture();
+         * std::future<sdbus::Variant> state = object.getProperty("state", sdbus::async).onInterface("com.kistler.foo").getResultAsFuture();
          * auto callback = [](const sdbus::Error* err, const sdbus::Variant& value){ ... };
-         * object.getPropertyAsync("state").onInterface("com.kistler.foo").uponReplyInvoke(std::move(callback));
+         * object.getProperty("state", sdbus::async).onInterface("com.kistler.foo").uponReplyInvoke(std::move(callback));
          * @endcode
          *
          * @throws sdbus::Error in case of failure
          */
-        [[nodiscard]] AsyncPropertyGetter getPropertyAsync(const std::string& propertyName);
+        [[nodiscard]] AsyncPropertyGetter getProperty(const std::string& propertyName, async_t);
 
         /*!
          * @brief Sets value of a property of the D-Bus object
@@ -379,12 +379,12 @@ namespace sdbus {
          * @code
          * int state = ...;
          * // We can wait until the set operation finishes by waiting on the future
-         * std::future<void> res = object_.setPropertyAsync("state").onInterface("com.kistler.foo").toValue(state).getResultAsFuture();
+         * std::future<void> res = object_.setProperty("state", sdbus::async).onInterface("com.kistler.foo").toValue(state).getResultAsFuture();
          * @endcode
          *
          * @throws sdbus::Error in case of failure
          */
-        [[nodiscard]] AsyncPropertySetter setPropertyAsync(const std::string& propertyName);
+        [[nodiscard]] AsyncPropertySetter setProperty(const std::string& propertyName, async_t);
 
         /*!
          * @brief Gets values of all properties of the D-Bus object
@@ -414,12 +414,12 @@ namespace sdbus {
          * Example of use:
          * @code
          * auto callback = [](const sdbus::Error* err, const std::map<std::string, Variant>>& properties){ ... };
-         * auto props = object.getAllPropertiesAsync().onInterface("com.kistler.foo").uponReplyInvoke(std::move(callback));
+         * auto props = object.getAllProperties(sdbus::async).onInterface("com.kistler.foo").uponReplyInvoke(std::move(callback));
          * @endcode
          *
          * @throws sdbus::Error in case of failure
          */
-        [[nodiscard]] AsyncAllPropertiesGetter getAllPropertiesAsync();
+        [[nodiscard]] AsyncAllPropertiesGetter getAllProperties(async_t);
 
         /*!
          * @brief Provides D-Bus connection used by the proxy
@@ -521,7 +521,7 @@ namespace sdbus {
         return MethodInvoker(*this, methodName);
     }
 
-    inline AsyncMethodInvoker IProxy::callMethodAsync(const std::string& methodName)
+    inline AsyncMethodInvoker IProxy::callMethod(const std::string& methodName, async_t)
     {
         return AsyncMethodInvoker(*this, methodName);
     }
@@ -536,7 +536,7 @@ namespace sdbus {
         return PropertyGetter(*this, propertyName);
     }
 
-    inline AsyncPropertyGetter IProxy::getPropertyAsync(const std::string& propertyName)
+    inline AsyncPropertyGetter IProxy::getProperty(const std::string& propertyName, async_t)
     {
         return AsyncPropertyGetter(*this, propertyName);
     }
@@ -546,7 +546,7 @@ namespace sdbus {
         return PropertySetter(*this, propertyName);
     }
 
-    inline AsyncPropertySetter IProxy::setPropertyAsync(const std::string& propertyName)
+    inline AsyncPropertySetter IProxy::setProperty(const std::string& propertyName, async_t)
     {
         return AsyncPropertySetter(*this, propertyName);
     }
@@ -556,7 +556,7 @@ namespace sdbus {
         return AllPropertiesGetter(*this);
     }
 
-    inline AsyncAllPropertiesGetter IProxy::getAllPropertiesAsync()
+    inline AsyncAllPropertiesGetter IProxy::getAllProperties(async_t)
     {
         return AsyncAllPropertiesGetter(*this);
     }

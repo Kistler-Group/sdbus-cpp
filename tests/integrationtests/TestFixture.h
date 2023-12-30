@@ -102,8 +102,8 @@ public:
     static void SetUpTestCase()
     {
         BaseTestFixture::SetUpTestCase();
-        s_proxyConnection->enterEventLoopAsync();
-        s_adaptorConnection->enterEventLoopAsync();
+        s_proxyConnection->enterEventLoop(async);
+        s_adaptorConnection->enterEventLoop(async);
         std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Give time for the proxy connection to start listening to signals
     }
 
@@ -237,11 +237,11 @@ private:
             auto fd = accept4(sock, NULL, NULL, /*SOCK_NONBLOCK|*/SOCK_CLOEXEC);
             m_adaptorConnection = sdbus::createServerBus(fd);
             // This is necessary so that createDirectBusConnection() below does not block
-            m_adaptorConnection->enterEventLoopAsync();
+            m_adaptorConnection->enterEventLoop(async);
         });
 
         m_proxyConnection = sdbus::createDirectBusConnection("unix:path=" + DIRECT_CONNECTION_SOCKET_PATH);
-        m_proxyConnection->enterEventLoopAsync();
+        m_proxyConnection->enterEventLoop(async);
 
         t.join();
     }

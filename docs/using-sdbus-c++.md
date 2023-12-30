@@ -445,7 +445,7 @@ On the **server** side, we generally need to create D-Bus objects and publish th
 
   * its internal event loop
     * either in a blocking way, through `enterEventLoop()`,
-    * or in a non-blocking async way, through `enterEventLoopAsync()`,
+    * or in a non-blocking async way, through `enterEventLoop(sdbus::async_t)`,
   * or an external event loop. This is suitable if we use in our application an event loop implementation of our choice (e.g., sd-event, GLib Event Loop, boost::asio, ...) and we want to hook up our sdbus-c++ connections with it. See [Using sdbus-c++ in external event loops](#using-sdbus-c-in-external-event-loops) section for more information.
 
 The object takes the D-Bus connection as a reference in its constructor. This is the only way to wire the connection and the object together. We must make sure the connection exists as long as objects using it exist.
@@ -475,7 +475,7 @@ On the **client** side we likewise need a connection -- just that unlike on the 
 
 #### Stopping internal I/O event loops graciously
 
-A connection with an asynchronous event loop (i.e. one initiated through `enterEventLoopAsync()`) will stop and join its event loop thread automatically in its destructor. An event loop that blocks in the synchronous `enterEventLoop()` call can be unblocked through `leaveEventLoop()` call on the respective bus connection issued from a different thread or from an OS signal handler.
+A connection with an asynchronous event loop (i.e. one initiated through `enterEventLoop(async_t)`) will stop and join its event loop thread automatically in its destructor. An event loop that blocks in the synchronous `enterEventLoop()` call can be unblocked through `leaveEventLoop()` call on the respective bus connection issued from a different thread or from an OS signal handler.
 
 Implementing the Concatenator example using convenience sdbus-c++ API layer
 ---------------------------------------------------------------------------
@@ -1192,7 +1192,7 @@ Another option is to use `std::future`-based overload of the `IProxy::callMethod
 
 ### Convenience API
 
-On the convenience API level, the call statement starts with `callMethodAsync()`, and one option is to finish the statement with `uponReplyInvoke()` that takes a callback handler. The callback is a void-returning function that takes at least one argument: pointer to the `sdbus::Error` instance. All subsequent arguments shall exactly reflect the D-Bus method output arguments. A concatenator example:
+On the convenience API level, the call statement starts with `callMethod()` overload with `async_t` tag parameter, and one option is to finish the statement with `uponReplyInvoke()` that takes a callback handler. The callback is a void-returning function that takes at least one argument: pointer to the `sdbus::Error` instance. All subsequent arguments shall exactly reflect the D-Bus method output arguments. A concatenator example:
 
 ```c++
 int main(int argc, char *argv[])
@@ -1206,16 +1206,18 @@ int main(int argc, char *argv[])
         else // We got a D-Bus error...
             std::cerr << "Got concatenate error " << error->getName() << " with message " << error->getMessage() << std::endl;
     }
+    
+    using sdbus::async;
 
     // Invoke concatenate on given interface of the object
     {
-        concatenatorProxy->callMethodAsync("concatenate").onInterface(interfaceName).withArguments(numbers, separator).uponReplyInvoke(callback);
+        concatenatorProxy->callMethod("concatenate", async).onInterface(interfaceName).withArguments(numbers, separator).uponReplyInvoke(callback);
         // When the reply comes, we shall get "Got concatenate result 1:2:3" on the standard output
     }
 
     // Invoke concatenate again, this time with no numbers and we shall get an error
     {
-        concatenatorProxy->callMethodAsync("concatenate").onInterface(interfaceName).withArguments(std::vector<int>{}, separator).uponReplyInvoke(callback);
+        concatenatorProxy->callMethod("concatenate", async).onInterface(interfaceName).withArguments(std::vector<int>{}, separator).uponReplyInvoke(callback);
         // When the reply comes, we shall get concatenation error message on the standard error output
     }
 
@@ -1233,7 +1235,7 @@ The future object will contain void for a void-returning D-Bus method, a single 
 
 ```c++
         ...
-        auto future = concatenatorProxy->callMethodAsync("concatenate").onInterface(interfaceName).withArguments(numbers, separator).getResultAsFuture<std::string>();
+        auto future = concatenatorProxy->callMethod("concatenate", sdbus::async).onInterface(interfaceName).withArguments(numbers, separator).getResultAsFuture<std::string>();
         try
         {
             auto concatenatedString = future.get(); // This waits for the reply
@@ -1320,7 +1322,7 @@ We read property value easily through `IProxy::getProperty()` method:
 uint32_t status = proxy->getProperty("status").onInterface("org.sdbuscpp.Concatenator");
 ```
 
-Getting a property in asynchronous manner is also possible, in both callback-based and future-based way, by calling `IProxy::getPropertyAsync()` method:
+Getting a property in asynchronous manner is also possible, in both callback-based and future-based way, by calling `IProxy::getProperty()` method overload with `async_t` tag parameter:
 
 ```c++
 // Callback-based method:
@@ -1328,9 +1330,9 @@ auto callback = [](const sdbus::Error* err, sdbus::Variant value)
 {
     std::cout << "Got property value: " << value.get<uint32_t>() << std::endl;
 };
-uint32_t status = proxy->getPropertyAsync("status").onInterface("org.sdbuscpp.Concatenator").uponReplyInvoke(std::move(callback));
+uint32_t status = proxy->getProperty("status", sdbus::async).onInterface("org.sdbuscpp.Concatenator").uponReplyInvoke(std::move(callback));
 // Future-based method:
-std::future<sdbus::Variant> statusFuture = object.getPropertyAsync("status").onInterface("org.sdbuscpp.Concatenator").getResultAsFuture();
+std::future<sdbus::Variant> statusFuture = object.getProperty("status", sdbus::async).onInterface("org.sdbuscpp.Concatenator").getResultAsFuture();
 ...
 std::cout << "Got property value: " << statusFuture.get().get<uint32_t>() << std::endl;
 ```
@@ -1346,14 +1348,14 @@ uint32_t status = ...;
 proxy->setProperty("status").onInterface("org.sdbuscpp.Concatenator").toValue(status);
 ```
 
-Setting a property in asynchronous manner is also possible, in both callback-based and future-based way, by calling `IProxy::setPropertyAsync()` method:
+Setting a property in asynchronous manner is also possible, in both callback-based and future-based way, by calling `IProxy::setProperty()` method overload with `async_t` tag parameter:
 
 ```c++
 // Callback-based method:
 auto callback = [](const sdbus::Error* err) { /*... Error handling in case err is non-null...*/ };
-uint32_t status = proxy->setPropertyAsync("status").onInterface("org.sdbuscpp.Concatenator").toValue(status).uponReplyInvoke(std::move(callback));
+uint32_t status = proxy->setProperty("status", sdbus::async).onInterface("org.sdbuscpp.Concatenator").toValue(status).uponReplyInvoke(std::move(callback));
 // Future-based method:
-std::future<void> statusFuture = object.setPropertyAsync("status").onInterface("org.sdbuscpp.Concatenator").getResultAsFuture();
+std::future<void> statusFuture = object.setProperty("status", sdbus::async).onInterface("org.sdbuscpp.Concatenator").getResultAsFuture();
 ```
 
 More information on `error` callback handler parameter, on behavior of `future` in erroneous situations, can be found in section [Asynchronous client-side methods](#asynchronous-client-side-methods).
@@ -1479,7 +1481,7 @@ public:
     // getting the property value
     sdbus::PendingAsyncCall status()
     {
-        return object_->getPropertyAsync("status").onInterface(INTERFACE_NAME).uponReplyInvoke([this](const sdbus::Error* error, const sdbus::Variant& value){ this->onActionPropertyGetReply(value.get<uint32_t>(), error); });
+        return object_->getProperty("status", sdbus::async).onInterface(INTERFACE_NAME).uponReplyInvoke([this](const sdbus::Error* error, const sdbus::Variant& value){ this->onActionPropertyGetReply(value.get<uint32_t>(), error); });
     }
 
     // setting the property value
@@ -1691,11 +1693,11 @@ int main(int argc, char *argv[])
     {
         serverConnection = sdbus::createServerBus(fds[0]);
         // This is necessary so that createDirectBusConnection() below does not block
-        serverConnection->enterEventLoopAsync();
+        serverConnection->enterEventLoop(sdbus::async);
     });
 
     clientConnection = sdbus::createDirectBusConnection(fds[1]);
-    clientConnection->enterEventLoopAsync();
+    clientConnection->enterEventLoop(sdbus::async);
 
     t.join();
 

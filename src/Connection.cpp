@@ -151,7 +151,7 @@ void Connection::enterEventLoop()
     }
 }
 
-void Connection::enterEventLoopAsync()
+void Connection::enterEventLoop(async_t)
 {
     if (!asyncLoopThread_.joinable())
         asyncLoopThread_ = std::thread([this](){ enterEventLoop(); });
@@ -247,7 +247,7 @@ void Connection::addMatch(const std::string& match, message_handler callback, fl
     floatingMatchRules_.push_back(addMatch(match, std::move(callback)));
 }
 
-Slot Connection::addMatchAsync(const std::string& match, message_handler callback, message_handler installCallback)
+Slot Connection::addMatch(const std::string& match, message_handler callback, message_handler installCallback, async_t)
 {
     SDBUS_THROW_ERROR_IF(!callback, "Invalid match callback handler provided", EINVAL);
 
@@ -268,9 +268,9 @@ Slot Connection::addMatchAsync(const std::string& match, message_handler callbac
     return {matchInfo.release(), [](void *ptr){ delete static_cast<MatchInfo*>(ptr); }};
 }
 
-void Connection::addMatchAsync(const std::string& match, message_handler callback, message_handler installCallback, floating_slot_t)
+void Connection::addMatch(const std::string& match, message_handler callback, message_handler installCallback, async_t, floating_slot_t)
 {
-    floatingMatchRules_.push_back(addMatchAsync(match, std::move(callback), std::move(installCallback)));
+    floatingMatchRules_.push_back(addMatch(match, std::move(callback), std::move(installCallback), async));
 }
 
 void Connection::attachSdEventLoop(sd_event *event, int priority)

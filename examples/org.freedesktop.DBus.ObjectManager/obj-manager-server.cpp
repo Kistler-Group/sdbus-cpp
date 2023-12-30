@@ -83,7 +83,7 @@ int main()
 {
     auto connection = sdbus::createSessionBusConnection();
     connection->requestName("org.sdbuscpp.examplemanager");
-    connection->enterEventLoopAsync();
+    connection->enterEventLoop(sdbus::async);
 
     auto manager = std::make_unique<ManagerAdaptor>(*connection, "/org/sdbuscpp/examplemanager");
     while (true)
