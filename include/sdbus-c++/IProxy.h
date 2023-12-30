@@ -197,6 +197,9 @@ namespace sdbus {
          * @param[in] signalName Name of the signal
          * @param[in] signalHandler Callback that implements the body of the signal handler
          *
+         * A signal can be subscribed to and unsubscribed from at any time during proxy
+         * lifetime. The subscription is active immediately after the call.
+         *
          * @throws sdbus::Error in case of failure
          */
         virtual void registerSignalHandler( const std::string& interfaceName
@@ -204,28 +207,27 @@ namespace sdbus {
                                           , signal_handler signalHandler ) = 0;
 
         /*!
-         * @brief Unregisters the handler of the desired signal
+         * @brief Registers a handler for the desired signal emitted by the D-Bus object
          *
          * @param[in] interfaceName Name of an interface that the signal belongs to
          * @param[in] signalName Name of the signal
+         * @param[in] signalHandler Callback that implements the body of the signal handler
+         *
+         * @return RAII-style slot handle representing the ownership of the subscription
+         *
+         * A signal can be subscribed to and unsubscribed from at any time during proxy
+         * lifetime. The subscription is active immediately after the call. The subscription
+         * is unregistered when the client destroys the returned slot object.
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void unregisterSignalHandler( const std::string& interfaceName
-                                            , const std::string& signalName ) = 0;
+        [[nodiscard]] virtual Slot registerSignalHandler( const std::string& interfaceName
+                                                        , const std::string& signalName
+                                                        , signal_handler signalHandler
+                                                        , request_slot_t ) = 0;
 
         /*!
-         * @brief Finishes the registration of signal handlers
-         *
-         * The method physically subscribes to the desired signals.
-         * Must be called only once, after all signals have been registered already.
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        virtual void finishRegistration() = 0;
-
-        /*!
-         * @brief Unregisters proxy's signal handlers and stops receving replies to pending async calls
+         * @brief Unregisters proxy's signal handlers and stops receiving replies to pending async calls
          *
          * Unregistration is done automatically also in proxy's destructor. This method makes
          * sense if, in the process of proxy removal, we need to make sure that callbacks
@@ -291,6 +293,9 @@ namespace sdbus {
          * in a message and D-Bus signatures automatically deduced from the parameters
          * of the provided native signal callback.
          *
+         * A signal can be subscribed to and unsubscribed from at any time during proxy
+         * lifetime. The subscription is active immediately after the call.
+         *
          * Example of use:
          * @code
          * object_.uponSignal("fooSignal").onInterface("com.kistler.foo").call([this](int arg1, double arg2){ this->onFooSignal(arg1, arg2); });
@@ -299,23 +304,6 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         [[nodiscard]] SignalSubscriber uponSignal(const std::string& signalName);
-
-        /*!
-         * @brief Unregisters signal handler of a given signal of the D-Bus object
-         *
-         * @param[in] signalName Name of the signal
-         * @return A helper object for convenient unregistration of the signal handler
-         *
-         * This is a high-level, convenience way of unregistering a D-Bus signal's handler.
-         *
-         * Example of use:
-         * @code
-         * object_.muteSignal("fooSignal").onInterface("com.kistler.foo");
-         * @endcode
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        [[nodiscard]] SignalUnsubscriber muteSignal(const std::string& signalName);
 
         /*!
          * @brief Gets value of a property of the D-Bus object
@@ -541,11 +529,6 @@ namespace sdbus {
     inline SignalSubscriber IProxy::uponSignal(const std::string& signalName)
     {
         return SignalSubscriber(*this, signalName);
-    }
-
-    inline SignalUnsubscriber IProxy::muteSignal(const std::string& signalName)
-    {
-        return SignalUnsubscriber(*this, signalName);
     }
 
     inline PropertyGetter IProxy::getProperty(const std::string& propertyName)

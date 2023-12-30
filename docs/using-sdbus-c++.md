@@ -354,7 +354,6 @@ int main(int argc, char *argv[])
     // Let's subscribe for the 'concatenated' signals
     const char* interfaceName = "org.sdbuscpp.Concatenator";
     concatenatorProxy->registerSignalHandler(interfaceName, "concatenated", &onConcatenated);
-    concatenatorProxy->finishRegistration();
 
     std::vector<int> numbers = {1, 2, 3};
     std::string separator = ":";
@@ -391,9 +390,11 @@ int main(int argc, char *argv[])
 }
 ```
 
-In simple cases, we don't need to create D-Bus connection explicitly for our proxies. Unless a connection is provided to a proxy object explicitly via factory parameter, the proxy will create a connection of his own (unless it is a light-weight, short-lived proxy created with `dont_run_event_loop_thread_t`), and it will be a system bus connection. This is the case in the example above. (This approach is not scalable and resource-saving if we have plenty of proxies; see section [Working with D-Bus connections](#working-with-d-bus-connections-in-sdbus-c) for elaboration.) So, in the example, we create a proxy for object `/org/sdbuscpp/concatenator` publicly available at bus `org.sdbuscpp.concatenator`. We register signal handlers, if any, and finish the registration, making the proxy ready for use.
+In simple cases, we don't need to create D-Bus connection explicitly for our proxies. Unless a connection is provided to a proxy object explicitly via factory parameter, the proxy will create a connection of his own (unless it is a light-weight, short-lived proxy created with `dont_run_event_loop_thread_t`), and it will be a system bus connection. This is the case in the example above. (This approach is not scalable and resource-saving if we have plenty of proxies; see section [Working with D-Bus connections](#working-with-d-bus-connections-in-sdbus-c) for elaboration.) So, in the example, we create a proxy for object `/org/sdbuscpp/concatenator` publicly available at bus `org.sdbuscpp.concatenator`. We register handlers for signals we are interested in (if any).
 
 The callback for a D-Bus signal handler on this level is any callable of signature `void(sdbus::Signal signal)`. The one and only parameter `signal` is the incoming signal message. We need to deserialize arguments from it, and then we can do our business logic with it.
+
+> **_Tip_:** There's also an overload of `registerSignalHandler()` with `request_slot_t` tag which returns a `Slot` object. The slot is a simple RAII-based handle of the subscription. As long as you keep the slot object, the signal subscription is active. When you let go of the object, the signal handler is automatically unregistered. This gives you finer control over the lifetime of signal subscription.
 
 Subsequently, we invoke two RPC calls to object's `concatenate()` method. We create a method call message by invoking proxy's `createMethodCall()`. We serialize method input arguments into it, and make a synchronous call via proxy's `callMethod()`. As a return value we get the reply message as soon as it arrives. We deserialize return values from that message, and further use it in our program. The second `concatenate()` RPC call is done with invalid arguments, so we get a D-Bus error reply from the service, which as we can see is manifested via `sdbus::Error` exception being thrown.
 
@@ -567,7 +568,6 @@ int main(int argc, char *argv[])
     // Let's subscribe for the 'concatenated' signals
     const char* interfaceName = "org.sdbuscpp.Concatenator";
     concatenatorProxy->uponSignal("concatenated").onInterface(interfaceName).call([](const std::string& str){ onConcatenated(str); });
-    concatenatorProxy->finishRegistration();
 
     std::vector<int> numbers = {1, 2, 3};
     std::string separator = ":";
@@ -601,9 +601,11 @@ int main(int argc, char *argv[])
 
 When registering methods, calling methods or emitting signals, multiple lines of code have shrunk into simple one-liners. Signatures of provided callbacks are introspected and types of provided arguments are deduced at compile time, so the D-Bus signatures as well as serialization and deserialization of arguments to and from D-Bus messages are generated for us completely by the compiler.
 
+> **_Tip_:** There's also an overload of `uponSignal(...).call()` with `request_slot_t` tag which returns a `Slot` object. The slot is a simple RAII-based handle of the subscription. As long as you keep the slot object, the signal subscription is active. When you let go of the object, the signal handler is automatically unregistered. This gives you finer control over the lifetime of signal subscription.
+
 We recommend that sdbus-c++ users prefer the convenience API to the lower level, basic API. When feasible, using generated adaptor and proxy C++ bindings is even better as it provides yet slightly higher abstraction built on top of the convenience API, where remote calls look simply like local, native calls of object methods. They are described in the following section.
 
-> **_Note_:** By default, signal callback handlers are not invoked (i.e., the signal is silently dropped) if there is a signal signature mismatch. If clients want to be informed of such situations, they can prepend `const sdbus::Error*` parameter to their signal callback handler's parameter list. This argument will be `nullptr` in normal cases, and will provide access to the corresponding `sdbus::Error` object in case of deserialization failures. An example of a handler with the signature (`int`) different from the real signal contents (`string`):
+> **_Note_:** By default, signal callback handlers are not invoked (i.e., the signal is silently dropped) if there is a signal signature mismatch. If you want to be informed of such situations, they can prepend `const sdbus::Error*` parameter to their signal callback handler's parameter list. This argument will be `nullptr` in normal cases, and will provide access to the corresponding `sdbus::Error` object in case of deserialization failures. An example of a handler with the signature (`int`) different from the real signal contents (`string`):
 > ```c++
 >     void onConcatenated(const sdbus::Error* e, int wrongParameter)
 >     {
@@ -1508,7 +1510,7 @@ Pre-generated `*_proxy` and `*_adaptor` convenience classes for these standard i
 
 For example, for our `Concatenator` example above in this tutorial, we may want to conveniently emit a `PropertyChanged` signal under `org.freedesktop.DBus.Properties` interface. First, we must augment our `Concatenator` class to also inherit from `org.freedesktop.DBus.Properties` interface: `class Concatenator : public sdbus::AdaptorInterfaces<org::sdbuscpp::Concatenator_adaptor, sdbus::Properties_adaptor> {...};`, and then we just issue `emitPropertiesChangedSignal` function of our adaptor object.
 
-Note that signals of afore-mentioned standard D-Bus interfaces are not emitted by the library automatically. It's clients who are supposed to emit them.
+Note that signals of afore-mentioned standard D-Bus interfaces are not emitted by the library automatically. It's you, the user of sdbus-c++, who are supposed to emit them.
 
 Working examples of using standard D-Bus interfaces can be found in [sdbus-c++ integration tests](/tests/integrationtests/DBusStandardInterfacesTests.cpp) or the [examples](/examples) directory.
 
@@ -1555,7 +1557,7 @@ For more information on basic D-Bus types, D-Bus container types, and D-Bus type
 
 ### Extending sdbus-c++ type system
 
-The above mapping between D-Bus and C++ types is what sdbus-c++ provides by default. However, the mapping can be extended. Clients can implement additional mapping between a D-Bus type and their custom type.
+The above mapping between D-Bus and C++ types is what sdbus-c++ provides by default. However, the mapping can be extended. You can implement additional mapping between a D-Bus type and their custom type.
 
 We need two things to do that:
 

@@ -23,7 +23,6 @@ protected:
     concatenator_proxy(sdbus::IProxy& proxy)
         : proxy_(&proxy)
     {
-        proxy_->uponSignal("concatenatedSignal").onInterface(INTERFACE_NAME).call([this](const std::string& concatenatedString){ this->onConcatenatedSignal(concatenatedString); });
     }
 
     concatenator_proxy(const concatenator_proxy&) = delete;
@@ -32,6 +31,11 @@ protected:
     concatenator_proxy& operator=(concatenator_proxy&&) = default;
 
     ~concatenator_proxy() = default;
+
+    void registerProxy()
+    {
+        proxy_->uponSignal("concatenatedSignal").onInterface(INTERFACE_NAME).call([this](const std::string& concatenatedString){ this->onConcatenatedSignal(concatenatedString); });
+    }
 
     virtual void onConcatenatedSignal(const std::string& concatenatedString) = 0;
 
