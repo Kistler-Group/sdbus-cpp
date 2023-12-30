@@ -34,27 +34,27 @@
 extern "C" {
 #endif
 
-sd_bus_vtable createVTableStartItem(uint64_t flags);
-sd_bus_vtable createVTableMethodItem( const char *member
-                                    , const char *signature
-                                    , const char *result
-                                    , const char *paramNames
-                                    , sd_bus_message_handler_t handler
-                                    , uint64_t flags );
-sd_bus_vtable createVTableSignalItem( const char *member
-                                    , const char *signature
-                                    , const char *outnames
-                                    , uint64_t flags );
-sd_bus_vtable createVTablePropertyItem( const char *member
-                                      , const char *signature
-                                      , sd_bus_property_get_t getter
-                                      , uint64_t flags );
-sd_bus_vtable createVTableWritablePropertyItem( const char *member
-                                              , const char *signature
-                                              , sd_bus_property_get_t getter
-                                              , sd_bus_property_set_t setter
-                                              , uint64_t flags );
-sd_bus_vtable createVTableEndItem();
+sd_bus_vtable createSdBusVTableStartItem(uint64_t flags);
+sd_bus_vtable createSdBusVTableMethodItem( const char *member
+                                         , const char *signature
+                                         , const char *result
+                                         , const char *paramNames
+                                         , sd_bus_message_handler_t handler
+                                         , uint64_t flags );
+sd_bus_vtable createSdBusVTableSignalItem( const char *member
+                                         , const char *signature
+                                         , const char *outnames
+                                         , uint64_t flags );
+sd_bus_vtable createSdBusVTableReadOnlyPropertyItem( const char *member
+                                                   , const char *signature
+                                                   , sd_bus_property_get_t getter
+                                                   , uint64_t flags );
+sd_bus_vtable createSdBusVTableWritablePropertyItem( const char *member
+                                                   , const char *signature
+                                                   , sd_bus_property_get_t getter
+                                                   , sd_bus_property_set_t setter
+                                                   , uint64_t flags );
+sd_bus_vtable createSdBusVTableEndItem();
 
 #ifdef __cplusplus
 }

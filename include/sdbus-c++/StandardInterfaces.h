@@ -251,8 +251,7 @@ namespace sdbus {
         static constexpr const char* INTERFACE_NAME = "org.freedesktop.DBus.Properties";
 
     protected:
-        Properties_adaptor(sdbus::IObject& object)
-            : object_(&object)
+        Properties_adaptor(sdbus::IObject& object) : object_(&object)
         {
         }
 
@@ -262,6 +261,10 @@ namespace sdbus {
         Properties_adaptor& operator=(Properties_adaptor&&) = default;
 
         ~Properties_adaptor() = default;
+
+        void registerAdaptor()
+        {
+        }
 
     public:
         void emitPropertiesChangedSignal(const std::string& interfaceName, const std::vector<std::string>& properties)
@@ -293,10 +296,8 @@ namespace sdbus {
         static constexpr const char* INTERFACE_NAME = "org.freedesktop.DBus.ObjectManager";
 
     protected:
-        explicit ObjectManager_adaptor(sdbus::IObject& object)
-            : object_(&object)
+        explicit ObjectManager_adaptor(sdbus::IObject& object) : object_(&object)
         {
-            object_->addObjectManager();
         }
 
         ObjectManager_adaptor(const ObjectManager_adaptor&) = delete;
@@ -305,6 +306,11 @@ namespace sdbus {
         ObjectManager_adaptor& operator=(ObjectManager_adaptor&&) = default;
 
         ~ObjectManager_adaptor() = default;
+
+        void registerAdaptor()
+        {
+            object_->addObjectManager();
+        }
 
     private:
         sdbus::IObject* object_;
@@ -335,6 +341,10 @@ namespace sdbus {
         ManagedObject_adaptor& operator=(ManagedObject_adaptor&&) = default;
 
         ~ManagedObject_adaptor() = default;
+
+        void registerAdaptor()
+        {
+        }
 
     public:
         /*!
