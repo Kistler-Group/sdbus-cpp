@@ -84,17 +84,8 @@ std::string ProxyGenerator::processInterface(Node& interface) const
             << tab << "static constexpr const char* INTERFACE_NAME = \"" << ifaceName << "\";" << endl << endl
             << "protected:" << endl
             << tab << className << "(sdbus::IProxy& proxy)" << endl
-            << tab << tab << ": proxy_(&proxy)" << endl;
-
-    Nodes methods = interface["method"];
-    Nodes signals = interface["signal"];
-    Nodes properties = interface["property"];
-
-    std::string registration, declaration;
-    std::tie(registration, declaration) = processSignals(signals);
-
-    body << tab << "{" << endl
-            << registration
+            << tab << tab << ": proxy_(&proxy)" << endl
+            << tab << "{" << endl
             << tab << "}" << endl << endl;
 
     // Rule of Five
@@ -104,6 +95,18 @@ std::string ProxyGenerator::processInterface(Node& interface) const
     body << tab << className << "& operator=(" << className << "&&) = default;" << endl << endl;
 
     body << tab << "~" << className << "() = default;" << endl << endl;
+
+    Nodes methods = interface["method"];
+    Nodes signals = interface["signal"];
+    Nodes properties = interface["property"];
+
+    std::string registration, declaration;
+    std::tie(registration, declaration) = processSignals(signals);
+
+    body << tab << "void registerProxy()" << endl
+         << tab << "{" << endl
+         << registration
+         << tab << "}" << endl << endl;
 
     if (!declaration.empty())
         body << declaration << endl;

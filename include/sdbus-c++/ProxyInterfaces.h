@@ -83,9 +83,10 @@ namespace sdbus {
      * methods. So the _Interfaces template parameter is a list of sdbus-c++-xml2cpp-generated
      * proxy-side interface classes representing interfaces of the corresponding remote D-Bus object.
      *
-     * In the final proxy class inherited from ProxyInterfaces, it is necessary to finish proxy
-     * registration in class constructor (`finishRegistration();`), and, conversely, unregister
-     * the proxy in class destructor (`unregister();`).
+     * In the final adaptor class inherited from ProxyInterfaces, one needs to make sure:
+     *   1. to call `registerProxy();` in the class constructor, and, conversely,
+     *   2. to call `unregisterProxy();` in the class destructor,
+     * so that the signals are subscribed to and unsubscribed from at a proper time.
      *
      ***********************************************/
     template <typename... _Interfaces>
@@ -173,15 +174,15 @@ namespace sdbus {
         }
 
         /*!
-         * @brief Finishes proxy registration and makes the proxy ready for use
+         * @brief Registers handlers for D-Bus signals of the remote object
          *
          * This function must be called in the constructor of the final proxy class that implements ProxyInterfaces.
          *
-         * For more information, see underlying @ref IProxy::finishRegistration()
+         * See also @ref IProxy::registerSignalHandler()
          */
         void registerProxy()
         {
-            getProxy().finishRegistration();
+            (_Interfaces::registerProxy(), ...);
         }
 
         /*!

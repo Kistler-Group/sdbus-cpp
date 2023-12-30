@@ -21,28 +21,37 @@ public:
 
 protected:
     Planet1_proxy(sdbus::IProxy& proxy)
-        : proxy_(proxy)
+        : proxy_(&proxy)
     {
     }
 
+    Planet1_proxy(const Planet1_proxy&) = delete;
+    Planet1_proxy& operator=(const Planet1_proxy&) = delete;
+    Planet1_proxy(Planet1_proxy&&) = default;
+    Planet1_proxy& operator=(Planet1_proxy&&) = default;
+
     ~Planet1_proxy() = default;
+
+    void registerProxy()
+    {
+    }
 
 public:
     uint64_t GetPopulation()
     {
         uint64_t result;
-        proxy_.callMethod("GetPopulation").onInterface(INTERFACE_NAME).storeResultsTo(result);
+        proxy_->callMethod("GetPopulation").onInterface(INTERFACE_NAME).storeResultsTo(result);
         return result;
     }
 
 public:
     std::string Name()
     {
-        return proxy_.getProperty("Name").onInterface(INTERFACE_NAME);
+        return proxy_->getProperty("Name").onInterface(INTERFACE_NAME);
     }
 
 private:
-    sdbus::IProxy& proxy_;
+    sdbus::IProxy* proxy_;
 };
 
 }}} // namespaces
