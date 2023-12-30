@@ -233,15 +233,13 @@ Slot Connection::addMatch(const std::string& match, message_handler callback)
 
     auto matchInfo = std::make_unique<MatchInfo>(MatchInfo{std::move(callback), {}, *this, {}});
 
-    auto r = sdbus_->sd_bus_add_match(bus_.get(), &matchInfo->slot, match.c_str(), &Connection::sdbus_match_callback, matchInfo.get());
+    sd_bus_slot *slot{};
+    auto r = sdbus_->sd_bus_add_match(bus_.get(), &slot, match.c_str(), &Connection::sdbus_match_callback, matchInfo.get());
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to add match", -r);
 
-    return {matchInfo.release(), [this](void *ptr)
-    {
-        auto* matchInfo = static_cast<MatchInfo*>(ptr);
-        sdbus_->sd_bus_slot_unref(matchInfo->slot);
-        std::default_delete<MatchInfo>{}(matchInfo);
-    }};
+    matchInfo->slot = {slot, [this](void *slot){ sdbus_->sd_bus_slot_unref((sd_bus_slot*)slot); }};
+
+    return {matchInfo.release(), [](void *ptr){ delete static_cast<MatchInfo*>(ptr); }};
 }
 
 void Connection::addMatch(const std::string& match, message_handler callback, floating_slot_t)
@@ -256,20 +254,18 @@ Slot Connection::addMatchAsync(const std::string& match, message_handler callbac
     sd_bus_message_handler_t sdbusInstallCallback = installCallback ? &Connection::sdbus_match_install_callback : nullptr;
     auto matchInfo = std::make_unique<MatchInfo>(MatchInfo{std::move(callback), std::move(installCallback), *this, {}});
 
+    sd_bus_slot *slot{};
     auto r = sdbus_->sd_bus_add_match_async( bus_.get()
-                                           , &matchInfo->slot
+                                           , &slot
                                            , match.c_str()
                                            , &Connection::sdbus_match_callback
                                            , sdbusInstallCallback
                                            , matchInfo.get());
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to add match", -r);
 
-    return {matchInfo.release(), [this](void *ptr)
-    {
-        auto* matchInfo = static_cast<MatchInfo*>(ptr);
-        sdbus_->sd_bus_slot_unref(matchInfo->slot);
-        std::default_delete<MatchInfo>{}(matchInfo);
-    }};
+    matchInfo->slot = {slot, [this](void *slot){ sdbus_->sd_bus_slot_unref((sd_bus_slot*)slot); }};
+
+    return {matchInfo.release(), [](void *ptr){ delete static_cast<MatchInfo*>(ptr); }};
 }
 
 void Connection::addMatchAsync(const std::string& match, message_handler callback, message_handler installCallback, floating_slot_t)
@@ -796,16 +792,26 @@ std::vector</*const */char*> Connection::to_strv(const std::vector<std::string>&
 int Connection::sdbus_match_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError)
 {
     auto* matchInfo = static_cast<MatchInfo*>(userData);
+    assert(matchInfo != nullptr);
+    assert(matchInfo->callback);
+
     auto message = Message::Factory::create<PlainMessage>(sdbusMessage, &matchInfo->connection.getSdBusInterface());
+
     auto ok = invokeHandlerAndCatchErrors([&](){ matchInfo->callback(std::move(message)); }, retError);
+
     return ok ? 0 : -1;
 }
 
 int Connection::sdbus_match_install_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError)
 {
     auto* matchInfo = static_cast<MatchInfo*>(userData);
+    assert(matchInfo != nullptr);
+    assert(matchInfo->installCallback);
+
     auto message = Message::Factory::create<PlainMessage>(sdbusMessage, &matchInfo->connection.getSdBusInterface());
+
     auto ok = invokeHandlerAndCatchErrors([&](){ matchInfo->installCallback(std::move(message)); }, retError);
+
     return ok ? 0 : -1;
 }
 
