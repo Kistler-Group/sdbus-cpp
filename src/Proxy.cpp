@@ -136,58 +136,36 @@ void Proxy::registerSignalHandler( const std::string& interfaceName
                                  , const std::string& signalName
                                  , signal_handler signalHandler )
 {
+    auto slot = Proxy::registerSignalHandler(interfaceName, signalName, std::move(signalHandler), request_slot);
+
+    floatingSignalSlots_.push_back(std::move(slot));
+}
+
+Slot Proxy::registerSignalHandler( const std::string& interfaceName
+                                 , const std::string& signalName
+                                 , signal_handler signalHandler
+                                 , request_slot_t )
+{
     SDBUS_CHECK_INTERFACE_NAME(interfaceName);
     SDBUS_CHECK_MEMBER_NAME(signalName);
     SDBUS_THROW_ERROR_IF(!signalHandler, "Invalid signal handler provided", EINVAL);
 
-    auto& interface = interfaces_[interfaceName];
+    auto signalInfo = std::make_unique<SignalInfo>(SignalInfo{std::move(signalHandler), *this, {}});
 
-    auto signalData = std::make_unique<InterfaceData::SignalData>(*this, std::move(signalHandler), nullptr);
-    auto insertionResult = interface.signals_.emplace(signalName, std::move(signalData));
+    signalInfo->slot = connection_->registerSignalHandler( destination_
+                                                         , objectPath_
+                                                         , interfaceName
+                                                         , signalName
+                                                         , &Proxy::sdbus_signal_handler
+                                                         , signalInfo.get() );
 
-    auto inserted = insertionResult.second;
-    SDBUS_THROW_ERROR_IF(!inserted, "Failed to register signal handler: handler already exists", EINVAL);
-}
-
-void Proxy::unregisterSignalHandler( const std::string& interfaceName
-                                   , const std::string& signalName )
-{
-    auto it = interfaces_.find(interfaceName);
-
-    if (it != interfaces_.end())
-        it->second.signals_.erase(signalName);
-}
-
-void Proxy::finishRegistration()
-{
-    registerSignalHandlers(*connection_);
-}
-
-void Proxy::registerSignalHandlers(sdbus::internal::IConnection& connection)
-{
-    for (auto& interfaceItem : interfaces_)
-    {
-        const auto& interfaceName = interfaceItem.first;
-        auto& signalsOnInterface = interfaceItem.second.signals_;
-
-        for (auto& signalItem : signalsOnInterface)
-        {
-            const auto& signalName = signalItem.first;
-            auto* signalData = signalItem.second.get();
-            signalData->slot = connection.registerSignalHandler( destination_
-                                                               , objectPath_
-                                                               , interfaceName
-                                                               , signalName
-                                                               , &Proxy::sdbus_signal_handler
-                                                               , signalData);
-        }
-    }
+    return {signalInfo.release(), [](void *ptr){ delete static_cast<SignalInfo*>(ptr); }};
 }
 
 void Proxy::unregister()
 {
     pendingAsyncCalls_.clear();
-    interfaces_.clear();
+    floatingSignalSlots_.clear();
 }
 
 sdbus::IConnection& Proxy::getConnection() const
@@ -241,13 +219,14 @@ int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userDat
 
 int Proxy::sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError)
 {
-    auto* signalData = static_cast<InterfaceData::SignalData*>(userData);
-    assert(signalData != nullptr);
-    assert(signalData->callback);
+    auto* signalInfo = static_cast<SignalInfo*>(userData);
+    assert(signalInfo != nullptr);
+    assert(signalInfo->callback);
 
-    auto message = Message::Factory::create<Signal>(sdbusMessage, &signalData->proxy.connection_->getSdBusInterface());
+    // TODO: Hide Message factory invocation under Connection API (tell, don't ask principle), then we can remove getSdBusInterface()
+    auto message = Message::Factory::create<Signal>(sdbusMessage, &signalInfo->proxy.connection_->getSdBusInterface());
 
-    auto ok = invokeHandlerAndCatchErrors([&](){ signalData->callback(std::move(message)); }, retError);
+    auto ok = invokeHandlerAndCatchErrors([&](){ signalInfo->callback(std::move(message)); }, retError);
 
     return ok ? 0 : -1;
 }

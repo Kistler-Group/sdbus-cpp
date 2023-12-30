@@ -54,6 +54,10 @@ namespace sdbus {
 
         ~Peer_proxy() = default;
 
+        void registerProxy()
+        {
+        }
+
     public:
         void Ping()
         {
@@ -89,6 +93,10 @@ namespace sdbus {
 
         ~Introspectable_proxy() = default;
 
+        void registerProxy()
+        {
+        }
+
     public:
         std::string Introspect()
         {
@@ -110,6 +118,17 @@ namespace sdbus {
         Properties_proxy(sdbus::IProxy& proxy)
             : proxy_(&proxy)
         {
+        }
+
+        Properties_proxy(const Properties_proxy&) = delete;
+        Properties_proxy& operator=(const Properties_proxy&) = delete;
+        Properties_proxy(Properties_proxy&&) = default;
+        Properties_proxy& operator=(Properties_proxy&&) = default;
+
+        ~Properties_proxy() = default;
+
+        void registerProxy()
+        {
             proxy_
                 ->uponSignal("PropertiesChanged")
                 .onInterface(INTERFACE_NAME)
@@ -120,13 +139,6 @@ namespace sdbus {
                                 this->onPropertiesChanged(interfaceName, changedProperties, invalidatedProperties);
                             });
         }
-
-        Properties_proxy(const Properties_proxy&) = delete;
-        Properties_proxy& operator=(const Properties_proxy&) = delete;
-        Properties_proxy(Properties_proxy&&) = default;
-        Properties_proxy& operator=(Properties_proxy&&) = default;
-
-        ~Properties_proxy() = default;
 
         virtual void onPropertiesChanged( const std::string& interfaceName
                                         , const std::map<std::string, sdbus::Variant>& changedProperties
@@ -199,6 +211,17 @@ namespace sdbus {
         ObjectManager_proxy(sdbus::IProxy& proxy)
             : proxy_(&proxy)
         {
+        }
+
+        ObjectManager_proxy(const ObjectManager_proxy&) = delete;
+        ObjectManager_proxy& operator=(const ObjectManager_proxy&) = delete;
+        ObjectManager_proxy(ObjectManager_proxy&&) = default;
+        ObjectManager_proxy& operator=(ObjectManager_proxy&&) = default;
+
+        ~ObjectManager_proxy() = default;
+
+        void registerProxy()
+        {
             proxy_
                 ->uponSignal("InterfacesAdded")
                 .onInterface(INTERFACE_NAME)
@@ -216,13 +239,6 @@ namespace sdbus {
                                 this->onInterfacesRemoved(objectPath, interfaces);
                             });
         }
-
-        ObjectManager_proxy(const ObjectManager_proxy&) = delete;
-        ObjectManager_proxy& operator=(const ObjectManager_proxy&) = delete;
-        ObjectManager_proxy(ObjectManager_proxy&&) = default;
-        ObjectManager_proxy& operator=(ObjectManager_proxy&&) = default;
-
-        ~ObjectManager_proxy() = default;
 
         virtual void onInterfacesAdded( const sdbus::ObjectPath& objectPath
                                       , const std::map<std::string, std::map<std::string, sdbus::Variant>>& interfacesAndProperties) = 0;

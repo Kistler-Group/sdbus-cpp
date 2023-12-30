@@ -22,7 +22,6 @@ protected:
     perftests_proxy(sdbus::IProxy& proxy)
         : proxy_(&proxy)
     {
-        proxy_->uponSignal("dataSignal").onInterface(INTERFACE_NAME).call([this](const std::string& data){ this->onDataSignal(data); });
     }
 
     perftests_proxy(const perftests_proxy&) = delete;
@@ -31,6 +30,11 @@ protected:
     perftests_proxy& operator=(perftests_proxy&&) = default;
 
     ~perftests_proxy() = default;
+
+    void registerProxy()
+    {
+        proxy_->uponSignal("dataSignal").onInterface(INTERFACE_NAME).call([this](const std::string& data){ this->onDataSignal(data); });
+    }
 
     virtual void onDataSignal(const std::string& data) = 0;
 
