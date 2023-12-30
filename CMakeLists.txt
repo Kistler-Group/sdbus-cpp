@@ -89,6 +89,8 @@ set(SDBUSCPP_HDR_SRCS
 set(SDBUSCPP_PUBLIC_HDRS
     ${SDBUSCPP_INCLUDE_DIR}/ConvenienceApiClasses.h
     ${SDBUSCPP_INCLUDE_DIR}/ConvenienceApiClasses.inl
+    ${SDBUSCPP_INCLUDE_DIR}/VTableItems.h
+    ${SDBUSCPP_INCLUDE_DIR}/VTableItems.inl
     ${SDBUSCPP_INCLUDE_DIR}/Error.h
     ${SDBUSCPP_INCLUDE_DIR}/IConnection.h
     ${SDBUSCPP_INCLUDE_DIR}/AdaptorInterfaces.h

@@ -462,7 +462,7 @@ Slot Connection::addObjectVTable( const std::string& objectPath
 {
     sd_bus_slot *slot{};
 
-    auto r = sdbus_->sd_bus_add_object_vtable(bus_.get()
+    auto r = sdbus_->sd_bus_add_object_vtable( bus_.get()
                                              , &slot
                                              , objectPath.c_str()
                                              , interfaceName.c_str()
@@ -492,7 +492,7 @@ MethodCall Connection::createMethodCall( const std::string& destination
 {
     sd_bus_message *sdbusMsg{};
 
-    auto r = sdbus_->sd_bus_message_new_method_call(bus_.get()
+    auto r = sdbus_->sd_bus_message_new_method_call( bus_.get()
                                                    , &sdbusMsg
                                                    , destination.empty() ? nullptr : destination.c_str()
                                                    , objectPath.c_str()
@@ -510,7 +510,7 @@ Signal Connection::createSignal( const std::string& objectPath
 {
     sd_bus_message *sdbusMsg{};
 
-    auto r = sdbus_->sd_bus_message_new_signal(bus_.get()
+    auto r = sdbus_->sd_bus_message_new_signal( bus_.get()
                                               , &sdbusMsg
                                               , objectPath.c_str()
                                               , interfaceName.c_str()
@@ -571,7 +571,7 @@ void Connection::emitPropertiesChangedSignal( const std::string& objectPath
 {
     auto names = to_strv(propNames);
 
-    auto r = sdbus_->sd_bus_emit_properties_changed_strv(bus_.get()
+    auto r = sdbus_->sd_bus_emit_properties_changed_strv( bus_.get()
                                                         , objectPath.c_str()
                                                         , interfaceName.c_str()
                                                         , propNames.empty() ? nullptr : &names[0] );
@@ -591,7 +591,7 @@ void Connection::emitInterfacesAddedSignal( const std::string& objectPath
 {
     auto names = to_strv(interfaces);
 
-    auto r = sdbus_->sd_bus_emit_interfaces_added_strv(bus_.get()
+    auto r = sdbus_->sd_bus_emit_interfaces_added_strv( bus_.get()
                                                       , objectPath.c_str()
                                                       , interfaces.empty() ? nullptr : &names[0] );
 
@@ -610,7 +610,7 @@ void Connection::emitInterfacesRemovedSignal( const std::string& objectPath
 {
     auto names = to_strv(interfaces);
 
-    auto r = sdbus_->sd_bus_emit_interfaces_removed_strv(bus_.get()
+    auto r = sdbus_->sd_bus_emit_interfaces_removed_strv( bus_.get()
                                                         , objectPath.c_str()
                                                         , interfaces.empty() ? nullptr : &names[0] );
 

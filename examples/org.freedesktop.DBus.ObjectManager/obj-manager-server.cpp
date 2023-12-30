@@ -19,11 +19,11 @@
 #include <thread>
 #include <chrono>
 
-class ManagerAdaptor : public sdbus::AdaptorInterfaces< sdbus::ObjectManager_adaptor >
+class ManagerAdaptor : public sdbus::AdaptorInterfaces<sdbus::ObjectManager_adaptor>
 {
 public:
     ManagerAdaptor(sdbus::IConnection& connection, std::string path)
-    : AdaptorInterfaces(connection, std::move(path))
+        : AdaptorInterfaces(connection, std::move(path))
     {
         registerAdaptor();
     }
@@ -34,15 +34,15 @@ public:
     }
 };
 
-class PlanetAdaptor final : public sdbus::AdaptorInterfaces< org::sdbuscpp::ExampleManager::Planet1_adaptor,
-                                                sdbus::ManagedObject_adaptor,
-                                                sdbus::Properties_adaptor >
+class PlanetAdaptor final : public sdbus::AdaptorInterfaces< org::sdbuscpp::ExampleManager::Planet1_adaptor
+                                                           , sdbus::ManagedObject_adaptor
+                                                           , sdbus::Properties_adaptor >
 {
 public:
-    PlanetAdaptor(sdbus::IConnection& connection, std::string path, std::string name, uint64_t poulation)
-    : AdaptorInterfaces(connection, std::move(path))
-    , m_name(std::move(name))
-    , m_population(poulation)
+    PlanetAdaptor(sdbus::IConnection& connection, std::string path, std::string name, uint64_t population)
+        : AdaptorInterfaces(connection, std::move(path))
+        , m_name(std::move(name))
+        , m_population(population)
     {
         registerAdaptor();
         emitInterfacesAddedSignal({org::sdbuscpp::ExampleManager::Planet1_adaptor::INTERFACE_NAME});
