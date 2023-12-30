@@ -237,10 +237,8 @@ namespace sdbus {
          * @brief Emits InterfacesAdded signal on this object path
          *
          * This emits an InterfacesAdded signal on this object path with explicitly provided list
-         * of registered interfaces. As sdbus-c++ does currently not supported adding/removing
-         * interfaces of an existing object at run time (an object has a fixed set of interfaces
-         * registered by the time of invoking finishRegistration()), emitInterfacesAddedSignal(void)
-         * is probably what you are looking for.
+         * of registered interfaces. Since v2.0, sdbus-c++ supports dynamically addable/removable
+         * object interfaces and their vtables, so this method now makes more sense.
          *
          * @throws sdbus::Error in case of failure
          */
@@ -261,10 +259,8 @@ namespace sdbus {
          * @brief Emits InterfacesRemoved signal on this object path
          *
          * This emits an InterfacesRemoved signal on the given path with explicitly provided list
-         * of registered interfaces. As sdbus-c++ does currently not supported adding/removing
-         * interfaces of an existing object at run time (an object has a fixed set of interfaces
-         * registered by the time of invoking finishRegistration()), emitInterfacesRemovedSignal(void)
-         * is probably what you are looking for.
+         * of registered interfaces. Since v2.0, sdbus-c++ supports dynamically addable/removable
+         * object interfaces and their vtables, so this method now makes more sense.
          *
          * @throws sdbus::Error in case of failure
          */
