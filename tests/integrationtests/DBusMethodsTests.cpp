@@ -286,8 +286,8 @@ TYPED_TEST(SdbusTestObject, CanRegisterAdditionalVTableDynamicallyAtAnyTime)
     auto& object = this->m_adaptor->getObject();
     auto vtableSlot = object.addVTable( "org.sdbuscpp.integrationtests2"
                                       , { sdbus::registerMethod("add").implementedAs([](const int64_t& a, const double& b){ return a + b; })
-                                        , sdbus::registerMethod("subtract").implementedAs([](const int& a, const int& b){ return a - b; })}
-                                      , sdbus::request_slot );
+                                        , sdbus::registerMethod("subtract").implementedAs([](const int& a, const int& b){ return a - b; }) }
+                                      , sdbus::return_slot );
 
     // The new remote vtable is registered as long as we keep vtableSlot, so remote method calls now should pass
     auto proxy = sdbus::createProxy(BUS_NAME, OBJECT_PATH, sdbus::dont_run_event_loop_thread);
@@ -303,8 +303,8 @@ TYPED_TEST(SdbusTestObject, CanUnregisterAdditionallyRegisteredVTableAtAnyTime)
 
     auto vtableSlot = object.addVTable( "org.sdbuscpp.integrationtests2"
                                       , { sdbus::registerMethod("add").implementedAs([](const int64_t& a, const double& b){ return a + b; })
-                                        , sdbus::registerMethod("subtract").implementedAs([](const int& a, const int& b){ return a - b; })}
-                                      , sdbus::request_slot );
+                                        , sdbus::registerMethod("subtract").implementedAs([](const int& a, const int& b){ return a - b; }) }
+                                      , sdbus::return_slot );
     vtableSlot.reset(); // Letting the slot go means letting go the associated vtable registration
 
     // No such remote D-Bus method under given interface exists anymore...

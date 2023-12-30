@@ -86,7 +86,7 @@ namespace sdbus::internal {
                                                 , const std::vector<std::string>& interfaces ) = 0;
 
         using sdbus::IConnection::addObjectManager;
-        [[nodiscard]] virtual Slot addObjectManager(const std::string& objectPath, request_slot_t) = 0;
+        [[nodiscard]] virtual Slot addObjectManager(const std::string& objectPath, return_slot_t) = 0;
 
         [[nodiscard]] virtual Slot registerSignalHandler( const std::string& sender
                                                         , const std::string& objectPath

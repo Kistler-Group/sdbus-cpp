@@ -72,9 +72,9 @@ namespace sdbus {
     // Type-erased RAII-style handle to callbacks/subscriptions registered to sdbus-c++
     using Slot = std::unique_ptr<void, std::function<void(void*)>>;
 
-    // Tag specifying that an owning slot handle shall be returned from the function
-    struct request_slot_t { explicit request_slot_t() = default; };
-    inline constexpr request_slot_t request_slot{};
+    // Tag specifying that an owning slot handle shall be returned from a registration/subscription function to the caller
+    struct return_slot_t { explicit return_slot_t() = default; };
+    inline constexpr return_slot_t return_slot{};
     // Tag specifying that the library shall own the slot resulting from the call of the function (so-called floating slot)
     struct floating_slot_t { explicit floating_slot_t() = default; };
     inline constexpr floating_slot_t floating_slot{};
