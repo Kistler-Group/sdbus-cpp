@@ -57,9 +57,9 @@ namespace sdbus {
         object_.addVTable(std::move(interfaceName), std::move(vtable_));
     }
 
-    inline Slot VTableAdder::forInterface(std::string interfaceName, request_slot_t)
+    inline Slot VTableAdder::forInterface(std::string interfaceName, return_slot_t)
     {
-        return object_.addVTable(std::move(interfaceName), std::move(vtable_), request_slot);
+        return object_.addVTable(std::move(interfaceName), std::move(vtable_), return_slot);
     }
 
     /*** ------------- ***/
@@ -311,14 +311,14 @@ namespace sdbus {
     }
 
     template <typename _Function>
-    inline Slot SignalSubscriber::call(_Function&& callback, request_slot_t)
+    inline Slot SignalSubscriber::call(_Function&& callback, return_slot_t)
     {
         assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
 
         return proxy_.registerSignalHandler( interfaceName_
                                            , signalName_
                                            , makeSignalHandler(std::forward<_Function>(callback))
-                                           , request_slot );
+                                           , return_slot );
     }
 
     template <typename _Function>

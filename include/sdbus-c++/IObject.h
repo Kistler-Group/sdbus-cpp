@@ -140,7 +140,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual Slot addVTable(std::string interfaceName, std::vector<VTableItem> vtable, request_slot_t) = 0;
+        virtual Slot addVTable(std::string interfaceName, std::vector<VTableItem> vtable, return_slot_t) = 0;
 
         /*!
          * @brief A little more convenient overload of addVTable() above

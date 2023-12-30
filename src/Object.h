@@ -46,7 +46,7 @@ namespace sdbus::internal {
         Object(sdbus::internal::IConnection& connection, std::string objectPath);
 
         void addVTable(std::string interfaceName, std::vector<VTableItem> vtable) override;
-        Slot addVTable(std::string interfaceName, std::vector<VTableItem> vtable, request_slot_t) override;
+        Slot addVTable(std::string interfaceName, std::vector<VTableItem> vtable, return_slot_t) override;
         void unregister() override;
 
         sdbus::Signal createSignal(const std::string& interfaceName, const std::string& signalName) override;

@@ -317,7 +317,7 @@ int main(int argc, char *argv[])
 
 We establish a D-Bus system connection and request `org.sdbuscpp.concatenator` D-Bus name on it. This name will be used by D-Bus clients to find the service. We then create an object with path `/org/sdbuscpp/concatenator` on this connection. We add a so-called object vtable, where we declare and describe its D-Bus API, i.e. its interface, methods, signals, properties (if any) that the object provides. Then we need to make sure to run the event loop upon the connection, which handles all incoming, outgoing and other requests.
 
-> **_Tip_:** There's also an overload of `addVTable()` method with `request_slot_t` tag parameter which returns a `Slot` object. The slot is a simple RAII-based handle of the associated vtable registration. As long as you keep the slot object, the vtable registration is active. When you let go of the slot, the vtable is automatically removed from the D-Bus object. This gives you the ability to implement "dynamic" D-Bus object API that is addable as well as removable at any time during object lifetime.
+> **_Tip_:** There's also an overload of `addVTable()` method with `return_slot_t` tag parameter which returns a `Slot` object. The slot is a simple RAII-based handle of the associated vtable registration. As long as you keep the slot object, the vtable registration is active. When you let go of the slot, the vtable is automatically removed from the D-Bus object. This gives you the ability to implement "dynamic" D-Bus object API that is addable as well as removable at any time during object lifetime.
 
 > **_Note_:** A D-Bus object can have any number of vtables attached to it. Even a D-Bus interface of an object can have multiple vtables attached to it.
 
@@ -394,7 +394,7 @@ In simple cases, we don't need to create D-Bus connection explicitly for our pro
 
 The callback for a D-Bus signal handler on this level is any callable of signature `void(sdbus::Signal signal)`. The one and only parameter `signal` is the incoming signal message. We need to deserialize arguments from it, and then we can do our business logic with it.
 
-> **_Tip_:** There's also an overload of `registerSignalHandler()` with `request_slot_t` tag which returns a `Slot` object. The slot is a simple RAII-based handle of the subscription. As long as you keep the slot object, the signal subscription is active. When you let go of the object, the signal handler is automatically unregistered. This gives you finer control over the lifetime of signal subscription.
+> **_Tip_:** There's also an overload of `registerSignalHandler()` with `return_slot_t` tag which returns a `Slot` object. The slot is a simple RAII-based handle of the subscription. As long as you keep the slot object, the signal subscription is active. When you let go of the object, the signal handler is automatically unregistered. This gives you finer control over the lifetime of signal subscription.
 
 Subsequently, we invoke two RPC calls to object's `concatenate()` method. We create a method call message by invoking proxy's `createMethodCall()`. We serialize method input arguments into it, and make a synchronous call via proxy's `callMethod()`. As a return value we get the reply message as soon as it arrives. We deserialize return values from that message, and further use it in our program. The second `concatenate()` RPC call is done with invalid arguments, so we get a D-Bus error reply from the service, which as we can see is manifested via `sdbus::Error` exception being thrown.
 
@@ -540,7 +540,7 @@ int main(int argc, char *argv[])
 }
 ```
 
-> **_Tip_:** There's also an overload of `addVTable(...).forInterface()` method with `request_slot_t` tag parameter which returns a `Slot` object. The slot is a simple RAII-based handle of the associated vtable registration. As long as you keep the slot object, the vtable registration is active. When you let go of the slot, the vtable is automatically removed from the D-Bus object. This gives you the ability to implement "dynamic" D-Bus object API that is addable as well as removable at any time during object lifetime.
+> **_Tip_:** There's also an overload of `addVTable(...).forInterface()` method with `return_slot_t` tag parameter which returns a `Slot` object. The slot is a simple RAII-based handle of the associated vtable registration. As long as you keep the slot object, the vtable registration is active. When you let go of the slot, the vtable is automatically removed from the D-Bus object. This gives you the ability to implement "dynamic" D-Bus object API that is addable as well as removable at any time during object lifetime.
 
 > **_Note_:** A D-Bus object can have any number of vtables attached to it. Even a D-Bus interface of an object can have multiple vtables attached to it.
 
@@ -601,7 +601,7 @@ int main(int argc, char *argv[])
 
 When registering methods, calling methods or emitting signals, multiple lines of code have shrunk into simple one-liners. Signatures of provided callbacks are introspected and types of provided arguments are deduced at compile time, so the D-Bus signatures as well as serialization and deserialization of arguments to and from D-Bus messages are generated for us completely by the compiler.
 
-> **_Tip_:** There's also an overload of `uponSignal(...).call()` with `request_slot_t` tag which returns a `Slot` object. The slot is a simple RAII-based handle of the subscription. As long as you keep the slot object, the signal subscription is active. When you let go of the object, the signal handler is automatically unregistered. This gives you finer control over the lifetime of signal subscription.
+> **_Tip_:** There's also an overload of `uponSignal(...).call()` with `return_slot_t` tag which returns a `Slot` object. The slot is a simple RAII-based handle of the subscription. As long as you keep the slot object, the signal subscription is active. When you let go of the object, the signal handler is automatically unregistered. This gives you finer control over the lifetime of signal subscription.
 
 We recommend that sdbus-c++ users prefer the convenience API to the lower level, basic API. When feasible, using generated adaptor and proxy C++ bindings is even better as it provides yet slightly higher abstraction built on top of the convenience API, where remote calls look simply like local, native calls of object methods. They are described in the following section.
 

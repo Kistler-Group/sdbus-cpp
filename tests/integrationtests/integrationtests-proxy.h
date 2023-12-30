@@ -33,7 +33,7 @@ protected:
 
     void registerProxy()
     {
-        simpleSignalSlot_ = proxy_->uponSignal("simpleSignal").onInterface(INTERFACE_NAME).call([this](){ this->onSimpleSignal(); }, sdbus::request_slot);
+        simpleSignalSlot_ = proxy_->uponSignal("simpleSignal").onInterface(INTERFACE_NAME).call([this](){ this->onSimpleSignal(); }, sdbus::return_slot);
         proxy_->uponSignal("signalWithMap").onInterface(INTERFACE_NAME).call([this](const std::map<int32_t, std::string>& aMap){ this->onSignalWithMap(aMap); });
         proxy_->uponSignal("signalWithVariant").onInterface(INTERFACE_NAME).call([this](const sdbus::Variant& aVariant){ this->onSignalWithVariant(aVariant); });
     }
@@ -192,7 +192,7 @@ public:
 
     void reRegisterSimpleSignalHandler()
     {
-        simpleSignalSlot_ = proxy_->uponSignal("simpleSignal").onInterface(INTERFACE_NAME).call([this](){ this->onSimpleSignal(); }, sdbus::request_slot);
+        simpleSignalSlot_ = proxy_->uponSignal("simpleSignal").onInterface(INTERFACE_NAME).call([this](){ this->onSimpleSignal(); }, sdbus::return_slot);
     }
 
 public:

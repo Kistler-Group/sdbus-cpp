@@ -65,7 +65,7 @@ namespace sdbus::internal {
         Slot registerSignalHandler( const std::string& interfaceName
                                   , const std::string& signalName
                                   , signal_handler signalHandler
-                                  , request_slot_t ) override;
+                                  , return_slot_t ) override;
         void unregister() override;
 
         sdbus::IConnection& getConnection() const override;
