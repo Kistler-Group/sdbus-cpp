@@ -136,7 +136,7 @@ void Proxy::registerSignalHandler( const std::string& interfaceName
                                  , const std::string& signalName
                                  , signal_handler signalHandler )
 {
-    auto slot = Proxy::registerSignalHandler(interfaceName, signalName, std::move(signalHandler), request_slot);
+    auto slot = Proxy::registerSignalHandler(interfaceName, signalName, std::move(signalHandler), return_slot);
 
     floatingSignalSlots_.push_back(std::move(slot));
 }
@@ -144,7 +144,7 @@ void Proxy::registerSignalHandler( const std::string& interfaceName
 Slot Proxy::registerSignalHandler( const std::string& interfaceName
                                  , const std::string& signalName
                                  , signal_handler signalHandler
-                                 , request_slot_t )
+                                 , return_slot_t )
 {
     SDBUS_CHECK_INTERFACE_NAME(interfaceName);
     SDBUS_CHECK_MEMBER_NAME(signalName);

@@ -53,7 +53,7 @@ namespace sdbus {
     public:
         VTableAdder(IObject& object, std::vector<VTableItem> vtable);
         void forInterface(std::string interfaceName);
-        [[nodiscard]] Slot forInterface(std::string interfaceName, request_slot_t);
+        [[nodiscard]] Slot forInterface(std::string interfaceName, return_slot_t);
 
     private:
         IObject& object_;
@@ -129,7 +129,7 @@ namespace sdbus {
         SignalSubscriber(IProxy& proxy, const std::string& signalName);
         SignalSubscriber& onInterface(std::string interfaceName);
         template <typename _Function> void call(_Function&& callback);
-        template <typename _Function> [[nodiscard]] Slot call(_Function&& callback, request_slot_t);
+        template <typename _Function> [[nodiscard]] Slot call(_Function&& callback, return_slot_t);
 
     private:
         template <typename _Function> signal_handler makeSignalHandler(_Function&& callback);

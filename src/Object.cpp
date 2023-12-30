@@ -49,12 +49,12 @@ Object::Object(sdbus::internal::IConnection& connection, std::string objectPath)
 
 void Object::addVTable(std::string interfaceName, std::vector<VTableItem> vtable)
 {
-    auto slot = Object::addVTable(std::move(interfaceName), std::move(vtable), request_slot);
+    auto slot = Object::addVTable(std::move(interfaceName), std::move(vtable), return_slot);
 
     vtables_.push_back(std::move(slot));
 }
 
-Slot Object::addVTable(std::string interfaceName, std::vector<VTableItem> vtable, request_slot_t)
+Slot Object::addVTable(std::string interfaceName, std::vector<VTableItem> vtable, return_slot_t)
 {
     SDBUS_CHECK_INTERFACE_NAME(interfaceName);
 
@@ -121,7 +121,7 @@ void Object::emitInterfacesRemovedSignal(const std::vector<std::string>& interfa
 
 void Object::addObjectManager()
 {
-    objectManagerSlot_ = connection_.addObjectManager(objectPath_, request_slot);
+    objectManagerSlot_ = connection_.addObjectManager(objectPath_, return_slot);
 }
 
 void Object::removeObjectManager()
