@@ -135,13 +135,17 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual PendingAsyncCall callMethod(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout = 0) = 0;
+        virtual PendingAsyncCall callMethodAsync( const MethodCall& message
+                                                , async_reply_handler asyncReplyCallback
+                                                , uint64_t timeout = 0 ) = 0;
 
         /*!
          * @copydoc IProxy::callMethod(const MethodCall&,async_reply_handler,uint64_t)
          */
         template <typename _Rep, typename _Period>
-        PendingAsyncCall callMethod(const MethodCall& message, async_reply_handler asyncReplyCallback, const std::chrono::duration<_Rep, _Period>& timeout);
+        PendingAsyncCall callMethodAsync( const MethodCall& message
+                                        , async_reply_handler asyncReplyCallback
+                                        , const std::chrono::duration<_Rep, _Period>& timeout );
 
         /*!
          * @brief Calls method on the D-Bus object asynchronously
@@ -160,7 +164,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual std::future<MethodReply> callMethod(const MethodCall& message, with_future_t) = 0;
+        virtual std::future<MethodReply> callMethodAsync(const MethodCall& message, with_future_t) = 0;
 
         /*!
          * @brief Calls method on the D-Bus object asynchronously, with custom timeout
@@ -180,15 +184,17 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual std::future<MethodReply> callMethod(const MethodCall& message, uint64_t timeout, with_future_t) = 0;
+        virtual std::future<MethodReply> callMethodAsync( const MethodCall& message
+                                                        , uint64_t timeout
+                                                        , with_future_t ) = 0;
 
         /*!
          * @copydoc IProxy::callMethod(const MethodCall&,uint64_t,with_future_t)
          */
         template <typename _Rep, typename _Period>
-        std::future<MethodReply> callMethod( const MethodCall& message
-                                           , const std::chrono::duration<_Rep, _Period>& timeout
-                                           , with_future_t );
+        std::future<MethodReply> callMethodAsync( const MethodCall& message
+                                                , const std::chrono::duration<_Rep, _Period>& timeout
+                                                , with_future_t );
 
         /*!
          * @brief Registers a handler for the desired signal emitted by the D-Bus object
@@ -501,19 +507,21 @@ namespace sdbus {
     }
 
     template <typename _Rep, typename _Period>
-    inline PendingAsyncCall IProxy::callMethod(const MethodCall& message, async_reply_handler asyncReplyCallback, const std::chrono::duration<_Rep, _Period>& timeout)
+    inline PendingAsyncCall IProxy::callMethodAsync( const MethodCall& message
+                                                   , async_reply_handler asyncReplyCallback
+                                                   , const std::chrono::duration<_Rep, _Period>& timeout )
     {
         auto microsecs = std::chrono::duration_cast<std::chrono::microseconds>(timeout);
-        return callMethod(message, std::move(asyncReplyCallback), microsecs.count());
+        return callMethodAsync(message, std::move(asyncReplyCallback), microsecs.count());
     }
 
     template <typename _Rep, typename _Period>
-    inline std::future<MethodReply> IProxy::callMethod( const MethodCall& message
-                                                      , const std::chrono::duration<_Rep, _Period>& timeout
-                                                      , with_future_t )
+    inline std::future<MethodReply> IProxy::callMethodAsync( const MethodCall& message
+                                                           , const std::chrono::duration<_Rep, _Period>& timeout
+                                                           , with_future_t )
     {
         auto microsecs = std::chrono::duration_cast<std::chrono::microseconds>(timeout);
-        return callMethod(message, microsecs.count(), with_future);
+        return callMethodAsync(message, microsecs.count(), with_future);
     }
 
     inline MethodInvoker IProxy::callMethod(const std::string& methodName)
