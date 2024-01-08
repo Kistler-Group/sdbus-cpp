@@ -93,7 +93,7 @@ MethodReply Proxy::callMethod(const MethodCall& message, uint64_t timeout)
     return connection_->callMethod(message, timeout);
 }
 
-PendingAsyncCall Proxy::callMethod(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout)
+PendingAsyncCall Proxy::callMethodAsync(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout)
 {
     SDBUS_THROW_ERROR_IF(!message.isValid(), "Invalid async method call message provided", EINVAL);
 
@@ -109,12 +109,12 @@ PendingAsyncCall Proxy::callMethod(const MethodCall& message, async_reply_handle
     return {weakData};
 }
 
-std::future<MethodReply> Proxy::callMethod(const MethodCall& message, with_future_t)
+std::future<MethodReply> Proxy::callMethodAsync(const MethodCall& message, with_future_t)
 {
-    return Proxy::callMethod(message, {}, with_future);
+    return Proxy::callMethodAsync(message, {}, with_future);
 }
 
-std::future<MethodReply> Proxy::callMethod(const MethodCall& message, uint64_t timeout, with_future_t)
+std::future<MethodReply> Proxy::callMethodAsync(const MethodCall& message, uint64_t timeout, with_future_t)
 {
     auto promise = std::make_shared<std::promise<MethodReply>>();
     auto future = promise->get_future();
@@ -127,7 +127,7 @@ std::future<MethodReply> Proxy::callMethod(const MethodCall& message, uint64_t t
             promise->set_exception(std::make_exception_ptr(*error));
     };
 
-    (void)Proxy::callMethod(message, std::move(asyncReplyCallback), timeout);
+    (void)Proxy::callMethodAsync(message, std::move(asyncReplyCallback), timeout);
 
     return future;
 }
