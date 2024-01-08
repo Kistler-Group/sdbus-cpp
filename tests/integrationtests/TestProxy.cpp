@@ -136,7 +136,7 @@ std::future<MethodReply> TestProxy::doOperationClientSideAsyncOnBasicAPILevel(ui
     auto methodCall = getProxy().createMethodCall(sdbus::test::INTERFACE_NAME, "doOperation");
     methodCall << param;
 
-    return getProxy().callMethod(methodCall, sdbus::with_future);
+    return getProxy().callMethodAsync(methodCall, sdbus::with_future);
 }
 
 void TestProxy::doErroneousOperationClientSideAsync()
