@@ -257,7 +257,7 @@ namespace sdbus {
             sdbus::apply(callback, error, args);
         };
 
-        return proxy_.callMethod(method_, std::move(asyncReplyHandler), timeout_);
+        return proxy_.callMethodAsync(method_, std::move(asyncReplyHandler), timeout_);
     }
 
     template <typename... _Args>
