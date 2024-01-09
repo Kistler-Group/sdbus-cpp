@@ -27,11 +27,14 @@
 #ifndef SDBUS_CXX_TYPETRAITS_H_
 #define SDBUS_CXX_TYPETRAITS_H_
 
+#include <sdbus-c++/Error.h>
+
 #include <array>
 #include <cstdint>
 #include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #if __cplusplus >= 202002L
 #include <span>
 #endif
@@ -63,7 +66,7 @@ namespace sdbus {
 
     // Callbacks from sdbus-c++
     using method_callback = std::function<void(MethodCall msg)>;
-    using async_reply_handler = std::function<void(MethodReply reply, const Error* error)>;
+    using async_reply_handler = std::function<void(MethodReply reply, std::optional<Error> error)>;
     using signal_handler = std::function<void(Signal signal)>;
     using message_handler = std::function<void(Message msg)>;
     using property_set_callback = std::function<void(PropertySetCall msg)>;
@@ -490,7 +493,7 @@ namespace sdbus {
     };
 
     template <typename... _Args>
-    struct function_traits<void(const Error*, _Args...)>
+    struct function_traits<void(std::optional<Error>, _Args...)>
         : public function_traits_base<void, _Args...>
     {
         static constexpr bool has_error_param = true;
@@ -665,12 +668,12 @@ namespace sdbus {
         }
 
         template <class _Function, class _Tuple, std::size_t... _I>
-        constexpr decltype(auto) apply_impl( _Function&& f
-                                           , const Error* e
-                                           , _Tuple&& t
-                                           , std::index_sequence<_I...> )
+        decltype(auto) apply_impl( _Function&& f
+                                 , std::optional<Error> e
+                                 , _Tuple&& t
+                                 , std::index_sequence<_I...> )
         {
-            return std::forward<_Function>(f)(e, std::get<_I>(std::forward<_Tuple>(t))...);
+            return std::forward<_Function>(f)(std::move(e), std::get<_I>(std::forward<_Tuple>(t))...);
         }
 
         // For non-void returning functions, apply_impl simply returns function return value (a tuple of values).
@@ -711,10 +714,10 @@ namespace sdbus {
     // Convert tuple `t' of values into a list of arguments
     // and invoke function `f' with those arguments.
     template <class _Function, class _Tuple>
-    constexpr decltype(auto) apply(_Function&& f, const Error* e, _Tuple&& t)
+    decltype(auto) apply(_Function&& f, std::optional<Error> e, _Tuple&& t)
     {
         return detail::apply_impl( std::forward<_Function>(f)
-                                 , e
+                                 , std::move(e)
                                  , std::forward<_Tuple>(t)
                                  , std::make_index_sequence<std::tuple_size<std::decay_t<_Tuple>>::value>{} );
     }

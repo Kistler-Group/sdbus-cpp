@@ -60,12 +60,12 @@ TYPED_TEST(AsyncSdbusTestObject, ThrowsTimeoutErrorWhenClientSideAsyncMethodTime
     {
         std::promise<uint32_t> promise;
         auto future = promise.get_future();
-        this->m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t res, const sdbus::Error* err)
+        this->m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t res, std::optional<sdbus::Error> err)
         {
-            if (err == nullptr)
+            if (!err)
                 promise.set_value(res);
             else
-                promise.set_exception(std::make_exception_ptr(*err));
+                promise.set_exception(std::make_exception_ptr(*std::move(err)));
         });
 
         start = std::chrono::steady_clock::now();
@@ -146,12 +146,12 @@ TYPED_TEST(AsyncSdbusTestObject, InvokesMethodAsynchronouslyOnClientSide)
 {
     std::promise<uint32_t> promise;
     auto future = promise.get_future();
-    this->m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t res, const sdbus::Error* err)
+    this->m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t res, std::optional<sdbus::Error> err)
     {
-        if (err == nullptr)
+        if (!err)
             promise.set_value(res);
         else
-            promise.set_exception(std::make_exception_ptr(*err));
+            promise.set_exception(std::make_exception_ptr(std::move(err)));
     });
 
     this->m_proxy->doOperationClientSideAsync(100);
@@ -179,7 +179,7 @@ TYPED_TEST(AsyncSdbusTestObject, InvokesMethodAsynchronouslyOnClientSideWithFutu
 
 TYPED_TEST(AsyncSdbusTestObject, AnswersThatAsyncCallIsPendingIfItIsInProgress)
 {
-    this->m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t /*res*/, const sdbus::Error* /*err*/){});
+    this->m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t /*res*/, std::optional<sdbus::Error> /*err*/){});
 
     auto call = this->m_proxy->doOperationClientSideAsync(100);
 
@@ -190,7 +190,7 @@ TYPED_TEST(AsyncSdbusTestObject, CancelsPendingAsyncCallOnClientSide)
 {
     std::promise<uint32_t> promise;
     auto future = promise.get_future();
-    this->m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t /*res*/, const sdbus::Error* /*err*/){ promise.set_value(1); });
+    this->m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t /*res*/, std::optional<sdbus::Error> /*err*/){ promise.set_value(1); });
     auto call = this->m_proxy->doOperationClientSideAsync(100);
 
     call.cancel();
@@ -202,7 +202,7 @@ TYPED_TEST(AsyncSdbusTestObject, AnswersThatAsyncCallIsNotPendingAfterItHasBeenC
 {
     std::promise<uint32_t> promise;
     auto future = promise.get_future();
-    this->m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t /*res*/, const sdbus::Error* /*err*/){ promise.set_value(1); });
+    this->m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t /*res*/, std::optional<sdbus::Error> /*err*/){ promise.set_value(1); });
     auto call = this->m_proxy->doOperationClientSideAsync(100);
 
     call.cancel();
@@ -214,7 +214,7 @@ TYPED_TEST(AsyncSdbusTestObject, AnswersThatAsyncCallIsNotPendingAfterItHasBeenC
 {
     std::promise<uint32_t> promise;
     auto future = promise.get_future();
-    this->m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t /*res*/, const sdbus::Error* /*err*/){ promise.set_value(1); });
+    this->m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t /*res*/, std::optional<sdbus::Error> /*err*/){ promise.set_value(1); });
 
     auto call = this->m_proxy->doOperationClientSideAsync(0);
     (void) future.get(); // Wait for the call to finish
@@ -242,12 +242,12 @@ TYPED_TEST(AsyncSdbusTestObject, ReturnsNonnullErrorWhenAsynchronousMethodCallFa
 {
     std::promise<uint32_t> promise;
     auto future = promise.get_future();
-    this->m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t res, const sdbus::Error* err)
+    this->m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t res, std::optional<sdbus::Error> err)
     {
-        if (err == nullptr)
+        if (!err)
             promise.set_value(res);
         else
-            promise.set_exception(std::make_exception_ptr(*err));
+            promise.set_exception(std::make_exception_ptr(*std::move(err)));
     });
 
     this->m_proxy->doErroneousOperationClientSideAsync();
