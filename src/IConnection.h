@@ -27,12 +27,14 @@
 #ifndef SDBUS_CXX_INTERNAL_ICONNECTION_H_
 #define SDBUS_CXX_INTERNAL_ICONNECTION_H_
 
-#include <sdbus-c++/IConnection.h>
-#include <sdbus-c++/TypeTraits.h>
-#include SDBUS_HEADER
-#include <string>
-#include <memory>
+#include "sdbus-c++/IConnection.h"
+
+#include "sdbus-c++/TypeTraits.h"
+
 #include <functional>
+#include <memory>
+#include <string>
+#include SDBUS_HEADER
 #include <vector>
 
 // Forward declaration

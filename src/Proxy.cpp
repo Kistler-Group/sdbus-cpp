@@ -25,16 +25,18 @@
  */
 
 #include "Proxy.h"
+
+#include "sdbus-c++/Error.h"
+#include "sdbus-c++/IConnection.h"
+#include "sdbus-c++/Message.h"
+
 #include "IConnection.h"
 #include "MessageUtils.h"
-#include "Utils.h"
-#include "sdbus-c++/Message.h"
-#include "sdbus-c++/IConnection.h"
-#include "sdbus-c++/Error.h"
 #include "ScopeGuard.h"
-#include SDBUS_HEADER
+#include "Utils.h"
+
 #include <cassert>
-#include <chrono>
+#include SDBUS_HEADER
 #include <utility>
 
 namespace sdbus::internal {

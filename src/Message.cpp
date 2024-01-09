@@ -24,15 +24,18 @@
  * along with sdbus-c++. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <sdbus-c++/Message.h>
-#include <sdbus-c++/Types.h>
-#include <sdbus-c++/Error.h>
-#include "MessageUtils.h"
-#include "ISdBus.h"
+#include "sdbus-c++/Message.h"
+
+#include "sdbus-c++/Error.h"
+#include "sdbus-c++/Types.h"
+
 #include "IConnection.h"
+#include "ISdBus.h"
+#include "MessageUtils.h"
 #include "ScopeGuard.h"
-#include SDBUS_HEADER
+
 #include <cassert>
+#include SDBUS_HEADER
 
 namespace sdbus {
 

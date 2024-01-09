@@ -27,15 +27,18 @@
 #ifndef SDBUS_CXX_INTERNAL_CONNECTION_H_
 #define SDBUS_CXX_INTERNAL_CONNECTION_H_
 
-#include <sdbus-c++/IConnection.h>
-#include <sdbus-c++/Message.h>
+#include "sdbus-c++/IConnection.h"
+
+#include "sdbus-c++/Message.h"
+
 #include "IConnection.h"
-#include "ScopeGuard.h"
 #include "ISdBus.h"
-#include SDBUS_HEADER
+#include "ScopeGuard.h"
+
 #include <memory>
-#include <thread>
 #include <string>
+#include SDBUS_HEADER
+#include <thread>
 #include <vector>
 
 struct sd_event_source;
