@@ -29,11 +29,12 @@
 
 #include <sdbus-c++/ConvenienceApiClasses.h>
 #include <sdbus-c++/TypeTraits.h>
-#include <string>
-#include <memory>
-#include <functional>
+
 #include <chrono>
+#include <functional>
 #include <future>
+#include <memory>
+#include <string>
 
 // Forward declarations
 namespace sdbus {

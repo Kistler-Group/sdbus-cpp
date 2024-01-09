@@ -27,18 +27,19 @@
 #ifndef SDBUS_CPP_CONVENIENCEAPICLASSES_INL_
 #define SDBUS_CPP_CONVENIENCEAPICLASSES_INL_
 
+#include <sdbus-c++/Error.h>
 #include <sdbus-c++/IObject.h>
 #include <sdbus-c++/IProxy.h>
 #include <sdbus-c++/Message.h>
 #include <sdbus-c++/MethodResult.h>
-#include <sdbus-c++/Types.h>
 #include <sdbus-c++/TypeTraits.h>
-#include <sdbus-c++/Error.h>
-#include <type_traits>
+#include <sdbus-c++/Types.h>
+
+#include <cassert>
+#include <exception>
 #include <string>
 #include <tuple>
-#include <exception>
-#include <cassert>
+#include <type_traits>
 
 namespace sdbus {
 

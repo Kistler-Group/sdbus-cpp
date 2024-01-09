@@ -27,8 +27,8 @@
 #ifndef SDBUS_CXX_INTERNAL_VTABLEUTILS_H_
 #define SDBUS_CXX_INTERNAL_VTABLEUTILS_H_
 
-#include SDBUS_HEADER
 #include <stdbool.h>
+#include SDBUS_HEADER
 
 #ifdef __cplusplus
 extern "C" {

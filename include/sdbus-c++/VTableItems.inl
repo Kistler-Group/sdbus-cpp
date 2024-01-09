@@ -26,10 +26,11 @@
 #ifndef SDBUS_CPP_VTABLEITEMS_INL_
 #define SDBUS_CPP_VTABLEITEMS_INL_
 
-#include <sdbus-c++/TypeTraits.h>
 #include <sdbus-c++/Error.h>
-#include <type_traits>
+#include <sdbus-c++/TypeTraits.h>
+
 #include <string>
+#include <type_traits>
 #include <vector>
 
 namespace sdbus {
