@@ -27,16 +27,17 @@
 #ifndef SDBUS_CXX_CONVENIENCEAPICLASSES_H_
 #define SDBUS_CXX_CONVENIENCEAPICLASSES_H_
 
-#include <sdbus-c++/VTableItems.h>
 #include <sdbus-c++/Message.h>
 #include <sdbus-c++/TypeTraits.h>
 #include <sdbus-c++/Types.h>
+#include <sdbus-c++/VTableItems.h>
+
+#include <chrono>
+#include <cstdint>
+#include <future>
+#include <map>
 #include <string>
 #include <vector>
-#include <map>
-#include <chrono>
-#include <future>
-#include <cstdint>
 
 // Forward declarations
 namespace sdbus {

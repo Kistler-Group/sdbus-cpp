@@ -28,9 +28,10 @@
 #define SDBUS_CXX_METHODRESULT_H_
 
 #include <sdbus-c++/Message.h>
+
 #include <cassert>
 
-// Forward declaration
+// Forward declarations
 namespace sdbus {
     class Error;
 }

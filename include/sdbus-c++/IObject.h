@@ -27,13 +27,14 @@
 #ifndef SDBUS_CXX_IOBJECT_H_
 #define SDBUS_CXX_IOBJECT_H_
 
-#include <sdbus-c++/VTableItems.h>
 #include <sdbus-c++/ConvenienceApiClasses.h>
-#include <sdbus-c++/TypeTraits.h>
 #include <sdbus-c++/Flags.h>
+#include <sdbus-c++/TypeTraits.h>
+#include <sdbus-c++/VTableItems.h>
+
 #include <functional>
-#include <string>
 #include <memory>
+#include <string>
 #include <vector>
 
 // Forward declarations
@@ -385,7 +386,7 @@ namespace sdbus {
 
 }
 
-#include <sdbus-c++/VTableItems.inl>
 #include <sdbus-c++/ConvenienceApiClasses.inl>
+#include <sdbus-c++/VTableItems.inl>
 
 #endif /* SDBUS_CXX_IOBJECT_H_ */

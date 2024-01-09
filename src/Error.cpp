@@ -24,9 +24,11 @@
  * along with sdbus-c++. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <sdbus-c++/Error.h>
-#include SDBUS_HEADER
+#include "sdbus-c++/Error.h"
+
 #include "ScopeGuard.h"
+
+#include SDBUS_HEADER
 
 namespace sdbus
 {
@@ -40,4 +42,4 @@ namespace sdbus
         std::string message(customMsg + " (" + sdbusError.message + ")");
         return sdbus::Error(name, message);
     }
-}
+} // namespace sdbus
