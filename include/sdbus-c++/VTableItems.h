@@ -26,11 +26,12 @@
 #ifndef SDBUS_CXX_VTABLEITEMS_H_
 #define SDBUS_CXX_VTABLEITEMS_H_
 
-#include <sdbus-c++/TypeTraits.h>
 #include <sdbus-c++/Flags.h>
+#include <sdbus-c++/TypeTraits.h>
+
 #include <string>
-#include <vector>
 #include <variant>
+#include <vector>
 
 namespace sdbus {
 
