@@ -25,19 +25,21 @@
  */
 
 #include "Object.h"
-#include "MessageUtils.h"
-#include <sdbus-c++/IConnection.h>
-#include <sdbus-c++/Message.h>
-#include <sdbus-c++/Error.h>
-#include <sdbus-c++/MethodResult.h>
-#include <sdbus-c++/Flags.h>
-#include "ScopeGuard.h"
+
+#include "sdbus-c++/Error.h"
+#include "sdbus-c++/Flags.h"
+#include "sdbus-c++/IConnection.h"
+#include "sdbus-c++/Message.h"
+
 #include "IConnection.h"
+#include "MessageUtils.h"
+#include "ScopeGuard.h"
 #include "Utils.h"
 #include "VTableUtils.h"
+
+#include <cassert>
 #include SDBUS_HEADER
 #include <utility>
-#include <cassert>
 
 namespace sdbus::internal {
 

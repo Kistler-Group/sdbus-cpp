@@ -25,20 +25,22 @@
  */
 
 #include "Connection.h"
-#include "SdBus.h"
+
+#include "sdbus-c++/Error.h"
+#include "sdbus-c++/Message.h"
+
 #include "MessageUtils.h"
-#include "Utils.h"
-#include <sdbus-c++/Message.h>
-#include <sdbus-c++/Error.h>
 #include "ScopeGuard.h"
+#include "SdBus.h"
+#include "Utils.h"
+
+#include <poll.h>
+#include <sys/eventfd.h>
 #include SDBUS_HEADER
 #ifndef SDBUS_basu // sd_event integration is not supported in basu-based sdbus-c++
 #include <systemd/sd-event.h>
 #endif
 #include <unistd.h>
-#include <poll.h>
-#include <sys/eventfd.h>
-#include <cstdint>
 
 namespace sdbus::internal {
 

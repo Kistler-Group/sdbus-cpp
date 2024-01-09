@@ -27,15 +27,17 @@
 #ifndef SDBUS_CXX_INTERNAL_OBJECT_H_
 #define SDBUS_CXX_INTERNAL_OBJECT_H_
 
-#include <sdbus-c++/IObject.h>
+#include "sdbus-c++/IObject.h"
+
 #include "IConnection.h"
-#include SDBUS_HEADER
-#include <string>
-#include <list>
-#include <vector>
-#include <functional>
-#include <memory>
+
 #include <cassert>
+#include <functional>
+#include <list>
+#include <memory>
+#include <string>
+#include SDBUS_HEADER
+#include <vector>
 
 namespace sdbus::internal {
 

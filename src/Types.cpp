@@ -24,13 +24,15 @@
  * along with sdbus-c++. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <sdbus-c++/Types.h>
-#include <sdbus-c++/Error.h>
+#include "sdbus-c++/Types.h"
+
+#include "sdbus-c++/Error.h"
+
 #include "MessageUtils.h"
-#include SDBUS_HEADER
-#include <cassert>
+
 #include <cerrno>
 #include <system_error>
+#include SDBUS_HEADER
 #include <unistd.h>
 
 namespace sdbus {
@@ -67,7 +69,7 @@ bool Variant::isEmpty() const
     return msg_.isEmpty();
 }
 
-void UnixFd::close()
+void UnixFd::close() // NOLINT(readability-make-member-function-const)
 {
     if (fd_ >= 0)
     {
@@ -82,7 +84,7 @@ int UnixFd::checkedDup(int fd)
         return fd;
     }
 
-    int ret = ::dup(fd);
+    int ret = ::dup(fd); // NOLINT(android-cloexec-dup) // TODO: verify
     if (ret < 0)
     {
         throw std::system_error(errno, std::generic_category(), "dup failed");
@@ -90,4 +92,4 @@ int UnixFd::checkedDup(int fd)
     return ret;
 }
 
-}
+} // namespace sdbus
