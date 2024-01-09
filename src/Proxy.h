@@ -27,14 +27,16 @@
 #ifndef SDBUS_CXX_INTERNAL_PROXY_H_
 #define SDBUS_CXX_INTERNAL_PROXY_H_
 
-#include <sdbus-c++/IProxy.h>
+#include "sdbus-c++/IProxy.h"
+
 #include "IConnection.h"
-#include SDBUS_HEADER
-#include <string>
-#include <memory>
+
 #include <deque>
-#include <vector>
+#include <memory>
 #include <mutex>
+#include <string>
+#include SDBUS_HEADER
+#include <vector>
 
 namespace sdbus::internal {
 

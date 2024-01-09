@@ -27,21 +27,20 @@
 #ifndef SDBUS_CXX_TYPETRAITS_H_
 #define SDBUS_CXX_TYPETRAITS_H_
 
-#include <type_traits>
-#include <string>
-#include <vector>
 #include <array>
-#include <variant>
+#include <cstdint>
+#include <functional>
+#include <map>
+#include <memory>
 #if __cplusplus >= 202002L
 #include <span>
 #endif
-#include <map>
-#include <unordered_map>
-#include <cstdint>
-#include <functional>
-#include <memory>
+#include <string>
 #include <tuple>
+#include <type_traits>
+#include <unordered_map>
 #include <variant>
+#include <vector>
 
 // Forward declarations
 namespace sdbus {
