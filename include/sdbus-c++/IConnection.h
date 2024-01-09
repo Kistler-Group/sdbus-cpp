@@ -28,11 +28,12 @@
 #define SDBUS_CXX_ICONNECTION_H_
 
 #include <sdbus-c++/TypeTraits.h>
-#include <string>
-#include <memory>
+
 #include <chrono>
 #include <cstdint>
+#include <memory>
 #include <optional>
+#include <string>
 
 struct sd_bus;
 struct sd_event;

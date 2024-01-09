@@ -27,22 +27,23 @@
 #ifndef SDBUS_CXX_MESSAGE_H_
 #define SDBUS_CXX_MESSAGE_H_
 
-#include <sdbus-c++/TypeTraits.h>
 #include <sdbus-c++/Error.h>
-#include <string>
-#include <vector>
+#include <sdbus-c++/TypeTraits.h>
+
+#include <algorithm>
 #include <array>
+#include <cassert>
+#include <cstdint>
+#include <functional>
+#include <map>
 #if __cplusplus >= 202002L
 #include <span>
 #endif
-#include <map>
+#include <string>
+#include <sys/types.h>
 #include <unordered_map>
 #include <utility>
-#include <cstdint>
-#include <cassert>
-#include <functional>
-#include <sys/types.h>
-#include <algorithm>
+#include <vector>
 
 // Forward declarations
 namespace sdbus {
