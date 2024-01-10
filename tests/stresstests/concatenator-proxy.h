@@ -39,12 +39,12 @@ protected:
 
     virtual void onConcatenatedSignal(const std::string& concatenatedString) = 0;
 
-    virtual void onConcatenateReply(const std::string& result, const sdbus::Error* error) = 0;
+    virtual void onConcatenateReply(const std::string& result, std::optional<sdbus::Error> error) = 0;
 
 public:
     sdbus::PendingAsyncCall concatenate(const std::map<std::string, sdbus::Variant>& params)
     {
-        return proxy_->callMethodAsync("concatenate").onInterface(INTERFACE_NAME).withArguments(params).uponReplyInvoke([this](const sdbus::Error* error, const std::string& result){ this->onConcatenateReply(result, error); });
+        return proxy_->callMethodAsync("concatenate").onInterface(INTERFACE_NAME).withArguments(params).uponReplyInvoke([this](std::optional<sdbus::Error> error, const std::string& result){ this->onConcatenateReply(result, std::move(error)); });
     }
 
 private:
