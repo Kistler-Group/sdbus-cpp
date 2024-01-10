@@ -251,11 +251,11 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes&
             }
             else // Async methods implemented through callbacks
             {
-                definitionSS << ".uponReplyInvoke([this](const sdbus::Error* error" << (outArgTypeStr.empty() ? "" : ", ") << outArgTypeStr << ")"
-                                                 "{ this->on" << nameBigFirst << "Reply(" << outArgStr << (outArgStr.empty() ? "" : ", ") << "error); })";
+                definitionSS << ".uponReplyInvoke([this](std::optional<sdbus::Error> error" << (outArgTypeStr.empty() ? "" : ", ") << outArgTypeStr << ")"
+                                                 "{ this->on" << nameBigFirst << "Reply(" << outArgStr << (outArgStr.empty() ? "" : ", ") << "std::move(error)); })";
 
                 asyncDeclarationSS << tab << "virtual void on" << nameBigFirst << "Reply("
-                                   << outArgTypeStr << (outArgTypeStr.empty() ? "" : ", ")  << "const sdbus::Error* error) = 0;" << endl;
+                                   << outArgTypeStr << (outArgTypeStr.empty() ? "" : ", ")  << "std::optional<sdbus::Error> error) = 0;" << endl;
             }
         }
         else if (outArgs.size() > 0)
@@ -359,11 +359,11 @@ std::tuple<std::string, std::string> ProxyGenerator::processProperties(const Nod
                 }
                 else // Async methods implemented through callbacks
                 {
-                    propertySS << ".uponReplyInvoke([this](const sdbus::Error* error, const sdbus::Variant& value)"
-                                                   "{ this->on" << nameBigFirst << "PropertyGetReply(value.get<" << propertyType << ">(), error); })";
+                    propertySS << ".uponReplyInvoke([this](std::optional<sdbus::Error> error, const sdbus::Variant& value)"
+                                                   "{ this->on" << nameBigFirst << "PropertyGetReply(value.get<" << propertyType << ">(), std::move(error)); })";
 
                     asyncDeclarationSS << tab << "virtual void on" << nameBigFirst << "PropertyGetReply("
-                                       << "const " << propertyType << "& value, const sdbus::Error* error) = 0;" << endl;
+                                       << "const " << propertyType << "& value, std::optional<sdbus::Error> error) = 0;" << endl;
                 }
             }
             propertySS << ";" << endl << tab << "}" << endl << endl;
@@ -391,11 +391,11 @@ std::tuple<std::string, std::string> ProxyGenerator::processProperties(const Nod
                 }
                 else // Async methods implemented through callbacks
                 {
-                    propertySS << ".uponReplyInvoke([this](const sdbus::Error* error)"
-                                  "{ this->on" << nameBigFirst << "PropertySetReply(error); })";
+                    propertySS << ".uponReplyInvoke([this](std::optional<sdbus::Error> error)"
+                                  "{ this->on" << nameBigFirst << "PropertySetReply(std::move(error)); })";
 
                     asyncDeclarationSS << tab << "virtual void on" << nameBigFirst << "PropertySetReply("
-                                       << "const sdbus::Error* error) = 0;" << endl;
+                                       << "std::optional<sdbus::Error> error) = 0;" << endl;
                 }
             }
 

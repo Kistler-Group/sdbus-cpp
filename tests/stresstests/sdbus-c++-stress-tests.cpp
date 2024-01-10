@@ -310,9 +310,9 @@ public:
     }
 
 private:
-    virtual void onConcatenateReply(const std::string& result, [[maybe_unused]] const sdbus::Error* error) override
+    virtual void onConcatenateReply(const std::string& result, [[maybe_unused]] std::optional<sdbus::Error> error) override
     {
-        assert(error == nullptr);
+        assert(error == std::nullopt);
 
         std::stringstream str(result);
         std::string aString;

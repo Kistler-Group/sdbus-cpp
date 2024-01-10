@@ -232,14 +232,14 @@ namespace sdbus {
     {
         assert(method_.isValid()); // onInterface() must be placed/called prior to this function
 
-        auto asyncReplyHandler = [callback = std::forward<_Function>(callback)](MethodReply reply, const Error* error)
+        auto asyncReplyHandler = [callback = std::forward<_Function>(callback)](MethodReply reply, std::optional<Error> error)
         {
             // Create a tuple of callback input arguments' types, which will be used
             // as a storage for the argument values deserialized from the message.
             tuple_of_function_input_arg_types_t<_Function> args;
 
             // Deserialize input arguments from the message into the tuple (if no error occurred).
-            if (error == nullptr)
+            if (!error)
             {
                 try
                 {
@@ -249,13 +249,13 @@ namespace sdbus {
                 {
                     // Pass message deserialization exceptions to the client via callback error parameter,
                     // instead of propagating them up the message loop call stack.
-                    sdbus::apply(callback, &e, args);
+                    sdbus::apply(callback, e, args);
                     return;
                 }
             }
 
             // Invoke callback with input arguments from the tuple.
-            sdbus::apply(callback, error, args);
+            sdbus::apply(callback, std::move(error), args);
         };
 
         return proxy_.callMethodAsync(method_, std::move(asyncReplyHandler), timeout_);
@@ -267,15 +267,15 @@ namespace sdbus {
         auto promise = std::make_shared<std::promise<future_return_t<_Args...>>>();
         auto future = promise->get_future();
 
-        uponReplyInvoke([promise = std::move(promise)](const Error* error, _Args... args)
+        uponReplyInvoke([promise = std::move(promise)](std::optional<Error> error, _Args... args)
         {
-            if (error == nullptr)
+            if (!error)
                 if constexpr (!std::is_void_v<future_return_t<_Args...>>)
                     promise->set_value({std::move(args)...});
                 else
                     promise->set_value();
             else
-                promise->set_exception(std::make_exception_ptr(*error));
+                promise->set_exception(std::make_exception_ptr(*std::move(error)));
         });
 
         // Will be std::future<void> for no D-Bus method return value
@@ -331,10 +331,10 @@ namespace sdbus {
             // as a storage for the argument values deserialized from the signal message.
             tuple_of_function_input_arg_types_t<_Function> signalArgs;
 
-            // The signal handler can take pure signal parameters only, or an additional `const Error*` as its first
+            // The signal handler can take pure signal parameters only, or an additional `std::optional<Error>` as its first
             // parameter. In the former case, if the deserialization fails (e.g. due to signature mismatch),
             // the failure is ignored (and signal simply dropped). In the latter case, the deserialization failure
-            // will be communicated as a non-zero Error pointer to the client's signal handler.
+            // will be communicated to the client's signal handler as a valid Error object inside the std::optional parameter.
             if constexpr (has_error_param_v<_Function>)
             {
                 // Deserialize input arguments from the signal message into the tuple
@@ -346,12 +346,12 @@ namespace sdbus {
                 {
                     // Pass message deserialization exceptions to the client via callback error parameter,
                     // instead of propagating them up the message loop call stack.
-                    sdbus::apply(callback, &e, signalArgs);
+                    sdbus::apply(callback, e, signalArgs);
                     return;
                 }
 
                 // Invoke callback with no error and input arguments from the tuple.
-                sdbus::apply(callback, nullptr, signalArgs);
+                sdbus::apply(callback, {}, signalArgs);
             }
             else
             {
@@ -404,7 +404,7 @@ namespace sdbus {
     template <typename _Function>
     PendingAsyncCall AsyncPropertyGetter::uponReplyInvoke(_Function&& callback)
     {
-        static_assert(std::is_invocable_r_v<void, _Function, const Error*, Variant>, "Property get callback function must accept Error* and property value as Variant");
+        static_assert(std::is_invocable_r_v<void, _Function, std::optional<Error>, Variant>, "Property get callback function must accept std::optional<Error> and property value as Variant");
 
         assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
 
@@ -505,7 +505,7 @@ namespace sdbus {
     template <typename _Function>
     PendingAsyncCall AsyncPropertySetter::uponReplyInvoke(_Function&& callback)
     {
-        static_assert(std::is_invocable_r_v<void, _Function, const Error*>, "Property set callback function must accept Error* only");
+        static_assert(std::is_invocable_r_v<void, _Function, std::optional<Error>>, "Property set callback function must accept std::optional<Error> only");
 
         assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
 
@@ -563,8 +563,8 @@ namespace sdbus {
     template <typename _Function>
     PendingAsyncCall AsyncAllPropertiesGetter::uponReplyInvoke(_Function&& callback)
     {
-        static_assert( std::is_invocable_r_v<void, _Function, const Error*, std::map<std::string, Variant>>
-                     , "All properties get callback function must accept Error* and a map of property names to their values" );
+        static_assert( std::is_invocable_r_v<void, _Function, std::optional<Error>, std::map<std::string, Variant>>
+                     , "All properties get callback function must accept std::optional<Error< and a map of property names to their values" );
 
         assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
 

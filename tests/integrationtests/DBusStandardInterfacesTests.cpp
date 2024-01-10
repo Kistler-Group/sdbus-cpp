@@ -82,12 +82,12 @@ TYPED_TEST(SdbusTestObject, GetsPropertyAsynchronouslyViaPropertiesInterface)
     std::promise<std::string> promise;
     auto future = promise.get_future();
 
-    this->m_proxy->GetAsync(INTERFACE_NAME, "state", [&](const sdbus::Error* err, sdbus::Variant value)
+    this->m_proxy->GetAsync(INTERFACE_NAME, "state", [&](std::optional<sdbus::Error> err, sdbus::Variant value)
     {
-        if (err == nullptr)
+        if (!err)
            promise.set_value(value.get<std::string>());
         else
-           promise.set_exception(std::make_exception_ptr(*err));
+           promise.set_exception(std::make_exception_ptr(*std::move(err)));
     });
 
     ASSERT_THAT(future.get(), Eq(DEFAULT_STATE_VALUE));
@@ -115,12 +115,12 @@ TYPED_TEST(SdbusTestObject, SetsPropertyAsynchronouslyViaPropertiesInterface)
     std::promise<void> promise;
     auto future = promise.get_future();
 
-    this->m_proxy->SetAsync(INTERFACE_NAME, "action", sdbus::Variant{newActionValue}, [&](const sdbus::Error* err)
+    this->m_proxy->SetAsync(INTERFACE_NAME, "action", sdbus::Variant{newActionValue}, [&](std::optional<sdbus::Error> err)
     {
-        if (err == nullptr)
+        if (!err)
             promise.set_value();
         else
-            promise.set_exception(std::make_exception_ptr(*err));
+            promise.set_exception(std::make_exception_ptr(*std::move(err)));
     });
 
     ASSERT_NO_THROW(future.get());
@@ -152,12 +152,12 @@ TYPED_TEST(SdbusTestObject, GetsAllPropertiesAsynchronouslyViaPropertiesInterfac
     std::promise<std::map<std::string, sdbus::Variant>> promise;
     auto future = promise.get_future();
 
-    this->m_proxy->GetAllAsync(INTERFACE_NAME, [&](const sdbus::Error* err, std::map<std::string, sdbus::Variant> value)
+    this->m_proxy->GetAllAsync(INTERFACE_NAME, [&](std::optional<sdbus::Error> err, std::map<std::string, sdbus::Variant> value)
     {
-        if (err == nullptr)
+        if (!err)
             promise.set_value(std::move(value));
         else
-            promise.set_exception(std::make_exception_ptr(*err));
+            promise.set_exception(std::make_exception_ptr(*std::move(err)));
     });
     const auto properties = future.get();
 
