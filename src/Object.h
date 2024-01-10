@@ -62,11 +62,11 @@ namespace sdbus::internal {
 
         void addObjectManager() override;
         void removeObjectManager() override;
-        bool hasObjectManager() const override;
+        [[nodiscard]] bool hasObjectManager() const override;
 
-        sdbus::IConnection& getConnection() const override;
-        const std::string& getObjectPath() const override;
-        Message getCurrentlyProcessedMessage() const override;
+        [[nodiscard]] sdbus::IConnection& getConnection() const override;
+        [[nodiscard]] const std::string& getObjectPath() const override;
+        [[nodiscard]] Message getCurrentlyProcessedMessage() const override;
 
     private:
         // A vtable record comprising methods, signals, properties, flags.

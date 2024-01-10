@@ -56,22 +56,22 @@ namespace sdbus::internal {
     public:
         ~IConnection() override = default;
 
-        virtual const ISdBus& getSdBusInterface() const = 0;
-        virtual ISdBus& getSdBusInterface() = 0;
+        [[nodiscard]] virtual const ISdBus& getSdBusInterface() const = 0;
+        [[nodiscard]] virtual ISdBus& getSdBusInterface() = 0;
 
         [[nodiscard]] virtual Slot addObjectVTable( const std::string& objectPath
                                                   , const std::string& interfaceName
                                                   , const sd_bus_vtable* vtable
                                                   , void* userData ) = 0;
 
-        virtual PlainMessage createPlainMessage() const = 0;
-        virtual MethodCall createMethodCall( const std::string& destination
-                                           , const std::string& objectPath
-                                           , const std::string& interfaceName
-                                           , const std::string& methodName ) const = 0;
-        virtual Signal createSignal( const std::string& objectPath
-                                   , const std::string& interfaceName
-                                   , const std::string& signalName ) const = 0;
+        [[nodiscard]] virtual PlainMessage createPlainMessage() const = 0;
+        [[nodiscard]] virtual MethodCall createMethodCall( const std::string& destination
+                                                         , const std::string& objectPath
+                                                         , const std::string& interfaceName
+                                                         , const std::string& methodName ) const = 0;
+        [[nodiscard]] virtual Signal createSignal( const std::string& objectPath
+                                                 , const std::string& interfaceName
+                                                 , const std::string& signalName ) const = 0;
 
         virtual MethodReply callMethod(const MethodCall& message, uint64_t timeout) = 0;
         virtual void callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout, floating_slot_t) = 0;
