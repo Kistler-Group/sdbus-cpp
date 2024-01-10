@@ -167,10 +167,10 @@ All public types and functions of sdbus-c++ reside in the `sdbus` namespace.
 Error signalling and propagation
 --------------------------------
 
-`sdbus::Error` exception is used to signal errors in sdbus-c++. There are two types of errors:
+`sdbus::Error` type is used as an exception to signal errors in sdbus-c++. There are two types of errors:
 
   * D-Bus related errors, like call timeouts, failed socket allocation, etc. These are raised by the D-Bus library or D-Bus daemon itself.
-  * user-defined errors, i.e. errors signalled and propagated from remote methods back to the caller. So these are issued by sdbus-c++ users.
+  * user-defined errors, i.e. errors signalled and propagated from remote methods back to the caller. So these are issued by sdbus-c++ clients.
 
 `sdbus::Error` is a carrier for both types of errors, carrying the error name and error message with it.
 
@@ -605,15 +605,15 @@ When registering methods, calling methods or emitting signals, multiple lines of
 
 We recommend that sdbus-c++ users prefer the convenience API to the lower level, basic API. When feasible, using generated adaptor and proxy C++ bindings is even better as it provides yet slightly higher abstraction built on top of the convenience API, where remote calls look simply like local, native calls of object methods. They are described in the following section.
 
-> **_Note_:** By default, signal callback handlers are not invoked (i.e., the signal is silently dropped) if there is a signal signature mismatch. If you want to be informed of such situations, they can prepend `const sdbus::Error*` parameter to their signal callback handler's parameter list. This argument will be `nullptr` in normal cases, and will provide access to the corresponding `sdbus::Error` object in case of deserialization failures. An example of a handler with the signature (`int`) different from the real signal contents (`string`):
+> **_Note_:** By default, signal callback handlers are not invoked (i.e., the signal is silently dropped) if there is a signal signature mismatch. If you want to be informed of such situations, you can add `std::optional<sdbus::Error>` parameter to the beginning of your signal callback handler's parameter list. When sdbus-c++ invokes the handler, it will set this argument either to be empty (in normal cases), or to carry a corresponding `sdbus::Error` object (in case of deserialization failures, like type mismatches). An example of a handler with the signature (`int`) different from the real signal contents (`string`):
 > ```c++
->     void onConcatenated(const sdbus::Error* e, int wrongParameter)
+>     void onConcatenated(std::optional<sdbus::Error> e, int wrongParameter)
 >     {
->         assert(e);
+>         assert(e.has_value());
 >         assert(e->getMessage() == "Failed to deserialize a int32 value");
 >     }
 > ```
-> Signature mismatch in signal handlers is probably the most common reason why signals are not received in the client, while we can see them on the bus with `dbus-monitor`. Use `const sdbus::Error*`-based callback variant and inspect the error to check if that's the cause of such problems.
+> Signature mismatch in signal handlers is probably the most common reason why signals are not received in the client, while we can see them on the bus with `dbus-monitor`. Use `std::optional<sdbus::Error>`-based callback variant and inspect the error to check if that's the cause of your problems.
 
 > **_Tip_:** When registering a D-Bus object, we can additionally provide names of input and output parameters of its methods and names of parameters of its signals. When the object is introspected, these names are listed in the resulting introspection XML, which improves the description of object's interfaces:
 > ```c++
@@ -1127,15 +1127,15 @@ int main(int argc, char *argv[])
 {
     /* ...  */
 
-    auto callback = [](MethodReply reply, const sdbus::Error* error)
+    auto callback = [](MethodReply reply, std::optional<sdbus::Error> error)
     {
-        if (error == nullptr) // No error
+        if (!error) // No error
         {
             std::string result;
             reply >> result;
             std::cout << "Got concatenate result: " << result << std::endl;
         }
-        else // We got a D-Bus error...
+        else // We've got a D-Bus error...
         {
             std::cerr << "Got concatenate error " << error->getName() << " with message " << error->getMessage() << std::endl;
         }
@@ -1163,7 +1163,7 @@ int main(int argc, char *argv[])
 }
 ```
 
-The callback is a void-returning function taking two arguments: a reference to the reply message, and a pointer to the prospective `sdbus::Error` instance. Zero `Error` pointer means that no D-Bus error occurred while making the call, and the reply message contains valid reply. Non-zero `Error` pointer, however, points to the valid `Error` instance, meaning that an error occurred. Error name and message can then be read out by the client from that instance.
+The callback is a void-returning function taking two arguments: a reference to the reply message, and a pointer to the prospective `sdbus::Error` instance. Empty `error` optional argument means that no D-Bus error occurred while making the call, and the reply message contains a valid reply. A non-empty `error` argument means that an error occurred during the call, and we can access the error name and message from the `Error` value inside the argument.
 
 There is also an overload of this `IProxy::callMethod()` function taking method call timeout argument.
 
@@ -1192,16 +1192,16 @@ Another option is to use `std::future`-based overload of the `IProxy::callMethod
 
 ### Convenience API
 
-On the convenience API level, the call statement starts with `callMethodAsync()`, and one option is to finish the statement with `uponReplyInvoke()` that takes a callback handler. The callback is a void-returning function that takes at least one argument: pointer to the `sdbus::Error` instance. All subsequent arguments shall exactly reflect the D-Bus method output arguments. A concatenator example:
+On the convenience API level, the call statement starts with `callMethodAsync()`, and one option is to finish the statement with `uponReplyInvoke()` that takes a callback handler. The callback is a void-returning function that takes at least one argument: `std::optional<sdbus::Error>`. All subsequent arguments shall exactly reflect the D-Bus method output arguments. A concatenator example:
 
 ```c++
 int main(int argc, char *argv[])
 {
     /* ...  */
 
-    auto callback = [](const sdbus::Error* error, const std::string& concatenatedString)
+    auto callback = [](std::optional<sdbus::Error> error, const std::string& concatenatedString)
     {
-        if (error == nullptr) // No error
+        if (!error) // No error
             std::cout << "Got concatenate result: " << concatenatedString << std::endl;
         else // We got a D-Bus error...
             std::cerr << "Got concatenate error " << error->getName() << " with message " << error->getMessage() << std::endl;
@@ -1225,7 +1225,7 @@ int main(int argc, char *argv[])
 }
 ```
 
-When the `Error` pointer is zero, it means that no D-Bus error occurred while making the call, and subsequent arguments are valid D-Bus method return values. Non-zero `Error` pointer, however, points to the valid `Error` instance, meaning that an error occurred during the call (and subsequent arguments are simply default-constructed). Error name and message can then be read out by the client from `Error` instance.
+Empty `error` parameter means that no D-Bus error occurred while making the call, and subsequent arguments are valid D-Bus method return values. However, `error` parameter containing a value means that an error occurred during the call (and subsequent arguments are simply default-constructed), and the underlying `Error` instance provides us with the error name and message.
 
 Another option is to finish the async call statement with `getResultAsFuture()`, which is a template function which takes the list of types returned by the D-Bus method (empty list in case of `void`-returning method) which returns a `std::future` object, which will later, when the reply arrives, be set to contain the return value(s). Or if the call returns an error, `sdbus::Error` will be thrown by `std::future::get()`.
 
@@ -1274,7 +1274,7 @@ An asynchronous method can be generated as a callback-based method or `std::futu
 
 For each client-side async method, a corresponding `on<MethodName>Reply` pure virtual function, where `<MethodName>` is the capitalized D-Bus method name, is generated in the generated proxy class. This function is the callback invoked when the D-Bus method reply arrives, and must be provided a body by overriding it in the implementation class.
 
-So in the specific example above, the tool will generate a `Concatenator_proxy` class similar to one shown in a [dedicated section above](#concatenator-client-glueh), with the difference that it will also generate an additional `virtual void onConcatenateReply(const sdbus::Error* error, const std::string& concatenatedString);` method, which we shall override in derived `ConcatenatorProxy`.
+So in the specific example above, the tool will generate a `Concatenator_proxy` class similar to one shown in a [dedicated section above](#concatenator-client-glueh), with the difference that it will also generate an additional `virtual void onConcatenateReply(std::optional<sdbus::Error> error, const std::string& concatenatedString);` method, which we shall override in the derived `ConcatenatorProxy`.
 
 #### Generating std:future-based async methods
 
@@ -1324,7 +1324,7 @@ Getting a property in asynchronous manner is also possible, in both callback-bas
 
 ```c++
 // Callback-based method:
-auto callback = [](const sdbus::Error* err, sdbus::Variant value)
+auto callback = [](std::optional<sdbus::Error> /*error*/, sdbus::Variant value)
 {
     std::cout << "Got property value: " << value.get<uint32_t>() << std::endl;
 };
@@ -1335,7 +1335,7 @@ std::future<sdbus::Variant> statusFuture = object.getPropertyAsync("status").onI
 std::cout << "Got property value: " << statusFuture.get().get<uint32_t>() << std::endl;
 ```
 
-More information on `error` callback handler parameter, on behavior of `future` in erroneous situations, can be found in section [Asynchronous client-side methods](#asynchronous-client-side-methods).
+More information on an `error` callback handler parameter, on behavior of `future` in erroneous situations, can be found in section [Asynchronous client-side methods](#asynchronous-client-side-methods).
 
 #### Writing a property
 
@@ -1350,7 +1350,7 @@ Setting a property in asynchronous manner is also possible, in both callback-bas
 
 ```c++
 // Callback-based method:
-auto callback = [](const sdbus::Error* err) { /*... Error handling in case err is non-null...*/ };
+auto callback = [](std::optional<sdbus::Error> error { /*... Error handling in case error contains a value...*/ };
 uint32_t status = proxy->setPropertyAsync("status").onInterface("org.sdbuscpp.Concatenator").toValue(status).uponReplyInvoke(std::move(callback));
 // Future-based method:
 std::future<void> statusFuture = object.setPropertyAsync("status").onInterface("org.sdbuscpp.Concatenator").getResultAsFuture();
@@ -1473,13 +1473,13 @@ class PropertyProvider_proxy
 {
     /*...*/
 
-    virtual void onStatusPropertyGetReply(const uint32_t& value, const sdbus::Error* error) = 0;
+    virtual void onStatusPropertyGetReply(const uint32_t& value, std::optional<sdbus::Error> error) = 0;
 
 public:
     // getting the property value
     sdbus::PendingAsyncCall status()
     {
-        return object_->getPropertyAsync("status").onInterface(INTERFACE_NAME).uponReplyInvoke([this](const sdbus::Error* error, const sdbus::Variant& value){ this->onActionPropertyGetReply(value.get<uint32_t>(), error); });
+        return object_->getPropertyAsync("status").onInterface(INTERFACE_NAME).uponReplyInvoke([this](std::optional<sdbus::Error> error, const sdbus::Variant& value){ this->onStatusPropertyGetReply(value.get<uint32_t>(), std::move(error)); });
     }
 
     // setting the property value
