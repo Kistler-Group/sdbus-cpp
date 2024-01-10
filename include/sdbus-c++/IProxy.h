@@ -343,7 +343,7 @@ namespace sdbus {
          * Example of use:
          * @code
          * std::future<sdbus::Variant> state = object.getPropertyAsync("state").onInterface("com.kistler.foo").getResultAsFuture();
-         * auto callback = [](const sdbus::Error* err, const sdbus::Variant& value){ ... };
+         * auto callback = [](std::optional<sdbus::Error> err, const sdbus::Variant& value){ ... };
          * object.getPropertyAsync("state").onInterface("com.kistler.foo").uponReplyInvoke(std::move(callback));
          * @endcode
          *
@@ -420,7 +420,7 @@ namespace sdbus {
          *
          * Example of use:
          * @code
-         * auto callback = [](const sdbus::Error* err, const std::map<std::string, Variant>>& properties){ ... };
+         * auto callback = [](std::optional<sdbus::Error> err, const std::map<std::string, Variant>>& properties){ ... };
          * auto props = object.getAllPropertiesAsync().onInterface("com.kistler.foo").uponReplyInvoke(std::move(callback));
          * @endcode
          *

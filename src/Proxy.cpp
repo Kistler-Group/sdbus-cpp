@@ -121,12 +121,12 @@ std::future<MethodReply> Proxy::callMethodAsync(const MethodCall& message, uint6
     auto promise = std::make_shared<std::promise<MethodReply>>();
     auto future = promise->get_future();
 
-    async_reply_handler asyncReplyCallback = [promise = std::move(promise)](MethodReply reply, const Error* error) noexcept
+    async_reply_handler asyncReplyCallback = [promise = std::move(promise)](MethodReply reply, std::optional<Error> error) noexcept
     {
-        if (error == nullptr)
+        if (!error)
             promise->set_value(std::move(reply));
         else
-            promise->set_exception(std::make_exception_ptr(*error));
+            promise->set_exception(std::make_exception_ptr(*std::move(error)));
     };
 
     (void)Proxy::callMethodAsync(message, std::move(asyncReplyCallback), timeout);
@@ -207,12 +207,12 @@ int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userDat
         const auto* error = sd_bus_message_get_error(sdbusMessage);
         if (error == nullptr)
         {
-            asyncCallData->callback(std::move(message), nullptr);
+            asyncCallData->callback(std::move(message), {});
         }
         else
         {
             Error exception(error->name, error->message);
-            asyncCallData->callback(std::move(message), &exception);
+            asyncCallData->callback(std::move(message), std::move(exception));
         }
     }, retError);
 
