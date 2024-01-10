@@ -273,7 +273,7 @@ namespace sdbus {
             close();
         }
 
-        int get() const
+        [[nodiscard]] int get() const
         {
             return fd_;
         }
@@ -293,7 +293,7 @@ namespace sdbus {
             return std::exchange(fd_, -1);
         }
 
-        bool isValid() const
+        [[nodiscard]] bool isValid() const
         {
             return fd_ >= 0;
         }
