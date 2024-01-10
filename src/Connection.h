@@ -83,11 +83,11 @@ namespace sdbus::internal {
 
         void requestName(const std::string& name) override;
         void releaseName(const std::string& name) override;
-        std::string getUniqueName() const override;
+        [[nodiscard]] std::string getUniqueName() const override;
         void enterEventLoop() override;
         void enterEventLoopAsync() override;
         void leaveEventLoop() override;
-        PollData getEventLoopPollData() const override;
+        [[nodiscard]] PollData getEventLoopPollData() const override;
         bool processPendingEvent() override;
         Message getCurrentlyProcessedMessage() const override;
 
@@ -96,7 +96,7 @@ namespace sdbus::internal {
         Slot addObjectManager(const std::string& objectPath, return_slot_t) override;
 
         void setMethodCallTimeout(uint64_t timeout) override;
-        uint64_t getMethodCallTimeout() const override;
+        [[nodiscard]] uint64_t getMethodCallTimeout() const override;
 
         [[nodiscard]] Slot addMatch(const std::string& match, message_handler callback) override;
         void addMatch(const std::string& match, message_handler callback, floating_slot_t) override;
@@ -107,22 +107,22 @@ namespace sdbus::internal {
         void detachSdEventLoop() override;
         sd_event *getSdEventLoop() override;
 
-        const ISdBus& getSdBusInterface() const override;
-        ISdBus& getSdBusInterface() override;
+        [[nodiscard]] const ISdBus& getSdBusInterface() const override;
+        [[nodiscard]] ISdBus& getSdBusInterface() override;
 
         Slot addObjectVTable( const std::string& objectPath
                             , const std::string& interfaceName
                             , const sd_bus_vtable* vtable
                             , void* userData ) override;
 
-        PlainMessage createPlainMessage() const override;
-        MethodCall createMethodCall( const std::string& destination
-                                   , const std::string& objectPath
-                                   , const std::string& interfaceName
-                                   , const std::string& methodName ) const override;
-        Signal createSignal( const std::string& objectPath
-                           , const std::string& interfaceName
-                           , const std::string& signalName ) const override;
+        [[nodiscard]] PlainMessage createPlainMessage() const override;
+        [[nodiscard]] MethodCall createMethodCall( const std::string& destination
+                                                 , const std::string& objectPath
+                                                 , const std::string& interfaceName
+                                                 , const std::string& methodName ) const override;
+        [[nodiscard]] Signal createSignal( const std::string& objectPath
+                                         , const std::string& interfaceName
+                                         , const std::string& signalName ) const override;
 
         MethodReply callMethod(const MethodCall& message, uint64_t timeout) override;
         void callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout, floating_slot_t) override;
@@ -155,7 +155,7 @@ namespace sdbus::internal {
         void finishHandshake(sd_bus* bus);
         bool waitForNextEvent();
 
-        bool arePendingMessagesInReadQueue() const;
+        [[nodiscard]] bool arePendingMessagesInReadQueue() const;
 
         void notifyEventLoopToExit();
         void notifyEventLoopToWakeUpFromPoll();
