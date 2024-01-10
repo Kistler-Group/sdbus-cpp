@@ -381,7 +381,7 @@ namespace sdbus {
          *
          * @deprecated This function has been replaced by getEventLoopPollData()
          */
-        [[deprecated("This function has been replaced by getEventLoopPollData()")]] PollData getProcessLoopPollData() const;
+        [[nodiscard]] [[deprecated("This function has been replaced by getEventLoopPollData()")]] PollData getProcessLoopPollData() const;
 
         /*!
          * @struct PollData

@@ -488,7 +488,7 @@ namespace sdbus {
          * Pending call in this context means a call whose results have not arrived, or
          * have arrived and are currently being processed by the callback handler.
          */
-        bool isPending() const;
+        [[nodiscard]] bool isPending() const;
 
     private:
         friend internal::Proxy;

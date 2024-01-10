@@ -70,9 +70,9 @@ namespace sdbus::internal {
                                   , return_slot_t ) override;
         void unregister() override;
 
-        sdbus::IConnection& getConnection() const override;
-        const std::string& getObjectPath() const override;
-        Message getCurrentlyProcessedMessage() const override;
+        [[nodiscard]] sdbus::IConnection& getConnection() const override;
+        [[nodiscard]] const std::string& getObjectPath() const override;
+        [[nodiscard]] Message getCurrentlyProcessedMessage() const override;
 
     private:
         static int sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
