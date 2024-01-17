@@ -69,6 +69,11 @@ namespace sdbus {
             return *proxy_;
         }
 
+        bool hasProxy()
+        {
+            return proxy_ == nullptr;
+        }
+
     private:
         std::unique_ptr<IProxy> proxy_;
     };
