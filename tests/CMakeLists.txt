@@ -2,9 +2,6 @@
 # DOWNLOAD AND BUILD OF GOOGLETEST
 #-------------------------------
 
-set(GOOGLETEST_VERSION 1.10.0 CACHE STRING "Version of gmock to use")
-set(GOOGLETEST_GIT_REPO "https://github.com/google/googletest.git" CACHE STRING "A git repo to clone and build googletest from if gmock is not found in the system")
-
 find_package(GTest ${GOOGLETEST_VERSION} CONFIG)
 if (NOT TARGET GTest::gmock)
     # Try pkg-config if GTest was not found through CMake config
@@ -106,14 +103,14 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 add_executable(sdbus-c++-unit-tests ${UNITTESTS_SRCS})
 target_compile_definitions(sdbus-c++-unit-tests PRIVATE
-    LIBSYSTEMD_VERSION=${LIBSYSTEMD_VERSION}
+    LIBSYSTEMD_VERSION=${SDBUSCPP_LIBSYSTEMD_VERSION}
     SDBUS_${LIBSYSTEMD_IMPL}
     SDBUS_HEADER=<${LIBSYSTEMD_IMPL}/sd-bus.h>)
 target_link_libraries(sdbus-c++-unit-tests sdbus-c++-objlib GTest::gmock)
 
 add_executable(sdbus-c++-integration-tests ${INTEGRATIONTESTS_SRCS})
 target_compile_definitions(sdbus-c++-integration-tests PRIVATE
-    LIBSYSTEMD_VERSION=${LIBSYSTEMD_VERSION}
+    LIBSYSTEMD_VERSION=${SDBUSCPP_LIBSYSTEMD_VERSION}
     SDBUS_${LIBSYSTEMD})
 if(NOT LIBSYSTEMD STREQUAL "basu")
     # Systemd::Libsystemd is included because integration tests use sd-event. Otherwise sdbus-c++ encapsulates and hides libsystemd.
@@ -123,15 +120,11 @@ else()
     target_link_libraries(sdbus-c++-integration-tests sdbus-c++ GTest::gmock)
 endif()
 
-# Manual performance and stress tests
-option(ENABLE_PERF_TESTS "Build and install manual performance tests (default OFF)" OFF)
-option(ENABLE_STRESS_TESTS "Build and install manual stress tests (default OFF)" OFF)
-
-if(ENABLE_PERF_TESTS OR ENABLE_STRESS_TESTS)
+if(SDBUSCPP_BUILD_PERF_TESTS OR SDBUSCPP_BUILD_STRESS_TESTS)
     set(THREADS_PREFER_PTHREAD_FLAG ON)
     find_package(Threads REQUIRED)
 
-    if(ENABLE_PERF_TESTS)
+    if(SDBUSCPP_BUILD_PERF_TESTS)
         message(STATUS "Building with performance tests")
         add_executable(sdbus-c++-perf-tests-client ${STRESSTESTS_CLIENT_SRCS})
         target_link_libraries(sdbus-c++-perf-tests-client sdbus-c++ Threads::Threads)
@@ -139,7 +132,7 @@ if(ENABLE_PERF_TESTS OR ENABLE_STRESS_TESTS)
         target_link_libraries(sdbus-c++-perf-tests-server sdbus-c++ Threads::Threads)
     endif()
 
-    if(ENABLE_STRESS_TESTS)
+    if(SDBUSCPP_BUILD_STRESS_TESTS)
         message(STATUS "Building with stress tests")
         add_executable(sdbus-c++-stress-tests ${STRESSTESTS_SRCS})
         target_link_libraries(sdbus-c++-stress-tests sdbus-c++ Threads::Threads)
@@ -150,25 +143,25 @@ endif()
 # INSTALLATION
 #----------------------------------
 
-option(INSTALL_TESTS "Install tests (default OFF)" OFF)
-
-if(INSTALL_TESTS)
+if(SDBUSCPP_INSTALL)
     include(GNUInstallDirs)
-    set(TESTS_INSTALL_PATH "tests/${PROJECT_NAME}" CACHE STRING "Specifies where the test binaries will be installed")
-
-    install(TARGETS sdbus-c++-unit-tests DESTINATION ${TESTS_INSTALL_PATH} COMPONENT test)
-    install(TARGETS sdbus-c++-integration-tests DESTINATION ${TESTS_INSTALL_PATH} COMPONENT test)
-    install(FILES ${INTEGRATIONTESTS_SOURCE_DIR}/files/org.sdbuscpp.integrationtests.conf DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/dbus-1/system.d COMPONENT test)
-
-    if(ENABLE_PERF_TESTS)
-        install(TARGETS sdbus-c++-perf-tests-client DESTINATION ${TESTS_INSTALL_PATH} COMPONENT test)
-        install(TARGETS sdbus-c++-perf-tests-server DESTINATION ${TESTS_INSTALL_PATH} COMPONENT test)
-        install(FILES ${PERFTESTS_SOURCE_DIR}/files/org.sdbuscpp.perftests.conf DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/dbus-1/system.d COMPONENT test)
+    install(TARGETS sdbus-c++-unit-tests DESTINATION ${SDBUSCPP_TESTS_INSTALL_PATH} COMPONENT test)
+    install(TARGETS sdbus-c++-integration-tests DESTINATION ${SDBUSCPP_TESTS_INSTALL_PATH} COMPONENT test)
+    install(FILES ${INTEGRATIONTESTS_SOURCE_DIR}/files/org.sdbuscpp.integrationtests.conf
+            DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/dbus-1/system.d
+            COMPONENT test)
+    if(SDBUSCPP_BUILD_PERF_TESTS)
+        install(TARGETS sdbus-c++-perf-tests-client DESTINATION ${SDBUSCPP_TESTS_INSTALL_PATH} COMPONENT test)
+        install(TARGETS sdbus-c++-perf-tests-server DESTINATION ${SDBUSCPP_TESTS_INSTALL_PATH} COMPONENT test)
+        install(FILES ${PERFTESTS_SOURCE_DIR}/files/org.sdbuscpp.perftests.conf
+                DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/dbus-1/system.d
+                COMPONENT test)
     endif()
-
-    if(ENABLE_STRESS_TESTS)
-        install(TARGETS sdbus-c++-stress-tests DESTINATION ${TESTS_INSTALL_PATH} COMPONENT test)
-        install(FILES ${STRESSTESTS_SOURCE_DIR}/files/org.sdbuscpp.stresstests.conf DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/dbus-1/system.d COMPONENT test)
+    if(SDBUSCPP_BUILD_STRESS_TESTS)
+        install(TARGETS sdbus-c++-stress-tests DESTINATION ${SDBUSCPP_TESTS_INSTALL_PATH} COMPONENT test)
+        install(FILES ${STRESSTESTS_SOURCE_DIR}/files/org.sdbuscpp.stresstests.conf
+                DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/dbus-1/system.d
+                COMPONENT test)
     endif()
 endif()
 
