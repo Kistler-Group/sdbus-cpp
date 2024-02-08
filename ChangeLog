@@ -253,8 +253,22 @@ v2.x
   - `PollData::getRelativeTimeout()` return type was changed to `std::chrono::microseconds`.
   - `IConnection::processPendingRequest()` was renamed to `IConnection::processPendingEvent()`.
   - `Variant` constructor is now explicit.
-  - Object D-Bus API registration is now done through `IObject::addVTable()` method. The registration is immediate; no `finishRegistration()` call is needed anymore.
+  - `IProxy::getCurrentlyProcessedMessage()` now returns `Message` by value instead of a raw pointer to it. The caller assumes ownership of the message.
+  - Object D-Bus API registration is now done through `IObject::addVTable()` method. The registration holds immediately; no `finishRegistration()` call is needed anymore.
+  - Subscription to signals has been simplified. The subscription is active right after the `registerSignalHandler`/`uponSignal()` call. No need for the final
+    call to `finishRegistration()`. `IProxy::muteSignal()` has been removed in favor of the RAII-based slot object returned by the slot-returning variant of the
+    registration method. Destroying the slot object means unsubscribing from the signal.
+  - `request_slot` tag was renamed to `return_slot`.
+  - `[[nodiscard]]` attribute has been added to relevant API methods.
+  - `ProxyInterfaces::getObjectPath()` was removed, it can be replaced with `ProxyInterfaces::getProxy().getObjectPath()`.
+  - `AdaptorInterfaces::getObjectPath()` was removed, it can be replaced with `AdaptorInterfaces::getObject().getObjectPath()`.
+  - Callbacks taking `const sdbus::Error* error` were changed to take `std::optional<sdbus::Error>`, which better expresses the intent and meaning.
+  - Types and methods marked deprecated in sdbus-c++ v1 were removed completely.
+  - CMake options got `SDBUSCPP_` prefix for better usability and minimal risk of conflicts in downstream CMake projects.
+  - CMake components got `sdbus-c++-` prefix.
 - Systemd of at least v238 is required to compile sdbus-c++
 - A proper fix for timeout handling
 - Fix for external event loops in which the event loop thread ID was not correctly initialized (now fixed and simplified by not needing the thread ID anymore)
+- Introduce native integration for sd-event
+- Add method to get currently processed message also to `IConnection`
 - Other simplifications, improvements and fixes springing out from the above refactoring
