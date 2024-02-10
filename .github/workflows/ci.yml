@@ -63,19 +63,19 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_CXX_FLAGS="-O0 -g -W -Wextra -Wall -Wnon-virtual-dtor -Werror" -DCMAKE_VERBOSE_MAKEFILE=ON -DBUILD_TESTS=ON -DINSTALL_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON -DBUILD_CODE_GEN=ON ..
+        cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_CXX_FLAGS="-O0 -g -W -Wextra -Wall -Wnon-virtual-dtor -Werror" -DCMAKE_VERBOSE_MAKEFILE=ON -DSDBUSCPP_INSTALL=ON -DBUILD_TESTS=ON -DSDBUSCPP_BUILD_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON -DBUILD_CODE_GEN=ON ..
     - name: configure-release
       if: matrix.build == 'shared-libsystemd' && matrix.os == 'ubuntu-22.04'
       run: |
         mkdir build
         cd build
-        cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_CXX_FLAGS="-O3 -DNDEBUG -W -Wextra -Wall -Wnon-virtual-dtor -Werror" -DCMAKE_VERBOSE_MAKEFILE=ON -DBUILD_TESTS=ON -DINSTALL_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON -DBUILD_CODE_GEN=ON ..
+        cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_CXX_FLAGS="-O3 -DNDEBUG -W -Wextra -Wall -Wnon-virtual-dtor -Werror" -DCMAKE_VERBOSE_MAKEFILE=ON -DSDBUSCPP_INSTALL=ON -DBUILD_TESTS=ON -DSDBUSCPP_BUILD_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON -DBUILD_CODE_GEN=ON ..
     - name: configure-with-embedded-libsystemd
       if: matrix.build == 'embedded-static-libsystemd'
       run: |
         mkdir build
         cd build
-        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_VERBOSE_MAKEFILE=ON -DBUILD_TESTS=ON -DINSTALL_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON -DBUILD_CODE_GEN=ON -DBUILD_LIBSYSTEMD=ON -DLIBSYSTEMD_VERSION=252 ..
+        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_VERBOSE_MAKEFILE=ON -DSDBUSCPP_INSTALL=ON -DBUILD_TESTS=ON -DSDBUSCPP_BUILD_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON -DBUILD_CODE_GEN=ON -DSDBUSCPP_BUILD_LIBSYSTEMD=ON -DSDBUSCPP_LIBSYSTEMD_VERSION=252 ..
     - name: make
       run: |
         cd build
@@ -112,7 +112,7 @@ jobs:
         prepare: |
           pkg install -y cmake ninja pkgconf basu expat googletest
         run: |
-          cmake -B _build -G Ninja -DBUILD_CODE_GEN=ON -DBUILD_TESTS=ON -DINSTALL_TESTS=ON -DENABLE_PERF_TESTS=ON -DENABLE_STRESS_TESTS=ON
+          cmake -B _build -G Ninja -DSDBUSCPP_INSTALL=ON -DBUILD_CODE_GEN=ON -DBUILD_TESTS=ON -DENABLE_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON
           cmake --build _build
           cmake --install _build
           pkg install -y dbus
