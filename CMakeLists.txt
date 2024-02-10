@@ -275,22 +275,22 @@ if(SDBUSCPP_INSTALL)
     endif()
     install(TARGETS ${EXPORT_SET}
             EXPORT sdbus-c++-targets
-            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT runtime
-            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT runtime NAMELINK_COMPONENT dev
-            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT dev
-            PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${SDBUSCPP_INCLUDE_SUBDIR} COMPONENT dev)
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT sdbus-c++-runtime
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT sdbus-c++-runtime NAMELINK_COMPONENT sdbus-c++-dev
+            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT sdbus-c++-dev
+            PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${SDBUSCPP_INCLUDE_SUBDIR} COMPONENT sdbus-c++-dev)
     install(EXPORT sdbus-c++-targets
             DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/sdbus-c++
             NAMESPACE SDBusCpp::
-            COMPONENT dev)
+            COMPONENT sdbus-c++-dev)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/sdbus-c++-config.cmake
             ${CMAKE_CURRENT_BINARY_DIR}/cmake/sdbus-c++-config-version.cmake
             DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/sdbus-c++
-            COMPONENT dev)
+            COMPONENT sdbus-c++-dev)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/sdbus-c++.pc
-            DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig COMPONENT dev)
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig COMPONENT sdbus-c++-dev)
     if(SDBUSCPP_BUILD_DOCS)
-        install(FILES README README.md NEWS COPYING ChangeLog AUTHORS DESTINATION ${CMAKE_INSTALL_DOCDIR} COMPONENT doc)
+        install(FILES README README.md NEWS COPYING ChangeLog AUTHORS DESTINATION ${CMAKE_INSTALL_DOCDIR} COMPONENT sdbus-c++-doc)
     endif()
 endif()
 
