@@ -7,6 +7,6 @@ add_executable(obj-manager-client org.freedesktop.DBus.ObjectManager/obj-manager
 target_link_libraries(obj-manager-client sdbus-c++)
 
 if(SDBUSCPP_INSTALL)
-    install(TARGETS obj-manager-server DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT examples)
-    install(TARGETS obj-manager-client DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT examples)
+    install(TARGETS obj-manager-server DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT sdbus-c++-examples)
+    install(TARGETS obj-manager-client DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT sdbus-c++-examples)
 endif()
