@@ -390,7 +390,7 @@ int main(int argc, char *argv[])
 }
 ```
 
-In simple cases, we don't need to create D-Bus connection explicitly for our proxies. Unless a connection is provided to a proxy object explicitly via factory parameter, the proxy will create a connection of his own (unless it is a light-weight, short-lived proxy created with `dont_run_event_loop_thread_t`), and it will be a system bus connection. This is the case in the example above. (This approach is not scalable and resource-saving if we have plenty of proxies; see section [Working with D-Bus connections](#working-with-d-bus-connections-in-sdbus-c) for elaboration.) So, in the example, we create a proxy for object `/org/sdbuscpp/concatenator` publicly available at bus `org.sdbuscpp.concatenator`. We register handlers for signals we are interested in (if any).
+In simple cases, we don't need to create D-Bus connection explicitly for our proxies. We either pass a connection object to the proxy upon creation, or otherwise the proxy will create a connection of his own (to either the session bus or the system bus, depending on the context, see `man sd_bus_open`). This is the case in the example above. (This approach is not scalable and resource-saving if we have plenty of proxies; see section [Working with D-Bus connections](#working-with-d-bus-connections-in-sdbus-c) for elaboration.) So, in the example, we create a proxy for object `/org/sdbuscpp/concatenator` publicly available at bus `org.sdbuscpp.concatenator`. We register handlers for signals we are interested in (if any).
 
 The callback for a D-Bus signal handler on this level is any callable of signature `void(sdbus::Signal signal)`. The one and only parameter `signal` is the incoming signal message. We need to deserialize arguments from it, and then we can do our business logic with it.
 
@@ -404,10 +404,8 @@ Please note that we can create and destroy D-Bus object proxies dynamically, at 
 
 There are several factory methods to create a bus connection object in sdbus-c++:
 
-* `createConnection()` - opens a connection to the system bus
-* `createConnection(const std::string& name)` - opens a connection with the given name to the system bus
-* `createDefaultBusConnection()` - opens a connection to the session bus when in a user context, and a connection to the system bus, otherwise
-* `createDefaultBusConnection(const std::string& name)` - opens a connection with the given name to the session bus when in a user context, and a connection with the given name to the system bus, otherwise
+* `createBusConnection()` - opens a connection to the session bus when in a user context, and a connection to the system bus, otherwise
+* `createBusConnection(const std::string& name)` - opens a connection with the given name to the session bus when in a user context, and a connection with the given name to the system bus, otherwise
 * `createSystemBusConnection()` - opens a connection to the system bus
 * `createSystemBusConnection(const std::string& name)` - opens a connection with the given name to the system bus
 * `createSessionBusConnection()` - opens a connection to the session bus
@@ -467,7 +465,7 @@ On the **client** side we likewise need a connection -- just that unlike on the 
       * when created **without** `dont_run_event_loop_thread_t` tag, the proxy **will start** a dedicated event loop thread on that connection;
       * or, when created **with** `dont_run_event_loop_thread_t` tag, the proxy will start **no** event loop thread on that connection.
 
-    * Or we don't care about connnections at all (proxy factory overloads with no connection parameter). Under the hood, the proxy creates its own *system bus* connection. Additionally:
+    * Or we don't care about connnections at all (proxy factory overloads with no connection parameter). Under the hood, the proxy creates its own connection, to either the session bus (when in a user context) or the system bus otherwise. Additionally:
       * when created **without** `dont_run_event_loop_thread_t` tag, the proxy **will start** a dedicated event loop thread on that connection;
       * or, when created **with** `dont_run_event_loop_thread_t` tag, the proxy will start **no** event loop thread on that connection.
 
@@ -926,7 +924,7 @@ protected:
 
 > **_Tip_:** By inheriting from `sdbus::ProxyInterfaces`, we get access to the protected `getProxy()` method. We can call this method inside our proxy implementation class to access the underlying `IProxy` object.
 
-In the above example, a proxy is created that creates and maintains its own system bus connection. However, there are `ProxyInterfaces` class template constructor overloads that also take the connection from the user as the first parameter, and pass that connection over to the underlying proxy. The connection instance is used by all interfaces listed in the `ProxyInterfaces` template parameter list.
+In the above example, a proxy is created that creates and maintains its own bus connection (the bus is either session bus or system bus depending on the context, see `man sd_bus_open`). However, there are `ProxyInterfaces` class template constructor overloads that also take the connection from the user as the first parameter, and pass that connection over to the underlying proxy. The connection instance is used by all interfaces listed in the `ProxyInterfaces` template parameter list.
 
 Note however that there are multiple `ProxyInterfaces` constructor overloads, and they differ in how the proxy behaves towards the D-Bus connection. These overloads precisely map the `sdbus::createProxy` overloads, as they are actually implemented on top of them. See [Proxy and D-Bus connection](#Proxy-and-D-Bus-connection) for more info. We can even create a `IProxy` instance on our own, and inject it into our proxy class -- there is a constructor overload for it in `ProxyInterfaces`. This can help if we need to provide mocked implementations in our unit tests.
 

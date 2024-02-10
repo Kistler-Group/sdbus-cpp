@@ -53,7 +53,7 @@ using ADirectConnection = TestFixtureWithDirectConnection;
 
 TEST(AdaptorAndProxy, CanBeConstructedSuccesfully)
 {
-    auto connection = sdbus::createConnection();
+    auto connection = sdbus::createBusConnection();
     connection->requestName(BUS_NAME);
 
     ASSERT_NO_THROW(TestAdaptor adaptor(*connection, OBJECT_PATH));
