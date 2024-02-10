@@ -91,7 +91,6 @@ namespace sdbus::internal {
         bool processPendingEvent() override;
         Message getCurrentlyProcessedMessage() const override;
 
-        void addObjectManager(const std::string& objectPath) override;
         void addObjectManager(const std::string& objectPath, floating_slot_t) override;
         Slot addObjectManager(const std::string& objectPath, return_slot_t) override;
 
