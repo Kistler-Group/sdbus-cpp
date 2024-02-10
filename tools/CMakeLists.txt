@@ -46,30 +46,37 @@ target_link_libraries (sdbus-c++-xml2cpp ${EXPAT_LIBRARIES})
 target_include_directories(sdbus-c++-xml2cpp PRIVATE ${EXPAT_INCLUDE_DIRS})
 
 #----------------------------------
-# INSTALLATION
-#----------------------------------
-
-install(TARGETS sdbus-c++-xml2cpp EXPORT sdbus-c++-tools-targets DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT dev)
-
-#----------------------------------
 # CMAKE CONFIG & PACKAGE CONFIG
 #----------------------------------
 
 include(CMakePackageConfigHelpers)
 
-install(EXPORT sdbus-c++-tools-targets
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/sdbus-c++-tools
-        NAMESPACE SDBusCpp::
-        COMPONENT dev)
-
 configure_package_config_file(cmake/sdbus-c++-tools-config.cmake.in cmake/sdbus-c++-tools-config.cmake
                               INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/sdbus-c++)
 write_basic_package_version_file(cmake/sdbus-c++-tools-config-version.cmake COMPATIBILITY SameMajorVersion)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/sdbus-c++-tools-config.cmake
-              ${CMAKE_CURRENT_BINARY_DIR}/cmake/sdbus-c++-tools-config-version.cmake
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/sdbus-c++-tools
-        COMPONENT dev)
 
 configure_file(pkgconfig/sdbus-c++-tools.pc.in pkgconfig/sdbus-c++-tools.pc @ONLY)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/sdbus-c++-tools.pc
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig COMPONENT dev)
+
+#----------------------------------
+# INSTALLATION
+#----------------------------------
+
+if(NOT DEFINED SDBUSCPP_INSTALL)
+    set(SDBUSCPP_INSTALL ON)
+endif()
+
+if (SDBUSCPP_INSTALL)
+    install(TARGETS sdbus-c++-xml2cpp
+            EXPORT sdbus-c++-tools-targets
+            DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT dev)
+    install(EXPORT sdbus-c++-tools-targets
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/sdbus-c++-tools
+            NAMESPACE SDBusCpp::
+            COMPONENT dev)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/sdbus-c++-tools-config.cmake
+            ${CMAKE_CURRENT_BINARY_DIR}/cmake/sdbus-c++-tools-config-version.cmake
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/sdbus-c++-tools
+            COMPONENT dev)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/sdbus-c++-tools.pc
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig COMPONENT dev)
+endif()

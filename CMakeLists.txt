@@ -8,6 +8,67 @@ project(sdbus-c++ VERSION 2.0.0 LANGUAGES CXX C)
 
 include(GNUInstallDirs) # Installation directories for `install` command and pkgconfig file
 
+# -------------------------------
+# CONFIGURATION OPTIONS
+# -------------------------------
+
+option(SDBUSCPP_BUILD_LIBSYSTEMD "Fetch & build libsystemd static library and make it part of libsdbus-c++, instead of searching for libsystemd in the system" OFF)
+if(SDBUSCPP_BUILD_LIBSYSTEMD)
+    set(SDBUSCPP_LIBSYSTEMD_VERSION "242" CACHE STRING "libsystemd version (>=239) to build and incorporate into libsdbus-c++")
+    set(SDBUSCPP_LIBSYSTEMD_EXTRA_CONFIG_OPTS "" CACHE STRING "Additional configuration options to be passed as-is to libsystemd build system")
+endif()
+option(SDBUSCPP_INSTALL "Enable installation of sdbus-c++ (downstream projects embedding sdbus-c++ may want to turn this OFF)" ON)  #TODO: new, honor
+# TODO: Continue here with search&replace old names with new names
+option(SDBUSCPP_BUILD_TESTS "Build tests" OFF)
+if (SDBUSCPP_BUILD_TESTS)
+    option(SDBUSCPP_BUILD_PERF_TESTS "Build also sdbus-c++ performance tests" OFF) # tranferred from tests/cmake
+    option(SDBUSCPP_BUILD_STRESS_TESTS "Build also sdbus-c++ stress tests" OFF) # tranferred from tests/cmake
+    set(SDBUSCPP_TESTS_INSTALL_PATH "tests/${PROJECT_NAME}" CACHE STRING "Specifies where the test binaries will be installed")  # tranferred from tests/cmake
+    set(SDBUSCPP_GOOGLETEST_VERSION 1.10.0 CACHE STRING "Version of gmock library to use") # tranferred from tests/cmake
+    set(SDBUSCPP_GOOGLETEST_GIT_REPO "https://github.com/google/googletest.git" CACHE STRING "A git repo to clone and build googletest from if gmock is not found in the system") # tranferred from tests/cmake
+endif()
+# TODO: add more embedded options from sub=-cmakefiles
+option(SDBUSCPP_BUILD_CODEGEN "Build generator tool for C++ native bindings" OFF)
+option(SDBUSCPP_BUILD_EXAMPLES "Build example programs" OFF)
+option(SDBUSCPP_BUILD_DOCS "Build documentation for sdbus-c++" ON) # TODO: renamed
+if(SDBUSCPP_BUILD_DOCS)
+    option(SDBUSCPP_BUILD_DOXYGEN_DOCS "Build doxygen documentation for sdbus-c++ API" OFF)
+endif()
+#option(SDBUSCPP_CLANG_TIDY "Co-compile with clang-tidy static analyzer" OFF)
+#option(SDBUSCPP_COVERAGE "Build sdbus-c++ with code coverage instrumentation" OFF)
+# We promote the BUILD_SHARED_LIBS flag to a (global) option only if we are the main project
+if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+    option(BUILD_SHARED_LIBS "Build shared libraries (.so) instead of static ones (.a)" ON)
+endif()
+
+message(STATUS "")
+message(STATUS "  *******************************************")
+message(STATUS "  *         SDBUS-C++ CONFIGURATION         *")
+message(STATUS "  *******************************************")
+message(STATUS "")
+message(STATUS "  SDBUSCPP_BUILD_LIBSYSTEMD: ${SDBUSCPP_BUILD_LIBSYSTEMD}")
+if(SDBUSCPP_BUILD_LIBSYSTEMD)
+    message(STATUS "    SDBUSCPP_LIBSYSTEMD_VERSION: ${SDBUSCPP_LIBSYSTEMD_VERSION}")
+    message(STATUS "    SDBUSCPP_LIBSYSTEMD_EXTRA_CONFIG_OPTS: ${SDBUSCPP_LIBSYSTEMD_EXTRA_CONFIG_OPTS}")
+endif()
+message(STATUS "  SDBUSCPP_INSTALL: ${SDBUSCPP_INSTALL}")
+message(STATUS "  SDBUSCPP_BUILD_TESTS: ${SDBUSCPP_BUILD_TESTS}")
+if(SDBUSCPP_BUILD_TESTS)
+    message(STATUS "    SDBUSCPP_BUILD_PERF_TESTS: ${SDBUSCPP_BUILD_PERF_TESTS}")
+    message(STATUS "    SDBUSCPP_BUILD_STRESS_TESTS: ${SDBUSCPP_BUILD_STRESS_TESTS}")
+    message(STATUS "    SDBUSCPP_TESTS_INSTALL_PATH: ${SDBUSCPP_TESTS_INSTALL_PATH}")
+    message(STATUS "    SDBUSCPP_GOOGLETEST_VERSION: ${SDBUSCPP_GOOGLETEST_VERSION}")
+    message(STATUS "    SDBUSCPP_GOOGLETEST_GIT_REPO: ${SDBUSCPP_GOOGLETEST_GIT_REPO}")
+endif()
+message(STATUS "  SDBUSCPP_BUILD_CODEGEN: ${SDBUSCPP_BUILD_CODEGEN}")
+message(STATUS "  SDBUSCPP_BUILD_EXAMPLES: ${SDBUSCPP_BUILD_EXAMPLES}")
+message(STATUS "  SDBUSCPP_BUILD_DOCS: ${SDBUSCPP_BUILD_DOCS}")
+if(SDBUSCPP_BUILD_DOCS)
+    message(STATUS "    SDBUSCPP_BUILD_DOXYGEN_DOCS: ${SDBUSCPP_BUILD_DOXYGEN_DOCS}")
+endif()
+message(STATUS "  BUILD_SHARED_LIBS: ${BUILD_SHARED_LIBS}")
+message(STATUS "")
+
 #-------------------------------
 # PERFORMING CHECKS & PREPARING THE DEPENDENCIES
 #-------------------------------
@@ -15,9 +76,7 @@ include(GNUInstallDirs) # Installation directories for `install` command and pkg
 set(LIBSYSTEMD_IMPL "systemd")
 set(LIBSYSTEMD_LIB "libsystemd")
 
-option(BUILD_LIBSYSTEMD "Build libsystemd static library and incorporate it into libsdbus-c++" OFF)
-
-if(NOT BUILD_LIBSYSTEMD)
+if(NOT SDBUSCPP_BUILD_LIBSYSTEMD)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(Systemd IMPORTED_TARGET GLOBAL libsystemd>=238)
     if(NOT TARGET PkgConfig::Systemd)
@@ -41,13 +100,13 @@ if(NOT BUILD_LIBSYSTEMD)
         message(FATAL_ERROR "libsystemd of version at least 238 is required, but was not found "
                             "(if you have systemd in your OS, you may want to install package containing pkgconfig "
                             " files for libsystemd library. On Ubuntu, that is libsystemd-dev. "
-                            " Alternatively, you may turn BUILD_LIBSYSTEMD on for sdbus-c++ to download, build "
-                            "and incorporate libsystemd as embedded library within sdbus-c++)")
+                            " Alternatively, you may turn SDBUSCPP_BUILD_LIBSYSTEMD on for sdbus-c++ to download, "
+                            " build and incorporate libsystemd as embedded library within sdbus-c++)")
     endif()
     add_library(Systemd::Libsystemd ALIAS PkgConfig::Systemd)
     string(REGEX MATCHALL "([0-9]+)" SYSTEMD_VERSION_LIST "${Systemd_VERSION}")
-    list(GET SYSTEMD_VERSION_LIST 0 LIBSYSTEMD_VERSION)
-    message(STATUS "Building with libsystemd v${LIBSYSTEMD_VERSION}")
+    list(GET SYSTEMD_VERSION_LIST 0 SDBUSCPP_LIBSYSTEMD_VERSION)
+    message(STATUS "Building with libsystemd v${SDBUSCPP_LIBSYSTEMD_VERSION}")
 else()
     # Build static libsystemd library as an external project
     include(cmake/LibsystemdExternalProject.cmake)
@@ -120,16 +179,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(SDBUSCPP_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
 set(SDBUSCPP_VERSION "${PROJECT_VERSION}")
 
-# We promote the BUILD_SHARED_LIBS flag to a (global) option only if we are the main project
-if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
-    option(BUILD_SHARED_LIBS "Build shared libraries (.so) instead of static ones (.a)" ON)
-endif()
-
 # Having an object target allows unit tests to reuse already built sources without re-building
 add_library(sdbus-c++-objlib OBJECT ${SDBUSCPP_SRCS})
 target_compile_definitions(sdbus-c++-objlib PRIVATE
     BUILD_LIB=1
-    LIBSYSTEMD_VERSION=${LIBSYSTEMD_VERSION}
+    LIBSYSTEMD_VERSION=${SDBUSCPP_LIBSYSTEMD_VERSION}
     SDBUS_${LIBSYSTEMD_IMPL}
     SDBUS_HEADER=<${LIBSYSTEMD_IMPL}/sd-bus.h>)
 target_include_directories(sdbus-c++-objlib PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -137,7 +191,7 @@ target_include_directories(sdbus-c++-objlib PUBLIC $<BUILD_INTERFACE:${CMAKE_CUR
 if(BUILD_SHARED_LIBS)
     set_target_properties(sdbus-c++-objlib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
-if(BUILD_LIBSYSTEMD)
+if(SDBUSCPP_BUILD_LIBSYSTEMD)
     add_dependencies(sdbus-c++-objlib LibsystemdBuildProject)
 endif()
 target_link_libraries(sdbus-c++-objlib
@@ -156,27 +210,10 @@ set_target_properties(sdbus-c++
 target_link_libraries(sdbus-c++ PRIVATE sdbus-c++-objlib)
 
 #----------------------------------
-# INSTALLATION
-#----------------------------------
-set(EXPORT_SET sdbus-c++)
-if(NOT BUILD_SHARED_LIBS)
-    list(APPEND EXPORT_SET "sdbus-c++-objlib")
-endif()
-
-install(TARGETS ${EXPORT_SET}
-        EXPORT sdbus-c++-targets
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT runtime
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT runtime NAMELINK_COMPONENT dev
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT dev
-        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${SDBUSCPP_INCLUDE_SUBDIR} COMPONENT dev)
-
-#----------------------------------
 # TESTS
 #----------------------------------
 
-option(BUILD_TESTS "Build tests (default OFF)" OFF)
-
-if(BUILD_TESTS)
+if(SDBUSCPP_BUILD_TESTS)
     message(STATUS "Building with tests")
     enable_testing()
     add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/tests")
@@ -186,9 +223,7 @@ endif()
 # UTILS
 #----------------------------------
 
-option(BUILD_CODE_GEN "Build and install interface stub code generator (default OFF)" OFF)
-
-if(BUILD_CODE_GEN)
+if(SDBUSCPP_BUILD_CODEGEN)
     message(STATUS "Building with code generator tool")
     add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/tools")
 endif()
@@ -197,9 +232,7 @@ endif()
 # EXAMPLES
 #----------------------------------
 
-option(BUILD_EXAMPLES "Build example programs (default OFF)" OFF)
-
-if(BUILD_EXAMPLES)
+if(SDBUSCPP_BUILD_EXAMPLES)
     message(STATUS "Building with examples")
     add_subdirectory(examples)
 endif()
@@ -208,13 +241,9 @@ endif()
 # DOCUMENTATION
 #----------------------------------
 
-option(BUILD_DOC "Build documentation for sdbus-c++" ON)
-
-if(BUILD_DOC)
+if(SDBUSCPP_BUILD_DOCS)
     message(STATUS "Building with documentation")
-    option(BUILD_DOXYGEN_DOC "Build doxygen documentation for sdbus-c++ API" OFF)
     add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/docs")
-    install(FILES README README.md NEWS COPYING ChangeLog AUTHORS DESTINATION ${CMAKE_INSTALL_DOCDIR} COMPONENT doc)
 endif()
 
 #----------------------------------
@@ -223,39 +252,58 @@ endif()
 
 include(CMakePackageConfigHelpers)
 
-install(EXPORT sdbus-c++-targets
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/sdbus-c++
-        NAMESPACE SDBusCpp::
-        COMPONENT dev)
-
 configure_package_config_file(cmake/sdbus-c++-config.cmake.in cmake/sdbus-c++-config.cmake
                               INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/sdbus-c++)
 write_basic_package_version_file(cmake/sdbus-c++-config-version.cmake COMPATIBILITY SameMajorVersion)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/sdbus-c++-config.cmake
-              ${CMAKE_CURRENT_BINARY_DIR}/cmake/sdbus-c++-config-version.cmake
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/sdbus-c++
-        COMPONENT dev)
 
-if(BUILD_SHARED_LIBS AND (BUILD_LIBSYSTEMD OR Systemd_LINK_LIBRARIES MATCHES "/libsystemd\.a(;|$)"))
+if(BUILD_SHARED_LIBS AND (SDBUSCPP_BUILD_LIBSYSTEMD OR Systemd_LINK_LIBRARIES MATCHES "/libsystemd\.a(;|$)"))
     set(PKGCONFIG_REQS ".private")
 else()
     set(PKGCONFIG_REQS "")
 endif()
 set(PKGCONFIG_DEPS ${LIBSYSTEMD_LIB})
 configure_file(pkgconfig/sdbus-c++.pc.in pkgconfig/sdbus-c++.pc @ONLY)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/sdbus-c++.pc
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig COMPONENT dev)
 
 #----------------------------------
-# CPack
+# INSTALLATION
 #----------------------------------
+
+if(SDBUSCPP_INSTALL)
+    set(EXPORT_SET sdbus-c++)
+    if(NOT BUILD_SHARED_LIBS)
+        list(APPEND EXPORT_SET "sdbus-c++-objlib")
+    endif()
+    install(TARGETS ${EXPORT_SET}
+            EXPORT sdbus-c++-targets
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT runtime
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT runtime NAMELINK_COMPONENT dev
+            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT dev
+            PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${SDBUSCPP_INCLUDE_SUBDIR} COMPONENT dev)
+    install(EXPORT sdbus-c++-targets
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/sdbus-c++
+            NAMESPACE SDBusCpp::
+            COMPONENT dev)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/sdbus-c++-config.cmake
+            ${CMAKE_CURRENT_BINARY_DIR}/cmake/sdbus-c++-config-version.cmake
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/sdbus-c++
+            COMPONENT dev)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/sdbus-c++.pc
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig COMPONENT dev)
+    if(SDBUSCPP_BUILD_DOCS)
+        install(FILES README README.md NEWS COPYING ChangeLog AUTHORS DESTINATION ${CMAKE_INSTALL_DOCDIR} COMPONENT doc)
+    endif()
+endif()
+
+#----------------------------------
+# CPACK
+#----------------------------------
+
 set(CPACK_PACKAGE_VENDOR "Kistler")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "high-level C++ D-Bus library")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "High-level C++ D-Bus library")
 set(CPACK_PACKAGE_CONTACT "info@kistler.com")
 set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
 set(CPACK_COMPONENTS_ALL runtime dev doc)
 set(CPACK_COMPONENT_DEV_DEPENDS "runtime")
-
 # specific for DEB generator
 set(CPACK_DEB_COMPONENT_INSTALL ON)
 set(CPACK_DEBIAN_RUNTIME_DEBUGINFO_PACKAGE ON)
