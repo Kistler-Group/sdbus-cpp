@@ -108,9 +108,9 @@ $ ninja libsystemd.so.0.26.0  # or another version number depending which system
 
 ### Building and distributing libsystemd as part of sdbus-c++
 
-sdbus-c++ provides `BUILD_LIBSYSTEMD` configuration option. When turned on, sdbus-c++ will automatically download and build libsystemd as a static library and make it an opaque part of sdbus-c++ shared library for you. This is the most convenient and effective approach to build, distribute and use sdbus-c++ as a self-contained, systemd-independent library in non-systemd environments. Just make sure your build machine has all dependencies needed by libsystemd build process. That includes, among others, `meson`, `ninja`, `git`, `gperf`, and -- primarily -- libraries and library headers for `libmount`, `libcap` and `librt` (part of glibc). Also, when distributing, make sure these dependency libraries are installed on the production machine.
+sdbus-c++ provides `SDBUSCPP_BUILD_LIBSYSTEMD` configuration option. When turned on, sdbus-c++ will automatically download and build libsystemd as a static library and make it an opaque part of sdbus-c++ shared library for you. This is the most convenient and effective approach to build, distribute and use sdbus-c++ as a self-contained, systemd-independent library in non-systemd environments. Just make sure your build machine has all dependencies needed by libsystemd build process. That includes, among others, `meson`, `ninja`, `git`, `gperf`, and -- primarily -- libraries and library headers for `libmount`, `libcap` and `librt` (part of glibc). Also, when distributing, make sure these dependency libraries are installed on the production machine.
 
-You may additionally set the `LIBSYSTEMD_VERSION` configuration flag to fine-tune the version of systemd to be taken in. (The default value is 242).
+You may additionally set the `SDBUSCPP_LIBSYSTEMD_VERSION` configuration flag to fine-tune the version of systemd to be taken in. (The default value is 242).
 
 Distributing sdbus-c++
 ----------------------
