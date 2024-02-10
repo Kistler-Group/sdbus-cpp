@@ -139,23 +139,6 @@ namespace sdbus {
         virtual sd_event *getSdEventLoop() = 0;
 
         /*!
-         * @brief Adds an ObjectManager at the specified D-Bus object path
-         *
-         * Creates an ObjectManager interface at the specified object path on
-         * the connection. This is a convenient way to interrogate a connection
-         * to see what objects it has.
-         *
-         * This call creates a floating registration. The ObjectManager will
-         * be there for the object path until the connection is destroyed.
-         *
-         * Another, recommended way to add object managers is directly through
-         * IObject API.
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        [[deprecated("Use one of other addObjectManager overloads")]] virtual void addObjectManager(const std::string& objectPath) = 0;
-
-        /*!
          * @brief Returns fd's, I/O events and timeout data to be used in an external event loop
          *
          * This function is useful to hook up a bus connection object with an
@@ -356,34 +339,6 @@ namespace sdbus {
         virtual void addMatchAsync(const std::string& match, message_handler callback, message_handler installCallback, floating_slot_t) = 0;
 
         /*!
-         * @copydoc IConnection::enterEventLoop()
-         *
-         * @deprecated This function has been replaced by enterEventLoop()
-         */
-        [[deprecated("This function has been replaced by enterEventLoop()")]] void enterProcessingLoop();
-
-        /*!
-         * @copydoc IConnection::enterEventLoopAsync()
-         *
-         * @deprecated This function has been replaced by enterEventLoopAsync()
-         */
-        [[deprecated("This function has been replaced by enterEventLoopAsync()")]] void enterProcessingLoopAsync();
-
-        /*!
-         * @copydoc IConnection::leaveEventLoop()
-         *
-         * @deprecated This function has been replaced by leaveEventLoop()
-         */
-        [[deprecated("This function has been replaced by leaveEventLoop()")]] void leaveProcessingLoop();
-
-        /*!
-         * @copydoc IConnection::getEventLoopPollData()
-         *
-         * @deprecated This function has been replaced by getEventLoopPollData()
-         */
-        [[nodiscard]] [[deprecated("This function has been replaced by getEventLoopPollData()")]] PollData getProcessLoopPollData() const;
-
-        /*!
          * @struct PollData
          *
          * Carries poll data needed for integration with external event loop implementations.
@@ -438,26 +393,6 @@ namespace sdbus {
     {
         auto microsecs = std::chrono::duration_cast<std::chrono::microseconds>(timeout);
         return setMethodCallTimeout(microsecs.count());
-    }
-
-    inline void IConnection::enterProcessingLoop()
-    {
-        enterEventLoop();
-    }
-
-    inline void IConnection::enterProcessingLoopAsync()
-    {
-        enterEventLoopAsync();
-    }
-
-    inline void IConnection::leaveProcessingLoop()
-    {
-        leaveEventLoop();
-    }
-
-    inline IConnection::PollData IConnection::getProcessLoopPollData() const
-    {
-        return getEventLoopPollData();
     }
 
     /*!
