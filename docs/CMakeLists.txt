@@ -25,9 +25,9 @@ if(SDBUSCPP_INSTALL)
                   sdbus-c++-class-diagram.uml
                   systemd-dbus-config.md
                   using-sdbus-c++.md
-            DESTINATION ${CMAKE_INSTALL_DOCDIR} COMPONENT doc)
+            DESTINATION ${CMAKE_INSTALL_DOCDIR} COMPONENT sdbus-c++-doc)
 
     if (BUILD_DOXYGEN_DOC AND DOXYGEN_FOUND)
-        install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/html DESTINATION ${CMAKE_INSTALL_DOCDIR} OPTIONAL COMPONENT doc)
+        install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/html DESTINATION ${CMAKE_INSTALL_DOCDIR} OPTIONAL COMPONENT sdbus-c++-doc)
     endif()
 endif()

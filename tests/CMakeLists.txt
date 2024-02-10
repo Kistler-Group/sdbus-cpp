@@ -145,23 +145,23 @@ endif()
 
 if(SDBUSCPP_INSTALL)
     include(GNUInstallDirs)
-    install(TARGETS sdbus-c++-unit-tests DESTINATION ${SDBUSCPP_TESTS_INSTALL_PATH} COMPONENT test)
-    install(TARGETS sdbus-c++-integration-tests DESTINATION ${SDBUSCPP_TESTS_INSTALL_PATH} COMPONENT test)
+    install(TARGETS sdbus-c++-unit-tests DESTINATION ${SDBUSCPP_TESTS_INSTALL_PATH} COMPONENT sdbus-c++-test)
+    install(TARGETS sdbus-c++-integration-tests DESTINATION ${SDBUSCPP_TESTS_INSTALL_PATH} COMPONENT sdbus-c++-test)
     install(FILES ${INTEGRATIONTESTS_SOURCE_DIR}/files/org.sdbuscpp.integrationtests.conf
             DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/dbus-1/system.d
-            COMPONENT test)
+            COMPONENT sdbus-c++-test)
     if(SDBUSCPP_BUILD_PERF_TESTS)
-        install(TARGETS sdbus-c++-perf-tests-client DESTINATION ${SDBUSCPP_TESTS_INSTALL_PATH} COMPONENT test)
-        install(TARGETS sdbus-c++-perf-tests-server DESTINATION ${SDBUSCPP_TESTS_INSTALL_PATH} COMPONENT test)
+        install(TARGETS sdbus-c++-perf-tests-client DESTINATION ${SDBUSCPP_TESTS_INSTALL_PATH} COMPONENT sdbus-c++-test)
+        install(TARGETS sdbus-c++-perf-tests-server DESTINATION ${SDBUSCPP_TESTS_INSTALL_PATH} COMPONENT sdbus-c++-test)
         install(FILES ${PERFTESTS_SOURCE_DIR}/files/org.sdbuscpp.perftests.conf
                 DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/dbus-1/system.d
-                COMPONENT test)
+                COMPONENT sdbus-c++-test)
     endif()
     if(SDBUSCPP_BUILD_STRESS_TESTS)
-        install(TARGETS sdbus-c++-stress-tests DESTINATION ${SDBUSCPP_TESTS_INSTALL_PATH} COMPONENT test)
+        install(TARGETS sdbus-c++-stress-tests DESTINATION ${SDBUSCPP_TESTS_INSTALL_PATH} COMPONENT sdbus-c++-test)
         install(FILES ${STRESSTESTS_SOURCE_DIR}/files/org.sdbuscpp.stresstests.conf
                 DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/dbus-1/system.d
-                COMPONENT test)
+                COMPONENT sdbus-c++-test)
     endif()
 endif()
 
