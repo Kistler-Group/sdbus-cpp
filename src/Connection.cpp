@@ -872,14 +872,6 @@ int IConnection::PollData::getPollTimeout() const
 
 namespace sdbus::internal {
 
-std::unique_ptr<sdbus::internal::IConnection> createConnection()
-{
-    auto connection = sdbus::createConnection();
-    SCOPE_EXIT{ connection.release(); };
-    auto connectionInternal = dynamic_cast<sdbus::internal::IConnection*>(connection.get());
-    return std::unique_ptr<sdbus::internal::IConnection>(connectionInternal);
-}
-
 std::unique_ptr<sdbus::internal::IConnection> createPseudoConnection()
 {
     auto interface = std::make_unique<sdbus::internal::SdBus>();
@@ -892,25 +884,15 @@ namespace sdbus {
 
 using internal::Connection;
 
-std::unique_ptr<sdbus::IConnection> createConnection()
-{
-    return createSystemBusConnection();
-}
-
-std::unique_ptr<sdbus::IConnection> createConnection(const std::string& name)
-{
-    return createSystemBusConnection(name);
-}
-
-std::unique_ptr<sdbus::IConnection> createDefaultBusConnection()
+std::unique_ptr<sdbus::IConnection> createBusConnection()
 {
     auto interface = std::make_unique<sdbus::internal::SdBus>();
     return std::make_unique<sdbus::internal::Connection>(std::move(interface), Connection::default_bus);
 }
 
-std::unique_ptr<sdbus::IConnection> createDefaultBusConnection(const std::string& name)
+std::unique_ptr<sdbus::IConnection> createBusConnection(const std::string& name)
 {
-    auto conn = createDefaultBusConnection();
+    auto conn = createBusConnection();
     conn->requestName(name);
     return conn;
 }
