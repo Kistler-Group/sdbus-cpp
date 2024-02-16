@@ -17,8 +17,7 @@ if(SDBUSCPP_BUILD_LIBSYSTEMD)
     set(SDBUSCPP_LIBSYSTEMD_VERSION "242" CACHE STRING "libsystemd version (>=239) to build and incorporate into libsdbus-c++")
     set(SDBUSCPP_LIBSYSTEMD_EXTRA_CONFIG_OPTS "" CACHE STRING "Additional configuration options to be passed as-is to libsystemd build system")
 endif()
-option(SDBUSCPP_INSTALL "Enable installation of sdbus-c++ (downstream projects embedding sdbus-c++ may want to turn this OFF)" ON)  #TODO: new, honor
-# TODO: Continue here with search&replace old names with new names
+option(SDBUSCPP_INSTALL "Enable installation of sdbus-c++ (downstream projects embedding sdbus-c++ may want to turn this OFF)" ON)
 option(SDBUSCPP_BUILD_TESTS "Build tests" OFF)
 if (SDBUSCPP_BUILD_TESTS)
     option(SDBUSCPP_BUILD_PERF_TESTS "Build also sdbus-c++ performance tests" OFF) # tranferred from tests/cmake
@@ -27,10 +26,9 @@ if (SDBUSCPP_BUILD_TESTS)
     set(SDBUSCPP_GOOGLETEST_VERSION 1.10.0 CACHE STRING "Version of gmock library to use") # tranferred from tests/cmake
     set(SDBUSCPP_GOOGLETEST_GIT_REPO "https://github.com/google/googletest.git" CACHE STRING "A git repo to clone and build googletest from if gmock is not found in the system") # tranferred from tests/cmake
 endif()
-# TODO: add more embedded options from sub=-cmakefiles
 option(SDBUSCPP_BUILD_CODEGEN "Build generator tool for C++ native bindings" OFF)
 option(SDBUSCPP_BUILD_EXAMPLES "Build example programs" OFF)
-option(SDBUSCPP_BUILD_DOCS "Build documentation for sdbus-c++" ON) # TODO: renamed
+option(SDBUSCPP_BUILD_DOCS "Build documentation for sdbus-c++" ON)
 if(SDBUSCPP_BUILD_DOCS)
     option(SDBUSCPP_BUILD_DOXYGEN_DOCS "Build doxygen documentation for sdbus-c++ API" OFF)
 endif()
