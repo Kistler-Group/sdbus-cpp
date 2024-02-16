@@ -70,7 +70,7 @@ TYPED_TEST(SdbusTestObject, EmitsSimpleSignalToMultipleProxiesSuccesfully)
 TYPED_TEST(SdbusTestObject, ProxyDoesNotReceiveSignalFromOtherBusName)
 {
     auto otherBusName = BUS_NAME + "2";
-    auto connection2 = sdbus::createConnection(otherBusName);
+    auto connection2 = sdbus::createBusConnection(otherBusName);
     auto adaptor2 = std::make_unique<TestAdaptor>(*connection2, OBJECT_PATH);
 
     adaptor2->emitSimpleSignal();

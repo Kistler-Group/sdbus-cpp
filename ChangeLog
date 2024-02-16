@@ -257,26 +257,22 @@ v1.6.0
 
 v2.0.0
 - Breaking changes in API/ABI/behavior:
-  - In *synchronous* D-Bus calls, the proxy now **always** blocks the connection for concurrent use until the call finishes (with either a received reply,
-    an error, or time out). If this creates a connection contention issue in your multi-threaded design, use short-lived, light-weight proxies, or call
-    the method in an asynchronous way.
-  - Signatures of callbacks `async_reply_handler`, `signal_handler`, `message_handler` and `property_set_callback` were modified to take input message objects
-    by value, as opposed to non-const ref. Callee assumes ownership of the message. This API is more idiomatic, cleaner and safer.
+  - In *synchronous* D-Bus calls, the proxy now **always** blocks the connection for concurrent use until the call finishes (with either a received reply, an error, or time out). If this creates a connection contention issue in your multi-threaded design, use short-lived, light-weight proxies, or call the method in an asynchronous way.
+  - Signatures of callbacks `async_reply_handler`, `signal_handler`, `message_handler` and `property_set_callback` were modified to take input message objects by value, as opposed to non-const ref. Callee assumes ownership of the message. This API is more idiomatic, cleaner and safer.
   - The `PollData` struct has been extended with a new data member: `eventFd`. All hooks with external event loops shall be modified to poll on this fd as well.
-  - `PollData::timeout_usec` was renamed to `PollData::timeout` and its type has been changed to `std::chrono::microseconds`. This member now holds directly
-    what before had to be obtained through `PollData::getAbsoluteTimeout()` call.
+  - `PollData::timeout_usec` was renamed to `PollData::timeout` and its type has been changed to `std::chrono::microseconds`. This member now holds directly what before had to be obtained through `PollData::getAbsoluteTimeout()` call.
   - `PollData::getRelativeTimeout()` return type was changed to `std::chrono::microseconds`.
   - `IConnection::processPendingRequest()` was renamed to `IConnection::processPendingEvent()`.
   - `Variant` constructor is now explicit.
   - `IProxy::getCurrentlyProcessedMessage()` now returns `Message` by value instead of a raw pointer to it. The caller assumes ownership of the message.
   - Object D-Bus API registration is now done through `IObject::addVTable()` method. The registration holds immediately; no `finishRegistration()` call is needed anymore.
-  - Subscription to signals has been simplified. The subscription is active right after the `registerSignalHandler`/`uponSignal()` call. No need for the final
-    call to `finishRegistration()`. `IProxy::muteSignal()` has been removed in favor of the RAII-based slot object returned by the slot-returning variant of the
-    registration method. Destroying the slot object means unsubscribing from the signal.
+  - Subscription to signals has been simplified. The subscription is active right after the `registerSignalHandler`/`uponSignal()` call. No need for the final call to `finishRegistration()`. `IProxy::muteSignal()` has been removed in favor of the RAII-based slot object returned by the slot-returning variant of the registration method. Destroying the slot object means unsubscribing from the signal.
   - `request_slot` tag was renamed to `return_slot`.
-  - `[[nodiscard]]` attribute has been added to relevant API methods.
   - `ProxyInterfaces::getObjectPath()` was removed, it can be replaced with `ProxyInterfaces::getProxy().getObjectPath()`.
   - `AdaptorInterfaces::getObjectPath()` was removed, it can be replaced with `AdaptorInterfaces::getObject().getObjectPath()`.
+  - `createConnection()` has been removed, to create a connection to the system bus use `createSystemConnection()` instead.
+  - `createDefaultBusConnection()` has been renamed to `createBusConnection()`.
+  - `Proxy`s now by default call `createBusConnection()` to get a connection when the connection is not provided explicitly by the caller, so they connect to either the session bus or the system bus depending on the context (as opposed to always to the system bus like before).
   - Callbacks taking `const sdbus::Error* error` were changed to take `std::optional<sdbus::Error>`, which better expresses the intent and meaning.
   - Types and methods marked deprecated in sdbus-c++ v1 were removed completely.
   - CMake options got `SDBUSCPP_` prefix for better usability and minimal risk of conflicts in downstream CMake projects.
@@ -286,4 +282,5 @@ v2.0.0
 - Fix for external event loops in which the event loop thread ID was not correctly initialized (now fixed and simplified by not needing the thread ID anymore)
 - Introduce native integration for sd-event
 - Add method to get currently processed message also to `IConnection`
+- `[[nodiscard]]` attribute has been added to relevant API methods.
 - Other simplifications, improvements and fixes springing out from the above refactoring

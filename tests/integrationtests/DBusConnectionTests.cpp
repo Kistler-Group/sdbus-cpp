@@ -48,26 +48,26 @@ using namespace sdbus::test;
 
 TEST(Connection, CanBeDefaultConstructed)
 {
-    ASSERT_NO_THROW(auto con = sdbus::createConnection());
+    ASSERT_NO_THROW(auto con = sdbus::createBusConnection());
 }
 
-TEST(Connection, CanRequestRegisteredDbusName)
+TEST(SystemBusConnection, CanRequestRegisteredDbusName)
 {
-    auto connection = sdbus::createConnection();
+    auto connection = sdbus::createSystemBusConnection();
 
     ASSERT_NO_THROW(connection->requestName(BUS_NAME))
         << "Perhaps you've forgotten to copy `org.sdbuscpp.integrationtests.conf` file to `/etc/dbus-1/system.d` directory before running the tests?";
 }
 
-TEST(Connection, CannotRequestNonregisteredDbusName)
+TEST(SystemBusConnection, CannotRequestNonregisteredDbusName)
 {
-    auto connection = sdbus::createConnection();
+    auto connection = sdbus::createSystemBusConnection();
     ASSERT_THROW(connection->requestName("some.random.not.supported.dbus.name"), sdbus::Error);
 }
 
 TEST(Connection, CanReleasedRequestedName)
 {
-    auto connection = sdbus::createConnection();
+    auto connection = sdbus::createBusConnection();
 
     connection->requestName(BUS_NAME);
     ASSERT_NO_THROW(connection->releaseName(BUS_NAME));
@@ -75,13 +75,13 @@ TEST(Connection, CanReleasedRequestedName)
 
 TEST(Connection, CannotReleaseNonrequestedName)
 {
-    auto connection = sdbus::createConnection();
+    auto connection = sdbus::createBusConnection();
     ASSERT_THROW(connection->releaseName("some.random.nonrequested.name"), sdbus::Error);
 }
 
 TEST(Connection, CanEnterAndLeaveInternalEventLoop)
 {
-    auto connection = sdbus::createConnection();
+    auto connection = sdbus::createBusConnection();
     connection->requestName(BUS_NAME);
 
     std::thread t([&](){ connection->enterEventLoop(); });
