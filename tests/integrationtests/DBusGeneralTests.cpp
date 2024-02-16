@@ -53,7 +53,7 @@ using ADirectConnection = TestFixtureWithDirectConnection;
 
 TEST(AdaptorAndProxy, CanBeConstructedSuccesfully)
 {
-    auto connection = sdbus::createConnection();
+    auto connection = sdbus::createBusConnection();
     connection->requestName(BUS_NAME);
 
     ASSERT_NO_THROW(TestAdaptor adaptor(*connection, OBJECT_PATH));
@@ -130,7 +130,7 @@ TYPED_TEST(AConnection, CanAddFloatingMatchRule)
 {
     auto matchRule = "sender='" + BUS_NAME + "',path='" + OBJECT_PATH + "'";
     std::atomic<bool> matchingMessageReceived{false};
-    auto con = sdbus::createSystemBusConnection();
+    auto con = sdbus::createBusConnection();
     con->enterEventLoopAsync();
     auto callback = [&](sdbus::Message msg)
     {
