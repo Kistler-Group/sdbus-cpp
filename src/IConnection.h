@@ -98,7 +98,6 @@ namespace sdbus::internal {
                                                         , void* userData ) = 0;
     };
 
-    [[nodiscard]] std::unique_ptr<sdbus::internal::IConnection> createConnection();
     [[nodiscard]] std::unique_ptr<sdbus::internal::IConnection> createPseudoConnection();
 
 }

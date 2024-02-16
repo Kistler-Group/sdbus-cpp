@@ -310,7 +310,7 @@ std::unique_ptr<sdbus::IProxy> createProxy( std::unique_ptr<IConnection>&& conne
 std::unique_ptr<sdbus::IProxy> createProxy( std::string destination
                                           , std::string objectPath )
 {
-    auto connection = sdbus::createConnection();
+    auto connection = sdbus::createBusConnection();
 
     auto sdbusConnection = std::unique_ptr<sdbus::internal::IConnection>(dynamic_cast<sdbus::internal::IConnection*>(connection.release()));
     assert(sdbusConnection != nullptr);
@@ -324,7 +324,7 @@ std::unique_ptr<sdbus::IProxy> createProxy( std::string destination
                                           , std::string objectPath
                                           , dont_run_event_loop_thread_t )
 {
-    auto connection = sdbus::createConnection();
+    auto connection = sdbus::createBusConnection();
 
     auto sdbusConnection = std::unique_ptr<sdbus::internal::IConnection>(dynamic_cast<sdbus::internal::IConnection*>(connection.release()));
     assert(sdbusConnection != nullptr);

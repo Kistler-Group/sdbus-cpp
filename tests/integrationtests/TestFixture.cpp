@@ -28,8 +28,8 @@
 
 namespace sdbus { namespace test {
 
-std::unique_ptr<sdbus::IConnection> BaseTestFixture::s_adaptorConnection = sdbus::createSystemBusConnection();
-std::unique_ptr<sdbus::IConnection> BaseTestFixture::s_proxyConnection = sdbus::createSystemBusConnection();
+std::unique_ptr<sdbus::IConnection> BaseTestFixture::s_adaptorConnection = sdbus::createBusConnection();
+std::unique_ptr<sdbus::IConnection> BaseTestFixture::s_proxyConnection = sdbus::createBusConnection();
 
 #ifndef SDBUS_basu // sd_event integration is not supported in basu-based sdbus-c++
 
