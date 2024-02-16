@@ -202,6 +202,27 @@ namespace sdbus {
         virtual void emitSignal(const sdbus::Signal& message) = 0;
 
         /*!
+         * @brief Emits signal on D-Bus
+         *
+         * @param[in] signalName Name of the signal
+         * @return A helper object for convenient emission of signals
+         *
+         * This is a high-level, convenience way of emitting D-Bus signals that abstracts
+         * from the D-Bus message concept. Signal arguments are automatically serialized
+         * in a message and D-Bus signatures automatically deduced from the provided native arguments.
+         *
+         * Example of use:
+         * @code
+         * int arg1 = ...;
+         * double arg2 = ...;
+         * object_.emitSignal("fooSignal").onInterface("com.kistler.foo").withArguments(arg1, arg2);
+         * @endcode
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] SignalEmitter emitSignal(const std::string& signalName);
+
+        /*!
          * @brief Emits PropertyChanged signal for specified properties under a given interface of this object path
          *
          * @param[in] interfaceName Name of an interface that properties belong to
@@ -297,27 +318,6 @@ namespace sdbus {
          * @return Reference to the D-Bus connection
          */
         [[nodiscard]] virtual sdbus::IConnection& getConnection() const = 0;
-
-        /*!
-         * @brief Emits signal on D-Bus
-         *
-         * @param[in] signalName Name of the signal
-         * @return A helper object for convenient emission of signals
-         *
-         * This is a high-level, convenience way of emitting D-Bus signals that abstracts
-         * from the D-Bus message concept. Signal arguments are automatically serialized
-         * in a message and D-Bus signatures automatically deduced from the provided native arguments.
-         *
-         * Example of use:
-         * @code
-         * int arg1 = ...;
-         * double arg2 = ...;
-         * object_.emitSignal("fooSignal").onInterface("com.kistler.foo").withArguments(arg1, arg2);
-         * @endcode
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        [[nodiscard]] SignalEmitter emitSignal(const std::string& signalName);
 
         /*!
          * @brief Returns object path of the underlying DBus object
