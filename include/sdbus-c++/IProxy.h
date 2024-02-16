@@ -198,53 +198,6 @@ namespace sdbus {
                                                 , with_future_t );
 
         /*!
-         * @brief Registers a handler for the desired signal emitted by the D-Bus object
-         *
-         * @param[in] interfaceName Name of an interface that the signal belongs to
-         * @param[in] signalName Name of the signal
-         * @param[in] signalHandler Callback that implements the body of the signal handler
-         *
-         * A signal can be subscribed to and unsubscribed from at any time during proxy
-         * lifetime. The subscription is active immediately after the call.
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        virtual void registerSignalHandler( const std::string& interfaceName
-                                          , const std::string& signalName
-                                          , signal_handler signalHandler ) = 0;
-
-        /*!
-         * @brief Registers a handler for the desired signal emitted by the D-Bus object
-         *
-         * @param[in] interfaceName Name of an interface that the signal belongs to
-         * @param[in] signalName Name of the signal
-         * @param[in] signalHandler Callback that implements the body of the signal handler
-         *
-         * @return RAII-style slot handle representing the ownership of the subscription
-         *
-         * A signal can be subscribed to and unsubscribed from at any time during proxy
-         * lifetime. The subscription is active immediately after the call. The subscription
-         * is unregistered when the client destroys the returned slot object.
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        [[nodiscard]] virtual Slot registerSignalHandler( const std::string& interfaceName
-                                                        , const std::string& signalName
-                                                        , signal_handler signalHandler
-                                                        , return_slot_t ) = 0;
-
-        /*!
-         * @brief Unregisters proxy's signal handlers and stops receiving replies to pending async calls
-         *
-         * Unregistration is done automatically also in proxy's destructor. This method makes
-         * sense if, in the process of proxy removal, we need to make sure that callbacks
-         * are unregistered explicitly before the final destruction of the proxy instance.
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        virtual void unregister() = 0;
-
-        /*!
          * @brief Calls method on the D-Bus object
          *
          * @param[in] methodName Name of the method
@@ -290,6 +243,42 @@ namespace sdbus {
         [[nodiscard]] AsyncMethodInvoker callMethodAsync(const std::string& methodName);
 
         /*!
+         * @brief Registers a handler for the desired signal emitted by the D-Bus object
+         *
+         * @param[in] interfaceName Name of an interface that the signal belongs to
+         * @param[in] signalName Name of the signal
+         * @param[in] signalHandler Callback that implements the body of the signal handler
+         *
+         * A signal can be subscribed to and unsubscribed from at any time during proxy
+         * lifetime. The subscription is active immediately after the call.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual void registerSignalHandler( const std::string& interfaceName
+                                          , const std::string& signalName
+                                          , signal_handler signalHandler ) = 0;
+
+        /*!
+         * @brief Registers a handler for the desired signal emitted by the D-Bus object
+         *
+         * @param[in] interfaceName Name of an interface that the signal belongs to
+         * @param[in] signalName Name of the signal
+         * @param[in] signalHandler Callback that implements the body of the signal handler
+         *
+         * @return RAII-style slot handle representing the ownership of the subscription
+         *
+         * A signal can be subscribed to and unsubscribed from at any time during proxy
+         * lifetime. The subscription is active immediately after the call. The subscription
+         * is unregistered when the client destroys the returned slot object.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] virtual Slot registerSignalHandler( const std::string& interfaceName
+                                                        , const std::string& signalName
+                                                        , signal_handler signalHandler
+                                                        , return_slot_t ) = 0;
+
+        /*!
          * @brief Registers signal handler for a given signal of the D-Bus object
          *
          * @param[in] signalName Name of the signal
@@ -311,6 +300,17 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         [[nodiscard]] SignalSubscriber uponSignal(const std::string& signalName);
+
+        /*!
+         * @brief Unregisters proxy's signal handlers and stops receiving replies to pending async calls
+         *
+         * Unregistration is done automatically also in proxy's destructor. This method makes
+         * sense if, in the process of proxy removal, we need to make sure that callbacks
+         * are unregistered explicitly before the final destruction of the proxy instance.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual void unregister() = 0;
 
         /*!
          * @brief Gets value of a property of the D-Bus object
