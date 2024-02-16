@@ -69,7 +69,7 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_CXX_FLAGS="-O3 -DNDEBUG -W -Wextra -Wall -Wnon-virtual-dtor -Werror" -DCMAKE_VERBOSE_MAKEFILE=ON -DSDBUSCPP_INSTALL=ON -DBUILD_TESTS=ON -DSDBUSCPP_BUILD_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON -DBUILD_CODE_GEN=ON ..
+        cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_CXX_FLAGS="-O3 -DNDEBUG -W -Wextra -Wall -Wnon-virtual-dtor -Werror" -DCMAKE_VERBOSE_MAKEFILE=ON -DSDBUSCPP_INSTALL=ON -DSDBUSCPP_BUILD_TESTS=ON -DSDBUSCPP_BUILD_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON -DBUILD_CODE_GEN=ON ..
     - name: configure-with-embedded-libsystemd
       if: matrix.build == 'embedded-static-libsystemd'
       run: |
