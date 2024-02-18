@@ -23,7 +23,8 @@ Using sdbus-c++ library
 18. [Support for match rules](#support-for-match-rules)
 19. [Using direct (peer-to-peer) D-Bus connections](#using-direct-peer-to-peer-d-bus-connections)
 20. [Using sdbus-c++ in external event loops](#using-sdbus-c-in-external-event-loops)
-21. [Conclusion](#conclusion)
+21. [Migrating to sdbus-c++ v2](#migrating-to-sdbus-c-v2)
+22. [Conclusion](#conclusion)
 
 Introduction
 ------------
@@ -1738,6 +1739,38 @@ Consult `IConnection::PollData` and `IConnection::getEventLoopPollData()` docume
 sdbus-c++ provides built-in integration of sd-event, which makes it very convenient to hook sdbus-c++ connection up with an sd-event event loop.
 
 See documentation of `IConnection::attachSdEventLoop()`, `IConnection::detachSdEventLoop()`, and `IConnection::getSdEventLoop()` methods, or sdbus-c++ integration tests for an example of use. These methods are sdbus-c++ counterparts to and mimic the behavior of these underlying sd-bus functions: `sd_bus_attach_event()`, `sd_bus_detach_event()`, and `sd_bus_get_event()`. Their manual pages provide much more details about their behavior.
+
+Migrating to sdbus-c++ v2
+-------------------------
+
+sdbus-c++ v2 is a major release that comes with a number of breaking API/ABI/behavior changes compared to v1. The following list describes the changes:
+
+* Change in behavior: In *synchronous* D-Bus calls, the proxy object now keeps the connection instance blocked for the entire duration of the method call. Incoming messages like signals will be queued and processed after the call. Access to the connection from other threads is blocked. To avoid this (in case this hurts you):
+  * either use short-lived, light-weight proxies for such synchronous calls,
+  * or call the method in an asynchronous way.
+* Signatures of callbacks `async_reply_handler`, `signal_handler`, `message_handler` and `property_set_callback` were modified to take input message objects by value instead of non-const ref to a message. The callback handler assumes ownership of the message. This API is cleaner and more self-explaining.
+* The `PollData` struct has been extended with a new data member: `eventFd`. All hooks with external event loops shall be modified to poll on this `eventFd` in addition to the `fd`.
+* `PollData::timeout_usec` was renamed to `PollData::timeout` and its type has been changed to `std::chrono::microseconds`. This member now holds directly what before had to be obtained through `PollData::getAbsoluteTimeout()` call.
+* `PollData::getRelativeTimeout()` return type was changed to `std::chrono::microseconds`.
+* `IConnection::processPendingRequest()` was renamed to `IConnection::processPendingEvent()`.
+* `Variant` constructor is now explicit.
+* `IProxy::getCurrentlyProcessedMessage()` now returns `Message` by value instead of a raw pointer to it. The caller assumes ownership of the message.
+* Object D-Bus API registration is now done through `IObject::addVTable()` method. The vtable gets active immediately. No `finishRegistration()` call is needed anymore. vtables can be added and removed dynamically at run time. In addition to API simplification this brings consistency with sd-bus API and increases flexibility.
+* Subscription to signals has been simplified. The subscription is active right after the `registerSignalHandler`/`uponSignal()` call. No need for the final call to `finishRegistration()`.
+* `IProxy::muteSignal()` and `IProxy::unregisterSignal()` have been removed. When subscribing to a signal, we can ask sdbus-c++ to give us a RAII-based slot object. As long as we keep the slot, the subscription is active. Destroying the slot object implies unsubscribing from the signal.
+* `request_slot` tag was renamed to `return_slot`.
+* Deprecated `dont_request_slot` was removed. It shall be replaced with `floating_slot`.
+* `ProxyInterfaces::getObjectPath()` was removed. It shall be replaced with `ProxyInterfaces::getProxy().getObjectPath()`.
+* `AdaptorInterfaces::getObjectPath()` was removed. It can be replaced with `AdaptorInterfaces::getObject().getObjectPath()`.
+* `createConnection()` has been removed. To create a connection to the system bus use `createSystemConnection()` instead.
+* `createDefaultBusConnection()` has been renamed to `createBusConnection()`.
+* Change in behavior: `Proxy`s now by default call `createBusConnection()` to get a connection when the connection is not provided explicitly by the caller, so they connect to either the session bus or the system bus depending on the context (as opposed to always to the system bus like before).
+* Callbacks taking `const sdbus::Error* error` were changed to take `std::optional<sdbus::Error>`, which better expresses the intent and meaning.
+* Types and methods marked deprecated in sdbus-c++ v1 were removed completely.
+* CMake options got `SDBUSCPP_` prefix for better usability and minimal risk of conflicts in downstream CMake projects. `SDBUSCPP_INSTALL` CMake option was added.
+* CMake components got `sdbus-c++-` prefix.
+
+Some of these changes required correspoding adaptations in the sdbus-c++ codegen. Hence, your **C++ bindings (if any) must be re-generated** with the new sdbus-c++-xml2cpp v2 in order to use them with sdbus-c++ v2 API.
 
 Conclusion
 ----------
