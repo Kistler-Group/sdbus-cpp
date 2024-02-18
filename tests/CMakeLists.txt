@@ -111,8 +111,8 @@ target_link_libraries(sdbus-c++-unit-tests sdbus-c++-objlib GTest::gmock)
 add_executable(sdbus-c++-integration-tests ${INTEGRATIONTESTS_SRCS})
 target_compile_definitions(sdbus-c++-integration-tests PRIVATE
     LIBSYSTEMD_VERSION=${SDBUSCPP_LIBSYSTEMD_VERSION}
-    SDBUS_${LIBSYSTEMD})
-if(NOT LIBSYSTEMD STREQUAL "basu")
+    SDBUS_${LIBSYSTEMD_IMPL})
+if(NOT LIBSYSTEMD_IMPL STREQUAL "basu")
     # Systemd::Libsystemd is included because integration tests use sd-event. Otherwise sdbus-c++ encapsulates and hides libsystemd.
     target_link_libraries(sdbus-c++-integration-tests sdbus-c++ Systemd::Libsystemd GTest::gmock)
 else()
