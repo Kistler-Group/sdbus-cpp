@@ -88,13 +88,13 @@ namespace
     TYPE(sdbus::ObjectPath)HAS_DBUS_TYPE_SIGNATURE("o")
     TYPE(sdbus::Signature)HAS_DBUS_TYPE_SIGNATURE("g")
     TYPE(sdbus::Variant)HAS_DBUS_TYPE_SIGNATURE("v")
+    TYPE(std::variant<int16_t, std::string>)HAS_DBUS_TYPE_SIGNATURE("v")
     TYPE(sdbus::UnixFd)HAS_DBUS_TYPE_SIGNATURE("h")
     TYPE(sdbus::Struct<bool>)HAS_DBUS_TYPE_SIGNATURE("(b)")
     TYPE(sdbus::Struct<uint16_t, double, std::string, sdbus::Variant>)HAS_DBUS_TYPE_SIGNATURE("(qdsv)")
     TYPE(std::vector<int16_t>)HAS_DBUS_TYPE_SIGNATURE("an")
     TYPE(std::array<int16_t, 3>)HAS_DBUS_TYPE_SIGNATURE("an")
-    TYPE(std::variant<int16_t, std::string>)HAS_DBUS_TYPE_SIGNATURE("v")
-#if __cplusplus >= 202002L
+#ifdef __cpp_lib_span
     TYPE(std::span<int16_t>)HAS_DBUS_TYPE_SIGNATURE("an")
 #endif
     TYPE(SomeEnumClass)HAS_DBUS_TYPE_SIGNATURE("y")
@@ -138,13 +138,13 @@ namespace
                             , sdbus::ObjectPath
                             , sdbus::Signature
                             , sdbus::Variant
+                            , std::variant<int16_t, std::string>
                             , sdbus::UnixFd
                             , sdbus::Struct<bool>
                             , sdbus::Struct<uint16_t, double, std::string, sdbus::Variant>
                             , std::vector<int16_t>
                             , std::array<int16_t, 3>
-                            , std::variant<int16_t, std::string>
-#if __cplusplus >= 202002L
+#ifdef __cpp_lib_span
                             , std::span<int16_t>
 #endif
                             , SomeEnumClass
