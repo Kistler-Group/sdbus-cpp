@@ -257,4 +257,5 @@ v2.0.0
 - Introduce native integration for sd-event
 - Add method to get currently processed message also to `IConnection`
 - `[[nodiscard]]` attribute has been added to relevant API methods.
+- Add new `SDBUSCPP_SDBUS_LIB` CMake configuration variable determining which sd-bus library shall be picked
 - Other simplifications, improvements and fixes springing out from the above refactoring
