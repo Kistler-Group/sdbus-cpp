@@ -36,8 +36,10 @@
 #include <cstdint>
 #include <functional>
 #include <map>
-#if __cplusplus >= 202002L
-#include <span>
+#ifdef __has_include
+#  if __has_include(<span>)
+#    include <span>
+#  endif
 #endif
 #include <string>
 #include <sys/types.h>
@@ -102,7 +104,7 @@ namespace sdbus {
         Message& operator<<(const std::vector<_Element, _Allocator>& items);
         template <typename _Element, std::size_t _Size>
         Message& operator<<(const std::array<_Element, _Size>& items);
-#if __cplusplus >= 202002L
+#ifdef __cpp_lib_span
         template <typename _Element, std::size_t _Extent>
         Message& operator<<(const std::span<_Element, _Extent>& items);
 #endif
@@ -136,7 +138,7 @@ namespace sdbus {
         Message& operator>>(std::vector<_Element, _Allocator>& items);
         template <typename _Element, std::size_t _Size>
         Message& operator>>(std::array<_Element, _Size>& items);
-#if __cplusplus >= 202002L
+#ifdef __cpp_lib_span
         template <typename _Element, std::size_t _Extent>
         Message& operator>>(std::span<_Element, _Extent>& items);
 #endif
@@ -323,7 +325,7 @@ namespace sdbus {
         return *this;
     }
 
-#if __cplusplus >= 202002L
+#ifdef __cpp_lib_span
     template <typename _Element, std::size_t _Extent>
     inline Message& Message::operator<<(const std::span<_Element, _Extent>& items)
     {
@@ -454,7 +456,7 @@ namespace sdbus {
         return *this;
     }
 
-#if __cplusplus >= 202002L
+#ifdef __cpp_lib_span
     template <typename _Element, std::size_t _Extent>
     inline Message& Message::operator>>(std::span<_Element, _Extent>& items)
     {
