@@ -35,8 +35,10 @@
 #include <map>
 #include <memory>
 #include <optional>
-#if __cplusplus >= 202002L
-#include <span>
+#ifdef __has_include
+#  if __has_include(<span>)
+#    include <span>
+#  endif
 #endif
 #include <string>
 #include <tuple>
@@ -392,7 +394,7 @@ namespace sdbus {
         }
     };
 
-#if __cplusplus >= 202002L
+#ifdef __cpp_lib_span
     template <typename _Element, std::size_t _Extent>
     struct signature_of<std::span<_Element, _Extent>>
     {
