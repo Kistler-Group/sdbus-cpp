@@ -56,7 +56,17 @@ $ sudo cmake --build . --target install
 
 * `SDBUSCPP_BUILD_LIBSYSTEMD` [boolean]
 
-  Option for building libsystemd dependency library automatically when sdbus-c++ is built, and making libsystemd an integral part of sdbus-c++ library. Default value: `OFF`. Might be very helpful in non-systemd environments where libsystemd shared library is unavailable (see [Solving libsystemd dependency](docs/using-sdbus-c++.md#solving-libsystemd-dependency) for more information). With this option turned on, you may also provide the following configuration flag:
+  Option for building libsystemd as a sd-bus implementation when sdbus-c++ is built, and making libsystemd an integral part of sdbus-c++ library. Default value: `OFF`, which means that the sd-bus implementation library (`libsystemd`, `libelogind`, or `basu`) will be searched via `pkg-config` in the system.
+
+  This option may be very helpful in environments where sd-bus implementation library is unavailable (see [Solving sd-bus dependency](docs/using-sdbus-c++.md#solving-sd-bus-dependency) for more information).
+  
+  With this option turned off, you may provide the following additional configuration flag:
+
+    * `SDBUSCPP_SDBUS_LIB` [string]
+
+      Defines which sd-bus implementation library to search for and use. Allowed values: `default`, `systemd`, `elogind`, `basu`. Default value: `default`, which means that sdbus-c++ will try to find any of `systemd`, `elogind`, `basu` in the order as listed here.
+
+  With this option turned on, you may provide the following additional configuration flag:
 
     * `SDBUSCPP_LIBSYSTEMD_VERSION` [string]
 
@@ -82,10 +92,10 @@ Dependencies
 ------------
 
 * `C++17` - the library uses C++17 features.
-* `libsystemd`/`libelogind`/`basu` - libraries containing sd-bus implementation that sdbus-c++ is written around. In case of `libsystemd` and `libelogind`, version >= 236 is needed. (In case you have a non-systemd environment, don't worry, see [Solving libsystemd dependency](docs/using-sdbus-c++.md#solving-libsystemd-dependency) for more information.)
+* `libsystemd`/`libelogind`/`basu` - libraries containing sd-bus implementation that sdbus-c++ is written around. In case of `libsystemd` and `libelogind`, version >= 236 is needed. (In case you have you're missing any of those sd-bus implementations, don't worry, see [Solving sd-bus dependency](docs/using-sdbus-c++.md#solving-sd-bus-dependency) for more information.)
 * `googletest` - google unit testing framework, only necessary when building tests, will be downloaded and built automatically.
 * `pkgconfig` - required for sdbus-c++ to be able to find some dependency packages.
-* `expat` - necessary when building the xml2cpp binding code generator (`SDBUSCPP_BUILD_CODEGEN` option is ON).
+* `expat` - necessary when building the xml2cpp binding code generator (`SDBUSCPP_BUILD_CODEGEN` option is `ON`).
 
 Licensing
 ---------
