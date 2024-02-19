@@ -104,15 +104,15 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 add_executable(sdbus-c++-unit-tests ${UNITTESTS_SRCS})
 target_compile_definitions(sdbus-c++-unit-tests PRIVATE
     LIBSYSTEMD_VERSION=${SDBUSCPP_LIBSYSTEMD_VERSION}
-    SDBUS_${LIBSYSTEMD_IMPL}
-    SDBUS_HEADER=<${LIBSYSTEMD_IMPL}/sd-bus.h>)
+    SDBUS_${SDBUS_IMPL}
+    SDBUS_HEADER=<${SDBUS_IMPL}/sd-bus.h>)
 target_link_libraries(sdbus-c++-unit-tests sdbus-c++-objlib GTest::gmock)
 
 add_executable(sdbus-c++-integration-tests ${INTEGRATIONTESTS_SRCS})
 target_compile_definitions(sdbus-c++-integration-tests PRIVATE
     LIBSYSTEMD_VERSION=${SDBUSCPP_LIBSYSTEMD_VERSION}
-    SDBUS_${LIBSYSTEMD_IMPL})
-if(NOT LIBSYSTEMD_IMPL STREQUAL "basu")
+    SDBUS_${SDBUS_IMPL})
+if(NOT SDBUS_IMPL STREQUAL "basu")
     # Systemd::Libsystemd is included because integration tests use sd-event. Otherwise sdbus-c++ encapsulates and hides libsystemd.
     target_link_libraries(sdbus-c++-integration-tests sdbus-c++ Systemd::Libsystemd GTest::gmock)
 else()
