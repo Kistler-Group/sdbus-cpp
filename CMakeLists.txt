@@ -12,19 +12,22 @@ include(GNUInstallDirs) # Installation directories for `install` command and pkg
 # CONFIGURATION OPTIONS
 # -------------------------------
 
-option(SDBUSCPP_BUILD_LIBSYSTEMD "Fetch & build libsystemd static library and make it part of libsdbus-c++, instead of searching for libsystemd in the system" OFF)
-if(SDBUSCPP_BUILD_LIBSYSTEMD)
+option(SDBUSCPP_BUILD_LIBSYSTEMD "Fetch & build libsystemd static library and make it part of libsdbus-c++, instead of searching for it in the system" OFF)
+if(NOT SDBUSCPP_BUILD_LIBSYSTEMD)
+    set(SDBUSCPP_SDBUS_LIB "default" CACHE STRING "sd-bus implementation library to search for and use (default, systemd, elogind, or basu)")
+    set_property(CACHE SDBUSCPP_SDBUS_LIB PROPERTY STRINGS default systemd elogind basu)
+else()
     set(SDBUSCPP_LIBSYSTEMD_VERSION "242" CACHE STRING "libsystemd version (>=239) to build and incorporate into libsdbus-c++")
     set(SDBUSCPP_LIBSYSTEMD_EXTRA_CONFIG_OPTS "" CACHE STRING "Additional configuration options to be passed as-is to libsystemd build system")
 endif()
 option(SDBUSCPP_INSTALL "Enable installation of sdbus-c++ (downstream projects embedding sdbus-c++ may want to turn this OFF)" ON)
 option(SDBUSCPP_BUILD_TESTS "Build tests" OFF)
 if (SDBUSCPP_BUILD_TESTS)
-    option(SDBUSCPP_BUILD_PERF_TESTS "Build also sdbus-c++ performance tests" OFF) # tranferred from tests/cmake
-    option(SDBUSCPP_BUILD_STRESS_TESTS "Build also sdbus-c++ stress tests" OFF) # tranferred from tests/cmake
-    set(SDBUSCPP_TESTS_INSTALL_PATH "tests/${PROJECT_NAME}" CACHE STRING "Specifies where the test binaries will be installed")  # tranferred from tests/cmake
-    set(SDBUSCPP_GOOGLETEST_VERSION 1.10.0 CACHE STRING "Version of gmock library to use") # tranferred from tests/cmake
-    set(SDBUSCPP_GOOGLETEST_GIT_REPO "https://github.com/google/googletest.git" CACHE STRING "A git repo to clone and build googletest from if gmock is not found in the system") # tranferred from tests/cmake
+    option(SDBUSCPP_BUILD_PERF_TESTS "Build also sdbus-c++ performance tests" OFF)
+    option(SDBUSCPP_BUILD_STRESS_TESTS "Build also sdbus-c++ stress tests" OFF)
+    set(SDBUSCPP_TESTS_INSTALL_PATH "tests/${PROJECT_NAME}" CACHE STRING "Specifies where the test binaries will be installed")
+    set(SDBUSCPP_GOOGLETEST_VERSION 1.10.0 CACHE STRING "Version of gmock library to use")
+    set(SDBUSCPP_GOOGLETEST_GIT_REPO "https://github.com/google/googletest.git" CACHE STRING "A git repo to clone and build googletest from if gmock is not found in the system")
 endif()
 option(SDBUSCPP_BUILD_CODEGEN "Build generator tool for C++ native bindings" OFF)
 option(SDBUSCPP_BUILD_EXAMPLES "Build example programs" OFF)
@@ -71,43 +74,56 @@ message(STATUS "")
 # PERFORMING CHECKS & PREPARING THE DEPENDENCIES
 #-------------------------------
 
-set(LIBSYSTEMD_IMPL "systemd")
-set(LIBSYSTEMD_LIB "libsystemd")
-
-if(NOT SDBUSCPP_BUILD_LIBSYSTEMD)
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(Systemd IMPORTED_TARGET GLOBAL libsystemd>=238)
-    if(NOT TARGET PkgConfig::Systemd)
-        message(WARNING "libsystemd not found, checking for libelogind instead")
-        pkg_check_modules(Systemd IMPORTED_TARGET GLOBAL libelogind>=238)
-        if(TARGET PkgConfig::Systemd)
-            set(LIBSYSTEMD_IMPL "elogind")
-            set(LIBSYSTEMD_LIB "libelogind")
-            string(REPLACE "." ";" VERSION_LIST ${Systemd_VERSION})
-            list(GET VERSION_LIST 0 Systemd_VERSION)
-        else()
-            message(WARNING "libelogind not found, checking for basu instead")
-            pkg_check_modules(Systemd IMPORTED_TARGET GLOBAL basu)
-            set(LIBSYSTEMD_IMPL "basu")
-            set(LIBSYSTEMD_LIB "basu")
-            # https://git.sr.ht/~emersion/basu/commit/d4d185d29a26
-            set(Systemd_VERSION "240")
-        endif()
+if(SDBUSCPP_BUILD_LIBSYSTEMD)
+    # Build static libsystemd library as an external project
+    include(cmake/LibsystemdExternalProject.cmake)
+    set(SDBUS_IMPL "systemd")
+    set(SDBUS_LIB "libsystemd")
+else()
+    # Search for sd-bus implementations in the system as per user's configuration
+    set(SDBUS_LIBS ${SDBUSCPP_SDBUS_LIB})
+    if(SDBUSCPP_SDBUS_LIB STREQUAL "default")
+        set(SDBUS_LIBS systemd elogind basu) # This is the default search order
     endif()
+
+    find_package(PkgConfig REQUIRED)
+    foreach(LIB ${SDBUS_LIBS})
+        if(LIB STREQUAL "systemd")
+            pkg_check_modules(Systemd IMPORTED_TARGET GLOBAL libsystemd>=238)
+            if(TARGET PkgConfig::Systemd)
+                set(SDBUS_IMPL "systemd")
+                set(SDBUS_LIB "libsystemd")
+                break()
+            endif()
+        elseif(LIB STREQUAL "elogind")
+            pkg_check_modules(Systemd IMPORTED_TARGET GLOBAL libelogind>=238)
+            if(TARGET PkgConfig::Systemd)
+                set(SDBUS_IMPL "elogind")
+                set(SDBUS_LIB "libelogind")
+                string(REPLACE "." ";" VERSION_LIST ${Systemd_VERSION})
+                list(GET VERSION_LIST 0 Systemd_VERSION)
+                break()
+            endif()
+        elseif(LIB STREQUAL "basu")
+            pkg_check_modules(Systemd IMPORTED_TARGET GLOBAL basu)
+            if(TARGET PkgConfig::Systemd)
+                set(SDBUS_IMPL "basu")
+                set(SDBUS_LIB "basu")
+                set(Systemd_VERSION "240") # https://git.sr.ht/~emersion/basu/commit/d4d185d29a26
+                break()
+            endif()
+        else()
+            message(FATAL_ERROR "Unrecognized sd-bus implementation library ${LIB}")
+        endif()
+    endforeach()
+
     if(NOT TARGET PkgConfig::Systemd)
-        message(FATAL_ERROR "libsystemd of version at least 238 is required, but was not found "
-                            "(if you have systemd in your OS, you may want to install package containing pkgconfig "
-                            " files for libsystemd library. On Ubuntu, that is libsystemd-dev. "
-                            " Alternatively, you may turn SDBUSCPP_BUILD_LIBSYSTEMD on for sdbus-c++ to download, "
-                            " build and incorporate libsystemd as embedded library within sdbus-c++)")
+        message(FATAL_ERROR "None of ${SDBUS_LIBS} libraries implementing sd-bus was found (Are their dev packages installed?)")
     endif()
     add_library(Systemd::Libsystemd ALIAS PkgConfig::Systemd)
     string(REGEX MATCHALL "([0-9]+)" SYSTEMD_VERSION_LIST "${Systemd_VERSION}")
     list(GET SYSTEMD_VERSION_LIST 0 SDBUSCPP_LIBSYSTEMD_VERSION)
     message(STATUS "Building with libsystemd v${SDBUSCPP_LIBSYSTEMD_VERSION}")
-else()
-    # Build static libsystemd library as an external project
-    include(cmake/LibsystemdExternalProject.cmake)
 endif()
 
 find_package(Threads REQUIRED)
@@ -182,8 +198,8 @@ add_library(sdbus-c++-objlib OBJECT ${SDBUSCPP_SRCS})
 target_compile_definitions(sdbus-c++-objlib PRIVATE
     BUILD_LIB=1
     LIBSYSTEMD_VERSION=${SDBUSCPP_LIBSYSTEMD_VERSION}
-    SDBUS_${LIBSYSTEMD_IMPL}
-    SDBUS_HEADER=<${LIBSYSTEMD_IMPL}/sd-bus.h>)
+    SDBUS_${SDBUS_IMPL}
+    SDBUS_HEADER=<${SDBUS_IMPL}/sd-bus.h>)
 target_include_directories(sdbus-c++-objlib PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                                    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>)
 if(BUILD_SHARED_LIBS)
@@ -259,7 +275,7 @@ if(BUILD_SHARED_LIBS AND (SDBUSCPP_BUILD_LIBSYSTEMD OR Systemd_LINK_LIBRARIES MA
 else()
     set(PKGCONFIG_REQS "")
 endif()
-set(PKGCONFIG_DEPS ${LIBSYSTEMD_LIB})
+set(PKGCONFIG_DEPS ${SDBUS_LIB})
 configure_file(pkgconfig/sdbus-c++.pc.in pkgconfig/sdbus-c++.pc @ONLY)
 
 #----------------------------------

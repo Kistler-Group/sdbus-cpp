@@ -5,7 +5,7 @@ Using sdbus-c++ library
 
 1. [Introduction](#introduction)
 2. [Integrating sdbus-c++ into your project](#integrating-sdbus-c-into-your-project)
-3. [Solving libsystemd dependency](#solving-libsystemd-dependency)
+3. [Solving sd-bus dependency](#solving-sd-bus-dependency)
 4. [Distributing sdbus-c++](#distributing-sdbus-c)
 5. [Header files and namespaces](#header-files-and-namespaces)
 6. [Error signalling and propagation](#error-signalling-and-propagation)
@@ -74,14 +74,14 @@ add_custom_command(
 )
 ```
 
-Solving libsystemd dependency
------------------------------
+Solving sd-bus dependency
+-------------------------
 
-sdbus-c++ depends on sd-bus API, which is implemented in libsystemd, a C library that is part of [systemd](https://github.com/systemd/systemd).
+sdbus-c++ is a wrapper around sd-bus, a C library that has been written as part of [systemd](https://github.com/systemd/systemd) project.
 
-Minimum required libsystemd shared library version is 0.20.0 (which corresponds to minimum systemd version 236).
+Within systemd, sd-bus is implemented as part of `libsystemd` shared library. At least version 0.22.0 (which corresponds to the minimum systemd version 238) of `libsystemd` is needed.
 
-If your target Linux distribution is already based on systemd ecosystem of version 236 and higher, then there is no additional effort, just make sure you have corresponding systemd header files available (provided by `libsystemd-dev` package on Debian/Ubuntu, for example), and you may go on building sdbus-c++ seamlessly.
+If your target Linux distribution is already based on systemd ecosystem of version 238 and higher, then there is no additional effort, just make sure you have corresponding systemd header files available (provided by `libsystemd-dev` package on Debian/Ubuntu, for example), and you may go on building sdbus-c++ seamlessly.
 
 However, sdbus-c++ can perfectly be used in non-systemd environments as well. If `libsystemd` is not found in the system when configuring sdbus-c++, then
 
@@ -89,7 +89,9 @@ However, sdbus-c++ can perfectly be used in non-systemd environments as well. If
 
 2. sdbus-c++ will try to find `basu`, which is just sd-bus implementation extracted from systemd.
 
-On systems where neither of these is available, we can build sd-bus as a shared lib manually or we can (conveniently) instruct sdbus-c++ to build and integrate sd-bus into itself for us.
+Alternatively to this fallback search sequence, you may explicitly instruct sdbus-c++ to use a specified sd-bus implementation through the `SDBUSCPP_SDBUS_LIB` CMake configuration option.
+
+On systems where neither of those libraries is available, we can build sd-bus manually, or we can (conveniently) instruct sdbus-c++ to build and integrate sd-bus into itself for us.
 
 ### Building and distributing libsystemd as a shared library yourself
 
