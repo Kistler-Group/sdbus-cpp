@@ -2,12 +2,12 @@
 # DOWNLOAD AND BUILD OF GOOGLETEST
 #-------------------------------
 
-find_package(GTest ${GOOGLETEST_VERSION} CONFIG)
+find_package(GTest ${SDBUSCPP_GOOGLETEST_VERSION} CONFIG)
 if (NOT TARGET GTest::gmock)
     # Try pkg-config if GTest was not found through CMake config
     find_package(PkgConfig)
     if (PkgConfig_FOUND)
-        pkg_check_modules(GMock IMPORTED_TARGET GLOBAL gmock>=${GOOGLETEST_VERSION})
+        pkg_check_modules(GMock IMPORTED_TARGET GLOBAL gmock>=${SDBUSCPP_GOOGLETEST_VERSION})
         if(TARGET PkgConfig::GMock)
             add_library(GTest::gmock ALIAS PkgConfig::GMock)
         endif()
@@ -16,15 +16,15 @@ if (NOT TARGET GTest::gmock)
     if (NOT TARGET GTest::gmock)
         include(FetchContent)
 
-        if (GOOGLETEST_VERSION VERSION_GREATER_EQUAL 1.13.0)
-            set(GOOGLETEST_TAG "v${GOOGLETEST_VERSION}")
+        if (SDBUSCPP_GOOGLETEST_VERSION VERSION_GREATER_EQUAL 1.13.0)
+            set(GOOGLETEST_TAG "v${SDBUSCPP_GOOGLETEST_VERSION}")
         else()
-            set(GOOGLETEST_TAG "release-${GOOGLETEST_VERSION}")
+            set(GOOGLETEST_TAG "release-${SDBUSCPP_GOOGLETEST_VERSION}")
         endif()
 
-        message("Manually fetching & building googletest v${GOOGLETEST_VERSION}...")
+        message("Manually fetching & building googletest ${GOOGLETEST_TAG}...")
         FetchContent_Declare(googletest
-                            GIT_REPOSITORY ${GOOGLETEST_GIT_REPO}
+                            GIT_REPOSITORY ${SDBUSCPP_GOOGLETEST_GIT_REPO}
                             GIT_TAG        ${GOOGLETEST_TAG}
                             GIT_SHALLOW    1
                             UPDATE_COMMAND "")
