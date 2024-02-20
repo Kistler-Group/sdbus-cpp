@@ -27,16 +27,16 @@
 #ifndef SDBUS_CXX_INTERNAL_PROXY_H_
 #define SDBUS_CXX_INTERNAL_PROXY_H_
 
-#include <sdbus-c++/IProxy.h>
+#include "sdbus-c++/IProxy.h"
+
 #include "IConnection.h"
-#include SDBUS_HEADER
-#include <string>
-#include <memory>
-#include <map>
+
 #include <deque>
+#include <memory>
 #include <mutex>
-#include <atomic>
-#include <condition_variable>
+#include <string>
+#include SDBUS_HEADER
+#include <vector>
 
 namespace sdbus::internal {
 
@@ -57,42 +57,26 @@ namespace sdbus::internal {
 
         MethodCall createMethodCall(const std::string& interfaceName, const std::string& methodName) override;
         MethodReply callMethod(const MethodCall& message, uint64_t timeout) override;
-        PendingAsyncCall callMethod(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout) override;
-        std::future<MethodReply> callMethod(const MethodCall& message, with_future_t) override;
-        std::future<MethodReply> callMethod(const MethodCall& message, uint64_t timeout, with_future_t) override;
+        PendingAsyncCall callMethodAsync(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout) override;
+        std::future<MethodReply> callMethodAsync(const MethodCall& message, with_future_t) override;
+        std::future<MethodReply> callMethodAsync(const MethodCall& message, uint64_t timeout, with_future_t) override;
 
         void registerSignalHandler( const std::string& interfaceName
                                   , const std::string& signalName
                                   , signal_handler signalHandler ) override;
-        void unregisterSignalHandler( const std::string& interfaceName
-                                    , const std::string& signalName ) override;
-
-        void finishRegistration() override;
+        Slot registerSignalHandler( const std::string& interfaceName
+                                  , const std::string& signalName
+                                  , signal_handler signalHandler
+                                  , return_slot_t ) override;
         void unregister() override;
 
-        sdbus::IConnection& getConnection() const override;
-        const std::string& getObjectPath() const override;
-        const Message* getCurrentlyProcessedMessage() const override;
+        [[nodiscard]] sdbus::IConnection& getConnection() const override;
+        [[nodiscard]] const std::string& getObjectPath() const override;
+        [[nodiscard]] Message getCurrentlyProcessedMessage() const override;
 
     private:
-        class SyncCallReplyData
-        {
-        public:
-            void sendMethodReplyToWaitingThread(MethodReply& reply, const Error* error);
-            MethodReply waitForMethodReply();
-
-        private:
-            std::mutex mutex_;
-            std::condition_variable cond_;
-            bool arrived_{};
-            MethodReply reply_;
-            std::unique_ptr<Error> error_;
-        };
-
-        MethodReply sendMethodCallMessageAndWaitForReply(const MethodCall& message, uint64_t timeout);
-        void registerSignalHandlers(sdbus::internal::IConnection& connection);
-        static int sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
         static int sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
+        static int sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
 
     private:
         friend PendingAsyncCall;
@@ -103,28 +87,14 @@ namespace sdbus::internal {
         std::string destination_;
         std::string objectPath_;
 
-        using InterfaceName = std::string;
-        struct InterfaceData
+        std::vector<Slot> floatingSignalSlots_;
+
+        struct SignalInfo
         {
-            using SignalName = std::string;
-            struct SignalData
-            {
-                SignalData(Proxy& proxy, signal_handler callback, Slot slot)
-                    : proxy(proxy)
-                    , callback(std::move(callback))
-                    , slot(std::move(slot))
-                {}
-                Proxy& proxy;
-                signal_handler callback;
-                // slot must be listed after callback to ensure that slot is destructed first.
-                // Destructing the slot will sd_bus_slot_unref() the callback.
-                // Only after sd_bus_slot_unref(), we can safely delete the callback. The bus mutex (SdBus::sdbusMutex_)
-                // ensures that sd_bus_slot_unref() and the callback execute sequentially.
-                Slot slot;
-            };
-            std::map<SignalName, std::unique_ptr<SignalData>> signals_;
+            signal_handler callback;
+            Proxy& proxy;
+            Slot slot;
         };
-        std::map<InterfaceName, InterfaceData> interfaces_;
 
         // We need to keep track of pending async calls. When the proxy is being destructed, we must
         // remove all slots of these pending calls, otherwise in case when the connection outlives
@@ -135,16 +105,10 @@ namespace sdbus::internal {
         public:
             struct CallData
             {
-                enum class State
-                {   NOT_ASYNC
-                ,   RUNNING
-                ,   FINISHED
-                };
-
                 Proxy& proxy;
                 async_reply_handler callback;
-                Slot slot;
-                State state;
+                Slot slot{};
+                bool finished{false};
             };
 
             ~AsyncCalls()
@@ -155,14 +119,14 @@ namespace sdbus::internal {
             void addCall(std::shared_ptr<CallData> asyncCallData)
             {
                 std::lock_guard lock(mutex_);
-                if (asyncCallData->state != CallData::State::FINISHED) // The call may have finished in the meantime
+                if (!asyncCallData->finished) // The call may have finished in the meantime
                     calls_.emplace_back(std::move(asyncCallData));
             }
 
             void removeCall(CallData* data)
             {
                 std::unique_lock lock(mutex_);
-                data->state = CallData::State::FINISHED;
+                data->finished = true;
                 if (auto it = std::find_if(calls_.begin(), calls_.end(), [data](auto const& entry){ return entry.get() == data; }); it != calls_.end())
                 {
                     auto callData = std::move(*it);
@@ -193,8 +157,6 @@ namespace sdbus::internal {
             std::mutex mutex_;
             std::deque<std::shared_ptr<CallData>> calls_;
         } pendingAsyncCalls_;
-
-        std::atomic<const Message*> m_CurrentlyProcessedMessage{nullptr};
     };
 
 }

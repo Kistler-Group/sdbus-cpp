@@ -55,17 +55,17 @@ namespace sdbus {
         {
         }
 
-        const std::string& getName() const
+        [[nodiscard]] const std::string& getName() const
         {
             return name_;
         }
 
-        const std::string& getMessage() const
+        [[nodiscard]] const std::string& getMessage() const
         {
             return message_;
         }
 
-        bool isValid() const
+        [[nodiscard]] bool isValid() const
         {
             return !getName().empty();
         }

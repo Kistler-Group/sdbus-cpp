@@ -27,18 +27,21 @@
 #ifndef SDBUS_CXX_INTERNAL_CONNECTION_H_
 #define SDBUS_CXX_INTERNAL_CONNECTION_H_
 
-#include <sdbus-c++/IConnection.h>
-#include <sdbus-c++/Message.h>
+#include "sdbus-c++/IConnection.h"
+
+#include "sdbus-c++/Message.h"
+
 #include "IConnection.h"
-#include "ScopeGuard.h"
 #include "ISdBus.h"
-#include SDBUS_HEADER
+#include "ScopeGuard.h"
+
 #include <memory>
-#include <thread>
 #include <string>
+#include SDBUS_HEADER
+#include <thread>
 #include <vector>
-#include <atomic>
-#include <mutex>
+
+struct sd_event_source;
 
 namespace sdbus::internal {
 
@@ -80,41 +83,49 @@ namespace sdbus::internal {
 
         void requestName(const std::string& name) override;
         void releaseName(const std::string& name) override;
-        std::string getUniqueName() const override;
+        [[nodiscard]] std::string getUniqueName() const override;
         void enterEventLoop() override;
         void enterEventLoopAsync() override;
         void leaveEventLoop() override;
-        PollData getEventLoopPollData() const override;
-        bool processPendingRequest() override;
+        [[nodiscard]] PollData getEventLoopPollData() const override;
+        bool processPendingEvent() override;
+        Message getCurrentlyProcessedMessage() const override;
 
-        void addObjectManager(const std::string& objectPath) override;
         void addObjectManager(const std::string& objectPath, floating_slot_t) override;
-        Slot addObjectManager(const std::string& objectPath, request_slot_t) override;
+        Slot addObjectManager(const std::string& objectPath, return_slot_t) override;
 
         void setMethodCallTimeout(uint64_t timeout) override;
-        uint64_t getMethodCallTimeout() const override;
+        [[nodiscard]] uint64_t getMethodCallTimeout() const override;
 
         [[nodiscard]] Slot addMatch(const std::string& match, message_handler callback) override;
         void addMatch(const std::string& match, message_handler callback, floating_slot_t) override;
         [[nodiscard]] Slot addMatchAsync(const std::string& match, message_handler callback, message_handler installCallback) override;
         void addMatchAsync(const std::string& match, message_handler callback, message_handler installCallback, floating_slot_t) override;
 
-        const ISdBus& getSdBusInterface() const override;
-        ISdBus& getSdBusInterface() override;
+        void attachSdEventLoop(sd_event *event, int priority) override;
+        void detachSdEventLoop() override;
+        sd_event *getSdEventLoop() override;
+
+        [[nodiscard]] const ISdBus& getSdBusInterface() const override;
+        [[nodiscard]] ISdBus& getSdBusInterface() override;
 
         Slot addObjectVTable( const std::string& objectPath
                             , const std::string& interfaceName
                             , const sd_bus_vtable* vtable
                             , void* userData ) override;
 
-        PlainMessage createPlainMessage() const override;
-        MethodCall createMethodCall( const std::string& destination
-                                   , const std::string& objectPath
-                                   , const std::string& interfaceName
-                                   , const std::string& methodName ) const override;
-        Signal createSignal( const std::string& objectPath
-                           , const std::string& interfaceName
-                           , const std::string& signalName ) const override;
+        [[nodiscard]] PlainMessage createPlainMessage() const override;
+        [[nodiscard]] MethodCall createMethodCall( const std::string& destination
+                                                 , const std::string& objectPath
+                                                 , const std::string& interfaceName
+                                                 , const std::string& methodName ) const override;
+        [[nodiscard]] Signal createSignal( const std::string& objectPath
+                                         , const std::string& interfaceName
+                                         , const std::string& signalName ) const override;
+
+        MethodReply callMethod(const MethodCall& message, uint64_t timeout) override;
+        void callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout, floating_slot_t) override;
+        Slot callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout) override;
 
         void emitPropertiesChangedSignal( const std::string& objectPath
                                         , const std::string& interfaceName
@@ -133,8 +144,6 @@ namespace sdbus::internal {
                                   , sd_bus_message_handler_t callback
                                   , void* userData ) override;
 
-        MethodReply tryCallMethodSynchronously(const MethodCall& message, uint64_t timeout) override;
-
     private:
         using BusFactory = std::function<int(sd_bus**)>;
         using BusPtr = std::unique_ptr<sd_bus, std::function<sd_bus*(sd_bus*)>>;
@@ -143,27 +152,41 @@ namespace sdbus::internal {
         BusPtr openBus(const std::function<int(sd_bus**)>& busFactory);
         BusPtr openPseudoBus();
         void finishHandshake(sd_bus* bus);
-        bool waitForNextRequest();
-        static std::string composeSignalMatchFilter( const std::string &sender
-                                                   , const std::string &objectPath
-                                                   , const std::string &interfaceName
-                                                   , const std::string &signalName);
-        void notifyEventLoop(int fd) const;
-        void notifyEventLoopToExit() const;
-        void clearEventLoopNotification(int fd) const;
-        void notifyEventLoopNewTimeout() const override;
+        bool waitForNextEvent();
 
+        [[nodiscard]] bool arePendingMessagesInReadQueue() const;
+
+        void notifyEventLoopToExit();
+        void notifyEventLoopToWakeUpFromPoll();
+        void wakeUpEventLoopIfMessagesInQueue();
         void joinWithEventLoop();
+
         static std::vector</*const */char*> to_strv(const std::vector<std::string>& strings);
 
         static int sdbus_match_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
         static int sdbus_match_install_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
 
     private:
+#ifndef SDBUS_basu // sd_event integration is not supported if instead of libsystemd we are based on basu
+        Slot createSdEventSlot(sd_event *event);
+        Slot createSdTimeEventSourceSlot(sd_event *event, int priority);
+        Slot createSdIoEventSourceSlot(sd_event *event, int fd, int priority);
+        Slot createSdInternalEventSourceSlot(sd_event *event, int fd, int priority);
+        static void deleteSdEventSource(sd_event_source *s);
+
+        static int onSdTimerEvent(sd_event_source *s, uint64_t usec, void *userdata);
+        static int onSdIoEvent(sd_event_source *s, int fd, uint32_t revents, void *userdata);
+        static int onSdInternalEvent(sd_event_source *s, int fd, uint32_t revents, void *userdata);
+        static int onSdEventPrepare(sd_event_source *s, void *userdata);
+#endif
+
         struct EventFd
         {
             EventFd();
             ~EventFd();
+            void notify();
+            bool clear();
+
             int fd{-1};
         };
 
@@ -172,19 +195,26 @@ namespace sdbus::internal {
             message_handler callback;
             message_handler installCallback;
             Connection& connection;
-            sd_bus_slot *slot;
+            Slot slot;
+        };
+
+        // sd-event integration
+        struct SdEvent
+        {
+            Slot sdEvent;
+            Slot sdTimeEventSource;
+            Slot sdIoEventSource;
+            Slot sdInternalEventSource;
         };
 
     private:
-        std::unique_ptr<ISdBus> iface_;
+        std::unique_ptr<ISdBus> sdbus_;
         BusPtr bus_;
         std::thread asyncLoopThread_;
-        std::atomic<std::thread::id> loopThreadId_;
-        std::mutex loopMutex_;
-        EventFd loopExitFd_;
-        EventFd eventFd_;
-        std::atomic<uint64_t> activeTimeout_{};
+        EventFd loopExitFd_; // To wake up event loop I/O polling to exit
+        EventFd eventFd_; // To wake up event loop I/O polling to re-enter poll with fresh PollData values
         std::vector<Slot> floatingMatchRules_;
+        std::unique_ptr<SdEvent> sdEvent_; // Integration of systemd sd-event event loop implementation
     };
 
 }

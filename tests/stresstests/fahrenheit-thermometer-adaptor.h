@@ -24,7 +24,6 @@ protected:
     thermometer_adaptor(sdbus::IObject& object)
         : object_(&object)
     {
-        object_->registerMethod("getCurrentTemperature").onInterface(INTERFACE_NAME).withOutputParamNames("result").implementedAs([this](){ return this->getCurrentTemperature(); });
     }
 
     thermometer_adaptor(const thermometer_adaptor&) = delete;
@@ -33,6 +32,11 @@ protected:
     thermometer_adaptor& operator=(thermometer_adaptor&&) = default;
 
     ~thermometer_adaptor() = default;
+
+    void registerAdaptor()
+    {
+        object_->addVTable(sdbus::registerMethod("getCurrentTemperature").withOutputParamNames("result").implementedAs([this](){ return this->getCurrentTemperature(); })).forInterface(INTERFACE_NAME);
+    }
 
 private:
     virtual uint32_t getCurrentTemperature() = 0;
@@ -58,8 +62,6 @@ protected:
     factory_adaptor(sdbus::IObject& object)
         : object_(&object)
     {
-        object_->registerMethod("createDelegateObject").onInterface(INTERFACE_NAME).withOutputParamNames("delegate").implementedAs([this](sdbus::Result<sdbus::ObjectPath>&& result){ this->createDelegateObject(std::move(result)); });
-        object_->registerMethod("destroyDelegateObject").onInterface(INTERFACE_NAME).withInputParamNames("delegate").implementedAs([this](sdbus::Result<>&& result, sdbus::ObjectPath delegate){ this->destroyDelegateObject(std::move(result), std::move(delegate)); }).withNoReply();
     }
 
     factory_adaptor(const factory_adaptor&) = delete;
@@ -68,6 +70,13 @@ protected:
     factory_adaptor& operator=(factory_adaptor&&) = default;
 
     ~factory_adaptor() = default;
+
+    void registerAdaptor()
+    {
+        object_->addVTable( sdbus::registerMethod("createDelegateObject").withOutputParamNames("delegate").implementedAs([this](sdbus::Result<sdbus::ObjectPath>&& result){ this->createDelegateObject(std::move(result)); })
+                          , sdbus::registerMethod("destroyDelegateObject").withInputParamNames("delegate").implementedAs([this](sdbus::Result<>&& result, sdbus::ObjectPath delegate){ this->destroyDelegateObject(std::move(result), std::move(delegate)); }).withNoReply()
+                          ).forInterface(INTERFACE_NAME);
+    }
 
 private:
     virtual void createDelegateObject(sdbus::Result<sdbus::ObjectPath>&& result) = 0;

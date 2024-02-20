@@ -28,13 +28,18 @@
 #define SDBUS_CXX_ICONNECTION_H_
 
 #include <sdbus-c++/TypeTraits.h>
-#include <string>
-#include <memory>
+
 #include <chrono>
 #include <cstdint>
+#include <memory>
 #include <optional>
+#include <string>
 
 struct sd_bus;
+struct sd_event;
+namespace sdbus {
+  class Message;
+}
 
 namespace sdbus {
 
@@ -51,62 +56,7 @@ namespace sdbus {
     class IConnection
     {
     public:
-        /*!
-         * Poll Data for external event loop implementations.
-         *
-         * To integrate sdbus with your app's own custom event handling system
-         * you can use this method to query which file descriptors, poll events
-         * and timeouts you should add to your app's poll(2), or select(2)
-         * call in your main event loop.
-         *
-         * If you are unsure what this all means then use
-         * enterEventLoop() or enterEventLoopAsync() instead.
-         *
-         * See: getEventLoopPollData()
-         */
-        struct PollData
-        {
-            /*!
-             * The read fd to be monitored by the event loop.
-             */
-            int fd;
-            /*!
-             * The events to use for poll(2) alongside fd.
-             */
-            short int events;
-
-            /*!
-             * Absolute timeout value in micro seconds and based of CLOCK_MONOTONIC.
-             */
-            uint64_t timeout_usec;
-
-            /*!
-             * Get the event poll timeout.
-             *
-             * The timeout is an absolute value based of CLOCK_MONOTONIC.
-             *
-             * @return a duration since the CLOCK_MONOTONIC epoch started.
-             */
-            [[nodiscard]] std::chrono::microseconds getAbsoluteTimeout() const
-            {
-                return std::chrono::microseconds(timeout_usec);
-            }
-
-            /*!
-             * Get the timeout as relative value from now
-             *
-             * @return std::nullopt if the timeout is indefinite. A duration otherwise.
-             */
-            [[nodiscard]] std::optional<std::chrono::microseconds> getRelativeTimeout() const;
-
-            /*!
-             * Get a converted, relative timeout which can be passed as argument 'timeout' to poll(2)
-             *
-             * @return -1 if the timeout is indefinite. 0 if the poll(2) shouldn't block. An integer in milli
-             * seconds otherwise.
-             */
-            [[nodiscard]] int getPollTimeout() const;
-        };
+        struct PollData;
 
         virtual ~IConnection() = default;
 
@@ -129,11 +79,11 @@ namespace sdbus {
         virtual void releaseName(const std::string& name) = 0;
 
         /*!
-         * @brief Retrieve the unique name of a connection. E.g. ":1.xx"
+         * @brief Retrieves the unique name of a connection. E.g. ":1.xx"
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual std::string getUniqueName() const = 0;
+        [[nodiscard]] virtual std::string getUniqueName() const = 0;
 
         /*!
          * @brief Enters I/O event loop on this bus connection
@@ -163,61 +113,103 @@ namespace sdbus {
         virtual void leaveEventLoop() = 0;
 
         /*!
-         * @brief Adds an ObjectManager at the specified D-Bus object path
+         * @brief Attaches the bus connection to an sd-event event loop
          *
-         * Creates an ObjectManager interface at the specified object path on
-         * the connection. This is a convenient way to interrogate a connection
-         * to see what objects it has.
-         *
-         * This call creates a floating registration. The ObjectManager will
-         * be there for the object path until the connection is destroyed.
-         *
-         * Another, recommended way to add object managers is directly through
-         * IObject API.
+         * @param[in] event sd-event event loop object
+         * @param[in] priority Specified priority
          *
          * @throws sdbus::Error in case of failure
+         *
+         * See `man sd_bus_attach_event'.
          */
-        [[deprecated("Use one of other addObjectManager overloads")]] virtual void addObjectManager(const std::string& objectPath) = 0;
+        virtual void attachSdEventLoop(sd_event *event, int priority = 0) = 0;
 
         /*!
-         * @brief Returns fd, I/O events and timeout data you can pass to poll
-         *
-         * To integrate sdbus with your app's own custom event handling system
-         * (without the requirement of an extra thread), you can use this
-         * method to query which file descriptors, poll events and timeouts you
-         * should add to your app's poll call in your main event loop. If these
-         * file descriptors signal, then you should call processPendingRequest
-         * to process the event. This means that all of sdbus's callbacks will
-         * arrive on your app's main event thread (opposed to on a thread created
-         * by sdbus-c++). If you are unsure what this all means then use
-         * enterEventLoop() or enterEventLoopAsync() instead.
-         *
-         * To integrate sdbus-c++ into a gtk app, pass the file descriptor returned
-         * by this method to g_main_context_add_poll.
+         * @brief Detaches the bus connection from an sd-event event loop
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual PollData getEventLoopPollData() const = 0;
+        virtual void detachSdEventLoop() = 0;
 
         /*!
-         * @brief Process a pending request
+         * @brief Gets current sd-event event loop for the bus connection
          *
-         * @returns true if an event was processed, false if poll should be called
+         * @return Pointer to event loop object if attached, nullptr otherwise
+         */
+        virtual sd_event *getSdEventLoop() = 0;
+
+        /*!
+         * @brief Returns fd's, I/O events and timeout data to be used in an external event loop
          *
-         * Processes a single dbus event. All of sdbus-c++'s callbacks will be called
-         * from within this method. This method should ONLY be used in conjuction
-         * with getEventLoopPollData().
-         * This method returns true if an I/O message was processed. This you can try
-         * to call this method again before going to poll on I/O events. The method
-         * returns false if no operations were pending, and the caller should then
-         * poll for I/O events before calling this method again.
-         * enterEventLoop() and enterEventLoopAsync() will call this method for you,
-         * so there is no need to call it when using these. If you are unsure what
-         * this all means then don't use this method.
+         * This function is useful to hook up a bus connection object with an
+         * external (like GMainLoop, boost::asio, etc.) or manual event loop
+         * involving poll() or a similar I/O polling call.
+         *
+         * Before **each** invocation of the I/O polling call, this function
+         * should be invoked. Returned PollData::fd file descriptor should
+         * be polled for the events indicated by PollData::events, and the I/O
+         * call should block for that up to the returned PollData::timeout.
+         *
+         * Additionally, returned PollData::eventFd should be polled for POLLIN
+         * events.
+         *
+         * After each I/O polling call the bus connection needs to process
+         * incoming or outgoing data, by invoking processPendingEvent().
+         *
+         * Note that the returned timeout should be considered only a maximum
+         * sleeping time. It is permissible (and even expected) that shorter
+         * timeouts are used by the calling program, in case other event sources
+         * are polled in the same event loop. Note that the returned time-value
+         * is absolute, based of CLOCK_MONOTONIC and specified in microseconds.
+         * Use PollData::getPollTimeout() to have the timeout value converted
+         * in a form that can be passed to poll(2).
+         *
+         * The bus connection conveniently integrates sd-event event loop.
+         * To attach the bus connection to an sd-event event loop, use
+         * attachSdEventLoop() function.
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual bool processPendingRequest() = 0;
+        [[nodiscard]] virtual PollData getEventLoopPollData() const = 0;
+
+        /*!
+         * @brief Processes a pending event
+         *
+         * @returns True if an event was processed, false if no operations were pending
+         *
+         * This function drives the D-Bus connection. It processes pending I/O events.
+         * Queued outgoing messages (or parts thereof) are sent out. Queued incoming
+         * messages are dispatched to registered callbacks. Timeouts are recalculated.
+         *
+         * It returns false when no operations were pending and true if a message was
+         * processed. When false is returned the caller should synchronously poll for
+         * I/O events before calling into processPendingEvent() again.
+         * Don't forget to call getEventLoopPollData() each time before the next poll.
+         *
+         * You don't need to directly call this method or getEventLoopPollData() method
+         * when using convenient, internal bus connection event loops through
+         * enterEventLoop() or enterEventLoopAsync() calls, or when the bus is
+         * connected to an sd-event event loop through attachSdEventLoop().
+         * It is invoked automatically when necessary.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual bool processPendingEvent() = 0;
+
+        /*!
+         * @brief Provides access to the currently processed D-Bus message
+         *
+         * This method provides access to the currently processed incoming D-Bus message.
+         * "Currently processed" means that the registered callback handler(s) for that message
+         * are being invoked. This method is meant to be called from within a callback handler
+         * (e.g. from a D-Bus signal handler, or async method reply handler, etc.). In such a case it is
+         * guaranteed to return a valid D-Bus message instance for which the handler is called.
+         * If called from other contexts/threads, it may return a valid or invalid message, depending
+         * on whether a message was processed or not at the time of the call.
+         *
+         * @return Currently processed D-Bus message
+         */
+        [[nodiscard]] virtual Message getCurrentlyProcessedMessage() const = 0;
 
         /*!
          * @brief Sets general method call timeout
@@ -248,7 +240,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual uint64_t getMethodCallTimeout() const = 0;
+        [[nodiscard]] virtual uint64_t getMethodCallTimeout() const = 0;
 
         /*!
          * @brief Adds an ObjectManager at the specified D-Bus object path
@@ -278,7 +270,7 @@ namespace sdbus {
          * The syntax of the match rule expression passed in match is described in the D-Bus specification.
          * The specified handler function callback is called for each incoming message matching the specified
          * expression. The match is installed synchronously when connected to a bus broker, i.e. the call
-         * sends a control message requested the match to be added to the broker and waits until the broker
+         * sends a control message requesting the match to be added to the broker and waits until the broker
          * confirms the match has been installed successfully.
          *
          * Simply let go of the slot instance to uninstall the match rule from the bus connection. The slot
@@ -347,32 +339,53 @@ namespace sdbus {
         virtual void addMatchAsync(const std::string& match, message_handler callback, message_handler installCallback, floating_slot_t) = 0;
 
         /*!
-         * @copydoc IConnection::enterEventLoop()
+         * @struct PollData
          *
-         * @deprecated This function has been replaced by enterEventLoop()
+         * Carries poll data needed for integration with external event loop implementations.
+         *
+         * See getEventLoopPollData() for more info.
          */
-        [[deprecated("This function has been replaced by enterEventLoop()")]] void enterProcessingLoop();
+        struct PollData
+        {
+            /*!
+             * The read fd to be monitored by the event loop.
+             */
+            int fd;
 
-        /*!
-         * @copydoc IConnection::enterEventLoopAsync()
-         *
-         * @deprecated This function has been replaced by enterEventLoopAsync()
-         */
-        [[deprecated("This function has been replaced by enterEventLoopAsync()")]] void enterProcessingLoopAsync();
+            /*!
+             * The events to use for poll(2) alongside fd.
+             */
+            short int events;
 
-        /*!
-         * @copydoc IConnection::leaveEventLoop()
-         *
-         * @deprecated This function has been replaced by leaveEventLoop()
-         */
-        [[deprecated("This function has been replaced by leaveEventLoop()")]] void leaveProcessingLoop();
+            /*!
+             * Absolute timeout value in microseconds, based of CLOCK_MONOTONIC.
+             *
+             * Call getPollTimeout() to get timeout recalculated to relative timeout that can be passed to poll(2).
+             */
+            std::chrono::microseconds timeout;
 
-        /*!
-         * @copydoc IConnection::getEventLoopPollData()
-         *
-         * @deprecated This function has been replaced by getEventLoopPollData()
-         */
-        [[deprecated("This function has been replaced by getEventLoopPollData()")]] PollData getProcessLoopPollData() const;
+            /*!
+             * An additional event fd to be monitored by the event loop for POLLIN events.
+             */
+            int eventFd;
+
+            /*!
+             * Returns the timeout as relative value from now.
+             *
+             * Returned value is std::chrono::microseconds::max() if the timeout is indefinite.
+             *
+             * @return Relative timeout as a time duration
+             */
+            [[nodiscard]] std::chrono::microseconds getRelativeTimeout() const;
+
+            /*!
+             * Returns relative timeout in the form which can be passed as argument 'timeout' to poll(2)
+             *
+             * @return -1 if the timeout is indefinite. 0 if the poll(2) shouldn't block.
+             *         An integer in milliseconds otherwise.
+             */
+            [[nodiscard]] int getPollTimeout() const;
+        };
     };
 
     template <typename _Rep, typename _Period>
@@ -382,45 +395,6 @@ namespace sdbus {
         return setMethodCallTimeout(microsecs.count());
     }
 
-    inline void IConnection::enterProcessingLoop()
-    {
-        enterEventLoop();
-    }
-
-    inline void IConnection::enterProcessingLoopAsync()
-    {
-        enterEventLoopAsync();
-    }
-
-    inline void IConnection::leaveProcessingLoop()
-    {
-        leaveEventLoop();
-    }
-
-    inline IConnection::PollData IConnection::getProcessLoopPollData() const
-    {
-        return getEventLoopPollData();
-    }
-
-    /*!
-     * @brief Creates/opens D-Bus system bus connection
-     *
-     * @return Connection instance
-     *
-     * @throws sdbus::Error in case of failure
-     */
-    [[nodiscard]] std::unique_ptr<sdbus::IConnection> createConnection();
-
-    /*!
-     * @brief Creates/opens D-Bus system bus connection with a name
-     *
-     * @param[in] name Name to request on the connection after its opening
-     * @return Connection instance
-     *
-     * @throws sdbus::Error in case of failure
-     */
-    [[nodiscard]] std::unique_ptr<sdbus::IConnection> createConnection(const std::string& name);
-
     /*!
      * @brief Creates/opens D-Bus session bus connection when in a user context, and a system bus connection, otherwise.
      *
@@ -428,7 +402,7 @@ namespace sdbus {
      *
      * @throws sdbus::Error in case of failure
      */
-    [[nodiscard]] std::unique_ptr<sdbus::IConnection> createDefaultBusConnection();
+    [[nodiscard]] std::unique_ptr<sdbus::IConnection> createBusConnection();
 
     /*!
      * @brief Creates/opens D-Bus session bus connection with a name when in a user context, and a system bus connection with a name, otherwise.
@@ -438,7 +412,7 @@ namespace sdbus {
      *
      * @throws sdbus::Error in case of failure
      */
-    [[nodiscard]] std::unique_ptr<sdbus::IConnection> createDefaultBusConnection(const std::string& name);
+    [[nodiscard]] std::unique_ptr<sdbus::IConnection> createBusConnection(const std::string& name);
 
     /*!
      * @brief Creates/opens D-Bus system bus connection

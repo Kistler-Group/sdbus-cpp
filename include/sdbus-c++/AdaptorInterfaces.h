@@ -82,9 +82,10 @@ namespace sdbus {
      * adaptor-side interface classes representing interfaces (with methods, signals and properties)
      * of the D-Bus object.
      *
-     * In the final adaptor class inherited from AdaptorInterfaces, it is necessary to finish
-     * adaptor registration in class constructor (finishRegistration();`), and, conversely,
-     * unregister the adaptor in class destructor (`unregister();`).
+     * In the final adaptor class inherited from AdaptorInterfaces, one needs to make sure:
+     *   1. to call `registerAdaptor();` in the class constructor, and, conversely,
+     *   2. to call `unregisterAdaptor();` in the class destructor,
+     * so that the object API vtable is registered and unregistered at the proper time.
      *
      ***********************************************/
     template <typename... _Interfaces>
@@ -108,15 +109,15 @@ namespace sdbus {
         }
 
         /*!
-         * @brief Finishes adaptor API registration and publishes the adaptor on the bus
+         * @brief Adds object vtable (i.e. D-Bus API) definitions for all interfaces it implements
          *
          * This function must be called in the constructor of the final adaptor class that implements AdaptorInterfaces.
          *
-         * For more information, see underlying @ref IObject::finishRegistration()
+         * See also @ref IObject::addVTable()
          */
         void registerAdaptor()
         {
-            getObject().finishRegistration();
+            (_Interfaces::registerAdaptor(), ...);
         }
 
         /*!
@@ -132,12 +133,9 @@ namespace sdbus {
         }
 
         /*!
-         * @brief Returns object path of the underlying DBus object
+         * @brief Returns reference to the underlying IObject instance
          */
-        const std::string& getObjectPath() const
-        {
-            return getObject().getObjectPath();
-        }
+        using ObjectHolder::getObject;
 
     protected:
         using base_type = AdaptorInterfaces;

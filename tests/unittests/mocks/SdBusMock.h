@@ -72,14 +72,16 @@ public:
     MOCK_METHOD3(sd_bus_add_object_manager, int(sd_bus *bus, sd_bus_slot **slot, const char *path));
     MOCK_METHOD5(sd_bus_add_match, int(sd_bus *bus, sd_bus_slot **slot, const char *match, sd_bus_message_handler_t callback, void *userdata));
     MOCK_METHOD6(sd_bus_add_match_async, int(sd_bus *bus, sd_bus_slot **slot, const char *match, sd_bus_message_handler_t callback, sd_bus_message_handler_t install_callback, void *userdata));
+    MOCK_METHOD8(sd_bus_match_signal, int(sd_bus *bus, sd_bus_slot **ret, const char *sender, const char *path, const char *interface, const char *member, sd_bus_message_handler_t callback, void *userdata));
     MOCK_METHOD1(sd_bus_slot_unref, sd_bus_slot*(sd_bus_slot *slot));
 
     MOCK_METHOD1(sd_bus_new, int(sd_bus **ret));
     MOCK_METHOD1(sd_bus_start, int(sd_bus *bus));
 
     MOCK_METHOD2(sd_bus_process, int(sd_bus *bus, sd_bus_message **r));
+    MOCK_METHOD1(sd_bus_get_current_message, sd_bus_message*(sd_bus *bus));
     MOCK_METHOD2(sd_bus_get_poll_data, int(sd_bus *bus, PollData* data));
-
+    MOCK_METHOD2(sd_bus_get_n_queued_read, int(sd_bus *bus, uint64_t *ret));
     MOCK_METHOD1(sd_bus_flush, int(sd_bus *bus));
     MOCK_METHOD1(sd_bus_flush_close_unref, sd_bus *(sd_bus *bus));
     MOCK_METHOD1(sd_bus_close_unref, sd_bus *(sd_bus *bus));

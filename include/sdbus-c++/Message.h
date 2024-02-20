@@ -27,22 +27,25 @@
 #ifndef SDBUS_CXX_MESSAGE_H_
 #define SDBUS_CXX_MESSAGE_H_
 
-#include <sdbus-c++/TypeTraits.h>
 #include <sdbus-c++/Error.h>
-#include <string>
-#include <vector>
+#include <sdbus-c++/TypeTraits.h>
+
+#include <algorithm>
 #include <array>
-#if __cplusplus >= 202002L
-#include <span>
-#endif
+#include <cassert>
+#include <cstdint>
+#include <functional>
 #include <map>
+#ifdef __has_include
+#  if __has_include(<span>)
+#    include <span>
+#  endif
+#endif
+#include <string>
+#include <sys/types.h>
 #include <unordered_map>
 #include <utility>
-#include <cstdint>
-#include <cassert>
-#include <functional>
-#include <sys/types.h>
-#include <algorithm>
+#include <vector>
 
 // Forward declarations
 namespace sdbus {
@@ -54,7 +57,6 @@ namespace sdbus {
     class MethodReply;
     namespace internal {
         class ISdBus;
-        class IConnection;
     }
 }
 
@@ -69,13 +71,19 @@ namespace sdbus {
      * Serialization and deserialization functions are provided for types supported
      * by D-Bus.
      *
-     * You don't need to work with this class directly if you use high-level APIs
-     * of @c IObject and @c IProxy.
+     * You mostly don't need to work with this class directly if you use high-level
+     * APIs of @c IObject and @c IProxy.
      *
      ***********************************************/
     class [[nodiscard]] Message
     {
     public:
+        Message(const Message&) noexcept;
+        Message& operator=(const Message&) noexcept;
+        Message(Message&& other) noexcept;
+        Message& operator=(Message&& other) noexcept;
+        ~Message();
+
         Message& operator<<(bool item);
         Message& operator<<(int16_t item);
         Message& operator<<(int32_t item);
@@ -96,7 +104,7 @@ namespace sdbus {
         Message& operator<<(const std::vector<_Element, _Allocator>& items);
         template <typename _Element, std::size_t _Size>
         Message& operator<<(const std::array<_Element, _Size>& items);
-#if __cplusplus >= 202002L
+#ifdef __cpp_lib_span
         template <typename _Element, std::size_t _Extent>
         Message& operator<<(const std::span<_Element, _Extent>& items);
 #endif
@@ -128,7 +136,7 @@ namespace sdbus {
         Message& operator>>(std::vector<_Element, _Allocator>& items);
         template <typename _Element, std::size_t _Size>
         Message& operator>>(std::array<_Element, _Size>& items);
-#if __cplusplus >= 202002L
+#ifdef __cpp_lib_span
         template <typename _Element, std::size_t _Extent>
         Message& operator>>(std::span<_Element, _Extent>& items);
 #endif
@@ -214,13 +222,6 @@ namespace sdbus {
         Message(void *msg, internal::ISdBus* sdbus) noexcept;
         Message(void *msg, internal::ISdBus* sdbus, adopt_message_t) noexcept;
 
-        Message(const Message&) noexcept;
-        Message& operator=(const Message&) noexcept;
-        Message(Message&& other) noexcept;
-        Message& operator=(Message&& other) noexcept;
-
-        ~Message();
-
         friend Factory;
 
     protected:
@@ -238,7 +239,6 @@ namespace sdbus {
         MethodCall() = default;
 
         MethodReply send(uint64_t timeout) const;
-        [[deprecated("Use send overload with floating_slot instead")]] void send(void* callback, void* userData, uint64_t timeout, dont_request_slot_t) const;
         void send(void* callback, void* userData, uint64_t timeout, floating_slot_t) const;
         [[nodiscard]] Slot send(void* callback, void* userData, uint64_t timeout) const;
 
@@ -249,12 +249,11 @@ namespace sdbus {
         bool doesntExpectReply() const;
 
     protected:
-        MethodCall(void *msg, internal::ISdBus* sdbus, const internal::IConnection* connection, adopt_message_t) noexcept;
+        MethodCall(void *msg, internal::ISdBus* sdbus, adopt_message_t) noexcept;
 
     private:
         MethodReply sendWithReply(uint64_t timeout = 0) const;
         MethodReply sendWithNoReply() const;
-        const internal::IConnection* connection_{};
     };
 
     class MethodReply : public Message
@@ -322,7 +321,7 @@ namespace sdbus {
         return *this;
     }
 
-#if __cplusplus >= 202002L
+#ifdef __cpp_lib_span
     template <typename _Element, std::size_t _Extent>
     inline Message& Message::operator<<(const std::span<_Element, _Extent>& items)
     {
@@ -447,7 +446,7 @@ namespace sdbus {
         return *this;
     }
 
-#if __cplusplus >= 202002L
+#ifdef __cpp_lib_span
     template <typename _Element, std::size_t _Extent>
     inline Message& Message::operator>>(std::span<_Element, _Extent>& items)
     {

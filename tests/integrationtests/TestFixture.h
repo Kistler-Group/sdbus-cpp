@@ -2,7 +2,7 @@
  * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
  * (C) 2016 - 2022 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
- * @file TestAdaptor.h
+ * @file TestFixture.h
  *
  * Created on: Jan 2, 2017
  * Project: sdbus-c++
@@ -33,6 +33,10 @@
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#ifndef SDBUS_basu // sd_event integration is not supported in basu-based sdbus-c++
+#include <systemd/sd-event.h>
+#endif // SDBUS_basu
+#include <sys/eventfd.h>
 
 #include <thread>
 #include <chrono>
@@ -46,22 +50,17 @@
 
 namespace sdbus { namespace test {
 
-class TestFixture : public ::testing::Test
+class BaseTestFixture : public ::testing::Test
 {
 public:
     static void SetUpTestCase()
     {
-        s_proxyConnection->enterEventLoopAsync();
         s_adaptorConnection->requestName(BUS_NAME);
-        s_adaptorConnection->enterEventLoopAsync();
-        std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Give time for the proxy connection to start listening to signals
     }
 
     static void TearDownTestCase()
     {
         s_adaptorConnection->releaseName(BUS_NAME);
-        s_adaptorConnection->leaveEventLoop();
-        s_proxyConnection->leaveEventLoop();
     }
 
 private:
@@ -88,6 +87,108 @@ public:
     std::unique_ptr<TestAdaptor> m_adaptor;
     std::unique_ptr<TestProxy> m_proxy;
 };
+
+struct SdBusCppLoop{};
+struct SdEventLoop{};
+
+template <typename _EventLoop>
+class TestFixture : public BaseTestFixture{};
+
+// Fixture working upon internal sdbus-c++ event loop
+template <>
+class TestFixture<SdBusCppLoop> : public BaseTestFixture
+{
+public:
+    static void SetUpTestCase()
+    {
+        BaseTestFixture::SetUpTestCase();
+        s_proxyConnection->enterEventLoopAsync();
+        s_adaptorConnection->enterEventLoopAsync();
+        std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Give time for the proxy connection to start listening to signals
+    }
+
+    static void TearDownTestCase()
+    {
+        BaseTestFixture::TearDownTestCase();
+        s_adaptorConnection->leaveEventLoop();
+        s_proxyConnection->leaveEventLoop();
+    }
+};
+
+#ifndef SDBUS_basu // sd_event integration is not supported in basu-based sdbus-c++
+
+// Fixture working upon attached external sd-event loop
+template <>
+class TestFixture<SdEventLoop> : public BaseTestFixture
+{
+public:
+    static void SetUpTestCase()
+    {
+        sd_event_new(&s_adaptorSdEvent);
+        sd_event_new(&s_proxySdEvent);
+
+        s_adaptorConnection->attachSdEventLoop(s_adaptorSdEvent);
+        s_proxyConnection->attachSdEventLoop(s_proxySdEvent);
+
+        s_eventExitFd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
+        auto exitHandler = [](sd_event_source *s, auto...){ return sd_event_exit(sd_event_source_get_event(s), 0); };
+        sd_event_add_io(s_adaptorSdEvent, nullptr, s_eventExitFd, EPOLLIN, exitHandler, nullptr);
+        sd_event_add_io(s_proxySdEvent, nullptr, s_eventExitFd, EPOLLIN, exitHandler, nullptr);
+
+        s_adaptorEventLoopThread = std::thread([]()
+        {
+            sd_event_loop(s_adaptorSdEvent);
+        });
+        s_proxyEventLoopThread = std::thread([]()
+        {
+            sd_event_loop(s_proxySdEvent);
+        });
+
+        BaseTestFixture::SetUpTestCase();
+        std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Give time for the proxy connection to start listening to signals
+    }
+
+    static void TearDownTestCase()
+    {
+        (void)eventfd_write(s_eventExitFd, 1);
+
+        s_adaptorEventLoopThread.join();
+        s_proxyEventLoopThread.join();
+
+        sd_event_unref(s_adaptorSdEvent);
+        sd_event_unref(s_proxySdEvent);
+        close(s_eventExitFd);
+
+        BaseTestFixture::TearDownTestCase();
+    }
+
+private:
+    static std::thread s_adaptorEventLoopThread;
+    static std::thread s_proxyEventLoopThread;
+    static sd_event *s_adaptorSdEvent;
+    static sd_event *s_proxySdEvent;
+    static int s_eventExitFd;
+};
+
+typedef ::testing::Types<SdBusCppLoop, SdEventLoop> EventLoopTags;
+
+#else // SDBUS_basu
+typedef ::testing::Types<SdBusCppLoop> EventLoopTags;
+#endif // SDBUS_basu
+
+TYPED_TEST_SUITE(TestFixture, EventLoopTags);
+
+template <typename _EventLoop>
+using SdbusTestObject = TestFixture<_EventLoop>;
+TYPED_TEST_SUITE(SdbusTestObject, EventLoopTags);
+
+template <typename _EventLoop>
+using AsyncSdbusTestObject = TestFixture<_EventLoop>;
+TYPED_TEST_SUITE(AsyncSdbusTestObject, EventLoopTags);
+
+template <typename _EventLoop>
+using AConnection = TestFixture<_EventLoop>;
+TYPED_TEST_SUITE(AConnection, EventLoopTags);
 
 class TestFixtureWithDirectConnection : public ::testing::Test
 {

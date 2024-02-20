@@ -33,6 +33,7 @@
 #include <chrono>
 #include <atomic>
 #include <utility>
+#include <memory>
 
 namespace sdbus { namespace test {
 
@@ -103,9 +104,9 @@ public: // for tests
     mutable double m_multiplyResult{};
     mutable std::atomic<bool> m_wasThrowErrorCalled{false};
 
-    const Message* m_methodCallMsg{};
+    std::unique_ptr<const Message> m_methodCallMsg;
     std::string m_methodCallMemberName;
-    const Message* m_propertySetMsg{};
+    std::unique_ptr<const Message> m_propertySetMsg;
     std::string m_propertySetSender;
 };
 

@@ -45,7 +45,6 @@ using ::testing::Eq;
 using namespace std::chrono_literals;
 using namespace sdbus::test;
 
-using AConnection = TestFixture;
 using ADirectConnection = TestFixtureWithDirectConnection;
 
 /*-------------------------------------*/
@@ -54,11 +53,13 @@ using ADirectConnection = TestFixtureWithDirectConnection;
 
 TEST(AdaptorAndProxy, CanBeConstructedSuccesfully)
 {
-    auto connection = sdbus::createConnection();
+    auto connection = sdbus::createBusConnection();
     connection->requestName(BUS_NAME);
 
     ASSERT_NO_THROW(TestAdaptor adaptor(*connection, OBJECT_PATH));
     ASSERT_NO_THROW(TestProxy proxy(BUS_NAME, OBJECT_PATH));
+
+    connection->releaseName(BUS_NAME);
 }
 
 TEST(AProxy, SupportsMoveSemantics)
@@ -73,97 +74,97 @@ TEST(AnAdaptor, SupportsMoveSemantics)
     static_assert(std::is_move_assignable_v<DummyTestAdaptor>);
 }
 
-TEST_F(AConnection, WillCallCallbackHandlerForIncomingMessageMatchingMatchRule)
+TYPED_TEST(AConnection, WillCallCallbackHandlerForIncomingMessageMatchingMatchRule)
 {
     auto matchRule = "sender='" + BUS_NAME + "',path='" + OBJECT_PATH + "'";
     std::atomic<bool> matchingMessageReceived{false};
-    auto slot = s_proxyConnection->addMatch(matchRule, [&](sdbus::Message& msg)
+    auto slot = this->s_proxyConnection->addMatch(matchRule, [&](sdbus::Message msg)
     {
         if(msg.getPath() == OBJECT_PATH)
             matchingMessageReceived = true;
     });
 
-    m_adaptor->emitSimpleSignal();
+    this->m_adaptor->emitSimpleSignal();
 
     ASSERT_TRUE(waitUntil(matchingMessageReceived));
 }
 
-TEST_F(AConnection, CanInstallMatchRuleAsynchronously)
+TYPED_TEST(AConnection, CanInstallMatchRuleAsynchronously)
 {
     auto matchRule = "sender='" + BUS_NAME + "',path='" + OBJECT_PATH + "'";
     std::atomic<bool> matchingMessageReceived{false};
     std::atomic<bool> matchRuleInstalled{false};
-    auto slot = s_proxyConnection->addMatchAsync( matchRule
-                                                , [&](sdbus::Message& msg)
-                                                  {
-                                                      if(msg.getPath() == OBJECT_PATH)
-                                                          matchingMessageReceived = true;
-                                                  }
-                                                , [&](sdbus::Message& /*msg*/)
-                                                  {
-                                                      matchRuleInstalled = true;
-                                                  } );
+    auto slot = this->s_proxyConnection->addMatchAsync( matchRule
+                                                      , [&](sdbus::Message msg)
+                                                        {
+                                                            if(msg.getPath() == OBJECT_PATH)
+                                                                matchingMessageReceived = true;
+                                                        }
+                                                      , [&](sdbus::Message /*msg*/)
+                                                        {
+                                                            matchRuleInstalled = true;
+                                                        } );
 
     EXPECT_TRUE(waitUntil(matchRuleInstalled));
 
-    m_adaptor->emitSimpleSignal();
+    this->m_adaptor->emitSimpleSignal();
 
     ASSERT_TRUE(waitUntil(matchingMessageReceived));
 }
 
-TEST_F(AConnection, WillUnsubscribeMatchRuleWhenClientDestroysTheAssociatedSlot)
+TYPED_TEST(AConnection, WillUnsubscribeMatchRuleWhenClientDestroysTheAssociatedSlot)
 {
     auto matchRule = "sender='" + BUS_NAME + "',path='" + OBJECT_PATH + "'";
     std::atomic<bool> matchingMessageReceived{false};
-    auto slot = s_proxyConnection->addMatch(matchRule, [&](sdbus::Message& msg)
+    auto slot = this->s_proxyConnection->addMatch(matchRule, [&](sdbus::Message msg)
     {
         if(msg.getPath() == OBJECT_PATH)
             matchingMessageReceived = true;
     });
     slot.reset();
 
-    m_adaptor->emitSimpleSignal();
+    this->m_adaptor->emitSimpleSignal();
 
-    ASSERT_FALSE(waitUntil(matchingMessageReceived, 2s));
+    ASSERT_FALSE(waitUntil(matchingMessageReceived, 1s));
 }
 
-TEST_F(AConnection, CanAddFloatingMatchRule)
+TYPED_TEST(AConnection, CanAddFloatingMatchRule)
 {
     auto matchRule = "sender='" + BUS_NAME + "',path='" + OBJECT_PATH + "'";
     std::atomic<bool> matchingMessageReceived{false};
-    auto con = sdbus::createSystemBusConnection();
+    auto con = sdbus::createBusConnection();
     con->enterEventLoopAsync();
-    auto callback = [&](sdbus::Message& msg)
+    auto callback = [&](sdbus::Message msg)
     {
         if(msg.getPath() == OBJECT_PATH)
             matchingMessageReceived = true;
     };
     con->addMatch(matchRule, std::move(callback), sdbus::floating_slot);
-    m_adaptor->emitSimpleSignal();
+    this->m_adaptor->emitSimpleSignal();
     [[maybe_unused]] auto gotMessage = waitUntil(matchingMessageReceived, 2s);
     assert(gotMessage);
     matchingMessageReceived = false;
 
     con.reset();
-    m_adaptor->emitSimpleSignal();
+    this->m_adaptor->emitSimpleSignal();
 
-    ASSERT_FALSE(waitUntil(matchingMessageReceived, 2s));
+    ASSERT_FALSE(waitUntil(matchingMessageReceived, 1s));
 }
 
-TEST_F(AConnection, WillNotPassToMatchCallbackMessagesThatDoNotMatchTheRule)
+TYPED_TEST(AConnection, WillNotPassToMatchCallbackMessagesThatDoNotMatchTheRule)
 {
     auto matchRule = "type='signal',interface='" + INTERFACE_NAME + "',member='simpleSignal'";
     std::atomic<size_t> numberOfMatchingMessages{};
-    auto slot = s_proxyConnection->addMatch(matchRule, [&](sdbus::Message& msg)
+    auto slot = this->s_proxyConnection->addMatch(matchRule, [&](sdbus::Message msg)
     {
         if(msg.getMemberName() == "simpleSignal")
             numberOfMatchingMessages++;
     });
-    auto adaptor2 = std::make_unique<TestAdaptor>(*s_adaptorConnection, OBJECT_PATH_2);
+    auto adaptor2 = std::make_unique<TestAdaptor>(*this->s_adaptorConnection, OBJECT_PATH_2);
 
-    m_adaptor->emitSignalWithMap({});
+    this->m_adaptor->emitSignalWithMap({});
     adaptor2->emitSimpleSignal();
-    m_adaptor->emitSimpleSignal();
+    this->m_adaptor->emitSimpleSignal();
 
     ASSERT_TRUE(waitUntil([&](){ return numberOfMatchingMessages == 2; }));
     ASSERT_FALSE(waitUntil([&](){ return numberOfMatchingMessages > 2; }, 1s));

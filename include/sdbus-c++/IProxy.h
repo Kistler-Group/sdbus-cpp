@@ -29,11 +29,12 @@
 
 #include <sdbus-c++/ConvenienceApiClasses.h>
 #include <sdbus-c++/TypeTraits.h>
-#include <string>
-#include <memory>
-#include <functional>
+
 #include <chrono>
+#include <functional>
 #include <future>
+#include <memory>
+#include <string>
 
 // Forward declarations
 namespace sdbus {
@@ -80,25 +81,34 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual MethodCall createMethodCall(const std::string& interfaceName, const std::string& methodName) = 0;
+        [[nodiscard]] virtual MethodCall createMethodCall(const std::string& interfaceName, const std::string& methodName) = 0;
 
         /*!
-         * @brief Calls method on the D-Bus object
+         * @brief Calls method on the remote D-Bus object
          *
          * @param[in] message Message representing a method call
          * @param[in] timeout Timeout for dbus call in microseconds
          * @return A method reply message
          *
-         * Normally, the call is blocking, i.e. it waits for the remote method to finish with either
-         * a return value or an error.
+         * The call does not block if the method call has dont-expect-reply flag set. In that case,
+         * the call returns immediately and the return value is an empty, invalid method reply.
          *
-         * If the method call argument is set to not expect reply, the call will not wait for the remote
-         * method to finish, i.e. the call will be non-blocking, and the function will return an empty,
-         * invalid MethodReply object (representing void).
+         * The call blocks otherwise, waiting for the remote peer to send back a reply or an error,
+         * or until the call times out.
          *
-         * Note: To avoid messing with messages, use higher-level API defined below.
+         * While blocking, other concurrent operations (in other threads) on the underlying bus
+         * connection are stalled until the call returns. This is not an issue in vast majority of
+         * (simple, single-threaded) applications. In asynchronous, multi-threaded designs involving
+         * shared bus connections, this may be an issue. It is advised to instead use an asynchronous
+         * callMethod() function overload, which does not block the bus connection, or do the synchronous
+         * call from another Proxy instance created just before the call and then destroyed (which is
+         * anyway quite a typical approach in D-Bus implementations). Such proxy instance must have
+         * its own bus connection. So-called light-weight proxies (ones created with `dont_run_event_loop_thread`
+         * tag are designed for exactly that purpose.
          *
-         * @throws sdbus::Error in case of failure
+         * Note: To avoid messing with messages, use API on a higher level of abstraction defined below.
+         *
+         * @throws sdbus::Error in case of failure (also in case the remote function returned an error)
          */
         virtual MethodReply callMethod(const MethodCall& message, uint64_t timeout = 0) = 0;
 
@@ -116,66 +126,76 @@ namespace sdbus {
          * @param[in] timeout Timeout for dbus call in microseconds
          * @return Cookie for the the pending asynchronous call
          *
-         * The call is non-blocking. It doesn't wait for the reply. Once the reply arrives,
-         * the provided async reply handler will get invoked from the context of the connection
-         * I/O event loop thread.
+         * This is a callback-based way of asynchronously calling a remote D-Bus method.
          *
-         * Note: To avoid messing with messages, use higher-level API defined below.
+         * The call itself is non-blocking. It doesn't wait for the reply. Once the reply arrives,
+         * the provided async reply handler will get invoked from the context of the bus
+         * connection I/O event loop thread.
+         *
+         * Note: To avoid messing with messages, use API on a higher level of abstraction defined below.
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual PendingAsyncCall callMethod(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout = 0) = 0;
+        virtual PendingAsyncCall callMethodAsync( const MethodCall& message
+                                                , async_reply_handler asyncReplyCallback
+                                                , uint64_t timeout = 0 ) = 0;
 
         /*!
          * @copydoc IProxy::callMethod(const MethodCall&,async_reply_handler,uint64_t)
          */
         template <typename _Rep, typename _Period>
-        PendingAsyncCall callMethod(const MethodCall& message, async_reply_handler asyncReplyCallback, const std::chrono::duration<_Rep, _Period>& timeout);
+        PendingAsyncCall callMethodAsync( const MethodCall& message
+                                        , async_reply_handler asyncReplyCallback
+                                        , const std::chrono::duration<_Rep, _Period>& timeout );
 
         /*!
-         * @brief Registers a handler for the desired signal emitted by the D-Bus object
+         * @brief Calls method on the D-Bus object asynchronously
          *
-         * @param[in] interfaceName Name of an interface that the signal belongs to
-         * @param[in] signalName Name of the signal
-         * @param[in] signalHandler Callback that implements the body of the signal handler
+         * @param[in] message Message representing an async method call
+         * @param[in] Tag denoting a std::future-based overload
+         * @return Future object providing access to the future method reply message
+         *
+         * This is a std::future-based way of asynchronously calling a remote D-Bus method.
+         *
+         * The call itself is non-blocking. It doesn't wait for the reply. Once the reply arrives,
+         * the provided future object will be set to contain the reply (or sdbus::Error
+         * in case the remote method threw an exception).
+         *
+         * Note: To avoid messing with messages, use higher-level API defined below.
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void registerSignalHandler( const std::string& interfaceName
-                                          , const std::string& signalName
-                                          , signal_handler signalHandler ) = 0;
+        virtual std::future<MethodReply> callMethodAsync(const MethodCall& message, with_future_t) = 0;
 
         /*!
-         * @brief Unregisters the handler of the desired signal
+         * @brief Calls method on the D-Bus object asynchronously, with custom timeout
          *
-         * @param[in] interfaceName Name of an interface that the signal belongs to
-         * @param[in] signalName Name of the signal
+         * @param[in] message Message representing an async method call
+         * @param[in] timeout Method call timeout
+         * @param[in] Tag denoting a std::future-based overload
+         * @return Future object providing access to the future method reply message
+         *
+         * This is a std::future-based way of asynchronously calling a remote D-Bus method.
+         *
+         * The call itself is non-blocking. It doesn't wait for the reply. Once the reply arrives,
+         * the provided future object will be set to contain the reply (or sdbus::Error
+         * in case the remote method threw an exception, or the call timed out).
+         *
+         * Note: To avoid messing with messages, use higher-level API defined below.
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void unregisterSignalHandler( const std::string& interfaceName
-                                            , const std::string& signalName ) = 0;
+        virtual std::future<MethodReply> callMethodAsync( const MethodCall& message
+                                                        , uint64_t timeout
+                                                        , with_future_t ) = 0;
 
         /*!
-         * @brief Finishes the registration of signal handlers
-         *
-         * The method physically subscribes to the desired signals.
-         * Must be called only once, after all signals have been registered already.
-         *
-         * @throws sdbus::Error in case of failure
+         * @copydoc IProxy::callMethod(const MethodCall&,uint64_t,with_future_t)
          */
-        virtual void finishRegistration() = 0;
-
-        /*!
-         * @brief Unregisters proxy's signal handlers and stops receving replies to pending async calls
-         *
-         * Unregistration is done automatically also in proxy's destructor. This method makes
-         * sense if, in the process of proxy removal, we need to make sure that callbacks
-         * are unregistered explicitly before the final destruction of the proxy instance.
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        virtual void unregister() = 0;
+        template <typename _Rep, typename _Period>
+        std::future<MethodReply> callMethodAsync( const MethodCall& message
+                                                , const std::chrono::duration<_Rep, _Period>& timeout
+                                                , with_future_t );
 
         /*!
          * @brief Calls method on the D-Bus object
@@ -223,6 +243,42 @@ namespace sdbus {
         [[nodiscard]] AsyncMethodInvoker callMethodAsync(const std::string& methodName);
 
         /*!
+         * @brief Registers a handler for the desired signal emitted by the D-Bus object
+         *
+         * @param[in] interfaceName Name of an interface that the signal belongs to
+         * @param[in] signalName Name of the signal
+         * @param[in] signalHandler Callback that implements the body of the signal handler
+         *
+         * A signal can be subscribed to and unsubscribed from at any time during proxy
+         * lifetime. The subscription is active immediately after the call.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual void registerSignalHandler( const std::string& interfaceName
+                                          , const std::string& signalName
+                                          , signal_handler signalHandler ) = 0;
+
+        /*!
+         * @brief Registers a handler for the desired signal emitted by the D-Bus object
+         *
+         * @param[in] interfaceName Name of an interface that the signal belongs to
+         * @param[in] signalName Name of the signal
+         * @param[in] signalHandler Callback that implements the body of the signal handler
+         *
+         * @return RAII-style slot handle representing the ownership of the subscription
+         *
+         * A signal can be subscribed to and unsubscribed from at any time during proxy
+         * lifetime. The subscription is active immediately after the call. The subscription
+         * is unregistered when the client destroys the returned slot object.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] virtual Slot registerSignalHandler( const std::string& interfaceName
+                                                        , const std::string& signalName
+                                                        , signal_handler signalHandler
+                                                        , return_slot_t ) = 0;
+
+        /*!
          * @brief Registers signal handler for a given signal of the D-Bus object
          *
          * @param[in] signalName Name of the signal
@@ -232,6 +288,9 @@ namespace sdbus {
          * from the D-Bus message concept. Signal arguments are automatically serialized
          * in a message and D-Bus signatures automatically deduced from the parameters
          * of the provided native signal callback.
+         *
+         * A signal can be subscribed to and unsubscribed from at any time during proxy
+         * lifetime. The subscription is active immediately after the call.
          *
          * Example of use:
          * @code
@@ -243,21 +302,15 @@ namespace sdbus {
         [[nodiscard]] SignalSubscriber uponSignal(const std::string& signalName);
 
         /*!
-         * @brief Unregisters signal handler of a given signal of the D-Bus object
+         * @brief Unregisters proxy's signal handlers and stops receiving replies to pending async calls
          *
-         * @param[in] signalName Name of the signal
-         * @return A helper object for convenient unregistration of the signal handler
-         *
-         * This is a high-level, convenience way of unregistering a D-Bus signal's handler.
-         *
-         * Example of use:
-         * @code
-         * object_.muteSignal("fooSignal").onInterface("com.kistler.foo");
-         * @endcode
+         * Unregistration is done automatically also in proxy's destructor. This method makes
+         * sense if, in the process of proxy removal, we need to make sure that callbacks
+         * are unregistered explicitly before the final destruction of the proxy instance.
          *
          * @throws sdbus::Error in case of failure
          */
-        [[nodiscard]] SignalUnsubscriber muteSignal(const std::string& signalName);
+        virtual void unregister() = 0;
 
         /*!
          * @brief Gets value of a property of the D-Bus object
@@ -290,7 +343,7 @@ namespace sdbus {
          * Example of use:
          * @code
          * std::future<sdbus::Variant> state = object.getPropertyAsync("state").onInterface("com.kistler.foo").getResultAsFuture();
-         * auto callback = [](const sdbus::Error* err, const sdbus::Variant& value){ ... };
+         * auto callback = [](std::optional<sdbus::Error> err, const sdbus::Variant& value){ ... };
          * object.getPropertyAsync("state").onInterface("com.kistler.foo").uponReplyInvoke(std::move(callback));
          * @endcode
          *
@@ -367,7 +420,7 @@ namespace sdbus {
          *
          * Example of use:
          * @code
-         * auto callback = [](const sdbus::Error* err, const std::map<std::string, Variant>>& properties){ ... };
+         * auto callback = [](std::optional<sdbus::Error> err, const std::map<std::string, Variant>>& properties){ ... };
          * auto props = object.getAllPropertiesAsync().onInterface("com.kistler.foo").uponReplyInvoke(std::move(callback));
          * @endcode
          *
@@ -380,55 +433,27 @@ namespace sdbus {
          *
          * @return Reference to the D-Bus connection
          */
-        virtual sdbus::IConnection& getConnection() const = 0;
+        [[nodiscard]] virtual sdbus::IConnection& getConnection() const = 0;
 
         /*!
          * @brief Returns object path of the underlying DBus object
          */
-        virtual const std::string& getObjectPath() const = 0;
+        [[nodiscard]] virtual const std::string& getObjectPath() const = 0;
 
         /*!
-         * @brief Provides currently processed D-Bus message
+         * @brief Provides access to the currently processed D-Bus message
          *
-         * This method provides immutable access to the currently processed incoming D-Bus message.
+         * This method provides access to the currently processed incoming D-Bus message.
          * "Currently processed" means that the registered callback handler(s) for that message
          * are being invoked. This method is meant to be called from within a callback handler
          * (e.g. from a D-Bus signal handler, or async method reply handler, etc.). In such a case it is
-         * guaranteed to return a valid pointer to the D-Bus message for which the handler is called.
-         * If called from other contexts/threads, it may return a nonzero pointer or a nullptr, depending
-         * on whether a message was processed at the time of call or not, but the value is nondereferencable,
-         * since the pointed-to message may have gone in the meantime.
+         * guaranteed to return a valid D-Bus message instance for which the handler is called.
+         * If called from other contexts/threads, it may return a valid or invalid message, depending
+         * on whether a message was processed or not at the time of the call.
          *
-         * @return A pointer to the currently processed D-Bus message
+         * @return Currently processed D-Bus message
          */
-        virtual const Message* getCurrentlyProcessedMessage() const = 0;
-
-        /*!
-         * @brief Calls method on the D-Bus object asynchronously
-         *
-         * @param[in] message Message representing an async method call
-         * @param[in] asyncReplyCallback Handler for the async reply
-         * @param[in] timeout Timeout for dbus call in microseconds
-         * @return Cookie for the the pending asynchronous call
-         *
-         * The call is non-blocking. It doesn't wait for the reply. Once the reply arrives,
-         * the provided async reply handler will get invoked from the context of the connection
-         * I/O event loop thread.
-         *
-         * Note: To avoid messing with messages, use higher-level API defined below.
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        virtual std::future<MethodReply> callMethod(const MethodCall& message, with_future_t) = 0;
-        virtual std::future<MethodReply> callMethod(const MethodCall& message, uint64_t timeout, with_future_t) = 0;
-
-        /*!
-         * @copydoc IProxy::callMethod(const MethodCall&,uint64_t,with_future_t)
-         */
-        template <typename _Rep, typename _Period>
-        std::future<MethodReply> callMethod( const MethodCall& message
-                                           , const std::chrono::duration<_Rep, _Period>& timeout
-                                           , with_future_t );
+        [[nodiscard]] virtual Message getCurrentlyProcessedMessage() const = 0;
     };
 
     /********************************************//**
@@ -463,7 +488,7 @@ namespace sdbus {
          * Pending call in this context means a call whose results have not arrived, or
          * have arrived and are currently being processed by the callback handler.
          */
-        bool isPending() const;
+        [[nodiscard]] bool isPending() const;
 
     private:
         friend internal::Proxy;
@@ -483,19 +508,21 @@ namespace sdbus {
     }
 
     template <typename _Rep, typename _Period>
-    inline PendingAsyncCall IProxy::callMethod(const MethodCall& message, async_reply_handler asyncReplyCallback, const std::chrono::duration<_Rep, _Period>& timeout)
+    inline PendingAsyncCall IProxy::callMethodAsync( const MethodCall& message
+                                                   , async_reply_handler asyncReplyCallback
+                                                   , const std::chrono::duration<_Rep, _Period>& timeout )
     {
         auto microsecs = std::chrono::duration_cast<std::chrono::microseconds>(timeout);
-        return callMethod(message, std::move(asyncReplyCallback), microsecs.count());
+        return callMethodAsync(message, std::move(asyncReplyCallback), microsecs.count());
     }
 
     template <typename _Rep, typename _Period>
-    inline std::future<MethodReply> IProxy::callMethod( const MethodCall& message
-                                                      , const std::chrono::duration<_Rep, _Period>& timeout
-                                                      , with_future_t )
+    inline std::future<MethodReply> IProxy::callMethodAsync( const MethodCall& message
+                                                           , const std::chrono::duration<_Rep, _Period>& timeout
+                                                           , with_future_t )
     {
         auto microsecs = std::chrono::duration_cast<std::chrono::microseconds>(timeout);
-        return callMethod(message, microsecs.count(), with_future);
+        return callMethodAsync(message, microsecs.count(), with_future);
     }
 
     inline MethodInvoker IProxy::callMethod(const std::string& methodName)
@@ -511,11 +538,6 @@ namespace sdbus {
     inline SignalSubscriber IProxy::uponSignal(const std::string& signalName)
     {
         return SignalSubscriber(*this, signalName);
-    }
-
-    inline SignalUnsubscriber IProxy::muteSignal(const std::string& signalName)
-    {
-        return SignalUnsubscriber(*this, signalName);
     }
 
     inline PropertyGetter IProxy::getProperty(const std::string& propertyName)

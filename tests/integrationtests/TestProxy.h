@@ -2,7 +2,7 @@
  * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
  * (C) 2016 - 2022 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
- * @file TestAdaptor.h
+ * @file TestProxy.h
  *
  * Created on: Jan 2, 2017
  * Project: sdbus-c++
@@ -33,6 +33,7 @@
 #include <chrono>
 #include <atomic>
 #include <future>
+#include <memory>
 
 namespace sdbus { namespace test {
 
@@ -84,7 +85,7 @@ protected:
     void onSignalWithVariant(const sdbus::Variant& aVariant) override;
 
     void onSignalWithoutRegistration(const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& s);
-    void onDoOperationReply(uint32_t returnValue, const sdbus::Error* error);
+    void onDoOperationReply(uint32_t returnValue, std::optional<sdbus::Error> error);
 
     // Signals of standard D-Bus interfaces
     void onPropertiesChanged( const std::string& interfaceName
@@ -92,7 +93,7 @@ protected:
                             , const std::vector<std::string>& invalidatedProperties ) override;
 
 public:
-    void installDoOperationClientSideAsyncReplyHandler(std::function<void(uint32_t res, const sdbus::Error* err)> handler);
+    void installDoOperationClientSideAsyncReplyHandler(std::function<void(uint32_t res, std::optional<sdbus::Error> err)> handler);
     uint32_t doOperationWithTimeout(const std::chrono::microseconds &timeout, uint32_t param);
     sdbus::PendingAsyncCall doOperationClientSideAsync(uint32_t param);
     std::future<uint32_t> doOperationClientSideAsync(uint32_t param, with_future_t);
@@ -115,10 +116,10 @@ public: // for tests
     std::atomic<bool> m_gotSignalWithSignature{false};
     std::map<std::string, std::string> m_signatureFromSignal;
 
-    std::function<void(uint32_t res, const sdbus::Error* err)> m_DoOperationClientSideAsyncReplyHandler;
+    std::function<void(uint32_t res, std::optional<sdbus::Error> err)> m_DoOperationClientSideAsyncReplyHandler;
     std::function<void(const std::string&, const std::map<std::string, sdbus::Variant>&, const std::vector<std::string>&)> m_onPropertiesChangedHandler;
 
-    const Message* m_signalMsg{};
+    std::unique_ptr<const Message> m_signalMsg;
     std::string m_signalMemberName;
 };
 
@@ -139,7 +140,7 @@ protected:
     void onSignalWithVariant(const sdbus::Variant&) override {}
 
     void onSignalWithoutRegistration(const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>&) {}
-    void onDoOperationReply(uint32_t, const sdbus::Error*) {}
+    void onDoOperationReply(uint32_t, std::optional<sdbus::Error>) {}
 
     // Signals of standard D-Bus interfaces
     void onPropertiesChanged( const std::string&, const std::map<std::string, sdbus::Variant>&, const std::vector<std::string>& ) override {}

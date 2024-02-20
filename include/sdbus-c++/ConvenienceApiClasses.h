@@ -30,13 +30,14 @@
 #include <sdbus-c++/Message.h>
 #include <sdbus-c++/TypeTraits.h>
 #include <sdbus-c++/Types.h>
-#include <sdbus-c++/Flags.h>
+#include <sdbus-c++/VTableItems.h>
+
+#include <chrono>
+#include <cstdint>
+#include <future>
+#include <map>
 #include <string>
 #include <vector>
-#include <type_traits>
-#include <chrono>
-#include <future>
-#include <cstdint>
 
 // Forward declarations
 namespace sdbus {
@@ -48,101 +49,16 @@ namespace sdbus {
 
 namespace sdbus {
 
-    class MethodRegistrator
+    class VTableAdder
     {
     public:
-        MethodRegistrator(IObject& object, std::string methodName);
-        MethodRegistrator(MethodRegistrator&& other) = default;
-        ~MethodRegistrator() noexcept(false);
-
-        MethodRegistrator& onInterface(std::string interfaceName);
-        template <typename _Function> MethodRegistrator& implementedAs(_Function&& callback);
-        MethodRegistrator& withInputParamNames(std::vector<std::string> paramNames);
-        template <typename... _String> MethodRegistrator& withInputParamNames(_String... paramNames);
-        MethodRegistrator& withOutputParamNames(std::vector<std::string> paramNames);
-        template <typename... _String> MethodRegistrator& withOutputParamNames(_String... paramNames);
-        MethodRegistrator& markAsDeprecated();
-        MethodRegistrator& markAsPrivileged();
-        MethodRegistrator& withNoReply();
+        VTableAdder(IObject& object, std::vector<VTableItem> vtable);
+        void forInterface(std::string interfaceName);
+        [[nodiscard]] Slot forInterface(std::string interfaceName, return_slot_t);
 
     private:
         IObject& object_;
-        std::string methodName_;
-        std::string interfaceName_;
-        std::string inputSignature_;
-        std::vector<std::string> inputParamNames_;
-        std::string outputSignature_;
-        std::vector<std::string> outputParamNames_;
-        method_callback methodCallback_;
-        Flags flags_;
-        int exceptions_{}; // Number of active exceptions when SignalRegistrator is constructed
-    };
-
-    class SignalRegistrator
-    {
-    public:
-        SignalRegistrator(IObject& object, std::string signalName);
-        SignalRegistrator(SignalRegistrator&& other) = default;
-        ~SignalRegistrator() noexcept(false);
-
-        SignalRegistrator& onInterface(std::string interfaceName);
-        template <typename... _Args> SignalRegistrator& withParameters();
-        template <typename... _Args> SignalRegistrator& withParameters(std::vector<std::string> paramNames);
-        template <typename... _Args, typename... _String> SignalRegistrator& withParameters(_String... paramNames);
-        SignalRegistrator& markAsDeprecated();
-
-    private:
-        IObject& object_;
-        std::string signalName_;
-        std::string interfaceName_;
-        std::string signalSignature_;
-        std::vector<std::string> paramNames_;
-        Flags flags_;
-        int exceptions_{}; // Number of active exceptions when SignalRegistrator is constructed
-    };
-
-    class PropertyRegistrator
-    {
-    public:
-        PropertyRegistrator(IObject& object, const std::string& propertyName);
-        PropertyRegistrator(PropertyRegistrator&& other) = default;
-        ~PropertyRegistrator() noexcept(false);
-
-        PropertyRegistrator& onInterface(std::string interfaceName);
-        template <typename _Function> PropertyRegistrator& withGetter(_Function&& callback);
-        template <typename _Function> PropertyRegistrator& withSetter(_Function&& callback);
-        PropertyRegistrator& markAsDeprecated();
-        PropertyRegistrator& markAsPrivileged();
-        PropertyRegistrator& withUpdateBehavior(Flags::PropertyUpdateBehaviorFlags behavior);
-
-    private:
-        IObject& object_;
-        const std::string& propertyName_;
-        std::string interfaceName_;
-        std::string propertySignature_;
-        property_get_callback getter_;
-        property_set_callback setter_;
-        Flags flags_;
-        int exceptions_{}; // Number of active exceptions when PropertyRegistrator is constructed
-    };
-
-    class InterfaceFlagsSetter
-    {
-    public:
-        InterfaceFlagsSetter(IObject& object, const std::string& interfaceName);
-        InterfaceFlagsSetter(InterfaceFlagsSetter&& other) = default;
-        ~InterfaceFlagsSetter() noexcept(false);
-
-        InterfaceFlagsSetter& markAsDeprecated();
-        InterfaceFlagsSetter& markAsPrivileged();
-        InterfaceFlagsSetter& withNoReplyMethods();
-        InterfaceFlagsSetter& withPropertyUpdateBehavior(Flags::PropertyUpdateBehaviorFlags behavior);
-
-    private:
-        IObject& object_;
-        const std::string& interfaceName_;
-        Flags flags_;
-        int exceptions_{}; // Number of active exceptions when InterfaceFlagsSetter is constructed
+        std::vector<VTableItem> vtable_;
     };
 
     class SignalEmitter
@@ -214,22 +130,15 @@ namespace sdbus {
         SignalSubscriber(IProxy& proxy, const std::string& signalName);
         SignalSubscriber& onInterface(std::string interfaceName);
         template <typename _Function> void call(_Function&& callback);
+        template <typename _Function> [[nodiscard]] Slot call(_Function&& callback, return_slot_t);
+
+    private:
+        template <typename _Function> signal_handler makeSignalHandler(_Function&& callback);
 
     private:
         IProxy& proxy_;
         const std::string& signalName_;
         std::string interfaceName_;
-    };
-
-    class SignalUnsubscriber
-    {
-    public:
-        SignalUnsubscriber(IProxy& proxy, const std::string& signalName);
-        void onInterface(const std::string& interfaceName);
-
-    private:
-        IProxy& proxy_;
-        const std::string& signalName_;
     };
 
     class PropertyGetter
@@ -313,6 +222,6 @@ namespace sdbus {
         const std::string* interfaceName_{};
     };
 
-}
+} // namespace sdbus
 
 #endif /* SDBUS_CXX_CONVENIENCEAPICLASSES_H_ */

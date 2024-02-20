@@ -5,7 +5,7 @@ Using sdbus-c++ library
 
 1. [Introduction](#introduction)
 2. [Integrating sdbus-c++ into your project](#integrating-sdbus-c-into-your-project)
-3. [Solving libsystemd dependency](#solving-libsystemd-dependency)
+3. [Solving sd-bus dependency](#solving-sd-bus-dependency)
 4. [Distributing sdbus-c++](#distributing-sdbus-c)
 5. [Header files and namespaces](#header-files-and-namespaces)
 6. [Error signalling and propagation](#error-signalling-and-propagation)
@@ -22,7 +22,9 @@ Using sdbus-c++ library
 17. [Representing D-Bus Types in sdbus-c++](#representing-d-bus-types-in-sdbus-c)
 18. [Support for match rules](#support-for-match-rules)
 19. [Using direct (peer-to-peer) D-Bus connections](#using-direct-peer-to-peer-d-bus-connections)
-20. [Conclusion](#conclusion)
+20. [Using sdbus-c++ in external event loops](#using-sdbus-c-in-external-event-loops)
+21. [Migrating to sdbus-c++ v2](#migrating-to-sdbus-c-v2)
+22. [Conclusion](#conclusion)
 
 Introduction
 ------------
@@ -72,14 +74,14 @@ add_custom_command(
 )
 ```
 
-Solving libsystemd dependency
------------------------------
+Solving sd-bus dependency
+-------------------------
 
-sdbus-c++ depends on sd-bus API, which is implemented in libsystemd, a C library that is part of [systemd](https://github.com/systemd/systemd).
+sdbus-c++ is a wrapper around sd-bus, a C library that has been written as part of [systemd](https://github.com/systemd/systemd) project.
 
-Minimum required libsystemd shared library version is 0.20.0 (which corresponds to minimum systemd version 236).
+Within systemd, sd-bus is implemented as part of `libsystemd` shared library. At least version 0.22.0 (which corresponds to the minimum systemd version 238) of `libsystemd` is needed.
 
-If your target Linux distribution is already based on systemd ecosystem of version 236 and higher, then there is no additional effort, just make sure you have corresponding systemd header files available (provided by `libsystemd-dev` package on Debian/Ubuntu, for example), and you may go on building sdbus-c++ seamlessly.
+If your target Linux distribution is already based on systemd ecosystem of version 238 and higher, then there is no additional effort, just make sure you have corresponding systemd header files available (provided by `libsystemd-dev` package on Debian/Ubuntu, for example), and you may go on building sdbus-c++ seamlessly.
 
 However, sdbus-c++ can perfectly be used in non-systemd environments as well. If `libsystemd` is not found in the system when configuring sdbus-c++, then
 
@@ -87,7 +89,9 @@ However, sdbus-c++ can perfectly be used in non-systemd environments as well. If
 
 2. sdbus-c++ will try to find `basu`, which is just sd-bus implementation extracted from systemd.
 
-On systems where neither of these is available, we can build sd-bus as a shared lib manually or we can (conveniently) instruct sdbus-c++ to build and integrate sd-bus into itself for us.
+Alternatively to this fallback search sequence, you may explicitly instruct sdbus-c++ to use a specified sd-bus implementation through the `SDBUSCPP_SDBUS_LIB` CMake configuration option.
+
+On systems where neither of those libraries is available, we can build sd-bus manually, or we can (conveniently) instruct sdbus-c++ to build and integrate sd-bus into itself for us.
 
 ### Building and distributing libsystemd as a shared library yourself
 
@@ -107,9 +111,9 @@ $ ninja libsystemd.so.0.26.0  # or another version number depending which system
 
 ### Building and distributing libsystemd as part of sdbus-c++
 
-sdbus-c++ provides `BUILD_LIBSYSTEMD` configuration option. When turned on, sdbus-c++ will automatically download and build libsystemd as a static library and make it an opaque part of sdbus-c++ shared library for you. This is the most convenient and effective approach to build, distribute and use sdbus-c++ as a self-contained, systemd-independent library in non-systemd environments. Just make sure your build machine has all dependencies needed by libsystemd build process. That includes, among others, `meson`, `ninja`, `git`, `gperf`, and -- primarily -- libraries and library headers for `libmount`, `libcap` and `librt` (part of glibc). Also, when distributing, make sure these dependency libraries are installed on the production machine.
+sdbus-c++ provides `SDBUSCPP_BUILD_LIBSYSTEMD` configuration option. When turned on, sdbus-c++ will automatically download and build libsystemd as a static library and make it an opaque part of sdbus-c++ shared library for you. This is the most convenient and effective approach to build, distribute and use sdbus-c++ as a self-contained, systemd-independent library in non-systemd environments. Just make sure your build machine has all dependencies needed by libsystemd build process. That includes, among others, `meson`, `ninja`, `git`, `gperf`, and -- primarily -- libraries and library headers for `libmount`, `libcap` and `librt` (part of glibc). Also, when distributing, make sure these dependency libraries are installed on the production machine.
 
-You may additionally set the `LIBSYSTEMD_VERSION` configuration flag to fine-tune the version of systemd to be taken in. (The default value is 242).
+You may additionally set the `SDBUSCPP_LIBSYSTEMD_VERSION` configuration flag to fine-tune the version of systemd to be taken in. (The default value is 242).
 
 Distributing sdbus-c++
 ----------------------
@@ -166,10 +170,10 @@ All public types and functions of sdbus-c++ reside in the `sdbus` namespace.
 Error signalling and propagation
 --------------------------------
 
-`sdbus::Error` exception is used to signal errors in sdbus-c++. There are two types of errors:
+`sdbus::Error` type is used as an exception to signal errors in sdbus-c++. There are two types of errors:
 
   * D-Bus related errors, like call timeouts, failed socket allocation, etc. These are raised by the D-Bus library or D-Bus daemon itself.
-  * user-defined errors, i.e. errors signalled and propagated from remote methods back to the caller. So these are issued by sdbus-c++ users.
+  * user-defined errors, i.e. errors signalled and propagated from remote methods back to the caller. So these are issued by sdbus-c++ clients.
 
 `sdbus::Error` is a carrier for both types of errors, carrying the error name and error message with it.
 
@@ -305,16 +309,20 @@ int main(int argc, char *argv[])
 
     // Register D-Bus methods and signals on the concatenator object, and exports the object.
     const char* interfaceName = "org.sdbuscpp.Concatenator";
-    concatenator->registerMethod(interfaceName, "concatenate", "ais", "s", &concatenate);
-    concatenator->registerSignal(interfaceName, "concatenated", "s");
-    concatenator->finishRegistration();
+    concatenator->addVTable( sdbus::MethodVTableItem{"concatenate", "ais", {}, "s", {}, &concatenate, {}}
+                           , sdbus::SignalVTableItem{"concatenated", "s", {}, {}} )
+                           .forInterface(interfaceName);
 
     // Run the I/O event loop on the bus connection.
     connection->enterEventLoop();
 }
 ```
 
-We establish a D-Bus system connection and request `org.sdbuscpp.concatenator` D-Bus name on it. This name will be used by D-Bus clients to find the service. We then create an object with path `/org/sdbuscpp/concatenator` on this connection. We register  interfaces, its methods, signals that the object provides, and, through `finishRegistration()`, export the object (i.e., make it visible to clients) on the bus. Then we need to make sure to run the event loop upon the connection, which handles all incoming, outgoing and other requests.
+We establish a D-Bus system connection and request `org.sdbuscpp.concatenator` D-Bus name on it. This name will be used by D-Bus clients to find the service. We then create an object with path `/org/sdbuscpp/concatenator` on this connection. We add a so-called object vtable, where we declare and describe its D-Bus API, i.e. its interface, methods, signals, properties (if any) that the object provides. Then we need to make sure to run the event loop upon the connection, which handles all incoming, outgoing and other requests.
+
+> **_Tip_:** There's also an overload of `addVTable()` method with `return_slot_t` tag parameter which returns a `Slot` object. The slot is a simple RAII-based handle of the associated vtable registration. As long as you keep the slot object, the vtable registration is active. When you let go of the slot, the vtable is automatically removed from the D-Bus object. This gives you the ability to implement "dynamic" D-Bus object API that is addable as well as removable at any time during object lifetime.
+
+> **_Note_:** A D-Bus object can have any number of vtables attached to it. Even a D-Bus interface of an object can have multiple vtables attached to it.
 
 The callback for any D-Bus object method on this level is any callable of signature `void(sdbus::MethodCall call)`. The `call` parameter is the incoming method call message. We need to deserialize our method input arguments from it. Then we can invoke the logic of the method and get the results. Then for the given `call`, we create a `reply` message, pack results into it and send it back to the caller through `send()`. (If we had a void-returning method, we'd just send an empty `reply` back.) We also fire a signal with the results. To do this, we need to create a signal message via object's `createSignal()`, serialize the results into it, and then send it out to subscribers by invoking object's `emitSignal()`.
 
@@ -329,7 +337,7 @@ Please note that we can create and destroy D-Bus objects on a connection dynamic
 #include <iostream>
 #include <unistd.h>
 
-void onConcatenated(sdbus::Signal& signal)
+void onConcatenated(sdbus::Signal signal)
 {
     std::string concatenatedString;
     signal >> concatenatedString;
@@ -349,7 +357,6 @@ int main(int argc, char *argv[])
     // Let's subscribe for the 'concatenated' signals
     const char* interfaceName = "org.sdbuscpp.Concatenator";
     concatenatorProxy->registerSignalHandler(interfaceName, "concatenated", &onConcatenated);
-    concatenatorProxy->finishRegistration();
 
     std::vector<int> numbers = {1, 2, 3};
     std::string separator = ":";
@@ -364,7 +371,7 @@ int main(int argc, char *argv[])
         assert(result == "1:2:3");
     }
 
-    // Invoke concatenate again, this time with no numbers and we shall get an error
+/    // Invoke concatenate again, this time with no numbers and we shall get an error
     {
         auto method = concatenatorProxy->createMethodCall(interfaceName, "concatenate");
         method << std::vector<int>() << separator;
@@ -386,9 +393,11 @@ int main(int argc, char *argv[])
 }
 ```
 
-In simple cases, we don't need to create D-Bus connection explicitly for our proxies. Unless a connection is provided to a proxy object explicitly via factory parameter, the proxy will create a connection of his own, and it will be a system bus connection. This is the case in the example above. (This approach is not scalable and resource-saving if we have plenty of proxies; see section [Working with D-Bus connections](#working-with-d-bus-connections-in-sdbus-c) for elaboration.) So, in the example, we create a proxy for object `/org/sdbuscpp/concatenator` publicly available at bus `org.sdbuscpp.concatenator`. We register signal handlers, if any, and finish the registration, making the proxy ready for use.
+In simple cases, we don't need to create D-Bus connection explicitly for our proxies. We either pass a connection object to the proxy upon creation, or otherwise the proxy will create a connection of his own (to either the session bus or the system bus, depending on the context, see `man sd_bus_open`). This is the case in the example above. (This approach is not scalable and resource-saving if we have plenty of proxies; see section [Working with D-Bus connections](#working-with-d-bus-connections-in-sdbus-c) for elaboration.) So, in the example, we create a proxy for object `/org/sdbuscpp/concatenator` publicly available at bus `org.sdbuscpp.concatenator`. We register handlers for signals we are interested in (if any).
 
-The callback for a D-Bus signal handler on this level is any callable of signature `void(sdbus::Signal& signal)`. The one and only parameter `signal` is the incoming signal message. We need to deserialize arguments from it, and then we can do our business logic with it.
+The callback for a D-Bus signal handler on this level is any callable of signature `void(sdbus::Signal signal)`. The one and only parameter `signal` is the incoming signal message. We need to deserialize arguments from it, and then we can do our business logic with it.
+
+> **_Tip_:** There's also an overload of `registerSignalHandler()` with `return_slot_t` tag which returns a `Slot` object. The slot is a simple RAII-based handle of the subscription. As long as you keep the slot object, the signal subscription is active. When you let go of the object, the signal handler is automatically unregistered. This gives you finer control over the lifetime of signal subscription.
 
 Subsequently, we invoke two RPC calls to object's `concatenate()` method. We create a method call message by invoking proxy's `createMethodCall()`. We serialize method input arguments into it, and make a synchronous call via proxy's `callMethod()`. As a return value we get the reply message as soon as it arrives. We deserialize return values from that message, and further use it in our program. The second `concatenate()` RPC call is done with invalid arguments, so we get a D-Bus error reply from the service, which as we can see is manifested via `sdbus::Error` exception being thrown.
 
@@ -398,10 +407,8 @@ Please note that we can create and destroy D-Bus object proxies dynamically, at 
 
 There are several factory methods to create a bus connection object in sdbus-c++:
 
-* `createConnection()` - opens a connection to the system bus
-* `createConnection(const std::string& name)` - opens a connection with the given name to the system bus
-* `createDefaultBusConnection()` - opens a connection to the session bus when in a user context, and a connection to the system bus, otherwise
-* `createDefaultBusConnection(const std::string& name)` - opens a connection with the given name to the session bus when in a user context, and a connection with the given name to the system bus, otherwise
+* `createBusConnection()` - opens a connection to the session bus when in a user context, and a connection to the system bus, otherwise
+* `createBusConnection(const std::string& name)` - opens a connection with the given name to the session bus when in a user context, and a connection with the given name to the system bus, otherwise
 * `createSystemBusConnection()` - opens a connection to the system bus
 * `createSystemBusConnection(const std::string& name)` - opens a connection with the given name to the system bus
 * `createSessionBusConnection()` - opens a connection to the session bus
@@ -423,41 +430,51 @@ How shall we use connections in relation to D-Bus objects and object proxies?
 
 A D-Bus connection is represented by a `IConnection` instance. Each connection needs an event loop being run upon it. So it needs a thread handling the event loop. This thread serves all incoming and outgoing messages and all communication towards D-Bus daemon. One process can have one but also multiple D-Bus connections (we just have to make certain that the connections with assigned bus names don't share a common name; the name must be unique).
 
-A typical use case for most services is **one** D-Bus connection in the application. The application runs event loop on that connection. When creating objects or proxies, the application provides reference of that connection to those objects and proxies. This means all these objects and proxies share the same connection. This is nicely scalable, because with whatever number of objects or proxies, there is only one connection and one event loop thread. Yet, services that provide objects at various bus names have to create and maintain multiple D-Bus connections, each with the unique bus name.
+A typical use case for most services is **one** D-Bus connection in the application. The application runs an (internal or external, see below) event loop on that connection. When creating objects or proxies, the application provides reference of that connection to those objects and proxies. This means all these objects and proxies share the same connection. This is nicely scalable, because with whatever number of objects or proxies, there is only one connection and one event loop thread. Yet, services that provide objects at various bus names have to create and maintain multiple D-Bus connections, each with the unique bus name.
 
-The connection is thread-safe and objects and proxies can invoke operations on it from multiple threads simultaneously, but the operations are serialized. This means, for example, that if an object's callback for an incoming remote method call is going to be invoked in an event loop thread, and in another thread we use a proxy to call remote method in another process, the threads are contending and only one can go on while the other must wait and can only proceed after the first one has finished, because both are using a shared resource -- the connection.
+The connection is thread-safe and objects and proxies can invoke operations on it from multiple threads simultaneously, but the operations are serialized. Access to the connection is mutually exclusive. This means, for example, that if an object's callback for an incoming remote method call is going to be invoked in an event loop thread, and in another thread we use a proxy to call remote method in another process, the threads are contending and only one can go on while the other must wait and can only proceed after the first one has finished, because both are using a shared resource -- the connection.
 
-We should bear that in mind when designing more complex, multi-threaded services with high parallelism. If we have undesired contention on a connection, creating a specific, dedicated connection for a hot spot helps to increase concurrency. sdbus-c++ provides us freedom to create as many connections as we want and assign objects and proxies to those connections at our will. We, as application developers, choose whatever approach is more suitable to us at quite a fine granularity.
+When a `poll()` sleeps upon the connection, the connection can be used by other threads without blocking. When calling a D-Bus method through a proxy synchronously, the proxy blocks the connection from concurrent use until it gets from the peer a reply (or an error, the call times out). Async D-Bus method calls don't block the connection while the call is pending (the connection is only "locked" while the call message is sent out and while the reply handler is executed for an already arrived reply message, but not in between while the call is pending). See doxygen documentation for `IProxy::callMethod()` overloads for more details.
+
+We should bear these design aspects of sdbus-c++ in mind when designing more complex, multi-threaded services with high parallelism. If we have undesired contention on a connection, creating a separate, dedicated connection for a hot spot helps to increase concurrency. sdbus-c++ provides us freedom to create as many connections as we want and assign objects and proxies to those connections at our will. We, as application developers, choose whatever approach is more suitable to us at quite a fine granularity.
 
 So, more technically, how can we use connections from the server and the client perspective?
 
 #### Using D-Bus connections on the server side
 
-On the **server** side, we generally need to create D-Bus objects and publish their APIs. For that we first need a connection with a unique bus name. We need to create the D-Bus connection manually ourselves, request bus name on it, and manually launch its event loop:
+On the **server** side, we generally need to create D-Bus objects and publish their APIs. For that we first need a connection with a unique bus name. We need to create the D-Bus connection manually ourselves, request bus name on it, and manually launch:
 
-  * either in a blocking way, through `enterEventLoop()`,
-  * or in a non-blocking async way, through `enterEventLoopAsync()`,
-  * or, when we have our own implementation of an event loop (e.g. we are using sd-event event loop), we can ask the connection for its underlying fd, I/O events and timeouts through `getEventLoopPollData()` and use that data in our event loop mechanism.
+  * its internal event loop
+    * either in a blocking way, through `enterEventLoop()`,
+    * or in a non-blocking async way, through `enterEventLoopAsync()`,
+  * or an external event loop. This is suitable if we use in our application an event loop implementation of our choice (e.g., sd-event, GLib Event Loop, boost::asio, ...) and we want to hook up our sdbus-c++ connections with it. See [Using sdbus-c++ in external event loops](#using-sdbus-c-in-external-event-loops) section for more information.
 
-The object takes the D-Bus connection as a reference in its constructor. This is the only way to wire connection and object together. We must make sure the connection exists as long as objects using it exist.
+The object takes the D-Bus connection as a reference in its constructor. This is the only way to wire the connection and the object together. We must make sure the connection exists as long as objects using it exist.
 
 Of course, at any time before or after running the event loop on the connection, we can create and "hook", as well as remove, objects and proxies upon that connection.
+
+*Note:* There may be both objects and proxies hooked to a single connection, of course. A D-Bus server application may also be a client to another D-Bus server application, and share one D-Bus connection for the D-Bus interface it exports as well as for the proxies towards other D-Bus interfaces.
 
 #### Using D-Bus connections on the client side
 
 On the **client** side we likewise need a connection -- just that unlike on the server side, we don't need to request a unique bus name on it. We have more options here when creating a proxy:
 
-  * Pass an already existing connection as a reference. This is the typical approach when the application already maintains a D-Bus connection (maybe it provide D-Bus API on it, and/or it already has some proxies hooked on it). The proxy will share the connection with others. With this approach we must of course ensure that the connection exists as long as the proxy exists.
+  * Pass an already existing connection as a reference. This is the typical approach when the application already maintains a D-Bus connection (maybe it provide D-Bus API on it, and/or it already has some proxies hooked on it). The proxy will share the connection with others. With this approach we must of course ensure that the connection exists as long as the proxy exists. For discussion on options for running an event loop on that connection, see above section [Using D-Bus connections on the server side](#using-d-bus-connections-on-the-server-side).
 
-  * Or -- and this is typical when we have a simple D-Bus client application -- we have another option: we let the proxy maintain its own connection (and potentially an associated event loop thread, see below):
+  * Or -- and this is a simpler approach for  simple D-Bus client applications -- we have another option: we let the proxy maintain its own connection (and potentially an associated event loop thread, see below). We have two options here:
 
-    * We either create the connection ourselves and `std::move` it to the proxy object factory. The proxy becomes an owner of this connection, and will run the event loop on that connection. This had the advantage that we may choose the type of connection (system, session, remote).
+    * We either create the connection ourselves and `std::move` it to the proxy object factory. The proxy becomes an owner of this connection, and it will be his dedicated connection. This has the advantage that we may choose the type of connection (system, session, remote). Additionally,
 
-    * Or we don't bother about any connection at all when creating a proxy (the factory overload with no connection parameter). Under the hood, the proxy creates its own *system bus* connection, creates a separate thread and runs an event loop in it. Quite **simple**, but as you can see, this hurts scalability in case of many proxies, as each would spawn and maintain its own event loop thread (see discussion higher above). But we don't necessarily need an event loop thread, in case our proxy doesn't need to listen to signals or async method call replies. Read on.
+      * when created **without** `dont_run_event_loop_thread_t` tag, the proxy **will start** a dedicated event loop thread on that connection;
+      * or, when created **with** `dont_run_event_loop_thread_t` tag, the proxy will start **no** event loop thread on that connection.
 
-    It's also possible in this case to instruct the proxy to **not spawn an event loop thread** for its connection. There are many situations that we want to quickly create a proxy, carry out one or a few (synchronous) D-Bus calls, and let go of proxy. We call them light-weight proxies. For that purpose, spawning a new event loop thread comes with time and resource penalty, for nothing. To create such **a light-weight proxy**, use the factory/constructor overload with `dont_run_event_loop_thread_t`. All in above two bullet sub-points holds; the proxy just won't spawn a thread with an event loop in it. Note that such a proxy can be used only for synchronous D-Bus calls; it may not receive signals or async call replies.
+    * Or we don't care about connnections at all (proxy factory overloads with no connection parameter). Under the hood, the proxy creates its own connection, to either the session bus (when in a user context) or the system bus otherwise. Additionally:
+      * when created **without** `dont_run_event_loop_thread_t` tag, the proxy **will start** a dedicated event loop thread on that connection;
+      * or, when created **with** `dont_run_event_loop_thread_t` tag, the proxy will start **no** event loop thread on that connection.
 
-#### Stopping I/O event loops graciously
+    A proxy needs an event loop if it's a "**long-lived**" proxy that listens on incoming messages like signals, async call replies, atc. Sharing one connection with its one event loop is more scalable. Starting a dedicated event loop in a proxy is simpler from API perspective, but comes at a performance and resource cost for each proxy creation/destruction, and it hurts scalability. A simple and scalable option are "**short-lived, light-weight**" proxies. Quite a typical use case is that we occasionally need to carry out one or a few D-Bus calls and that's it. We may create a proxy, do the calls, and let go of proxy. Such a light-weight proxy is created when `dont_run_event_loop_thread_t` tag is passed to the proxy factory. Such a proxy **does not spawn** an event loop thread. It only support synchronous D-Bus calls (no signals, no async calls...), and is meant to be created, used right away, and then destroyed immediately.
+
+#### Stopping internal I/O event loops graciously
 
 A connection with an asynchronous event loop (i.e. one initiated through `enterEventLoopAsync()`) will stop and join its event loop thread automatically in its destructor. An event loop that blocks in the synchronous `enterEventLoop()` call can be unblocked through `leaveEventLoop()` call on the respective bus connection issued from a different thread or from an OS signal handler.
 
@@ -515,14 +532,18 @@ int main(int argc, char *argv[])
 
     // Register D-Bus methods and signals on the concatenator object, and exports the object.
     const char* interfaceName = "org.sdbuscpp.Concatenator";
-    concatenator->registerMethod("concatenate").onInterface(interfaceName).implementedAs(std::move(concatenate));
-    concatenator->registerSignal("concatenated").onInterface(interfaceName).withParameters<std::string>();
-    concatenator->finishRegistration();
+    concatenator->addVTable( sdbus::registerMethod("concatenate").implementedAs(std::move(concatenate))
+                           , sdbus::registerSignal{"concatenated").withParameters<std::string>() )
+                           .forInterface(interfaceName);
 
     // Run the loop on the connection.
     connection->enterEventLoop();
 }
 ```
+
+> **_Tip_:** There's also an overload of `addVTable(...).forInterface()` method with `return_slot_t` tag parameter which returns a `Slot` object. The slot is a simple RAII-based handle of the associated vtable registration. As long as you keep the slot object, the vtable registration is active. When you let go of the slot, the vtable is automatically removed from the D-Bus object. This gives you the ability to implement "dynamic" D-Bus object API that is addable as well as removable at any time during object lifetime.
+
+> **_Note_:** A D-Bus object can have any number of vtables attached to it. Even a D-Bus interface of an object can have multiple vtables attached to it.
 
 ### Client side
 
@@ -548,7 +569,6 @@ int main(int argc, char *argv[])
     // Let's subscribe for the 'concatenated' signals
     const char* interfaceName = "org.sdbuscpp.Concatenator";
     concatenatorProxy->uponSignal("concatenated").onInterface(interfaceName).call([](const std::string& str){ onConcatenated(str); });
-    concatenatorProxy->finishRegistration();
 
     std::vector<int> numbers = {1, 2, 3};
     std::string separator = ":";
@@ -582,17 +602,19 @@ int main(int argc, char *argv[])
 
 When registering methods, calling methods or emitting signals, multiple lines of code have shrunk into simple one-liners. Signatures of provided callbacks are introspected and types of provided arguments are deduced at compile time, so the D-Bus signatures as well as serialization and deserialization of arguments to and from D-Bus messages are generated for us completely by the compiler.
 
+> **_Tip_:** There's also an overload of `uponSignal(...).call()` with `return_slot_t` tag which returns a `Slot` object. The slot is a simple RAII-based handle of the subscription. As long as you keep the slot object, the signal subscription is active. When you let go of the object, the signal handler is automatically unregistered. This gives you finer control over the lifetime of signal subscription.
+
 We recommend that sdbus-c++ users prefer the convenience API to the lower level, basic API. When feasible, using generated adaptor and proxy C++ bindings is even better as it provides yet slightly higher abstraction built on top of the convenience API, where remote calls look simply like local, native calls of object methods. They are described in the following section.
 
-> **_Note_:** By default, signal callback handlers are not invoked (i.e., the signal is silently dropped) if there is a signal signature mismatch. If clients want to be informed of such situations, they can prepend `const sdbus::Error*` parameter to their signal callback handler's parameter list. This argument will be `nullptr` in normal cases, and will provide access to the corresponding `sdbus::Error` object in case of deserialization failures. An example of a handler with the signature (`int`) different from the real signal contents (`string`):
+> **_Note_:** By default, signal callback handlers are not invoked (i.e., the signal is silently dropped) if there is a signal signature mismatch. If you want to be informed of such situations, you can add `std::optional<sdbus::Error>` parameter to the beginning of your signal callback handler's parameter list. When sdbus-c++ invokes the handler, it will set this argument either to be empty (in normal cases), or to carry a corresponding `sdbus::Error` object (in case of deserialization failures, like type mismatches). An example of a handler with the signature (`int`) different from the real signal contents (`string`):
 > ```c++
->     void onConcatenated(const sdbus::Error* e, int wrongParameter)
+>     void onConcatenated(std::optional<sdbus::Error> e, int wrongParameter)
 >     {
->         assert(e);
+>         assert(e.has_value());
 >         assert(e->getMessage() == "Failed to deserialize a int32 value");
 >     }
 > ```
-> Signature mismatch in signal handlers is probably the most common reason why signals are not received in the client, while we can see them on the bus with `dbus-monitor`. Use `const sdbus::Error*`-based callback variant and inspect the error to check if that's the cause of such problems.
+> Signature mismatch in signal handlers is probably the most common reason why signals are not received in the client, while we can see them on the bus with `dbus-monitor`. Use `std::optional<sdbus::Error>`-based callback variant and inspect the error to check if that's the cause of your problems.
 
 > **_Tip_:** When registering a D-Bus object, we can additionally provide names of input and output parameters of its methods and names of parameters of its signals. When the object is introspected, these names are listed in the resulting introspection XML, which improves the description of object's interfaces:
 > ```c++
@@ -905,7 +927,7 @@ protected:
 
 > **_Tip_:** By inheriting from `sdbus::ProxyInterfaces`, we get access to the protected `getProxy()` method. We can call this method inside our proxy implementation class to access the underlying `IProxy` object.
 
-In the above example, a proxy is created that creates and maintains its own system bus connection. However, there are `ProxyInterfaces` class template constructor overloads that also take the connection from the user as the first parameter, and pass that connection over to the underlying proxy. The connection instance is used by all interfaces listed in the `ProxyInterfaces` template parameter list.
+In the above example, a proxy is created that creates and maintains its own bus connection (the bus is either session bus or system bus depending on the context, see `man sd_bus_open`). However, there are `ProxyInterfaces` class template constructor overloads that also take the connection from the user as the first parameter, and pass that connection over to the underlying proxy. The connection instance is used by all interfaces listed in the `ProxyInterfaces` template parameter list.
 
 Note however that there are multiple `ProxyInterfaces` constructor overloads, and they differ in how the proxy behaves towards the D-Bus connection. These overloads precisely map the `sdbus::createProxy` overloads, as they are actually implemented on top of them. See [Proxy and D-Bus connection](#Proxy-and-D-Bus-connection) for more info. We can even create a `IProxy` instance on our own, and inject it into our proxy class -- there is a constructor overload for it in `ProxyInterfaces`. This can help if we need to provide mocked implementations in our unit tests.
 
@@ -1106,15 +1128,15 @@ int main(int argc, char *argv[])
 {
     /* ...  */
 
-    auto callback = [](MethodReply& reply, const sdbus::Error* error)
+    auto callback = [](MethodReply reply, std::optional<sdbus::Error> error)
     {
-        if (error == nullptr) // No error
+        if (!error) // No error
         {
             std::string result;
             reply >> result;
             std::cout << "Got concatenate result: " << result << std::endl;
         }
-        else // We got a D-Bus error...
+        else // We've got a D-Bus error...
         {
             std::cerr << "Got concatenate error " << error->getName() << " with message " << error->getMessage() << std::endl;
         }
@@ -1142,7 +1164,7 @@ int main(int argc, char *argv[])
 }
 ```
 
-The callback is a void-returning function taking two arguments: a reference to the reply message, and a pointer to the prospective `sdbus::Error` instance. Zero `Error` pointer means that no D-Bus error occurred while making the call, and the reply message contains valid reply. Non-zero `Error` pointer, however, points to the valid `Error` instance, meaning that an error occurred. Error name and message can then be read out by the client from that instance.
+The callback is a void-returning function taking two arguments: a reference to the reply message, and a pointer to the prospective `sdbus::Error` instance. Empty `error` optional argument means that no D-Bus error occurred while making the call, and the reply message contains a valid reply. A non-empty `error` argument means that an error occurred during the call, and we can access the error name and message from the `Error` value inside the argument.
 
 There is also an overload of this `IProxy::callMethod()` function taking method call timeout argument.
 
@@ -1171,16 +1193,16 @@ Another option is to use `std::future`-based overload of the `IProxy::callMethod
 
 ### Convenience API
 
-On the convenience API level, the call statement starts with `callMethodAsync()`, and one option is to finish the statement with `uponReplyInvoke()` that takes a callback handler. The callback is a void-returning function that takes at least one argument: pointer to the `sdbus::Error` instance. All subsequent arguments shall exactly reflect the D-Bus method output arguments. A concatenator example:
+On the convenience API level, the call statement starts with `callMethodAsync()`, and one option is to finish the statement with `uponReplyInvoke()` that takes a callback handler. The callback is a void-returning function that takes at least one argument: `std::optional<sdbus::Error>`. All subsequent arguments shall exactly reflect the D-Bus method output arguments. A concatenator example:
 
 ```c++
 int main(int argc, char *argv[])
 {
     /* ...  */
 
-    auto callback = [](const sdbus::Error* error, const std::string& concatenatedString)
+    auto callback = [](std::optional<sdbus::Error> error, const std::string& concatenatedString)
     {
-        if (error == nullptr) // No error
+        if (!error) // No error
             std::cout << "Got concatenate result: " << concatenatedString << std::endl;
         else // We got a D-Bus error...
             std::cerr << "Got concatenate error " << error->getName() << " with message " << error->getMessage() << std::endl;
@@ -1204,7 +1226,7 @@ int main(int argc, char *argv[])
 }
 ```
 
-When the `Error` pointer is zero, it means that no D-Bus error occurred while making the call, and subsequent arguments are valid D-Bus method return values. Non-zero `Error` pointer, however, points to the valid `Error` instance, meaning that an error occurred during the call (and subsequent arguments are simply default-constructed). Error name and message can then be read out by the client from `Error` instance.
+Empty `error` parameter means that no D-Bus error occurred while making the call, and subsequent arguments are valid D-Bus method return values. However, `error` parameter containing a value means that an error occurred during the call (and subsequent arguments are simply default-constructed), and the underlying `Error` instance provides us with the error name and message.
 
 Another option is to finish the async call statement with `getResultAsFuture()`, which is a template function which takes the list of types returned by the D-Bus method (empty list in case of `void`-returning method) which returns a `std::future` object, which will later, when the reply arrives, be set to contain the return value(s). Or if the call returns an error, `sdbus::Error` will be thrown by `std::future::get()`.
 
@@ -1253,7 +1275,7 @@ An asynchronous method can be generated as a callback-based method or `std::futu
 
 For each client-side async method, a corresponding `on<MethodName>Reply` pure virtual function, where `<MethodName>` is the capitalized D-Bus method name, is generated in the generated proxy class. This function is the callback invoked when the D-Bus method reply arrives, and must be provided a body by overriding it in the implementation class.
 
-So in the specific example above, the tool will generate a `Concatenator_proxy` class similar to one shown in a [dedicated section above](#concatenator-client-glueh), with the difference that it will also generate an additional `virtual void onConcatenateReply(const sdbus::Error* error, const std::string& concatenatedString);` method, which we shall override in derived `ConcatenatorProxy`.
+So in the specific example above, the tool will generate a `Concatenator_proxy` class similar to one shown in a [dedicated section above](#concatenator-client-glueh), with the difference that it will also generate an additional `virtual void onConcatenateReply(std::optional<sdbus::Error> error, const std::string& concatenatedString);` method, which we shall override in the derived `ConcatenatorProxy`.
 
 #### Generating std:future-based async methods
 
@@ -1303,7 +1325,7 @@ Getting a property in asynchronous manner is also possible, in both callback-bas
 
 ```c++
 // Callback-based method:
-auto callback = [](const sdbus::Error* err, sdbus::Variant value)
+auto callback = [](std::optional<sdbus::Error> /*error*/, sdbus::Variant value)
 {
     std::cout << "Got property value: " << value.get<uint32_t>() << std::endl;
 };
@@ -1314,7 +1336,7 @@ std::future<sdbus::Variant> statusFuture = object.getPropertyAsync("status").onI
 std::cout << "Got property value: " << statusFuture.get().get<uint32_t>() << std::endl;
 ```
 
-More information on `error` callback handler parameter, on behavior of `future` in erroneous situations, can be found in section [Asynchronous client-side methods](#asynchronous-client-side-methods).
+More information on an `error` callback handler parameter, on behavior of `future` in erroneous situations, can be found in section [Asynchronous client-side methods](#asynchronous-client-side-methods).
 
 #### Writing a property
 
@@ -1329,7 +1351,7 @@ Setting a property in asynchronous manner is also possible, in both callback-bas
 
 ```c++
 // Callback-based method:
-auto callback = [](const sdbus::Error* err) { /*... Error handling in case err is non-null...*/ };
+auto callback = [](std::optional<sdbus::Error> error { /*... Error handling in case error contains a value...*/ };
 uint32_t status = proxy->setPropertyAsync("status").onInterface("org.sdbuscpp.Concatenator").toValue(status).uponReplyInvoke(std::move(callback));
 // Future-based method:
 std::future<void> statusFuture = object.setPropertyAsync("status").onInterface("org.sdbuscpp.Concatenator").getResultAsFuture();
@@ -1452,13 +1474,13 @@ class PropertyProvider_proxy
 {
     /*...*/
 
-    virtual void onStatusPropertyGetReply(const uint32_t& value, const sdbus::Error* error) = 0;
+    virtual void onStatusPropertyGetReply(const uint32_t& value, std::optional<sdbus::Error> error) = 0;
 
 public:
     // getting the property value
     sdbus::PendingAsyncCall status()
     {
-        return object_->getPropertyAsync("status").onInterface(INTERFACE_NAME).uponReplyInvoke([this](const sdbus::Error* error, const sdbus::Variant& value){ this->onActionPropertyGetReply(value.get<uint32_t>(), error); });
+        return object_->getPropertyAsync("status").onInterface(INTERFACE_NAME).uponReplyInvoke([this](std::optional<sdbus::Error> error, const sdbus::Variant& value){ this->onStatusPropertyGetReply(value.get<uint32_t>(), std::move(error)); });
     }
 
     // setting the property value
@@ -1489,7 +1511,7 @@ Pre-generated `*_proxy` and `*_adaptor` convenience classes for these standard i
 
 For example, for our `Concatenator` example above in this tutorial, we may want to conveniently emit a `PropertyChanged` signal under `org.freedesktop.DBus.Properties` interface. First, we must augment our `Concatenator` class to also inherit from `org.freedesktop.DBus.Properties` interface: `class Concatenator : public sdbus::AdaptorInterfaces<org::sdbuscpp::Concatenator_adaptor, sdbus::Properties_adaptor> {...};`, and then we just issue `emitPropertiesChangedSignal` function of our adaptor object.
 
-Note that signals of afore-mentioned standard D-Bus interfaces are not emitted by the library automatically. It's clients who are supposed to emit them.
+Note that signals of afore-mentioned standard D-Bus interfaces are not emitted by the library automatically. It's you, the user of sdbus-c++, who are supposed to emit them.
 
 Working examples of using standard D-Bus interfaces can be found in [sdbus-c++ integration tests](/tests/integrationtests/DBusStandardInterfacesTests.cpp) or the [examples](/examples) directory.
 
@@ -1502,23 +1524,23 @@ sdbus-c++ provides many default, pre-defined C++ type representations for D-Bus 
 | Category            | Code        | Code ASCII | Conventional Name  | C++ Type                        |
 |---------------------|-------------|------------|--------------------|---------------------------------|
 | reserved            | 0           | NUL        | INVALID            | -                               |
-| fixed, basic        | 121         | y          | BYTE               | `uint8_t`                         |
-| fixed, basic        | 98          | b          | BOOLEAN            | `bool`                            |
-| fixed, basic        | 110         | n          | INT16              | `int16_t`                         |
-| fixed, basic        | 113         | q          | UINT16             | `uint16_t`                        |
-| fixed, basic        | 105         | i          | INT32              | `int32_t`                         |
-| fixed, basic        | 117         | u          | UINT32             | `uint32_t`                        |
-| fixed, basic        | 120         | x          | INT64              | `int64_t`                         |
-| fixed, basic        | 116         | t          | UINT64             | `uint64_t`                        |
-| fixed, basic        | 100         | d          | DOUBLE             | `double`                          |
-| string-like, basic  | 115         | s          | STRING             | `const char*`, `std::string`        |
-| string-like, basic  | 111         | o          | OBJECT_PATH        | `sdbus::ObjectPath`               |
-| string-like, basic  | 103         | g          | SIGNATURE          | `sdbus::Signature`                |
+| fixed, basic        | 121         | y          | BYTE               | `uint8_t`                       |
+| fixed, basic        | 98          | b          | BOOLEAN            | `bool`                          |
+| fixed, basic        | 110         | n          | INT16              | `int16_t`                       |
+| fixed, basic        | 113         | q          | UINT16             | `uint16_t`                      |
+| fixed, basic        | 105         | i          | INT32              | `int32_t`                       |
+| fixed, basic        | 117         | u          | UINT32             | `uint32_t`                      |
+| fixed, basic        | 120         | x          | INT64              | `int64_t`                       |
+| fixed, basic        | 116         | t          | UINT64             | `uint64_t`                      |
+| fixed, basic        | 100         | d          | DOUBLE             | `double`                        |
+| string-like, basic  | 115         | s          | STRING             | `const char*`, `std::string`    |
+| string-like, basic  | 111         | o          | OBJECT_PATH        | `sdbus::ObjectPath`             |
+| string-like, basic  | 103         | g          | SIGNATURE          | `sdbus::Signature`              |
 | container           | 97          | a          | ARRAY              | `std::vector<T>`, `std::array<T>`, `std::span<T>` - if used as an array followed by a single complete type `T` <br /> `std::map<T1, T2>`, `std::unordered_map<T1, T2>` - if used as an array of dict entries |
-| container           | 114,40,41   | r()        | STRUCT             | `sdbus::Struct<T1, T2, ...>` variadic class template                               |
-| container           | 118         | v          | VARIANT            | `sdbus::Variant`                  |
+| container           | 114,40,41   | r()        | STRUCT             | `sdbus::Struct<T1, T2, ...>` variadic class template                                                                                                                                                         |
+| container           | 118         | v          | VARIANT            | `sdbus::Variant`                |
 | container           | 101,123,125 | e{}        | DICT_ENTRY         | -                               |
-| fixed, basic        | 104         | h          | UNIX_FD            | `sdbus::UnixFd`                   |
+| fixed, basic        | 104         | h          | UNIX_FD            | `sdbus::UnixFd`                 |
 | reserved            | 109         | m          | (reserved)         | -                               |
 | reserved            | 42          | *          | (reserved)         | -                               |
 | reserved            | 63          | ?          | (reserved)         | -                               |
@@ -1536,7 +1558,7 @@ For more information on basic D-Bus types, D-Bus container types, and D-Bus type
 
 ### Extending sdbus-c++ type system
 
-The above mapping between D-Bus and C++ types is what sdbus-c++ provides by default. However, the mapping can be extended. Clients can implement additional mapping between a D-Bus type and their custom type.
+The above mapping between D-Bus and C++ types is what sdbus-c++ provides by default. However, the mapping can be extended. You can implement additional mapping between a D-Bus type and their custom type.
 
 We need two things to do that:
 
@@ -1698,6 +1720,59 @@ int main(int argc, char *argv[])
 ```
 
 > **_Note_:** The example above explicitly stops the event loops on both sides, before the connection objects are destroyed. This avoids potential `Connection reset by peer` errors caused when one side closes its socket while the other side is still working on the counterpart socket. This is a recommended workflow for closing direct D-Bus connections.
+
+Using sdbus-c++ in external event loops
+---------------------------------------
+
+sdbus-c++ connections can be hooked up with an external (like GMainLoop, boost::asio, etc.) or manual event loop involving `poll()` or a similar I/O polling call. The following describes how to integrate it correctly:
+
+Before **each** invocation of the I/O polling call, `IConnection::getEventLoopPollData()` function should be invoked. Returned `PollData::fd` file descriptor should be polled for the events indicated by `PollData::events`, and the I/O call should block up to the returned `PollData::timeout`. Additionally, returned `PollData::eventFd` should be polled for POLLIN events.
+
+After each I/O polling call (for both `PollData::fd` and `PollData::eventFd` events), the `IConnection::processPendingEvent()` method should be invoked. This enables the bus connection to process any incoming or outgoing D-Bus messages.
+
+Note that the returned timeout should be considered only a maximum sleeping time. It is permissible (and even expected) that shorter timeouts are used by the calling program, in case other event sources are polled in the same event loop. Note that the returned time-value is absolute, based of `CLOCK_MONOTONIC` and specified in microseconds. Use `PollData::getPollTimeout()` to have the timeout value converted into a form that can be passed to `poll()`.
+
+`PollData::fd` is a bus I/O fd. `PollData::eventFd` is an sdbus-c++ internal fd for communicating important changes from other threads to the event loop thread, so the event loop retrieves new poll data (with updated timeout, for example) and, potentially, processes pending D-Bus messages (like signals that came in during a blocking synchronous call from other thread, or queued outgoing messages that are very big to be able to have been sent in one shot from another thread), before the next poll.
+
+Consult `IConnection::PollData` and `IConnection::getEventLoopPollData()` documentation for potentially more information.
+
+### Integration of sd-event event loop
+
+sdbus-c++ provides built-in integration of sd-event, which makes it very convenient to hook sdbus-c++ connection up with an sd-event event loop.
+
+See documentation of `IConnection::attachSdEventLoop()`, `IConnection::detachSdEventLoop()`, and `IConnection::getSdEventLoop()` methods, or sdbus-c++ integration tests for an example of use. These methods are sdbus-c++ counterparts to and mimic the behavior of these underlying sd-bus functions: `sd_bus_attach_event()`, `sd_bus_detach_event()`, and `sd_bus_get_event()`. Their manual pages provide much more details about their behavior.
+
+Migrating to sdbus-c++ v2
+-------------------------
+
+sdbus-c++ v2 is a major release that comes with a number of breaking API/ABI/behavior changes compared to v1. The following list describes the changes:
+
+* Change in behavior: In *synchronous* D-Bus calls, the proxy object now keeps the connection instance blocked for the entire duration of the method call. Incoming messages like signals will be queued and processed after the call. Access to the connection from other threads is blocked. To avoid this (in case this hurts you):
+  * either use short-lived, light-weight proxies for such synchronous calls,
+  * or call the method in an asynchronous way.
+* Signatures of callbacks `async_reply_handler`, `signal_handler`, `message_handler` and `property_set_callback` were modified to take input message objects by value instead of non-const ref to a message. The callback handler assumes ownership of the message. This API is cleaner and more self-explaining.
+* The `PollData` struct has been extended with a new data member: `eventFd`. All hooks with external event loops shall be modified to poll on this `eventFd` in addition to the `fd`.
+* `PollData::timeout_usec` was renamed to `PollData::timeout` and its type has been changed to `std::chrono::microseconds`. This member now holds directly what before had to be obtained through `PollData::getAbsoluteTimeout()` call.
+* `PollData::getRelativeTimeout()` return type was changed to `std::chrono::microseconds`.
+* `IConnection::processPendingRequest()` was renamed to `IConnection::processPendingEvent()`.
+* `Variant` constructor is now explicit.
+* `IProxy::getCurrentlyProcessedMessage()` now returns `Message` by value instead of a raw pointer to it. The caller assumes ownership of the message.
+* Object D-Bus API registration is now done through `IObject::addVTable()` method. The vtable gets active immediately. No `finishRegistration()` call is needed anymore. vtables can be added and removed dynamically at run time. In addition to API simplification this brings consistency with sd-bus API and increases flexibility.
+* Subscription to signals has been simplified. The subscription is active right after the `registerSignalHandler`/`uponSignal()` call. No need for the final call to `finishRegistration()`.
+* `IProxy::muteSignal()` and `IProxy::unregisterSignal()` have been removed. When subscribing to a signal, we can ask sdbus-c++ to give us a RAII-based slot object. As long as we keep the slot, the subscription is active. Destroying the slot object implies unsubscribing from the signal.
+* `request_slot` tag was renamed to `return_slot`.
+* Deprecated `dont_request_slot` was removed. It shall be replaced with `floating_slot`.
+* `ProxyInterfaces::getObjectPath()` was removed. It shall be replaced with `ProxyInterfaces::getProxy().getObjectPath()`.
+* `AdaptorInterfaces::getObjectPath()` was removed. It can be replaced with `AdaptorInterfaces::getObject().getObjectPath()`.
+* `createConnection()` has been removed. To create a connection to the system bus use `createSystemConnection()` instead.
+* `createDefaultBusConnection()` has been renamed to `createBusConnection()`.
+* Change in behavior: `Proxy`s now by default call `createBusConnection()` to get a connection when the connection is not provided explicitly by the caller, so they connect to either the session bus or the system bus depending on the context (as opposed to always to the system bus like before).
+* Callbacks taking `const sdbus::Error* error` were changed to take `std::optional<sdbus::Error>`, which better expresses the intent and meaning.
+* Types and methods marked deprecated in sdbus-c++ v1 were removed completely.
+* CMake options got `SDBUSCPP_` prefix for better usability and minimal risk of conflicts in downstream CMake projects. `SDBUSCPP_INSTALL` CMake option was added.
+* CMake components got `sdbus-c++-` prefix.
+
+Some of these changes required correspoding adaptations in the sdbus-c++ codegen. Hence, your **C++ bindings (if any) must be re-generated** with the new sdbus-c++-xml2cpp v2 in order to use them with sdbus-c++ v2 API.
 
 Conclusion
 ----------

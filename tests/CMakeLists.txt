@@ -2,15 +2,12 @@
 # DOWNLOAD AND BUILD OF GOOGLETEST
 #-------------------------------
 
-set(GOOGLETEST_VERSION 1.10.0 CACHE STRING "Version of gmock to use")
-set(GOOGLETEST_GIT_REPO "https://github.com/google/googletest.git" CACHE STRING "A git repo to clone and build googletest from if gmock is not found in the system")
-
-find_package(GTest ${GOOGLETEST_VERSION} CONFIG)
+find_package(GTest ${SDBUSCPP_GOOGLETEST_VERSION} CONFIG)
 if (NOT TARGET GTest::gmock)
     # Try pkg-config if GTest was not found through CMake config
     find_package(PkgConfig)
     if (PkgConfig_FOUND)
-        pkg_check_modules(GMock IMPORTED_TARGET GLOBAL gmock>=${GOOGLETEST_VERSION})
+        pkg_check_modules(GMock IMPORTED_TARGET GLOBAL gmock>=${SDBUSCPP_GOOGLETEST_VERSION})
         if(TARGET PkgConfig::GMock)
             add_library(GTest::gmock ALIAS PkgConfig::GMock)
         endif()
@@ -19,26 +16,26 @@ if (NOT TARGET GTest::gmock)
     if (NOT TARGET GTest::gmock)
         include(FetchContent)
 
-        message("Fetching googletest v${GOOGLETEST_VERSION}...")
+        if (SDBUSCPP_GOOGLETEST_VERSION VERSION_GREATER_EQUAL 1.13.0)
+            set(GOOGLETEST_TAG "v${SDBUSCPP_GOOGLETEST_VERSION}")
+        else()
+            set(GOOGLETEST_TAG "release-${SDBUSCPP_GOOGLETEST_VERSION}")
+        endif()
+
+        message("Manually fetching & building googletest ${GOOGLETEST_TAG}...")
         FetchContent_Declare(googletest
-                            GIT_REPOSITORY ${GOOGLETEST_GIT_REPO}
-                            GIT_TAG        release-${GOOGLETEST_VERSION}
+                            GIT_REPOSITORY ${SDBUSCPP_GOOGLETEST_GIT_REPO}
+                            GIT_TAG        ${GOOGLETEST_TAG}
                             GIT_SHALLOW    1
                             UPDATE_COMMAND "")
 
-        #FetchContent_MakeAvailable(googletest) # Not available in CMake 3.13 :-( Let's do it manually:
-        FetchContent_GetProperties(googletest)
-        if(NOT googletest_POPULATED)
-            FetchContent_Populate(googletest)
-            set(gtest_force_shared_crt ON CACHE INTERNAL "" FORCE)
-            set(BUILD_GMOCK ON CACHE INTERNAL "" FORCE)
-            set(INSTALL_GTEST OFF CACHE INTERNAL "" FORCE)
-            set(BUILD_SHARED_LIBS_BAK ${BUILD_SHARED_LIBS})
-            set(BUILD_SHARED_LIBS OFF)
-            add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
-            set(BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS_BAK})
-            add_library(GTest::gmock ALIAS gmock)
-        endif()
+        set(gtest_force_shared_crt ON CACHE INTERNAL "" FORCE)
+        set(INSTALL_GTEST OFF CACHE INTERNAL "" FORCE)
+        set(BUILD_SHARED_LIBS_BAK ${BUILD_SHARED_LIBS})
+        set(BUILD_SHARED_LIBS OFF)
+        FetchContent_MakeAvailable(googletest)
+        set(BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS_BAK})
+        add_library(GTest::gmock ALIAS gmock)
     endif()
 endif()
 
@@ -50,6 +47,7 @@ set(UNITTESTS_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/unittests)
 set(UNITTESTS_SRCS
     ${UNITTESTS_SOURCE_DIR}/sdbus-c++-unit-tests.cpp
     ${UNITTESTS_SOURCE_DIR}/Message_test.cpp
+    ${UNITTESTS_SOURCE_DIR}/PollData_test.cpp
     ${UNITTESTS_SOURCE_DIR}/Types_test.cpp
     ${UNITTESTS_SOURCE_DIR}/TypeTraits_test.cpp
     ${UNITTESTS_SOURCE_DIR}/Connection_test.cpp
@@ -105,23 +103,28 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 add_executable(sdbus-c++-unit-tests ${UNITTESTS_SRCS})
 target_compile_definitions(sdbus-c++-unit-tests PRIVATE
-    LIBSYSTEMD_VERSION=${LIBSYSTEMD_VERSION}
-    SDBUS_HEADER=<${LIBSYSTEMD_IMPL}/sd-bus.h>)
+    LIBSYSTEMD_VERSION=${SDBUSCPP_LIBSYSTEMD_VERSION}
+    SDBUS_${SDBUS_IMPL}
+    SDBUS_HEADER=<${SDBUS_IMPL}/sd-bus.h>)
 target_link_libraries(sdbus-c++-unit-tests sdbus-c++-objlib GTest::gmock)
 
 add_executable(sdbus-c++-integration-tests ${INTEGRATIONTESTS_SRCS})
-target_compile_definitions(sdbus-c++-integration-tests PRIVATE LIBSYSTEMD_VERSION=${LIBSYSTEMD_VERSION})
-target_link_libraries(sdbus-c++-integration-tests sdbus-c++ GTest::gmock)
+target_compile_definitions(sdbus-c++-integration-tests PRIVATE
+    LIBSYSTEMD_VERSION=${SDBUSCPP_LIBSYSTEMD_VERSION}
+    SDBUS_${SDBUS_IMPL})
+if(NOT SDBUS_IMPL STREQUAL "basu")
+    # Systemd::Libsystemd is included because integration tests use sd-event. Otherwise sdbus-c++ encapsulates and hides libsystemd.
+    target_link_libraries(sdbus-c++-integration-tests sdbus-c++ Systemd::Libsystemd GTest::gmock)
+else()
+    # sd-event implementation is not part of basu, so its integration tests will be skipped
+    target_link_libraries(sdbus-c++-integration-tests sdbus-c++ GTest::gmock)
+endif()
 
-# Manual performance and stress tests
-option(ENABLE_PERF_TESTS "Build and install manual performance tests (default OFF)" OFF)
-option(ENABLE_STRESS_TESTS "Build and install manual stress tests (default OFF)" OFF)
-
-if(ENABLE_PERF_TESTS OR ENABLE_STRESS_TESTS)
+if(SDBUSCPP_BUILD_PERF_TESTS OR SDBUSCPP_BUILD_STRESS_TESTS)
     set(THREADS_PREFER_PTHREAD_FLAG ON)
     find_package(Threads REQUIRED)
 
-    if(ENABLE_PERF_TESTS)
+    if(SDBUSCPP_BUILD_PERF_TESTS)
         message(STATUS "Building with performance tests")
         add_executable(sdbus-c++-perf-tests-client ${STRESSTESTS_CLIENT_SRCS})
         target_link_libraries(sdbus-c++-perf-tests-client sdbus-c++ Threads::Threads)
@@ -129,7 +132,7 @@ if(ENABLE_PERF_TESTS OR ENABLE_STRESS_TESTS)
         target_link_libraries(sdbus-c++-perf-tests-server sdbus-c++ Threads::Threads)
     endif()
 
-    if(ENABLE_STRESS_TESTS)
+    if(SDBUSCPP_BUILD_STRESS_TESTS)
         message(STATUS "Building with stress tests")
         add_executable(sdbus-c++-stress-tests ${STRESSTESTS_SRCS})
         target_link_libraries(sdbus-c++-stress-tests sdbus-c++ Threads::Threads)
@@ -140,25 +143,25 @@ endif()
 # INSTALLATION
 #----------------------------------
 
-option(INSTALL_TESTS "Install tests (default OFF)" OFF)
-
-if(INSTALL_TESTS)
+if(SDBUSCPP_INSTALL)
     include(GNUInstallDirs)
-    set(TESTS_INSTALL_PATH "tests/${PROJECT_NAME}" CACHE STRING "Specifies where the test binaries will be installed")
-
-    install(TARGETS sdbus-c++-unit-tests DESTINATION ${TESTS_INSTALL_PATH} COMPONENT test)
-    install(TARGETS sdbus-c++-integration-tests DESTINATION ${TESTS_INSTALL_PATH} COMPONENT test)
-    install(FILES ${INTEGRATIONTESTS_SOURCE_DIR}/files/org.sdbuscpp.integrationtests.conf DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/dbus-1/system.d COMPONENT test)
-
-    if(ENABLE_PERF_TESTS)
-        install(TARGETS sdbus-c++-perf-tests-client DESTINATION ${TESTS_INSTALL_PATH} COMPONENT test)
-        install(TARGETS sdbus-c++-perf-tests-server DESTINATION ${TESTS_INSTALL_PATH} COMPONENT test)
-        install(FILES ${PERFTESTS_SOURCE_DIR}/files/org.sdbuscpp.perftests.conf DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/dbus-1/system.d COMPONENT test)
+    install(TARGETS sdbus-c++-unit-tests DESTINATION ${SDBUSCPP_TESTS_INSTALL_PATH} COMPONENT sdbus-c++-test)
+    install(TARGETS sdbus-c++-integration-tests DESTINATION ${SDBUSCPP_TESTS_INSTALL_PATH} COMPONENT sdbus-c++-test)
+    install(FILES ${INTEGRATIONTESTS_SOURCE_DIR}/files/org.sdbuscpp.integrationtests.conf
+            DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/dbus-1/system.d
+            COMPONENT sdbus-c++-test)
+    if(SDBUSCPP_BUILD_PERF_TESTS)
+        install(TARGETS sdbus-c++-perf-tests-client DESTINATION ${SDBUSCPP_TESTS_INSTALL_PATH} COMPONENT sdbus-c++-test)
+        install(TARGETS sdbus-c++-perf-tests-server DESTINATION ${SDBUSCPP_TESTS_INSTALL_PATH} COMPONENT sdbus-c++-test)
+        install(FILES ${PERFTESTS_SOURCE_DIR}/files/org.sdbuscpp.perftests.conf
+                DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/dbus-1/system.d
+                COMPONENT sdbus-c++-test)
     endif()
-
-    if(ENABLE_STRESS_TESTS)
-        install(TARGETS sdbus-c++-stress-tests DESTINATION ${TESTS_INSTALL_PATH} COMPONENT test)
-        install(FILES ${STRESSTESTS_SOURCE_DIR}/files/org.sdbuscpp.stresstests.conf DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/dbus-1/system.d COMPONENT test)
+    if(SDBUSCPP_BUILD_STRESS_TESTS)
+        install(TARGETS sdbus-c++-stress-tests DESTINATION ${SDBUSCPP_TESTS_INSTALL_PATH} COMPONENT sdbus-c++-test)
+        install(FILES ${STRESSTESTS_SOURCE_DIR}/files/org.sdbuscpp.stresstests.conf
+                DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/dbus-1/system.d
+                COMPONENT sdbus-c++-test)
     endif()
 endif()
 

@@ -2,7 +2,7 @@
  * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
  * (C) 2016 - 2022 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
- * @file TestAdaptor.cpp
+ * @file TestProxy.cpp
  *
  * Created on: May 23, 2020
  * Project: sdbus-c++
@@ -61,7 +61,7 @@ TestProxy::~TestProxy()
 
 void TestProxy::onSimpleSignal()
 {
-    m_signalMsg = getProxy().getCurrentlyProcessedMessage();
+    m_signalMsg = std::make_unique<sdbus::Message>(getProxy().getCurrentlyProcessedMessage());
     m_signalMemberName = m_signalMsg->getMemberName();
 
     m_gotSimpleSignal = true;
@@ -85,7 +85,7 @@ void TestProxy::onSignalWithoutRegistration(const sdbus::Struct<std::string, sdb
     m_gotSignalWithSignature = true;
 }
 
-void TestProxy::onDoOperationReply(uint32_t returnValue, const sdbus::Error* error)
+void TestProxy::onDoOperationReply(uint32_t returnValue, std::optional<sdbus::Error> error)
 {
     if (m_DoOperationClientSideAsyncReplyHandler)
         m_DoOperationClientSideAsyncReplyHandler(returnValue, error);
@@ -99,7 +99,7 @@ void TestProxy::onPropertiesChanged( const std::string& interfaceName
         m_onPropertiesChangedHandler(interfaceName, changedProperties, invalidatedProperties);
 }
 
-void TestProxy::installDoOperationClientSideAsyncReplyHandler(std::function<void(uint32_t res, const sdbus::Error* err)> handler)
+void TestProxy::installDoOperationClientSideAsyncReplyHandler(std::function<void(uint32_t res, std::optional<sdbus::Error> err)> handler)
 {
     m_DoOperationClientSideAsyncReplyHandler = std::move(handler);
 }
@@ -117,9 +117,9 @@ sdbus::PendingAsyncCall TestProxy::doOperationClientSideAsync(uint32_t param)
     return getProxy().callMethodAsync("doOperation")
                      .onInterface(sdbus::test::INTERFACE_NAME)
                      .withArguments(param)
-                     .uponReplyInvoke([this](const sdbus::Error* error, uint32_t returnValue)
+                     .uponReplyInvoke([this](std::optional<sdbus::Error> error, uint32_t returnValue)
                                       {
-                                          this->onDoOperationReply(returnValue, error);
+                                          this->onDoOperationReply(returnValue, std::move(error));
                                       });
 }
 
@@ -136,16 +136,16 @@ std::future<MethodReply> TestProxy::doOperationClientSideAsyncOnBasicAPILevel(ui
     auto methodCall = getProxy().createMethodCall(sdbus::test::INTERFACE_NAME, "doOperation");
     methodCall << param;
 
-    return getProxy().callMethod(methodCall, sdbus::with_future);
+    return getProxy().callMethodAsync(methodCall, sdbus::with_future);
 }
 
 void TestProxy::doErroneousOperationClientSideAsync()
 {
     getProxy().callMethodAsync("throwError")
               .onInterface(sdbus::test::INTERFACE_NAME)
-              .uponReplyInvoke([this](const sdbus::Error* error)
+              .uponReplyInvoke([this](std::optional<sdbus::Error> error)
                                {
-                                   this->onDoOperationReply(0, error);
+                                   this->onDoOperationReply(0, std::move(error));
                                });
 }
 
@@ -163,9 +163,9 @@ void TestProxy::doOperationClientSideAsyncWithTimeout(const std::chrono::microse
               .onInterface(sdbus::test::INTERFACE_NAME)
               .withTimeout(timeout)
               .withArguments(param)
-              .uponReplyInvoke([this](const sdbus::Error* error, uint32_t returnValue)
+              .uponReplyInvoke([this](std::optional<sdbus::Error> error, uint32_t returnValue)
                                {
-                                   this->onDoOperationReply(returnValue, error);
+                                   this->onDoOperationReply(returnValue, std::move(error));
                                });
 }
 

@@ -27,19 +27,25 @@
 #ifndef SDBUS_CXX_TYPETRAITS_H_
 #define SDBUS_CXX_TYPETRAITS_H_
 
-#include <type_traits>
-#include <string>
-#include <vector>
+#include <sdbus-c++/Error.h>
+
 #include <array>
-#if __cplusplus >= 202002L
-#include <span>
-#endif
-#include <map>
-#include <unordered_map>
 #include <cstdint>
 #include <functional>
+#include <map>
 #include <memory>
+#include <optional>
+#ifdef __has_include
+#  if __has_include(<span>)
+#    include <span>
+#  endif
+#endif
+#include <string>
 #include <tuple>
+#include <type_traits>
+#include <unordered_map>
+#include <variant>
+#include <vector>
 
 // Forward declarations
 namespace sdbus {
@@ -62,24 +68,21 @@ namespace sdbus {
 
     // Callbacks from sdbus-c++
     using method_callback = std::function<void(MethodCall msg)>;
-    using async_reply_handler = std::function<void(MethodReply& reply, const Error* error)>;
-    using signal_handler = std::function<void(Signal& signal)>;
-    using message_handler = std::function<void(Message& msg)>;
-    using property_set_callback = std::function<void(PropertySetCall& msg)>;
+    using async_reply_handler = std::function<void(MethodReply reply, std::optional<Error> error)>;
+    using signal_handler = std::function<void(Signal signal)>;
+    using message_handler = std::function<void(Message msg)>;
+    using property_set_callback = std::function<void(PropertySetCall msg)>;
     using property_get_callback = std::function<void(PropertyGetReply& reply)>;
 
     // Type-erased RAII-style handle to callbacks/subscriptions registered to sdbus-c++
     using Slot = std::unique_ptr<void, std::function<void(void*)>>;
 
-    // Tag specifying that an owning slot handle shall be returned from the function
-    struct request_slot_t { explicit request_slot_t() = default; };
-    inline constexpr request_slot_t request_slot{};
+    // Tag specifying that an owning slot handle shall be returned from a registration/subscription function to the caller
+    struct return_slot_t { explicit return_slot_t() = default; };
+    inline constexpr return_slot_t return_slot{};
     // Tag specifying that the library shall own the slot resulting from the call of the function (so-called floating slot)
     struct floating_slot_t { explicit floating_slot_t() = default; };
     inline constexpr floating_slot_t floating_slot{};
-    // Deprecated name for the above -- a floating slot
-    struct dont_request_slot_t { explicit dont_request_slot_t() = default; };
-    [[deprecated("Replaced by floating_slot")]] inline constexpr dont_request_slot_t dont_request_slot{};
     // Tag denoting the assumption that the caller has already obtained message ownership
     struct adopt_message_t { explicit adopt_message_t() = default; };
     inline constexpr adopt_message_t adopt_message{};
@@ -391,7 +394,7 @@ namespace sdbus {
         }
     };
 
-#if __cplusplus >= 202002L
+#ifdef __cpp_lib_span
     template <typename _Element, std::size_t _Extent>
     struct signature_of<std::span<_Element, _Extent>>
     {
@@ -492,7 +495,7 @@ namespace sdbus {
     };
 
     template <typename... _Args>
-    struct function_traits<void(const Error*, _Args...)>
+    struct function_traits<void(std::optional<Error>, _Args...)>
         : public function_traits_base<void, _Args...>
     {
         static constexpr bool has_error_param = true;
@@ -646,6 +649,15 @@ namespace sdbus {
     using future_return_t = typename future_return<_Args...>::type;
 
 
+    // Credit: Piotr Skotnicki (https://stackoverflow.com/a/57639506)
+    template <typename, typename>
+    constexpr bool is_one_of_variants_types = false;
+
+    template <typename... _VariantTypes, typename _QueriedType>
+    constexpr bool is_one_of_variants_types<std::variant<_VariantTypes...>, _QueriedType>
+        = (std::is_same_v<_QueriedType, _VariantTypes> || ...);
+
+
     namespace detail
     {
         template <class _Function, class _Tuple, typename... _Args, std::size_t... _I>
@@ -658,12 +670,12 @@ namespace sdbus {
         }
 
         template <class _Function, class _Tuple, std::size_t... _I>
-        constexpr decltype(auto) apply_impl( _Function&& f
-                                           , const Error* e
-                                           , _Tuple&& t
-                                           , std::index_sequence<_I...> )
+        decltype(auto) apply_impl( _Function&& f
+                                 , std::optional<Error> e
+                                 , _Tuple&& t
+                                 , std::index_sequence<_I...> )
         {
-            return std::forward<_Function>(f)(e, std::get<_I>(std::forward<_Tuple>(t))...);
+            return std::forward<_Function>(f)(std::move(e), std::get<_I>(std::forward<_Tuple>(t))...);
         }
 
         // For non-void returning functions, apply_impl simply returns function return value (a tuple of values).
@@ -704,10 +716,10 @@ namespace sdbus {
     // Convert tuple `t' of values into a list of arguments
     // and invoke function `f' with those arguments.
     template <class _Function, class _Tuple>
-    constexpr decltype(auto) apply(_Function&& f, const Error* e, _Tuple&& t)
+    decltype(auto) apply(_Function&& f, std::optional<Error> e, _Tuple&& t)
     {
         return detail::apply_impl( std::forward<_Function>(f)
-                                 , e
+                                 , std::move(e)
                                  , std::forward<_Tuple>(t)
                                  , std::make_index_sequence<std::tuple_size<std::decay_t<_Tuple>>::value>{} );
     }

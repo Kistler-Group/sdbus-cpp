@@ -311,7 +311,7 @@ TEST(AMessage, CanCarryDBusArrayOfNontrivialTypesGivenAsStdArray)
     ASSERT_THAT(dataRead, Eq(dataWritten));
 }
 
-#if __cplusplus >= 202002L
+#ifdef __cpp_lib_span
 TEST(AMessage, CanCarryDBusArrayOfTrivialTypesGivenAsStdSpan)
 {
     auto msg = sdbus::createPlainMessage();
@@ -360,7 +360,7 @@ TEST(AMessage, ThrowsWhenDestinationStdArrayIsTooSmallDuringDeserialization)
     ASSERT_THROW(msg >> dataRead, sdbus::Error);
 }
 
-#if __cplusplus >= 202002L
+#ifdef __cpp_lib_span
 TEST(AMessage, ThrowsWhenDestinationStdSpanIsTooSmallDuringDeserialization)
 {
     auto msg = sdbus::createPlainMessage();

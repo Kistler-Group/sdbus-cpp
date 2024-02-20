@@ -27,11 +27,14 @@
 #ifndef SDBUS_CXX_INTERNAL_ICONNECTION_H_
 #define SDBUS_CXX_INTERNAL_ICONNECTION_H_
 
-#include <sdbus-c++/IConnection.h>
-#include SDBUS_HEADER
-#include <string>
-#include <memory>
+#include "sdbus-c++/IConnection.h"
+
+#include "sdbus-c++/TypeTraits.h"
+
 #include <functional>
+#include <memory>
+#include <string>
+#include SDBUS_HEADER
 #include <vector>
 
 // Forward declaration
@@ -53,22 +56,26 @@ namespace sdbus::internal {
     public:
         ~IConnection() override = default;
 
-        virtual const ISdBus& getSdBusInterface() const = 0;
-        virtual ISdBus& getSdBusInterface() = 0;
+        [[nodiscard]] virtual const ISdBus& getSdBusInterface() const = 0;
+        [[nodiscard]] virtual ISdBus& getSdBusInterface() = 0;
 
         [[nodiscard]] virtual Slot addObjectVTable( const std::string& objectPath
                                                   , const std::string& interfaceName
                                                   , const sd_bus_vtable* vtable
                                                   , void* userData ) = 0;
 
-        virtual PlainMessage createPlainMessage() const = 0;
-        virtual MethodCall createMethodCall( const std::string& destination
-                                           , const std::string& objectPath
-                                           , const std::string& interfaceName
-                                           , const std::string& methodName ) const = 0;
-        virtual Signal createSignal( const std::string& objectPath
-                                   , const std::string& interfaceName
-                                   , const std::string& signalName ) const = 0;
+        [[nodiscard]] virtual PlainMessage createPlainMessage() const = 0;
+        [[nodiscard]] virtual MethodCall createMethodCall( const std::string& destination
+                                                         , const std::string& objectPath
+                                                         , const std::string& interfaceName
+                                                         , const std::string& methodName ) const = 0;
+        [[nodiscard]] virtual Signal createSignal( const std::string& objectPath
+                                                 , const std::string& interfaceName
+                                                 , const std::string& signalName ) const = 0;
+
+        virtual MethodReply callMethod(const MethodCall& message, uint64_t timeout) = 0;
+        virtual void callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout, floating_slot_t) = 0;
+        [[nodiscard]] virtual Slot callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout) = 0;
 
         virtual void emitPropertiesChangedSignal( const std::string& objectPath
                                                 , const std::string& interfaceName
@@ -81,7 +88,7 @@ namespace sdbus::internal {
                                                 , const std::vector<std::string>& interfaces ) = 0;
 
         using sdbus::IConnection::addObjectManager;
-        [[nodiscard]] virtual Slot addObjectManager(const std::string& objectPath, request_slot_t) = 0;
+        [[nodiscard]] virtual Slot addObjectManager(const std::string& objectPath, return_slot_t) = 0;
 
         [[nodiscard]] virtual Slot registerSignalHandler( const std::string& sender
                                                         , const std::string& objectPath
@@ -89,12 +96,8 @@ namespace sdbus::internal {
                                                         , const std::string& signalName
                                                         , sd_bus_message_handler_t callback
                                                         , void* userData ) = 0;
-
-        virtual void notifyEventLoopNewTimeout() const = 0;
-        virtual MethodReply tryCallMethodSynchronously(const MethodCall& message, uint64_t timeout) = 0;
     };
 
-    [[nodiscard]] std::unique_ptr<sdbus::internal::IConnection> createConnection();
     [[nodiscard]] std::unique_ptr<sdbus::internal::IConnection> createPseudoConnection();
 
 }

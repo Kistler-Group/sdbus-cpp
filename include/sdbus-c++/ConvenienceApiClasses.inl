@@ -27,388 +27,40 @@
 #ifndef SDBUS_CPP_CONVENIENCEAPICLASSES_INL_
 #define SDBUS_CPP_CONVENIENCEAPICLASSES_INL_
 
+#include <sdbus-c++/Error.h>
 #include <sdbus-c++/IObject.h>
 #include <sdbus-c++/IProxy.h>
 #include <sdbus-c++/Message.h>
 #include <sdbus-c++/MethodResult.h>
-#include <sdbus-c++/Types.h>
 #include <sdbus-c++/TypeTraits.h>
-#include <sdbus-c++/Error.h>
+#include <sdbus-c++/Types.h>
+
+#include <cassert>
+#include <exception>
 #include <string>
 #include <tuple>
-#include <exception>
-#include <cassert>
+#include <type_traits>
 
 namespace sdbus {
 
-    /*** ----------------- ***/
-    /*** MethodRegistrator ***/
-    /*** ----------------- ***/
+    /*** ------------- ***/
+    /***  VTableAdder  ***/
+    /*** ------------- ***/
 
-    inline MethodRegistrator::MethodRegistrator(IObject& object, std::string methodName)
+    inline VTableAdder::VTableAdder(IObject& object, std::vector<VTableItem> vtable)
         : object_(object)
-        , methodName_(std::move(methodName))
-        , exceptions_(std::uncaught_exceptions())
+        , vtable_(std::move(vtable))
     {
     }
 
-    inline MethodRegistrator::~MethodRegistrator() noexcept(false) // since C++11, destructors must
-    {                                                              // explicitly be allowed to throw
-        // Don't register the method if MethodRegistrator threw an exception in one of its methods
-        if (std::uncaught_exceptions() != exceptions_)
-            return;
-
-        assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
-        assert(methodCallback_); // implementedAs() must be placed/called prior to this function
-
-        // registerMethod() can throw. But as the MethodRegistrator shall always be used as an unnamed,
-        // temporary object, i.e. not as a stack-allocated object, the double-exception situation
-        // shall never happen. I.e. it should not happen that this destructor is directly called
-        // in the stack-unwinding process of another flying exception (which would lead to immediate
-        // termination). It can be called indirectly in the destructor of another object, but that's
-        // fine and safe provided that the caller catches exceptions thrown from here.
-        // Therefore, we can allow registerMethod() to throw even if we are in the destructor.
-        // Bottomline is, to be on the safe side, the caller must take care of catching and reacting
-        // to the exception thrown from here if the caller is a destructor itself.
-        object_.registerMethod( interfaceName_
-                              , std::move(methodName_)
-                              , std::move(inputSignature_)
-                              , inputParamNames_
-                              , std::move(outputSignature_)
-                              , outputParamNames_
-                              , std::move(methodCallback_)
-                              , std::move(flags_));
-    }
-
-    inline MethodRegistrator& MethodRegistrator::onInterface(std::string interfaceName)
+    inline void VTableAdder::forInterface(std::string interfaceName)
     {
-        interfaceName_ = std::move(interfaceName);
-
-        return *this;
+        object_.addVTable(std::move(interfaceName), std::move(vtable_));
     }
 
-    template <typename _Function>
-    MethodRegistrator& MethodRegistrator::implementedAs(_Function&& callback)
+    [[nodiscard]] inline Slot VTableAdder::forInterface(std::string interfaceName, return_slot_t)
     {
-        inputSignature_ = signature_of_function_input_arguments<_Function>::str();
-        outputSignature_ = signature_of_function_output_arguments<_Function>::str();
-        methodCallback_ = [callback = std::forward<_Function>(callback)](MethodCall call)
-        {
-            // Create a tuple of callback input arguments' types, which will be used
-            // as a storage for the argument values deserialized from the message.
-            tuple_of_function_input_arg_types_t<_Function> inputArgs;
-
-            // Deserialize input arguments from the message into the tuple.
-            call >> inputArgs;
-
-            if constexpr (!is_async_method_v<_Function>)
-            {
-                // Invoke callback with input arguments from the tuple.
-                auto ret = sdbus::apply(callback, inputArgs);
-
-                // Store output arguments to the reply message and send it back.
-                auto reply = call.createReply();
-                reply << ret;
-                reply.send();
-            }
-            else
-            {
-                // Invoke callback with input arguments from the tuple and with result object to be set later
-                using AsyncResult = typename function_traits<_Function>::async_result_t;
-                sdbus::apply(callback, AsyncResult{std::move(call)}, std::move(inputArgs));
-            }
-        };
-
-        return *this;
-    }
-
-    inline MethodRegistrator& MethodRegistrator::withInputParamNames(std::vector<std::string> paramNames)
-    {
-        inputParamNames_ = std::move(paramNames);
-
-        return *this;
-    }
-
-    template <typename... _String>
-    inline MethodRegistrator& MethodRegistrator::withInputParamNames(_String... paramNames)
-    {
-        static_assert(std::conjunction_v<std::is_convertible<_String, std::string>...>, "Parameter names must be (convertible to) strings");
-
-        return withInputParamNames({paramNames...});
-    }
-
-    inline MethodRegistrator& MethodRegistrator::withOutputParamNames(std::vector<std::string> paramNames)
-    {
-        outputParamNames_ = std::move(paramNames);
-
-        return *this;
-    }
-
-    template <typename... _String>
-    inline MethodRegistrator& MethodRegistrator::withOutputParamNames(_String... paramNames)
-    {
-        static_assert(std::conjunction_v<std::is_convertible<_String, std::string>...>, "Parameter names must be (convertible to) strings");
-
-        return withOutputParamNames({paramNames...});
-    }
-
-    inline MethodRegistrator& MethodRegistrator::markAsDeprecated()
-    {
-        flags_.set(Flags::DEPRECATED);
-
-        return *this;
-    }
-
-    inline MethodRegistrator& MethodRegistrator::markAsPrivileged()
-    {
-        flags_.set(Flags::PRIVILEGED);
-
-        return *this;
-    }
-
-    inline MethodRegistrator& MethodRegistrator::withNoReply()
-    {
-        flags_.set(Flags::METHOD_NO_REPLY);
-
-        return *this;
-    }
-
-    /*** ----------------- ***/
-    /*** SignalRegistrator ***/
-    /*** ----------------- ***/
-
-    inline SignalRegistrator::SignalRegistrator(IObject& object, std::string signalName)
-        : object_(object)
-        , signalName_(std::move(signalName))
-        , exceptions_(std::uncaught_exceptions())
-    {
-    }
-
-    inline SignalRegistrator::~SignalRegistrator() noexcept(false) // since C++11, destructors must
-    {                                                              // explicitly be allowed to throw
-        // Don't register the signal if SignalRegistrator threw an exception in one of its methods
-        if (std::uncaught_exceptions() != exceptions_)
-            return;
-
-        assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
-
-        // registerSignal() can throw. But as the SignalRegistrator shall always be used as an unnamed,
-        // temporary object, i.e. not as a stack-allocated object, the double-exception situation
-        // shall never happen. I.e. it should not happen that this destructor is directly called
-        // in the stack-unwinding process of another flying exception (which would lead to immediate
-        // termination). It can be called indirectly in the destructor of another object, but that's
-        // fine and safe provided that the caller catches exceptions thrown from here.
-        // Therefore, we can allow registerSignal() to throw even if we are in the destructor.
-        // Bottomline is, to be on the safe side, the caller must take care of catching and reacting
-        // to the exception thrown from here if the caller is a destructor itself.
-        object_.registerSignal( interfaceName_
-                              , std::move(signalName_)
-                              , std::move(signalSignature_)
-                              , paramNames_
-                              , std::move(flags_) );
-    }
-
-    inline SignalRegistrator& SignalRegistrator::onInterface(std::string interfaceName)
-    {
-        interfaceName_ = std::move(interfaceName);
-
-        return *this;
-    }
-
-    template <typename... _Args>
-    inline SignalRegistrator& SignalRegistrator::withParameters()
-    {
-        signalSignature_ = signature_of_function_input_arguments<void(_Args...)>::str();
-
-        return *this;
-    }
-
-    template <typename... _Args>
-    inline SignalRegistrator& SignalRegistrator::withParameters(std::vector<std::string> paramNames)
-    {
-        paramNames_ = std::move(paramNames);
-
-        return withParameters<_Args...>();
-    }
-
-    template <typename... _Args, typename... _String>
-    inline SignalRegistrator& SignalRegistrator::withParameters(_String... paramNames)
-    {
-        static_assert(std::conjunction_v<std::is_convertible<_String, std::string>...>, "Parameter names must be (convertible to) strings");
-        static_assert(sizeof...(_Args) == sizeof...(_String), "Numbers of signal parameters and their names don't match");
-
-        return withParameters<_Args...>({paramNames...});
-    }
-
-    inline SignalRegistrator& SignalRegistrator::markAsDeprecated()
-    {
-        flags_.set(Flags::DEPRECATED);
-
-        return *this;
-    }
-
-    /*** ------------------- ***/
-    /*** PropertyRegistrator ***/
-    /*** ------------------- ***/
-
-    inline PropertyRegistrator::PropertyRegistrator(IObject& object, const std::string& propertyName)
-        : object_(object)
-        , propertyName_(propertyName)
-        , exceptions_(std::uncaught_exceptions())
-    {
-    }
-
-    inline PropertyRegistrator::~PropertyRegistrator() noexcept(false) // since C++11, destructors must
-    {                                                                  // explicitly be allowed to throw
-        // Don't register the property if PropertyRegistrator threw an exception in one of its methods
-        if (std::uncaught_exceptions() != exceptions_)
-            return;
-
-        assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
-
-        // registerProperty() can throw. But as the PropertyRegistrator shall always be used as an unnamed,
-        // temporary object, i.e. not as a stack-allocated object, the double-exception situation
-        // shall never happen. I.e. it should not happen that this destructor is directly called
-        // in the stack-unwinding process of another flying exception (which would lead to immediate
-        // termination). It can be called indirectly in the destructor of another object, but that's
-        // fine and safe provided that the caller catches exceptions thrown from here.
-        // Therefore, we can allow registerProperty() to throw even if we are in the destructor.
-        // Bottomline is, to be on the safe side, the caller must take care of catching and reacting
-        // to the exception thrown from here if the caller is a destructor itself.
-        object_.registerProperty( interfaceName_
-                                , propertyName_
-                                , propertySignature_
-                                , std::move(getter_)
-                                , std::move(setter_)
-                                , flags_ );
-    }
-
-    inline PropertyRegistrator& PropertyRegistrator::onInterface(std::string interfaceName)
-    {
-        interfaceName_ = std::move(interfaceName);
-
-        return *this;
-    }
-
-    template <typename _Function>
-    inline PropertyRegistrator& PropertyRegistrator::withGetter(_Function&& callback)
-    {
-        static_assert(function_argument_count_v<_Function> == 0, "Property getter function must not take any arguments");
-        static_assert(!std::is_void<function_result_t<_Function>>::value, "Property getter function must return property value");
-
-        if (propertySignature_.empty())
-            propertySignature_ = signature_of_function_output_arguments<_Function>::str();
-
-        getter_ = [callback = std::forward<_Function>(callback)](PropertyGetReply& reply)
-        {
-            // Get the propety value and serialize it into the pre-constructed reply message
-            reply << callback();
-        };
-
-        return *this;
-    }
-
-    template <typename _Function>
-    inline PropertyRegistrator& PropertyRegistrator::withSetter(_Function&& callback)
-    {
-        static_assert(function_argument_count_v<_Function> == 1, "Property setter function must take one parameter - the property value");
-        static_assert(std::is_void<function_result_t<_Function>>::value, "Property setter function must not return any value");
-
-        if (propertySignature_.empty())
-            propertySignature_ = signature_of_function_input_arguments<_Function>::str();
-
-        setter_ = [callback = std::forward<_Function>(callback)](PropertySetCall& call)
-        {
-            // Default-construct property value
-            using property_type = function_argument_t<_Function, 0>;
-            std::decay_t<property_type> property;
-
-            // Deserialize property value from the incoming call message
-            call >> property;
-
-            // Invoke setter with the value
-            callback(property);
-        };
-
-        return *this;
-    }
-
-    inline PropertyRegistrator& PropertyRegistrator::markAsDeprecated()
-    {
-        flags_.set(Flags::DEPRECATED);
-
-        return *this;
-    }
-
-    inline PropertyRegistrator& PropertyRegistrator::markAsPrivileged()
-    {
-        flags_.set(Flags::PRIVILEGED);
-
-        return *this;
-    }
-
-    inline PropertyRegistrator& PropertyRegistrator::withUpdateBehavior(Flags::PropertyUpdateBehaviorFlags behavior)
-    {
-        flags_.set(behavior);
-
-        return *this;
-    }
-
-    /*** -------------------- ***/
-    /*** InterfaceFlagsSetter ***/
-    /*** -------------------- ***/
-
-    inline InterfaceFlagsSetter::InterfaceFlagsSetter(IObject& object, const std::string& interfaceName)
-        : object_(object)
-        , interfaceName_(interfaceName)
-        , exceptions_(std::uncaught_exceptions())
-    {
-    }
-
-    inline InterfaceFlagsSetter::~InterfaceFlagsSetter() noexcept(false) // since C++11, destructors must
-    {                                                                    // explicitly be allowed to throw
-        // Don't set any flags if InterfaceFlagsSetter threw an exception in one of its methods
-        if (std::uncaught_exceptions() != exceptions_)
-            return;
-
-        // setInterfaceFlags() can throw. But as the InterfaceFlagsSetter shall always be used as an unnamed,
-        // temporary object, i.e. not as a stack-allocated object, the double-exception situation
-        // shall never happen. I.e. it should not happen that this destructor is directly called
-        // in the stack-unwinding process of another flying exception (which would lead to immediate
-        // termination). It can be called indirectly in the destructor of another object, but that's
-        // fine and safe provided that the caller catches exceptions thrown from here.
-        // Therefore, we can allow setInterfaceFlags() to throw even if we are in the destructor.
-        // Bottomline is, to be on the safe side, the caller must take care of catching and reacting
-        // to the exception thrown from here if the caller is a destructor itself.
-        object_.setInterfaceFlags(interfaceName_, std::move(flags_));
-    }
-
-    inline InterfaceFlagsSetter& InterfaceFlagsSetter::markAsDeprecated()
-    {
-        flags_.set(Flags::DEPRECATED);
-
-        return *this;
-    }
-
-    inline InterfaceFlagsSetter& InterfaceFlagsSetter::markAsPrivileged()
-    {
-        flags_.set(Flags::PRIVILEGED);
-
-        return *this;
-    }
-
-    inline InterfaceFlagsSetter& InterfaceFlagsSetter::withNoReplyMethods()
-    {
-        flags_.set(Flags::METHOD_NO_REPLY);
-
-        return *this;
-    }
-
-    inline InterfaceFlagsSetter& InterfaceFlagsSetter::withPropertyUpdateBehavior(Flags::PropertyUpdateBehaviorFlags behavior)
-    {
-        flags_.set(behavior);
-
-        return *this;
+        return object_.addVTable(std::move(interfaceName), std::move(vtable_), return_slot);
     }
 
     /*** ------------- ***/
@@ -580,14 +232,14 @@ namespace sdbus {
     {
         assert(method_.isValid()); // onInterface() must be placed/called prior to this function
 
-        auto asyncReplyHandler = [callback = std::forward<_Function>(callback)](MethodReply& reply, const Error* error)
+        auto asyncReplyHandler = [callback = std::forward<_Function>(callback)](MethodReply reply, std::optional<Error> error)
         {
             // Create a tuple of callback input arguments' types, which will be used
             // as a storage for the argument values deserialized from the message.
             tuple_of_function_input_arg_types_t<_Function> args;
 
             // Deserialize input arguments from the message into the tuple (if no error occurred).
-            if (error == nullptr)
+            if (!error)
             {
                 try
                 {
@@ -597,16 +249,16 @@ namespace sdbus {
                 {
                     // Pass message deserialization exceptions to the client via callback error parameter,
                     // instead of propagating them up the message loop call stack.
-                    sdbus::apply(callback, &e, args);
+                    sdbus::apply(callback, e, args);
                     return;
                 }
             }
 
             // Invoke callback with input arguments from the tuple.
-            sdbus::apply(callback, error, args);
+            sdbus::apply(callback, std::move(error), args);
         };
 
-        return proxy_.callMethod(method_, std::move(asyncReplyHandler), timeout_);
+        return proxy_.callMethodAsync(method_, std::move(asyncReplyHandler), timeout_);
     }
 
     template <typename... _Args>
@@ -615,15 +267,15 @@ namespace sdbus {
         auto promise = std::make_shared<std::promise<future_return_t<_Args...>>>();
         auto future = promise->get_future();
 
-        uponReplyInvoke([promise = std::move(promise)](const Error* error, _Args... args)
+        uponReplyInvoke([promise = std::move(promise)](std::optional<Error> error, _Args... args)
         {
-            if (error == nullptr)
+            if (!error)
                 if constexpr (!std::is_void_v<future_return_t<_Args...>>)
                     promise->set_value({std::move(args)...});
                 else
                     promise->set_value();
             else
-                promise->set_exception(std::make_exception_ptr(*error));
+                promise->set_exception(std::make_exception_ptr(*std::move(error)));
         });
 
         // Will be std::future<void> for no D-Bus method return value
@@ -656,16 +308,33 @@ namespace sdbus {
 
         proxy_.registerSignalHandler( interfaceName_
                                     , signalName_
-                                    , [callback = std::forward<_Function>(callback)](Signal& signal)
+                                    , makeSignalHandler(std::forward<_Function>(callback)) );
+    }
+
+    template <typename _Function>
+    [[nodiscard]] inline Slot SignalSubscriber::call(_Function&& callback, return_slot_t)
+    {
+        assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
+
+        return proxy_.registerSignalHandler( interfaceName_
+                                           , signalName_
+                                           , makeSignalHandler(std::forward<_Function>(callback))
+                                           , return_slot );
+    }
+
+    template <typename _Function>
+    inline signal_handler SignalSubscriber::makeSignalHandler(_Function&& callback)
+    {
+        return [callback = std::forward<_Function>(callback)](Signal signal)
         {
             // Create a tuple of callback input arguments' types, which will be used
             // as a storage for the argument values deserialized from the signal message.
             tuple_of_function_input_arg_types_t<_Function> signalArgs;
 
-            // The signal handler can take pure signal parameters only, or an additional `const Error*` as its first
+            // The signal handler can take pure signal parameters only, or an additional `std::optional<Error>` as its first
             // parameter. In the former case, if the deserialization fails (e.g. due to signature mismatch),
             // the failure is ignored (and signal simply dropped). In the latter case, the deserialization failure
-            // will be communicated as a non-zero Error pointer to the client's signal handler.
+            // will be communicated to the client's signal handler as a valid Error object inside the std::optional parameter.
             if constexpr (has_error_param_v<_Function>)
             {
                 // Deserialize input arguments from the signal message into the tuple
@@ -677,12 +346,12 @@ namespace sdbus {
                 {
                     // Pass message deserialization exceptions to the client via callback error parameter,
                     // instead of propagating them up the message loop call stack.
-                    sdbus::apply(callback, &e, signalArgs);
+                    sdbus::apply(callback, e, signalArgs);
                     return;
                 }
 
                 // Invoke callback with no error and input arguments from the tuple.
-                sdbus::apply(callback, nullptr, signalArgs);
+                sdbus::apply(callback, {}, signalArgs);
             }
             else
             {
@@ -692,22 +361,7 @@ namespace sdbus {
                 // Invoke callback with input arguments from the tuple.
                 sdbus::apply(callback, signalArgs);
             }
-        });
-    }
-
-    /*** ------------------ ***/
-    /*** SignalUnsubscriber ***/
-    /*** ------------------ ***/
-
-    inline SignalUnsubscriber::SignalUnsubscriber(IProxy& proxy, const std::string& signalName)
-        : proxy_(proxy)
-        , signalName_(signalName)
-    {
-    }
-
-    inline void SignalUnsubscriber::onInterface(const std::string& interfaceName)
-    {
-        proxy_.unregisterSignalHandler(interfaceName, signalName_);
+        };
     }
 
     /*** -------------- ***/
@@ -750,7 +404,7 @@ namespace sdbus {
     template <typename _Function>
     PendingAsyncCall AsyncPropertyGetter::uponReplyInvoke(_Function&& callback)
     {
-        static_assert(std::is_invocable_r_v<void, _Function, const Error*, Variant>, "Property get callback function must accept Error* and property value as Variant");
+        static_assert(std::is_invocable_r_v<void, _Function, std::optional<Error>, Variant>, "Property get callback function must accept std::optional<Error> and property value as Variant");
 
         assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
 
@@ -851,7 +505,7 @@ namespace sdbus {
     template <typename _Function>
     PendingAsyncCall AsyncPropertySetter::uponReplyInvoke(_Function&& callback)
     {
-        static_assert(std::is_invocable_r_v<void, _Function, const Error*>, "Property set callback function must accept Error* only");
+        static_assert(std::is_invocable_r_v<void, _Function, std::optional<Error>>, "Property set callback function must accept std::optional<Error> only");
 
         assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
 
@@ -909,8 +563,8 @@ namespace sdbus {
     template <typename _Function>
     PendingAsyncCall AsyncAllPropertiesGetter::uponReplyInvoke(_Function&& callback)
     {
-        static_assert( std::is_invocable_r_v<void, _Function, const Error*, std::map<std::string, Variant>>
-                     , "All properties get callback function must accept Error* and a map of property names to their values" );
+        static_assert( std::is_invocable_r_v<void, _Function, std::optional<Error>, std::map<std::string, Variant>>
+                     , "All properties get callback function must accept std::optional<Error< and a map of property names to their values" );
 
         assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
 
@@ -930,6 +584,6 @@ namespace sdbus {
                      .getResultAsFuture<std::map<std::string, Variant>>();
     }
 
-}
+} // namespace sdbus
 
 #endif /* SDBUS_CPP_CONVENIENCEAPICLASSES_INL_ */

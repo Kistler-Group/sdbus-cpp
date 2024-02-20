@@ -25,16 +25,18 @@
  */
 
 #include "Proxy.h"
+
+#include "sdbus-c++/Error.h"
+#include "sdbus-c++/IConnection.h"
+#include "sdbus-c++/Message.h"
+
 #include "IConnection.h"
 #include "MessageUtils.h"
-#include "Utils.h"
-#include "sdbus-c++/Message.h"
-#include "sdbus-c++/IConnection.h"
-#include "sdbus-c++/Error.h"
 #include "ScopeGuard.h"
-#include SDBUS_HEADER
+#include "Utils.h"
+
 #include <cassert>
-#include <chrono>
+#include SDBUS_HEADER
 #include <utility>
 
 namespace sdbus::internal {
@@ -88,170 +90,84 @@ MethodCall Proxy::createMethodCall(const std::string& interfaceName, const std::
 
 MethodReply Proxy::callMethod(const MethodCall& message, uint64_t timeout)
 {
-    // Sending method call synchronously is the only operation that blocks, waiting for the method
-    // reply message among the incoming messages on the sd-bus connection socket. But typically there
-    // already is somebody that generally handles incoming D-Bus messages -- the connection event loop
-    // running typically in its own thread. We have to avoid polling on socket from several threads.
-    // So we have to branch here: either we are within the context of the event loop thread, then we
-    // can send the message simply via sd_bus_call, which blocks. Or we are in another thread, then
-    // we can perform the send operation of the method call message from here (because that is thread-
-    // safe like other sd-bus API accesses), but the incoming reply we have to get through the event
-    // loop thread, because this is the only rightful listener on the sd-bus connection socket.
-    // So, technically, we use async means to wait here for reply received by the event loop thread.
-
     SDBUS_THROW_ERROR_IF(!message.isValid(), "Invalid method call message provided", EINVAL);
 
-    // If we don't need to wait for any reply, we can send the message now irrespective of the context
-    if (message.doesntExpectReply())
-        return message.send(timeout);
-
-    // If we are in the context of event loop thread, we can send the D-Bus call synchronously
-    // and wait blockingly for the reply, because we are the exclusive listeners on the socket
-    auto reply = connection_->tryCallMethodSynchronously(message, timeout);
-    if (reply.isValid())
-        return reply;
-
-    // Otherwise we send the call asynchronously and do blocking wait for the reply from the event loop thread
-    return sendMethodCallMessageAndWaitForReply(message, timeout);
+    return connection_->callMethod(message, timeout);
 }
 
-PendingAsyncCall Proxy::callMethod(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout)
+PendingAsyncCall Proxy::callMethodAsync(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout)
 {
     SDBUS_THROW_ERROR_IF(!message.isValid(), "Invalid async method call message provided", EINVAL);
 
     auto callback = (void*)&Proxy::sdbus_async_reply_handler;
-    auto callData = std::make_shared<AsyncCalls::CallData>(AsyncCalls::CallData{*this, std::move(asyncReplyCallback), {}, AsyncCalls::CallData::State::RUNNING});
+    auto callData = std::make_shared<AsyncCalls::CallData>(AsyncCalls::CallData{*this, std::move(asyncReplyCallback)});
     auto weakData = std::weak_ptr<AsyncCalls::CallData>{callData};
 
-    callData->slot = message.send(callback, callData.get(), timeout);
+    callData->slot = connection_->callMethod(message, callback, callData.get(), timeout);
 
     pendingAsyncCalls_.addCall(std::move(callData));
 
+    // TODO: Instead of PendingAsyncCall consider using Slot implementation for simplicity and consistency
     return {weakData};
 }
 
-std::future<MethodReply> Proxy::callMethod(const MethodCall& message, with_future_t)
+std::future<MethodReply> Proxy::callMethodAsync(const MethodCall& message, with_future_t)
 {
-    return Proxy::callMethod(message, {}, with_future);
+    return Proxy::callMethodAsync(message, {}, with_future);
 }
 
-std::future<MethodReply> Proxy::callMethod(const MethodCall& message, uint64_t timeout, with_future_t)
+std::future<MethodReply> Proxy::callMethodAsync(const MethodCall& message, uint64_t timeout, with_future_t)
 {
     auto promise = std::make_shared<std::promise<MethodReply>>();
     auto future = promise->get_future();
 
-    async_reply_handler asyncReplyCallback = [promise = std::move(promise)](MethodReply& reply, const Error* error) noexcept
+    async_reply_handler asyncReplyCallback = [promise = std::move(promise)](MethodReply reply, std::optional<Error> error) noexcept
     {
-        if (error == nullptr)
-            promise->set_value(reply);
+        if (!error)
+            promise->set_value(std::move(reply));
         else
-            promise->set_exception(std::make_exception_ptr(*error));
+            promise->set_exception(std::make_exception_ptr(*std::move(error)));
     };
 
-    (void)Proxy::callMethod(message, std::move(asyncReplyCallback), timeout);
+    (void)Proxy::callMethodAsync(message, std::move(asyncReplyCallback), timeout);
 
     return future;
-}
-
-MethodReply Proxy::sendMethodCallMessageAndWaitForReply(const MethodCall& message, uint64_t timeout)
-{
-    /*thread_local*/ SyncCallReplyData syncCallReplyData;
-
-    async_reply_handler asyncReplyCallback = [&syncCallReplyData](MethodReply& reply, const Error* error)
-    {
-        syncCallReplyData.sendMethodReplyToWaitingThread(reply, error);
-    };
-    auto callback = (void*)&Proxy::sdbus_async_reply_handler;
-    AsyncCalls::CallData callData{*this, std::move(asyncReplyCallback), {}, AsyncCalls::CallData::State::NOT_ASYNC};
-
-    message.send(callback, &callData, timeout, floating_slot);
-
-    return syncCallReplyData.waitForMethodReply();
-}
-
-void Proxy::SyncCallReplyData::sendMethodReplyToWaitingThread(MethodReply& reply, const Error* error)
-{
-    std::unique_lock lock{mutex_};
-    SCOPE_EXIT{ cond_.notify_one(); }; // This must happen before unlocking the mutex to avoid potential data race on spurious wakeup in the waiting thread
-    SCOPE_EXIT{ arrived_ = true; };
-
-    //error_ = nullptr; // Necessary if SyncCallReplyData instance is thread_local
-
-    if (error == nullptr)
-        reply_ = std::move(reply);
-    else
-        error_ = std::make_unique<Error>(*error);
-}
-
-MethodReply Proxy::SyncCallReplyData::waitForMethodReply()
-{
-    std::unique_lock lock{mutex_};
-    cond_.wait(lock, [this](){ return arrived_; });
-
-    //arrived_ = false; // Necessary if SyncCallReplyData instance is thread_local
-
-    if (error_)
-        throw *error_;
-
-    return std::move(reply_);
 }
 
 void Proxy::registerSignalHandler( const std::string& interfaceName
                                  , const std::string& signalName
                                  , signal_handler signalHandler )
 {
+    auto slot = Proxy::registerSignalHandler(interfaceName, signalName, std::move(signalHandler), return_slot);
+
+    floatingSignalSlots_.push_back(std::move(slot));
+}
+
+Slot Proxy::registerSignalHandler( const std::string& interfaceName
+                                 , const std::string& signalName
+                                 , signal_handler signalHandler
+                                 , return_slot_t )
+{
     SDBUS_CHECK_INTERFACE_NAME(interfaceName);
     SDBUS_CHECK_MEMBER_NAME(signalName);
     SDBUS_THROW_ERROR_IF(!signalHandler, "Invalid signal handler provided", EINVAL);
 
-    auto& interface = interfaces_[interfaceName];
+    auto signalInfo = std::make_unique<SignalInfo>(SignalInfo{std::move(signalHandler), *this, {}});
 
-    auto signalData = std::make_unique<InterfaceData::SignalData>(*this, std::move(signalHandler), nullptr);
-    auto insertionResult = interface.signals_.emplace(signalName, std::move(signalData));
+    signalInfo->slot = connection_->registerSignalHandler( destination_
+                                                         , objectPath_
+                                                         , interfaceName
+                                                         , signalName
+                                                         , &Proxy::sdbus_signal_handler
+                                                         , signalInfo.get() );
 
-    auto inserted = insertionResult.second;
-    SDBUS_THROW_ERROR_IF(!inserted, "Failed to register signal handler: handler already exists", EINVAL);
-}
-
-void Proxy::unregisterSignalHandler( const std::string& interfaceName
-                                   , const std::string& signalName )
-{
-    auto it = interfaces_.find(interfaceName);
-
-    if (it != interfaces_.end())
-        it->second.signals_.erase(signalName);
-}
-
-void Proxy::finishRegistration()
-{
-    registerSignalHandlers(*connection_);
-}
-
-void Proxy::registerSignalHandlers(sdbus::internal::IConnection& connection)
-{
-    for (auto& interfaceItem : interfaces_)
-    {
-        const auto& interfaceName = interfaceItem.first;
-        auto& signalsOnInterface = interfaceItem.second.signals_;
-
-        for (auto& signalItem : signalsOnInterface)
-        {
-            const auto& signalName = signalItem.first;
-            auto* signalData = signalItem.second.get();
-            signalData->slot = connection.registerSignalHandler( destination_
-                                                               , objectPath_
-                                                               , interfaceName
-                                                               , signalName
-                                                               , &Proxy::sdbus_signal_handler
-                                                               , signalData);
-        }
-    }
+    return {signalInfo.release(), [](void *ptr){ delete static_cast<SignalInfo*>(ptr); }};
 }
 
 void Proxy::unregister()
 {
     pendingAsyncCalls_.clear();
-    interfaces_.clear();
+    floatingSignalSlots_.clear();
 }
 
 sdbus::IConnection& Proxy::getConnection() const
@@ -264,9 +180,9 @@ const std::string& Proxy::getObjectPath() const
     return objectPath_;
 }
 
-const Message* Proxy::getCurrentlyProcessedMessage() const
+Message Proxy::getCurrentlyProcessedMessage() const
 {
-    return m_CurrentlyProcessedMessage.load(std::memory_order_relaxed);
+    return connection_->getCurrentlyProcessedMessage();
 }
 
 int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError)
@@ -275,37 +191,28 @@ int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userDat
     assert(asyncCallData != nullptr);
     assert(asyncCallData->callback);
     auto& proxy = asyncCallData->proxy;
-    auto state = asyncCallData->state;
 
     // We are removing the CallData item at the complete scope exit, after the callback has been invoked.
     // We can't do it earlier (before callback invocation for example), because CallBack data (slot release)
     // is the synchronization point between callback invocation and Proxy::unregister.
     SCOPE_EXIT
     {
-        // Remove call meta-data if it's a real async call (a sync call done in terms of async has STATE_NOT_ASYNC)
-        if (state != AsyncCalls::CallData::State::NOT_ASYNC)
-            proxy.pendingAsyncCalls_.removeCall(asyncCallData);
+        proxy.pendingAsyncCalls_.removeCall(asyncCallData);
     };
 
     auto message = Message::Factory::create<MethodReply>(sdbusMessage, &proxy.connection_->getSdBusInterface());
-
-    proxy.m_CurrentlyProcessedMessage.store(&message, std::memory_order_relaxed);
-    SCOPE_EXIT
-    {
-        proxy.m_CurrentlyProcessedMessage.store(nullptr, std::memory_order_relaxed);
-    };
 
     auto ok = invokeHandlerAndCatchErrors([&]
     {
         const auto* error = sd_bus_message_get_error(sdbusMessage);
         if (error == nullptr)
         {
-            asyncCallData->callback(message, nullptr);
+            asyncCallData->callback(std::move(message), {});
         }
         else
         {
             Error exception(error->name, error->message);
-            asyncCallData->callback(message, &exception);
+            asyncCallData->callback(std::move(message), std::move(exception));
         }
     }, retError);
 
@@ -314,19 +221,14 @@ int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userDat
 
 int Proxy::sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError)
 {
-    auto* signalData = static_cast<InterfaceData::SignalData*>(userData);
-    assert(signalData != nullptr);
-    assert(signalData->callback);
+    auto* signalInfo = static_cast<SignalInfo*>(userData);
+    assert(signalInfo != nullptr);
+    assert(signalInfo->callback);
 
-    auto message = Message::Factory::create<Signal>(sdbusMessage, &signalData->proxy.connection_->getSdBusInterface());
+    // TODO: Hide Message factory invocation under Connection API (tell, don't ask principle), then we can remove getSdBusInterface()
+    auto message = Message::Factory::create<Signal>(sdbusMessage, &signalInfo->proxy.connection_->getSdBusInterface());
 
-    signalData->proxy.m_CurrentlyProcessedMessage.store(&message, std::memory_order_relaxed);
-    SCOPE_EXIT
-    {
-        signalData->proxy.m_CurrentlyProcessedMessage.store(nullptr, std::memory_order_relaxed);
-    };
-
-    auto ok = invokeHandlerAndCatchErrors([&](){ signalData->callback(message); }, retError);
+    auto ok = invokeHandlerAndCatchErrors([&](){ signalInfo->callback(std::move(message)); }, retError);
 
     return ok ? 0 : -1;
 }
@@ -408,7 +310,7 @@ std::unique_ptr<sdbus::IProxy> createProxy( std::unique_ptr<IConnection>&& conne
 std::unique_ptr<sdbus::IProxy> createProxy( std::string destination
                                           , std::string objectPath )
 {
-    auto connection = sdbus::createConnection();
+    auto connection = sdbus::createBusConnection();
 
     auto sdbusConnection = std::unique_ptr<sdbus::internal::IConnection>(dynamic_cast<sdbus::internal::IConnection*>(connection.release()));
     assert(sdbusConnection != nullptr);
@@ -422,7 +324,7 @@ std::unique_ptr<sdbus::IProxy> createProxy( std::string destination
                                           , std::string objectPath
                                           , dont_run_event_loop_thread_t )
 {
-    auto connection = sdbus::createConnection();
+    auto connection = sdbus::createBusConnection();
 
     auto sdbusConnection = std::unique_ptr<sdbus::internal::IConnection>(dynamic_cast<sdbus::internal::IConnection*>(connection.release()));
     assert(sdbusConnection != nullptr);

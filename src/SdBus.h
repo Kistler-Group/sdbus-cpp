@@ -73,14 +73,16 @@ public:
     virtual int sd_bus_add_object_manager(sd_bus *bus, sd_bus_slot **slot, const char *path) override;
     virtual int sd_bus_add_match(sd_bus *bus, sd_bus_slot **slot, const char *match, sd_bus_message_handler_t callback, void *userdata) override;
     virtual int sd_bus_add_match_async(sd_bus *bus, sd_bus_slot **slot, const char *match, sd_bus_message_handler_t callback, sd_bus_message_handler_t install_callback, void *userdata) override;
+    virtual int sd_bus_match_signal(sd_bus *bus, sd_bus_slot **ret, const char *sender, const char *path, const char *interface, const char *member, sd_bus_message_handler_t callback, void *userdata) override;
     virtual sd_bus_slot* sd_bus_slot_unref(sd_bus_slot *slot) override;
 
     virtual int sd_bus_new(sd_bus **ret) override;
     virtual int sd_bus_start(sd_bus *bus) override;
 
     virtual int sd_bus_process(sd_bus *bus, sd_bus_message **r) override;
+    virtual sd_bus_message* sd_bus_get_current_message(sd_bus *bus) override;
     virtual int sd_bus_get_poll_data(sd_bus *bus, PollData* data) override;
-
+    virtual int sd_bus_get_n_queued_read(sd_bus *bus, uint64_t *ret) override;
     virtual int sd_bus_flush(sd_bus *bus) override;
     virtual sd_bus *sd_bus_flush_close_unref(sd_bus *bus) override;
     virtual sd_bus *sd_bus_close_unref(sd_bus *bus) override;

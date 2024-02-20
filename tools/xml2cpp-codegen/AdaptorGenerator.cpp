@@ -85,7 +85,17 @@ std::string AdaptorGenerator::processInterface(Node& interface) const
             << tab << "static constexpr const char* INTERFACE_NAME = \"" << ifaceName << "\";" << endl << endl
             << "protected:" << endl
             << tab << className << "(sdbus::IObject& object)" << endl
-            << tab << tab << ": object_(&object)" << endl;
+            << tab << tab << ": object_(&object)" << endl
+            << tab << "{" << endl
+            << tab << "}" << endl << endl;
+
+    // Rule of Five
+    body << tab << className << "(const " << className << "&) = delete;" << endl;
+    body << tab << className << "& operator=(const " << className << "&) = delete;" << endl;
+    body << tab << className << "(" << className << "&&) = default;" << endl;
+    body << tab << className << "& operator=(" << className << "&&) = default;" << endl << endl;
+
+    body << tab << "~" << className << "() = default;" << endl << endl;
 
     Nodes methods = interface["method"];
     Nodes signals = interface["signal"];
@@ -111,33 +121,28 @@ std::string AdaptorGenerator::processInterface(Node& interface) const
     if(!annotationRegistration.empty())
     {
         std::stringstream str;
-        str << tab << tab << "object_->setInterfaceFlags(INTERFACE_NAME)" << annotationRegistration << ";" << endl;
+        str << "sdbus::setInterfaceFlags()" << annotationRegistration << ";";
         annotationRegistration = str.str();
     }
 
-    std::string methodRegistration, methodDeclaration;
-    std::tie(methodRegistration, methodDeclaration) = processMethods(methods);
+    std::vector<std::string> methodRegistrations;
+    std::string methodDeclaration;
+    std::tie(methodRegistrations, methodDeclaration) = processMethods(methods);
 
-    std::string signalRegistration, signalMethods;
-    std::tie(signalRegistration, signalMethods) = processSignals(signals);
+    std::vector<std::string> signalRegistrations;
+    std::string signalMethods;
+    std::tie(signalRegistrations, signalMethods) = processSignals(signals);
 
-    std::string propertyRegistration, propertyAccessorDeclaration;
-    std::tie(propertyRegistration, propertyAccessorDeclaration) = processProperties(properties);
+    std::vector<std::string> propertyRegistrations;
+    std::string propertyAccessorDeclaration;
+    std::tie(propertyRegistrations, propertyAccessorDeclaration) = processProperties(properties);
 
-    body << tab << "{" << endl
-                       << annotationRegistration
-                       << methodRegistration
-                       << signalRegistration
-                       << propertyRegistration
+    auto vtableRegistration = createVTableRegistration(annotationRegistration, methodRegistrations, signalRegistrations, propertyRegistrations);
+
+    body << tab << "void registerAdaptor()" << endl
+         << tab << "{" << endl
+                       << vtableRegistration << endl
          << tab << "}" << endl << endl;
-
-    // Rule of Five
-    body << tab << className << "(const " << className << "&) = delete;" << endl;
-    body << tab << className << "& operator=(const " << className << "&) = delete;" << endl;
-    body << tab << className << "(" << className << "&&) = default;" << endl;
-    body << tab << className << "& operator=(" << className << "&&) = default;" << endl << endl;
-
-    body << tab << "~" << className << "() = default;" << endl << endl;
 
     if (!signalMethods.empty())
     {
@@ -163,12 +168,16 @@ std::string AdaptorGenerator::processInterface(Node& interface) const
 }
 
 
-std::tuple<std::string, std::string> AdaptorGenerator::processMethods(const Nodes& methods) const
+std::tuple<std::vector<std::string>, std::string> AdaptorGenerator::processMethods(const Nodes& methods) const
 {
-    std::ostringstream registrationSS, declarationSS;
+    std::ostringstream declarationSS;
+
+    std::vector<std::string> methodRegistrations;
 
     for (const auto& method : methods)
     {
+        std::ostringstream registrationSS;
+
         auto methodName = method->get("name");
         auto methodNameSafe = mangle_name(methodName);
 
@@ -217,9 +226,8 @@ std::tuple<std::string, std::string> AdaptorGenerator::processMethods(const Node
 
         using namespace std::string_literals;
 
-        registrationSS << tab << tab << "object_->registerMethod(\""
+        registrationSS << "sdbus::registerMethod(\""
                 << methodName << "\")"
-                << ".onInterface(INTERFACE_NAME)"
                 << (!argStringsStr.empty() ? (".withInputParamNames(" + argStringsStr + ")") : "")
                 << (!outArgStringsStr.empty() ? (".withOutputParamNames(" + outArgStringsStr + ")") : "")
                 << ".implementedAs("
@@ -229,7 +237,9 @@ std::tuple<std::string, std::string> AdaptorGenerator::processMethods(const Node
                 << "){ " << (async ? "" : "return ") << "this->" << methodNameSafe << "("
                 << (async ? "std::move(result)"s + (argTypeStr.empty() ? "" : ", ") : "")
                 << argStr << "); })"
-                << annotationRegistration << ";" << endl;
+                << annotationRegistration;
+
+        methodRegistrations.push_back(registrationSS.str());
 
         declarationSS << tab
                 << "virtual "
@@ -241,16 +251,20 @@ std::tuple<std::string, std::string> AdaptorGenerator::processMethods(const Node
                 << ") = 0;" << endl;
     }
 
-    return std::make_tuple(registrationSS.str(), declarationSS.str());
+    return std::make_tuple(methodRegistrations, declarationSS.str());
 }
 
 
-std::tuple<std::string, std::string> AdaptorGenerator::processSignals(const Nodes& signals) const
+std::tuple<std::vector<std::string>, std::string> AdaptorGenerator::processSignals(const Nodes& signals) const
 {
-    std::ostringstream signalRegistrationSS, signalMethodSS;
+    std::ostringstream signalMethodSS;
+
+    std::vector<std::string> signalRegistrations;
 
     for (const auto& signal : signals)
     {
+        std::stringstream signalRegistrationSS;
+
         auto name = signal->get("name");
 
         auto annotations = getAnnotations(*signal);
@@ -272,9 +286,7 @@ std::tuple<std::string, std::string> AdaptorGenerator::processSignals(const Node
         std::string argStr, argTypeStr, typeStr, argStringsStr;
         std::tie(argStr, argTypeStr, typeStr, argStringsStr) = argsToNamesAndTypes(args);
 
-        signalRegistrationSS << tab << tab
-                << "object_->registerSignal(\"" << name << "\")"
-                        ".onInterface(INTERFACE_NAME)";
+        signalRegistrationSS << "sdbus::registerSignal(\"" << name << "\")";
 
         if (args.size() > 0)
         {
@@ -282,7 +294,8 @@ std::tuple<std::string, std::string> AdaptorGenerator::processSignals(const Node
         }
 
         signalRegistrationSS << annotationRegistration;
-        signalRegistrationSS << ";" << endl;
+
+        signalRegistrations.push_back(signalRegistrationSS.str());
 
         auto nameWithCapFirstLetter = name;
         nameWithCapFirstLetter[0] = std::toupper(nameWithCapFirstLetter[0]);
@@ -302,16 +315,20 @@ std::tuple<std::string, std::string> AdaptorGenerator::processSignals(const Node
                 << tab << "}" << endl << endl;
     }
 
-    return std::make_tuple(signalRegistrationSS.str(), signalMethodSS.str());
+    return std::make_tuple(signalRegistrations, signalMethodSS.str());
 }
 
 
-std::tuple<std::string, std::string> AdaptorGenerator::processProperties(const Nodes& properties) const
+std::tuple<std::vector<std::string>, std::string> AdaptorGenerator::processProperties(const Nodes& properties) const
 {
-    std::ostringstream registrationSS, declarationSS;
+    std::ostringstream declarationSS;
+
+    std::vector<std::string> propertyRegistrations;
 
     for (const auto& property : properties)
     {
+        std::ostringstream registrationSS;
+
         auto propertyName = property->get("name");
         auto propertyNameSafe = mangle_name(propertyName);
         auto propertyAccess = property->get("access");
@@ -339,9 +356,8 @@ std::tuple<std::string, std::string> AdaptorGenerator::processProperties(const N
                           << "Option '" << annotationName << "' not allowed or supported in this context! Option ignored..." << std::endl;
         }
 
-        registrationSS << tab << tab << "object_->registerProperty(\""
-                << propertyName << "\")"
-                << ".onInterface(INTERFACE_NAME)";
+        registrationSS << "sdbus::registerProperty(\""
+                << propertyName << "\")";
 
         if (propertyAccess == "read" || propertyAccess == "readwrite")
         {
@@ -356,7 +372,8 @@ std::tuple<std::string, std::string> AdaptorGenerator::processProperties(const N
         }
 
         registrationSS << annotationRegistration;
-        registrationSS << ";" << endl;
+
+        propertyRegistrations.push_back(registrationSS.str());
 
         if (propertyAccess == "read" || propertyAccess == "readwrite")
             declarationSS << tab << "virtual " << propertyType << " " << propertyNameSafe << "() = 0;" << endl;
@@ -364,7 +381,38 @@ std::tuple<std::string, std::string> AdaptorGenerator::processProperties(const N
             declarationSS << tab << "virtual void " << propertyNameSafe << "(" << propertyTypeArg << ") = 0;" << endl;
     }
 
-    return std::make_tuple(registrationSS.str(), declarationSS.str());
+    return std::make_tuple(propertyRegistrations, declarationSS.str());
+}
+
+std::string AdaptorGenerator::createVTableRegistration(const std::string& annotationRegistration,
+                                                       const std::vector<std::string>& methodRegistrations,
+                                                       const std::vector<std::string>& signalRegistrations,
+                                                       const std::vector<std::string>& propertyRegistrations) const
+{
+    std::vector<std::string> allRegistrations;
+    if (!annotationRegistration.empty())
+        allRegistrations.push_back(annotationRegistration);
+    allRegistrations.insert(allRegistrations.end(), methodRegistrations.begin(), methodRegistrations.end());
+    allRegistrations.insert(allRegistrations.end(), signalRegistrations.begin(), signalRegistrations.end());
+    allRegistrations.insert(allRegistrations.end(), propertyRegistrations.begin(), propertyRegistrations.end());
+
+    if (allRegistrations.empty())
+        return {};
+
+    std::ostringstream registrationSS;
+    if (allRegistrations.size() == 1)
+    {
+        registrationSS << tab << tab << "object_->addVTable(" << allRegistrations[0] << ").forInterface(INTERFACE_NAME);";
+    }
+    else
+    {
+        registrationSS     << tab << tab << "object_->addVTable( " << allRegistrations[0] << endl;
+        for (size_t i = 1; i < allRegistrations.size(); ++i)
+            registrationSS << tab << tab << "                  , " << allRegistrations[i] << endl;
+        registrationSS     << tab << tab << "                  ).forInterface(INTERFACE_NAME);";
+    }
+
+    return registrationSS.str();
 }
 
 std::map<std::string, std::string> AdaptorGenerator::getAnnotations( sdbuscpp::xml::Node& node) const

@@ -24,15 +24,18 @@
  * along with sdbus-c++. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <sdbus-c++/Message.h>
-#include <sdbus-c++/Types.h>
-#include <sdbus-c++/Error.h>
-#include "MessageUtils.h"
-#include "ISdBus.h"
+#include "sdbus-c++/Message.h"
+
+#include "sdbus-c++/Error.h"
+#include "sdbus-c++/Types.h"
+
 #include "IConnection.h"
+#include "ISdBus.h"
+#include "MessageUtils.h"
 #include "ScopeGuard.h"
-#include SDBUS_HEADER
+
 #include <cassert>
+#include SDBUS_HEADER
 
 namespace sdbus {
 
@@ -763,12 +766,9 @@ std::string Message::getSELinuxContext() const
 
 MethodCall::MethodCall( void *msg
                       , internal::ISdBus *sdbus
-                      , const internal::IConnection *connection
                       , adopt_message_t) noexcept
    : Message(msg, sdbus, adopt_message)
-   , connection_(connection)
 {
-    assert(connection_ != nullptr);
 }
 
 void MethodCall::dontExpectReply()
@@ -816,19 +816,10 @@ MethodReply MethodCall::sendWithNoReply() const
     return Factory::create<MethodReply>(); // No reply
 }
 
-void MethodCall::send(void* callback, void* userData, uint64_t timeout, dont_request_slot_t) const
-{
-    MethodCall::send(callback, userData, timeout, floating_slot);
-}
-
 void MethodCall::send(void* callback, void* userData, uint64_t timeout, floating_slot_t) const
 {
     auto r = sdbus_->sd_bus_call_async(nullptr, nullptr, (sd_bus_message*)msg_, (sd_bus_message_handler_t)callback, userData, timeout);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method", -r);
-
-    // Force event loop to re-enter polling with the async call timeout if that is less than the one used in current poll
-    SDBUS_THROW_ERROR_IF(connection_ == nullptr, "Invalid use of MethodCall API", ENOTSUP);
-    connection_->notifyEventLoopNewTimeout();
 }
 
 Slot MethodCall::send(void* callback, void* userData, uint64_t timeout) const
@@ -837,10 +828,6 @@ Slot MethodCall::send(void* callback, void* userData, uint64_t timeout) const
 
     auto r = sdbus_->sd_bus_call_async(nullptr, &slot, (sd_bus_message*)msg_, (sd_bus_message_handler_t)callback, userData, timeout);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method asynchronously", -r);
-
-    // Force event loop to re-enter polling with the async call timeout if that is less than the one used in current poll
-    SDBUS_THROW_ERROR_IF(connection_ == nullptr, "Invalid use of MethodCall API", ENOTSUP);
-    connection_->notifyEventLoopNewTimeout();
 
     return {slot, [sdbus_ = sdbus_](void *slot){ sdbus_->sd_bus_slot_unref((sd_bus_slot*)slot); }};
 }
@@ -897,7 +884,11 @@ namespace {
 // Please note that the solution is NOT thread-safe.
 // Another common solution is global sdbus-c++ startup/shutdown functions, but that would be an intrusive change.
 
-/*constinit (C++20 keyword) */ static bool pseudoConnectionDestroyed{};
+#ifdef __cpp_constinit
+constinit static bool pseudoConnectionDestroyed{};
+#else
+static bool pseudoConnectionDestroyed{};
+#endif
 
 std::unique_ptr<sdbus::internal::IConnection, void(*)(sdbus::internal::IConnection*)> createPseudoConnection()
 {

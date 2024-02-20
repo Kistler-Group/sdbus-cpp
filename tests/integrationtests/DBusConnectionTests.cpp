@@ -41,7 +41,6 @@
 
 using ::testing::Eq;
 using namespace sdbus::test;
-using namespace std::chrono_literals;
 
 /*-------------------------------------*/
 /* --          TEST CASES           -- */
@@ -49,26 +48,26 @@ using namespace std::chrono_literals;
 
 TEST(Connection, CanBeDefaultConstructed)
 {
-    ASSERT_NO_THROW(auto con = sdbus::createConnection());
+    ASSERT_NO_THROW(auto con = sdbus::createBusConnection());
 }
 
-TEST(Connection, CanRequestRegisteredDbusName)
+TEST(SystemBusConnection, CanRequestRegisteredDbusName)
 {
-    auto connection = sdbus::createConnection();
+    auto connection = sdbus::createSystemBusConnection();
 
     ASSERT_NO_THROW(connection->requestName(BUS_NAME))
         << "Perhaps you've forgotten to copy `org.sdbuscpp.integrationtests.conf` file to `/etc/dbus-1/system.d` directory before running the tests?";
 }
 
-TEST(Connection, CannotRequestNonregisteredDbusName)
+TEST(SystemBusConnection, CannotRequestNonregisteredDbusName)
 {
-    auto connection = sdbus::createConnection();
+    auto connection = sdbus::createSystemBusConnection();
     ASSERT_THROW(connection->requestName("some.random.not.supported.dbus.name"), sdbus::Error);
 }
 
 TEST(Connection, CanReleasedRequestedName)
 {
-    auto connection = sdbus::createConnection();
+    auto connection = sdbus::createBusConnection();
 
     connection->requestName(BUS_NAME);
     ASSERT_NO_THROW(connection->releaseName(BUS_NAME));
@@ -76,58 +75,17 @@ TEST(Connection, CanReleasedRequestedName)
 
 TEST(Connection, CannotReleaseNonrequestedName)
 {
-    auto connection = sdbus::createConnection();
+    auto connection = sdbus::createBusConnection();
     ASSERT_THROW(connection->releaseName("some.random.nonrequested.name"), sdbus::Error);
 }
 
-TEST(Connection, CanEnterAndLeaveEventLoop)
+TEST(Connection, CanEnterAndLeaveInternalEventLoop)
 {
-    auto connection = sdbus::createConnection();
+    auto connection = sdbus::createBusConnection();
     connection->requestName(BUS_NAME);
 
     std::thread t([&](){ connection->enterEventLoop(); });
     connection->leaveEventLoop();
 
     t.join();
-}
-
-TEST(Connection, PollDataGetZeroTimeout)
-{
-    sdbus::IConnection::PollData pd{};
-    pd.timeout_usec = 0;
-    ASSERT_TRUE(pd.getRelativeTimeout().has_value());
-    EXPECT_THAT(pd.getRelativeTimeout().value(), Eq(std::chrono::microseconds::zero()));
-    EXPECT_THAT(pd.getPollTimeout(), Eq(0));
-}
-
-TEST(Connection, PollDataGetInfiniteTimeout)
-{
-    sdbus::IConnection::PollData pd{};
-    pd.timeout_usec = UINT64_MAX;
-    ASSERT_FALSE(pd.getRelativeTimeout().has_value());
-    EXPECT_THAT(pd.getPollTimeout(), Eq(-1));
-}
-
-TEST(Connection, PollDataGetZeroRelativeTimeoutForPast)
-{
-    sdbus::IConnection::PollData pd{};
-    auto past = std::chrono::steady_clock::now() - 10s;
-    pd.timeout_usec = std::chrono::duration_cast<std::chrono::microseconds>(past.time_since_epoch()).count();
-    ASSERT_TRUE(pd.getRelativeTimeout().has_value());
-    EXPECT_THAT(pd.getRelativeTimeout().value(), Eq(0us));
-    EXPECT_THAT(pd.getPollTimeout(), Eq(0));
-}
-
-TEST(Connection, PollDataGetRelativeTimeoutInTolerance)
-{
-    sdbus::IConnection::PollData pd{};
-    constexpr auto TIMEOUT = 1s;
-    constexpr auto TOLERANCE = 100ms;
-    auto future = std::chrono::steady_clock::now() + TIMEOUT;
-    pd.timeout_usec = std::chrono::duration_cast<std::chrono::microseconds>(future.time_since_epoch()).count();
-    ASSERT_TRUE(pd.getRelativeTimeout().has_value());
-    EXPECT_GE(pd.getRelativeTimeout().value(), TIMEOUT - TOLERANCE);
-    EXPECT_LE(pd.getRelativeTimeout().value(), TIMEOUT + TOLERANCE);
-    EXPECT_GE(pd.getPollTimeout(), 900);
-    EXPECT_LE(pd.getPollTimeout(), 1100);
 }

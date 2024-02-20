@@ -18,9 +18,6 @@ if (NOT CAP_FOUND)
     find_library(CAP_LIBRARIES cap) # Compat with Ubuntu 14.04 which ships libcap w/o .pc file
 endif()
 
-set(LIBSYSTEMD_VERSION "242" CACHE STRING "libsystemd version (>=239) to build and incorporate into libsdbus-c++")
-set(LIBSYSTEMD_EXTRA_CONFIG_OPTS "" CACHE STRING "Additional configuration options to be passed as-is to libsystemd build system")
-
 if(NOT CMAKE_BUILD_TYPE)
     set(LIBSYSTEMD_BUILD_TYPE "plain")
 elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -29,24 +26,24 @@ else()
     set(LIBSYSTEMD_BUILD_TYPE "release")
 endif()
 
-if(LIBSYSTEMD_VERSION LESS "239")
+if(SDBUSCPP_LIBSYSTEMD_VERSION LESS "239")
     message(FATAL_ERROR "Only libsystemd version >=239 can be built as static part of sdbus-c++")
 endif()
-if(LIBSYSTEMD_VERSION GREATER "240")
+if(SDBUSCPP_LIBSYSTEMD_VERSION GREATER "240")
     set(BUILD_VERSION_H ${NINJA} -C <BINARY_DIR> version.h)
 endif()
 
-message(STATUS "Building with embedded libsystemd v${LIBSYSTEMD_VERSION}")
+message(STATUS "Building with embedded libsystemd v${SDBUSCPP_LIBSYSTEMD_VERSION}")
 
 include(ExternalProject)
 ExternalProject_Add(LibsystemdBuildProject
-                    PREFIX libsystemd-v${LIBSYSTEMD_VERSION}
+                    PREFIX libsystemd-v${SDBUSCPP_LIBSYSTEMD_VERSION}
                     GIT_REPOSITORY    https://github.com/systemd/systemd-stable.git
-                    GIT_TAG           v${LIBSYSTEMD_VERSION}-stable
+                    GIT_TAG           v${SDBUSCPP_LIBSYSTEMD_VERSION}-stable
                     GIT_SHALLOW       1
                     UPDATE_COMMAND    ""
                     CONFIGURE_COMMAND ${CMAKE_COMMAND} -E remove <BINARY_DIR>/*
-                              COMMAND ${MESON} --prefix=<INSTALL_DIR> --buildtype=${LIBSYSTEMD_BUILD_TYPE} -Drootprefix=<INSTALL_DIR> -Dstatic-libsystemd=pic -Dselinux=false <SOURCE_DIR> <BINARY_DIR> ${LIBSYSTEMD_EXTRA_CONFIG_OPTS}
+                              COMMAND ${MESON} --prefix=<INSTALL_DIR> --buildtype=${LIBSYSTEMD_BUILD_TYPE} -Drootprefix=<INSTALL_DIR> -Dstatic-libsystemd=pic -Dselinux=false <SOURCE_DIR> <BINARY_DIR> ${SDBUSCPP_LIBSYSTEMD_EXTRA_CONFIG_OPTS}
                     BUILD_COMMAND     ${BUILD_VERSION_H}
                           COMMAND     ${NINJA} -C <BINARY_DIR> libsystemd.a
                     BUILD_ALWAYS      0

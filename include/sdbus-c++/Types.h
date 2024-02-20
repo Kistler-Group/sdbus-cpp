@@ -29,11 +29,12 @@
 
 #include <sdbus-c++/Message.h>
 #include <sdbus-c++/TypeTraits.h>
+
+#include <memory>
 #include <string>
+#include <tuple>
 #include <type_traits>
 #include <typeinfo>
-#include <memory>
-#include <tuple>
 #include <utility>
 
 namespace sdbus {
@@ -56,7 +57,7 @@ namespace sdbus {
         Variant();
 
         template <typename _ValueType>
-        Variant(const _ValueType& value)
+        explicit Variant(const _ValueType& value)
             : Variant()
         {
             msg_.openVariant(signature_of<_ValueType>::str());
@@ -255,7 +256,7 @@ namespace sdbus {
             close();
         }
 
-        int get() const
+        [[nodiscard]] int get() const
         {
             return fd_;
         }
@@ -275,7 +276,7 @@ namespace sdbus {
             return std::exchange(fd_, -1);
         }
 
-        bool isValid() const
+        [[nodiscard]] bool isValid() const
         {
             return fd_ >= 0;
         }

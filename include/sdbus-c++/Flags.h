@@ -74,21 +74,21 @@ namespace sdbus {
             flags_.set(flag, value);
         }
 
-        bool test(GeneralFlags flag) const
+        [[nodiscard]] bool test(GeneralFlags flag) const
         {
             return flags_.test(flag);
         }
 
-        bool test(PropertyUpdateBehaviorFlags flag) const
+        [[nodiscard]] bool test(PropertyUpdateBehaviorFlags flag) const
         {
             return flags_.test(flag);
         }
 
-        uint64_t toSdBusInterfaceFlags() const;
-        uint64_t toSdBusMethodFlags() const;
-        uint64_t toSdBusSignalFlags() const;
-        uint64_t toSdBusPropertyFlags() const;
-        uint64_t toSdBusWritablePropertyFlags() const;
+        [[nodiscard]] uint64_t toSdBusInterfaceFlags() const;
+        [[nodiscard]] uint64_t toSdBusMethodFlags() const;
+        [[nodiscard]] uint64_t toSdBusSignalFlags() const;
+        [[nodiscard]] uint64_t toSdBusPropertyFlags() const;
+        [[nodiscard]] uint64_t toSdBusWritablePropertyFlags() const;
 
     private:
         std::bitset<FLAG_COUNT> flags_;
