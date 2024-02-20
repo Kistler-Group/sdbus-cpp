@@ -58,6 +58,8 @@ TEST(AdaptorAndProxy, CanBeConstructedSuccesfully)
 
     ASSERT_NO_THROW(TestAdaptor adaptor(*connection, OBJECT_PATH));
     ASSERT_NO_THROW(TestProxy proxy(BUS_NAME, OBJECT_PATH));
+
+    connection->releaseName(BUS_NAME);
 }
 
 TEST(AProxy, SupportsMoveSemantics)
