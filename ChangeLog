@@ -258,4 +258,5 @@ v2.0.0
 - Add method to get currently processed message also to `IConnection`
 - `[[nodiscard]]` attribute has been added to relevant API methods.
 - Add new `SDBUSCPP_SDBUS_LIB` CMake configuration variable determining which sd-bus library shall be picked
+- Switch to C++20 standard (but C++20 is not required, and the used C++20 features are conditionally compiled)
 - Other simplifications, improvements and fixes springing out from the above refactoring
