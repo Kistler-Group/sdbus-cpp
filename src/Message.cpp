@@ -884,7 +884,11 @@ namespace {
 // Please note that the solution is NOT thread-safe.
 // Another common solution is global sdbus-c++ startup/shutdown functions, but that would be an intrusive change.
 
-/*constinit (C++20 keyword) */ static bool pseudoConnectionDestroyed{};
+#ifdef __cpp_constinit
+constinit static bool pseudoConnectionDestroyed{};
+#else
+static bool pseudoConnectionDestroyed{};
+#endif
 
 std::unique_ptr<sdbus::internal::IConnection, void(*)(sdbus::internal::IConnection*)> createPseudoConnection()
 {
