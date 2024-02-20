@@ -44,38 +44,41 @@ jobs:
         sudo update-alternatives --install /usr/bin/cc cc /usr/bin/clang 10
         sudo update-alternatives --remove-all c++
         sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++ 10
-    - name: install-googletest
-      if: matrix.os == 'ubuntu-22.04'
-      run: |
-        sudo apt-get install -y libgmock-dev
-    - name: install-googletest
-      if: matrix.os == 'ubuntu-20.04' # On older ubuntus the libgmock-dev package is either unavailable or has faulty pkg-config file, so we build & install manually
-      run: |
-        git clone https://github.com/google/googletest.git
-        cd googletest
-        mkdir build
-        cd build
-        cmake ..
-        cmake --build . -j4
-        sudo cmake --build . --target install
+        # We need to use libc++ with Clang because there is a bug in libstdc++ chrono headers that Clang has issues with
+        echo "SDBUSCPP_EXTRA_CXX_FLAGS=-stdlib=libc++" >> $GITHUB_ENV
+# We don't install googletest but we let it be built within sdbus-c++ builds below, since it needs to be built against libc++ for Clang jobs to pass
+#    - name: install-googletest
+#      if: matrix.os == 'ubuntu-22.04'
+#      run: |
+#        sudo apt-get install -y libgmock-dev
+#    - name: install-googletest
+#      if: matrix.os == 'ubuntu-20.04' # On older ubuntus the libgmock-dev package is either unavailable or has faulty pkg-config file, so we build & install manually
+#      run: |
+#        git clone https://github.com/google/googletest.git
+#        cd googletest
+#        mkdir build
+#        cd build
+#        cmake .. -DCMAKE_CXX_FLAGS="$SDBUSCPP_EXTRA_CXX_FLAGS"
+#        cmake --build . -j4
+#        sudo cmake --build . --target install
     - name: configure-debug
       if: matrix.build == 'shared-libsystemd' && matrix.os == 'ubuntu-20.04'
       run: |
         mkdir build
         cd build
-        cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_CXX_FLAGS="-O0 -g -W -Wextra -Wall -Wnon-virtual-dtor -Werror" -DCMAKE_VERBOSE_MAKEFILE=ON -DSDBUSCPP_INSTALL=ON -DSDBUSCPP_BUILD_TESTS=ON -DSDBUSCPP_BUILD_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON -DSDBUSCPP_BUILD_CODEGEN=ON ..
+        cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_CXX_FLAGS="-O0 -g -W -Wextra -Wall -Wnon-virtual-dtor -Werror $SDBUSCPP_EXTRA_CXX_FLAGS" -DCMAKE_VERBOSE_MAKEFILE=ON -DSDBUSCPP_INSTALL=ON -DSDBUSCPP_BUILD_TESTS=ON -DSDBUSCPP_BUILD_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON -DSDBUSCPP_BUILD_CODEGEN=ON ..
     - name: configure-release
       if: matrix.build == 'shared-libsystemd' && matrix.os == 'ubuntu-22.04'
       run: |
         mkdir build
         cd build
-        cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_CXX_FLAGS="-O3 -DNDEBUG -W -Wextra -Wall -Wnon-virtual-dtor -Werror" -DCMAKE_VERBOSE_MAKEFILE=ON -DSDBUSCPP_INSTALL=ON -DSDBUSCPP_BUILD_TESTS=ON -DSDBUSCPP_BUILD_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON -DSDBUSCPP_BUILD_CODEGEN=ON ..
+        cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_CXX_FLAGS="-O3 -DNDEBUG -W -Wextra -Wall -Wnon-virtual-dtor -Werror $SDBUSCPP_EXTRA_CXX_FLAGS" -DCMAKE_VERBOSE_MAKEFILE=ON -DSDBUSCPP_INSTALL=ON -DSDBUSCPP_BUILD_TESTS=ON -DSDBUSCPP_BUILD_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON -DSDBUSCPP_BUILD_CODEGEN=ON -DSDBUSCPP_GOOGLETEST_VERSION=1.14.0 ..
     - name: configure-with-embedded-libsystemd
       if: matrix.build == 'embedded-static-libsystemd'
       run: |
         mkdir build
         cd build
-        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_VERBOSE_MAKEFILE=ON -DSDBUSCPP_INSTALL=ON -DSDBUSCPP_BUILD_TESTS=ON -DSDBUSCPP_BUILD_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON -DSDBUSCPP_BUILD_CODEGEN=ON -DSDBUSCPP_BUILD_LIBSYSTEMD=ON -DSDBUSCPP_LIBSYSTEMD_VERSION=252 ..
+        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_CXX_FLAGS="$SDBUSCPP_EXTRA_CXX_FLAGS" -DCMAKE_VERBOSE_MAKEFILE=ON -DSDBUSCPP_INSTALL=ON -DSDBUSCPP_BUILD_TESTS=ON -DSDBUSCPP_BUILD_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON -DSDBUSCPP_BUILD_CODEGEN=ON -DSDBUSCPP_BUILD_LIBSYSTEMD=ON -DSDBUSCPP_LIBSYSTEMD_VERSION=252 -DSDBUSCPP_GOOGLETEST_VERSION=1.14.0 ..
     - name: make
       run: |
         cd build
