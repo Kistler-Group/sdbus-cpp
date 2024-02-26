@@ -239,3 +239,12 @@ v1.4.0
 - Add support for direct, peer-to-peer connections
 - Add option to create IConnection directly from an underlying sd_bus instance
 - Some additional fixes
+
+v1.5.0
+- Improve handling of exceptions from callback handlers
+- Add support for async registration of matches
+- Correctly add libsystemd dependency to pkgconfi
+- Fix request name signal handling issue
+- Add INSTALL_TESTS CMake option
+- Minor UnixFd cleanups
+- Additional little fixes and updates in code, build system, CI, and documentation
