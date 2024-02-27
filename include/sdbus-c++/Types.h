@@ -156,21 +156,65 @@ namespace sdbus {
      *
      * Representation of object path D-Bus type
      *
-     ***********************************************/
+     ***********************-************************/
     class ObjectPath : public std::string
     {
     public:
-        using std::string::string;
-        ObjectPath() = default; // Fixes gcc 6.3 error (default c-tor is not imported in above using declaration)
-        ObjectPath(const ObjectPath&) = default; // Fixes gcc 8.3 error (deleted copy constructor)
-        ObjectPath(ObjectPath&&) = default; // Enable move - user-declared copy ctor prevents implicit creation
-        ObjectPath& operator = (const ObjectPath&) = default; // Fixes gcc 8.3 error (deleted copy assignment)
-        ObjectPath& operator = (ObjectPath&&) = default; // Enable move - user-declared copy assign prevents implicit creation
-        ObjectPath(std::string path)
-            : std::string(std::move(path))
+        ObjectPath() = default;
+        explicit ObjectPath(std::string value)
+            : std::string(std::move(value))
         {}
+
+        using std::string::string;
         using std::string::operator=;
     };
+
+    class BusName : public std::string
+    {
+        BusName() = default;
+        explicit BusName(std::string value)
+            : std::string(std::move(value))
+        {}
+
+        using std::string::string;
+        using std::string::operator=;
+    };
+
+    class InterfaceName : public std::string
+    {
+        InterfaceName() = default;
+        explicit InterfaceName(std::string value)
+            : std::string(std::move(value))
+        {}
+
+        using std::string::string;
+        using std::string::operator=;
+    };
+
+//    struct ObjectPath
+//    {
+//        operator std::string() const
+//        {
+//            return path;
+//        }
+//
+//        std::string path;
+//    };
+
+//    struct BusName
+//    {
+//        explicit operator std::string() const
+//        {
+//            return name;
+//        }
+//
+//        std::string name;
+//    };
+//
+//    struct InterfaceName
+//    {
+//        std::string name;
+//    };
 
     /********************************************//**
      * @class Signature
@@ -187,8 +231,8 @@ namespace sdbus {
         Signature(Signature&&) = default; // Enable move - user-declared copy ctor prevents implicit creation
         Signature& operator = (const Signature&) = default; // Fixes gcc 8.3 error (deleted copy assignment)
         Signature& operator = (Signature&&) = default; // Enable move - user-declared copy assign prevents implicit creation
-        Signature(std::string path)
-            : std::string(std::move(path))
+        Signature(std::string value)
+            : std::string(std::move(value))
         {}
         using std::string::operator=;
     };
