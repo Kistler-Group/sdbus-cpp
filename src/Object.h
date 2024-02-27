@@ -30,6 +30,7 @@
 #include "sdbus-c++/IObject.h"
 
 #include "IConnection.h"
+#include "sdbus-c++/Types.h"
 
 #include <cassert>
 #include <functional>
@@ -45,7 +46,7 @@ namespace sdbus::internal {
         : public IObject
     {
     public:
-        Object(sdbus::internal::IConnection& connection, std::string objectPath);
+        Object(sdbus::internal::IConnection& connection, ObjectPath objectPath);
 
         void addVTable(std::string interfaceName, std::vector<VTableItem> vtable) override;
         Slot addVTable(std::string interfaceName, std::vector<VTableItem> vtable, return_slot_t) override;
@@ -65,7 +66,7 @@ namespace sdbus::internal {
         [[nodiscard]] bool hasObjectManager() const override;
 
         [[nodiscard]] sdbus::IConnection& getConnection() const override;
-        [[nodiscard]] const std::string& getObjectPath() const override;
+        [[nodiscard]] const ObjectPath& getObjectPath() const override;
         [[nodiscard]] Message getCurrentlyProcessedMessage() const override;
 
     private:
@@ -157,7 +158,7 @@ namespace sdbus::internal {
 
     private:
         sdbus::internal::IConnection& connection_;
-        std::string objectPath_;
+        ObjectPath objectPath_;
         std::vector<Slot> vtables_;
         Slot objectManagerSlot_;
     };

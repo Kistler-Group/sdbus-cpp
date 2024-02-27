@@ -257,7 +257,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void addObjectManager(const std::string& objectPath, floating_slot_t) = 0;
+        virtual void addObjectManager(const ObjectPath& objectPath, floating_slot_t) = 0;
 
         /*!
          * @brief Installs a match rule for messages received on this bus connection

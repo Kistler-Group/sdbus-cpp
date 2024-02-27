@@ -28,6 +28,7 @@
 
 #include "sdbus-c++/Error.h"
 #include "sdbus-c++/Message.h"
+#include "sdbus-c++/Types.h"
 
 #include "MessageUtils.h"
 #include "ScopeGuard.h"
@@ -188,14 +189,14 @@ ISdBus& Connection::getSdBusInterface()
     return *sdbus_.get();
 }
 
-void Connection::addObjectManager(const std::string& objectPath, floating_slot_t)
+void Connection::addObjectManager(const ObjectPath& objectPath, floating_slot_t)
 {
     auto r = sdbus_->sd_bus_add_object_manager(bus_.get(), nullptr, objectPath.c_str());
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to add object manager", -r);
 }
 
-Slot Connection::addObjectManager(const std::string& objectPath, return_slot_t)
+Slot Connection::addObjectManager(const ObjectPath& objectPath, return_slot_t)
 {
     sd_bus_slot *slot{};
 
@@ -456,7 +457,7 @@ void Connection::deleteSdEventSource(sd_event_source *s)
 
 #endif // SDBUS_basu
 
-Slot Connection::addObjectVTable( const std::string& objectPath
+Slot Connection::addObjectVTable( const ObjectPath& objectPath
                                 , const std::string& interfaceName
                                 , const sd_bus_vtable* vtable
                                 , void* userData )
@@ -487,7 +488,7 @@ PlainMessage Connection::createPlainMessage() const
 }
 
 MethodCall Connection::createMethodCall( const std::string& destination
-                                       , const std::string& objectPath
+                                       , const ObjectPath& objectPath
                                        , const std::string& interfaceName
                                        , const std::string& methodName ) const
 {
@@ -505,7 +506,7 @@ MethodCall Connection::createMethodCall( const std::string& destination
     return Message::Factory::create<MethodCall>(sdbusMsg, sdbus_.get(), adopt_message);
 }
 
-Signal Connection::createSignal( const std::string& objectPath
+Signal Connection::createSignal( const ObjectPath& objectPath
                                , const std::string& interfaceName
                                , const std::string& signalName ) const
 {
@@ -562,7 +563,7 @@ Slot Connection::callMethod(const MethodCall& message, void* callback, void* use
     return slot;
 }
 
-void Connection::emitPropertiesChangedSignal( const std::string& objectPath
+void Connection::emitPropertiesChangedSignal( const ObjectPath& objectPath
                                             , const std::string& interfaceName
                                             , const std::vector<std::string>& propNames )
 {
@@ -576,14 +577,14 @@ void Connection::emitPropertiesChangedSignal( const std::string& objectPath
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit PropertiesChanged signal", -r);
 }
 
-void Connection::emitInterfacesAddedSignal(const std::string& objectPath)
+void Connection::emitInterfacesAddedSignal(const ObjectPath& objectPath)
 {
     auto r = sdbus_->sd_bus_emit_object_added(bus_.get(), objectPath.c_str());
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit InterfacesAdded signal for all registered interfaces", -r);
 }
 
-void Connection::emitInterfacesAddedSignal( const std::string& objectPath
+void Connection::emitInterfacesAddedSignal( const ObjectPath& objectPath
                                           , const std::vector<std::string>& interfaces )
 {
     auto names = to_strv(interfaces);
@@ -595,14 +596,14 @@ void Connection::emitInterfacesAddedSignal( const std::string& objectPath
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit InterfacesAdded signal", -r);
 }
 
-void Connection::emitInterfacesRemovedSignal(const std::string& objectPath)
+void Connection::emitInterfacesRemovedSignal(const ObjectPath& objectPath)
 {
     auto r = sdbus_->sd_bus_emit_object_removed(bus_.get(), objectPath.c_str());
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit InterfacesRemoved signal for all registered interfaces", -r);
 }
 
-void Connection::emitInterfacesRemovedSignal( const std::string& objectPath
+void Connection::emitInterfacesRemovedSignal( const ObjectPath& objectPath
                                             , const std::vector<std::string>& interfaces )
 {
     auto names = to_strv(interfaces);
@@ -615,7 +616,7 @@ void Connection::emitInterfacesRemovedSignal( const std::string& objectPath
 }
 
 Slot Connection::registerSignalHandler( const std::string& sender
-                                      , const std::string& objectPath
+                                      , const ObjectPath& objectPath
                                       , const std::string& interfaceName
                                       , const std::string& signalName
                                       , sd_bus_message_handler_t callback

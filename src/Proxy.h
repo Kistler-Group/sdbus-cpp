@@ -30,6 +30,7 @@
 #include "sdbus-c++/IProxy.h"
 
 #include "IConnection.h"
+#include "sdbus-c++/Types.h"
 
 #include <deque>
 #include <memory>
@@ -46,13 +47,13 @@ namespace sdbus::internal {
     public:
         Proxy( sdbus::internal::IConnection& connection
              , std::string destination
-             , std::string objectPath );
+             , ObjectPath objectPath );
         Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
              , std::string destination
-             , std::string objectPath );
+             , ObjectPath objectPath );
         Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
              , std::string destination
-             , std::string objectPath
+             , ObjectPath objectPath
              , dont_run_event_loop_thread_t );
 
         MethodCall createMethodCall(const std::string& interfaceName, const std::string& methodName) override;
@@ -71,7 +72,7 @@ namespace sdbus::internal {
         void unregister() override;
 
         [[nodiscard]] sdbus::IConnection& getConnection() const override;
-        [[nodiscard]] const std::string& getObjectPath() const override;
+        [[nodiscard]] const ObjectPath& getObjectPath() const override;
         [[nodiscard]] Message getCurrentlyProcessedMessage() const override;
 
     private:
@@ -85,7 +86,7 @@ namespace sdbus::internal {
                        , std::function<void(sdbus::internal::IConnection*)>
                        > connection_;
         std::string destination_;
-        std::string objectPath_;
+        ObjectPath objectPath_;
 
         std::vector<Slot> floatingSignalSlots_;
 

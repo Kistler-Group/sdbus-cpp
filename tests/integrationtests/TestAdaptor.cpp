@@ -31,8 +31,8 @@
 
 namespace sdbus { namespace test {
 
-TestAdaptor::TestAdaptor(sdbus::IConnection& connection, const std::string& path) :
-    AdaptorInterfaces(connection, path)
+TestAdaptor::TestAdaptor(sdbus::IConnection& connection, sdbus::ObjectPath path) :
+    AdaptorInterfaces(connection, std::move(path))
 {
     registerAdaptor();
 }
@@ -173,7 +173,7 @@ std::unordered_map<uint64_t, sdbus::Struct<std::map<uint8_t, std::vector<sdbus::
                         23,  // uint8_t
                         {   // vector
                             {   // struct
-                                    "/object/path", // object path
+                                    sdbus::ObjectPath{"/object/path"}, // object path
                                     false,
                                     Variant{3.14},
                                     {   // map

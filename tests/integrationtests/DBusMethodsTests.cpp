@@ -230,7 +230,7 @@ TYPED_TEST(SdbusTestObject, FailsCallingMethodOnNonexistentDestination)
 
 TYPED_TEST(SdbusTestObject, FailsCallingMethodOnNonexistentObject)
 {
-    TestProxy proxy(BUS_NAME, "/sdbuscpp/path/that/does/not/exist");
+    TestProxy proxy(BUS_NAME, sdbus::ObjectPath{"/sdbuscpp/path/that/does/not/exist"});
     ASSERT_THROW(proxy.getInt(), sdbus::Error);
 }
 

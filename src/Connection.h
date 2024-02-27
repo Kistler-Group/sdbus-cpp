@@ -91,8 +91,8 @@ namespace sdbus::internal {
         bool processPendingEvent() override;
         Message getCurrentlyProcessedMessage() const override;
 
-        void addObjectManager(const std::string& objectPath, floating_slot_t) override;
-        Slot addObjectManager(const std::string& objectPath, return_slot_t) override;
+        void addObjectManager(const ObjectPath& objectPath, floating_slot_t) override;
+        Slot addObjectManager(const ObjectPath& objectPath, return_slot_t) override;
 
         void setMethodCallTimeout(uint64_t timeout) override;
         [[nodiscard]] uint64_t getMethodCallTimeout() const override;
@@ -109,17 +109,17 @@ namespace sdbus::internal {
         [[nodiscard]] const ISdBus& getSdBusInterface() const override;
         [[nodiscard]] ISdBus& getSdBusInterface() override;
 
-        Slot addObjectVTable( const std::string& objectPath
+        Slot addObjectVTable( const ObjectPath& objectPath
                             , const std::string& interfaceName
                             , const sd_bus_vtable* vtable
                             , void* userData ) override;
 
         [[nodiscard]] PlainMessage createPlainMessage() const override;
         [[nodiscard]] MethodCall createMethodCall( const std::string& destination
-                                                 , const std::string& objectPath
+                                                 , const ObjectPath& objectPath
                                                  , const std::string& interfaceName
                                                  , const std::string& methodName ) const override;
-        [[nodiscard]] Signal createSignal( const std::string& objectPath
+        [[nodiscard]] Signal createSignal( const ObjectPath& objectPath
                                          , const std::string& interfaceName
                                          , const std::string& signalName ) const override;
 
@@ -127,18 +127,18 @@ namespace sdbus::internal {
         void callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout, floating_slot_t) override;
         Slot callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout) override;
 
-        void emitPropertiesChangedSignal( const std::string& objectPath
+        void emitPropertiesChangedSignal( const ObjectPath& objectPath
                                         , const std::string& interfaceName
                                         , const std::vector<std::string>& propNames ) override;
-        void emitInterfacesAddedSignal(const std::string& objectPath) override;
-        void emitInterfacesAddedSignal( const std::string& objectPath
+        void emitInterfacesAddedSignal(const ObjectPath& objectPath) override;
+        void emitInterfacesAddedSignal( const ObjectPath& objectPath
                                       , const std::vector<std::string>& interfaces ) override;
-        void emitInterfacesRemovedSignal(const std::string& objectPath) override;
-        void emitInterfacesRemovedSignal( const std::string& objectPath
+        void emitInterfacesRemovedSignal(const ObjectPath& objectPath) override;
+        void emitInterfacesRemovedSignal( const ObjectPath& objectPath
                                         , const std::vector<std::string>& interfaces ) override;
 
         Slot registerSignalHandler( const std::string& sender
-                                  , const std::string& objectPath
+                                  , const ObjectPath& objectPath
                                   , const std::string& interfaceName
                                   , const std::string& signalName
                                   , sd_bus_message_handler_t callback

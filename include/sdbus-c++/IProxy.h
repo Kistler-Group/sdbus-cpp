@@ -41,6 +41,7 @@ namespace sdbus {
     class MethodCall;
     class MethodReply;
     class IConnection;
+    class ObjectPath;
     class PendingAsyncCall;
     namespace internal {
         class Proxy;
@@ -438,7 +439,7 @@ namespace sdbus {
         /*!
          * @brief Returns object path of the underlying DBus object
          */
-        [[nodiscard]] virtual const std::string& getObjectPath() const = 0;
+        [[nodiscard]] virtual const ObjectPath& getObjectPath() const = 0;
 
         /*!
          * @brief Provides access to the currently processed D-Bus message
@@ -594,7 +595,7 @@ namespace sdbus {
      */
     [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( sdbus::IConnection& connection
                                                             , std::string destination
-                                                            , std::string objectPath );
+                                                            , ObjectPath objectPath );
 
     /*!
      * @brief Creates a proxy object for a specific remote D-Bus object
@@ -620,7 +621,7 @@ namespace sdbus {
      */
     [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( std::unique_ptr<sdbus::IConnection>&& connection
                                                             , std::string destination
-                                                            , std::string objectPath );
+                                                            , ObjectPath objectPath );
 
     /*!
      * @brief Creates a proxy object for a specific remote D-Bus object
@@ -647,7 +648,7 @@ namespace sdbus {
      */
     [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( std::unique_ptr<sdbus::IConnection>&& connection
                                                             , std::string destination
-                                                            , std::string objectPath
+                                                            , ObjectPath objectPath
                                                             , dont_run_event_loop_thread_t );
 
     /*!
@@ -668,7 +669,7 @@ namespace sdbus {
      * @endcode
      */
     [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( std::string destination
-                                                            , std::string objectPath );
+                                                            , ObjectPath objectPath );
 
     /*!
      * @brief Creates a proxy object for a specific remote D-Bus object
@@ -689,7 +690,7 @@ namespace sdbus {
      * @endcode
      */
     [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( std::string destination
-                                                            , std::string objectPath
+                                                            , ObjectPath objectPath
                                                             , dont_run_event_loop_thread_t );
 
 }

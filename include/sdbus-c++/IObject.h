@@ -41,6 +41,7 @@
 namespace sdbus {
     class Signal;
     class IConnection;
+    class ObjectPath;
 }
 
 namespace sdbus {
@@ -322,7 +323,7 @@ namespace sdbus {
         /*!
          * @brief Returns object path of the underlying DBus object
          */
-        [[nodiscard]] virtual const std::string& getObjectPath() const = 0;
+        [[nodiscard]] virtual const ObjectPath& getObjectPath() const = 0;
 
         /*!
          * @brief Provides access to the currently processed D-Bus message
@@ -382,7 +383,7 @@ namespace sdbus {
      * auto proxy = sdbus::createObject(connection, "/com/kistler/foo");
      * @endcode
      */
-    [[nodiscard]] std::unique_ptr<sdbus::IObject> createObject(sdbus::IConnection& connection, std::string objectPath);
+    [[nodiscard]] std::unique_ptr<sdbus::IObject> createObject(sdbus::IConnection& connection, ObjectPath objectPath);
 
 }
 

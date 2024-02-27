@@ -43,7 +43,7 @@
 
 namespace sdbus::internal {
 
-Object::Object(sdbus::internal::IConnection& connection, std::string objectPath)
+Object::Object(sdbus::internal::IConnection& connection, ObjectPath objectPath)
     : connection_(connection), objectPath_(std::move(objectPath))
 {
     SDBUS_CHECK_OBJECT_PATH(objectPath_);
@@ -141,7 +141,7 @@ sdbus::IConnection& Object::getConnection() const
     return connection_;
 }
 
-const std::string& Object::getObjectPath() const
+const ObjectPath& Object::getObjectPath() const
 {
     return objectPath_;
 }
@@ -379,7 +379,7 @@ int Object::sdbus_property_set_callback( sd_bus */*bus*/
 
 namespace sdbus {
 
-std::unique_ptr<sdbus::IObject> createObject(sdbus::IConnection& connection, std::string objectPath)
+std::unique_ptr<sdbus::IObject> createObject(sdbus::IConnection& connection, ObjectPath objectPath)
 {
     auto* sdbusConnection = dynamic_cast<sdbus::internal::IConnection*>(&connection);
     SDBUS_THROW_ERROR_IF(!sdbusConnection, "Connection is not a real sdbus-c++ connection", EINVAL);

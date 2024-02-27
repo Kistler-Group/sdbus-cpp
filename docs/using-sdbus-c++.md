@@ -302,8 +302,8 @@ int main(int argc, char *argv[])
     auto connection = sdbus::createSystemBusConnection(serviceName);
 
     // Create concatenator D-Bus object.
-    const char* objectPath = "/org/sdbuscpp/concatenator";
-    auto concatenator = sdbus::createObject(*connection, objectPath);
+    sdbus::ObjectPath objectPath{"/org/sdbuscpp/concatenator"};
+    auto concatenator = sdbus::createObject(*connection, std::move(objectPath));
 
     g_concatenator = concatenator.get();
 
@@ -351,8 +351,8 @@ int main(int argc, char *argv[])
     // we are creating the proxy instance without passing connection to it, the proxy
     // will create its own connection automatically, and it will be system bus connection.
     const char* destinationName = "org.sdbuscpp.concatenator";
-    const char* objectPath = "/org/sdbuscpp/concatenator";
-    auto concatenatorProxy = sdbus::createProxy(destinationName, objectPath);
+    sdbus::ObjectPath objectPath{"/org/sdbuscpp/concatenator"};
+    auto concatenatorProxy = sdbus::createProxy(destinationName, std::move(objectPath));
 
     // Let's subscribe for the 'concatenated' signals
     const char* interfaceName = "org.sdbuscpp.Concatenator";
@@ -508,8 +508,8 @@ int main(int argc, char *argv[])
     auto connection = sdbus::createSystemBusConnection(serviceName);
 
     // Create concatenator D-Bus object.
-    const char* objectPath = "/org/sdbuscpp/concatenator";
-    auto concatenator = sdbus::createObject(*connection, objectPath);
+    sdbus::ObjectPath objectPath{"/org/sdbuscpp/concatenator"};
+    auto concatenator = sdbus::createObject(*connection, std::move(objectPath));
 
     auto concatenate = [&concatenator](const std::vector<int> numbers, const std::string& separator)
     {
@@ -563,8 +563,8 @@ int main(int argc, char *argv[])
 {
     // Create proxy object for the concatenator object on the server side
     const char* destinationName = "org.sdbuscpp.concatenator";
-    const char* objectPath = "/org/sdbuscpp/concatenator";
-    auto concatenatorProxy = sdbus::createProxy(destinationName, objectPath);
+    sdbus::ObjectPath objectPath{"/org/sdbuscpp/concatenator"};
+    auto concatenatorProxy = sdbus::createProxy(destinationName, std::move(objectPath));
 
     // Let's subscribe for the 'concatenated' signals
     const char* interfaceName = "org.sdbuscpp.Concatenator";
@@ -827,7 +827,7 @@ Calling `registerAdaptor()` and `unregisterAdaptor()` was not necessary in previ
 class Concatenator : public sdbus::AdaptorInterfaces<org::sdbuscpp::Concatenator_adaptor /*, more adaptor classes if there are more interfaces*/>
 {
 public:
-    Concatenator(sdbus::IConnection& connection, std::string objectPath)
+    Concatenator(sdbus::IConnection& connection, sdbus::ObjectPath objectPath)
         : AdaptorInterfaces(connection, std::move(objectPath))
     {
         registerAdaptor();
@@ -875,8 +875,8 @@ int main(int argc, char *argv[])
     auto connection = sdbus::createSystemBusConnection(serviceName);
 
     // Create concatenator D-Bus object.
-    const char* objectPath = "/org/sdbuscpp/concatenator";
-    Concatenator concatenator(*connection, objectPath);
+    sdbus::ObjectPath objectPath{"/org/sdbuscpp/concatenator"};
+    Concatenator concatenator(*connection, std::move(objectPath));
 
     // Run the loop on the connection.
     connection->enterEventLoop();
@@ -906,7 +906,7 @@ Calling `registerProxy()` and `unregisterProxy()` was not necessary in previous 
 class ConcatenatorProxy : public sdbus::ProxyInterfaces<org::sdbuscpp::Concatenator_proxy /*, more proxy classes if there are more interfaces*/>
 {
 public:
-    ConcatenatorProxy(std::string destination, std::string objectPath)
+    ConcatenatorProxy(std::string destination, sdbus::ObjectPath objectPath)
         : ProxyInterfaces(std::move(destination), std::move(objectPath))
     {
         registerProxy();
@@ -941,8 +941,8 @@ int main(int argc, char *argv[])
 {
     // Create proxy object for the concatenator object on the server side
     const char* destinationName = "org.sdbuscpp.concatenator";
-    const char* objectPath = "/org/sdbuscpp/concatenator";
-    ConcatenatorProxy concatenatorProxy(destinationName, objectPath);
+    sdbus::ObjectPath objectPath{"/org/sdbuscpp/concatenator"};
+    ConcatenatorProxy concatenatorProxy(destinationName, std::move(objectPath));
 
     std::vector<int> numbers = {1, 2, 3};
     std::string separator = ":";
@@ -1702,10 +1702,9 @@ int main(int argc, char *argv[])
 
     // We can now use connection objects in a familiar way, e.g. create adaptor and proxy objects on them, and exchange messages.
     // Here, using Concatenator IDL-generated bindings example from chapters above:
-    const char* objectPath = "/org/sdbuscpp/concatenator";
-    Concatenator concatenator(*serverConnection, objectPath);
+    Concatenator concatenator(*serverConnection, sdbus::ObjectPath{"/org/sdbuscpp/concatenator"});
     const char* emptyDestinationName = ""; // Destination may be empty in case of direct connections
-    ConcatenatorProxy concatenatorProxy(*clientConnection, emptyDestinationName, objectPath);
+    ConcatenatorProxy concatenatorProxy(*clientConnection, emptyDestinationName, sdbus::ObjectPath{"/org/sdbuscpp/concatenator"});
 
     // Perform call of concatenate D-Bus method
     std::vector<int> numbers = {1, 2, 3};

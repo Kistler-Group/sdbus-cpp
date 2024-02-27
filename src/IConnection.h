@@ -59,17 +59,17 @@ namespace sdbus::internal {
         [[nodiscard]] virtual const ISdBus& getSdBusInterface() const = 0;
         [[nodiscard]] virtual ISdBus& getSdBusInterface() = 0;
 
-        [[nodiscard]] virtual Slot addObjectVTable( const std::string& objectPath
+        [[nodiscard]] virtual Slot addObjectVTable( const ObjectPath& objectPath
                                                   , const std::string& interfaceName
                                                   , const sd_bus_vtable* vtable
                                                   , void* userData ) = 0;
 
         [[nodiscard]] virtual PlainMessage createPlainMessage() const = 0;
         [[nodiscard]] virtual MethodCall createMethodCall( const std::string& destination
-                                                         , const std::string& objectPath
+                                                         , const ObjectPath& objectPath
                                                          , const std::string& interfaceName
                                                          , const std::string& methodName ) const = 0;
-        [[nodiscard]] virtual Signal createSignal( const std::string& objectPath
+        [[nodiscard]] virtual Signal createSignal( const ObjectPath& objectPath
                                                  , const std::string& interfaceName
                                                  , const std::string& signalName ) const = 0;
 
@@ -77,21 +77,21 @@ namespace sdbus::internal {
         virtual void callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout, floating_slot_t) = 0;
         [[nodiscard]] virtual Slot callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout) = 0;
 
-        virtual void emitPropertiesChangedSignal( const std::string& objectPath
+        virtual void emitPropertiesChangedSignal( const ObjectPath& objectPath
                                                 , const std::string& interfaceName
                                                 , const std::vector<std::string>& propNames ) = 0;
-        virtual void emitInterfacesAddedSignal(const std::string& objectPath) = 0;
-        virtual void emitInterfacesAddedSignal( const std::string& objectPath
+        virtual void emitInterfacesAddedSignal(const ObjectPath& objectPath) = 0;
+        virtual void emitInterfacesAddedSignal( const ObjectPath& objectPath
                                               , const std::vector<std::string>& interfaces ) = 0;
-        virtual void emitInterfacesRemovedSignal(const std::string& objectPath) = 0;
-        virtual void emitInterfacesRemovedSignal( const std::string& objectPath
+        virtual void emitInterfacesRemovedSignal(const ObjectPath& objectPath) = 0;
+        virtual void emitInterfacesRemovedSignal( const ObjectPath& objectPath
                                                 , const std::vector<std::string>& interfaces ) = 0;
 
         using sdbus::IConnection::addObjectManager;
-        [[nodiscard]] virtual Slot addObjectManager(const std::string& objectPath, return_slot_t) = 0;
+        [[nodiscard]] virtual Slot addObjectManager(const ObjectPath& objectPath, return_slot_t) = 0;
 
         [[nodiscard]] virtual Slot registerSignalHandler( const std::string& sender
-                                                        , const std::string& objectPath
+                                                        , const ObjectPath& objectPath
                                                         , const std::string& interfaceName
                                                         , const std::string& signalName
                                                         , sd_bus_message_handler_t callback

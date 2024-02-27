@@ -17,7 +17,7 @@
 class PlanetProxy final : public sdbus::ProxyInterfaces< org::sdbuscpp::ExampleManager::Planet1_proxy >
 {
 public:
-    PlanetProxy(sdbus::IConnection& connection, std::string destination, std::string path)
+    PlanetProxy(sdbus::IConnection& connection, std::string destination, sdbus::ObjectPath path)
     : ProxyInterfaces(connection, std::move(destination), std::move(path))
     {
         registerProxy();
@@ -32,7 +32,7 @@ public:
 class ManagerProxy final : public sdbus::ProxyInterfaces< sdbus::ObjectManager_proxy >
 {
 public:
-    ManagerProxy(sdbus::IConnection& connection, const std::string& destination, std::string path)
+    ManagerProxy(sdbus::IConnection& connection, const std::string& destination, sdbus::ObjectPath path)
     : ProxyInterfaces(connection, destination, std::move(path))
     , m_connection(connection)
     , m_destination(destination)
@@ -95,7 +95,8 @@ int main()
 {
     auto connection = sdbus::createSessionBusConnection();
 
-    auto managerProxy = std::make_unique<ManagerProxy>(*connection, "org.sdbuscpp.examplemanager", "/org/sdbuscpp/examplemanager");
+    sdbus::ObjectPath objectPath{"/org/sdbuscpp/examplemanager"};
+    auto managerProxy = std::make_unique<ManagerProxy>(*connection, "org.sdbuscpp.examplemanager", std::move(objectPath));
     try {
         managerProxy->handleExistingObjects();
     }

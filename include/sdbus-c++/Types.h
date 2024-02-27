@@ -164,8 +164,10 @@ namespace sdbus {
         explicit ObjectPath(std::string value)
             : std::string(std::move(value))
         {}
+        explicit ObjectPath(const char* value)
+            : std::string(value)
+        {}
 
-        using std::string::string;
         using std::string::operator=;
     };
 

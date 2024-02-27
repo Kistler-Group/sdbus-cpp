@@ -41,7 +41,7 @@
 
 namespace sdbus::internal {
 
-Proxy::Proxy(sdbus::internal::IConnection& connection, std::string destination, std::string objectPath)
+Proxy::Proxy(sdbus::internal::IConnection& connection, std::string destination, ObjectPath objectPath)
     : connection_(&connection, [](sdbus::internal::IConnection *){ /* Intentionally left empty */ })
     , destination_(std::move(destination))
     , objectPath_(std::move(objectPath))
@@ -55,7 +55,7 @@ Proxy::Proxy(sdbus::internal::IConnection& connection, std::string destination, 
 
 Proxy::Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
             , std::string destination
-            , std::string objectPath )
+            , ObjectPath objectPath )
     : connection_(std::move(connection))
     , destination_(std::move(destination))
     , objectPath_(std::move(objectPath))
@@ -70,7 +70,7 @@ Proxy::Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
 
 Proxy::Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
             , std::string destination
-            , std::string objectPath
+            , ObjectPath objectPath
             , dont_run_event_loop_thread_t )
     : connection_(std::move(connection))
     , destination_(std::move(destination))
@@ -175,7 +175,7 @@ sdbus::IConnection& Proxy::getConnection() const
     return *connection_;
 }
 
-const std::string& Proxy::getObjectPath() const
+const ObjectPath& Proxy::getObjectPath() const
 {
     return objectPath_;
 }
@@ -267,7 +267,7 @@ namespace sdbus {
 
 std::unique_ptr<sdbus::IProxy> createProxy( IConnection& connection
                                           , std::string destination
-                                          , std::string objectPath )
+                                          , ObjectPath objectPath )
 {
     auto* sdbusConnection = dynamic_cast<sdbus::internal::IConnection*>(&connection);
     SDBUS_THROW_ERROR_IF(!sdbusConnection, "Connection is not a real sdbus-c++ connection", EINVAL);
@@ -279,7 +279,7 @@ std::unique_ptr<sdbus::IProxy> createProxy( IConnection& connection
 
 std::unique_ptr<sdbus::IProxy> createProxy( std::unique_ptr<IConnection>&& connection
                                           , std::string destination
-                                          , std::string objectPath )
+                                          , ObjectPath objectPath )
 {
     auto* sdbusConnection = dynamic_cast<sdbus::internal::IConnection*>(connection.get());
     SDBUS_THROW_ERROR_IF(!sdbusConnection, "Connection is not a real sdbus-c++ connection", EINVAL);
@@ -293,7 +293,7 @@ std::unique_ptr<sdbus::IProxy> createProxy( std::unique_ptr<IConnection>&& conne
 
 std::unique_ptr<sdbus::IProxy> createProxy( std::unique_ptr<IConnection>&& connection
                                           , std::string destination
-                                          , std::string objectPath
+                                          , ObjectPath objectPath
                                           , dont_run_event_loop_thread_t )
 {
     auto* sdbusConnection = dynamic_cast<sdbus::internal::IConnection*>(connection.get());
@@ -308,7 +308,7 @@ std::unique_ptr<sdbus::IProxy> createProxy( std::unique_ptr<IConnection>&& conne
 }
 
 std::unique_ptr<sdbus::IProxy> createProxy( std::string destination
-                                          , std::string objectPath )
+                                          , ObjectPath objectPath )
 {
     auto connection = sdbus::createBusConnection();
 
@@ -321,7 +321,7 @@ std::unique_ptr<sdbus::IProxy> createProxy( std::string destination
 }
 
 std::unique_ptr<sdbus::IProxy> createProxy( std::string destination
-                                          , std::string objectPath
+                                          , ObjectPath objectPath
                                           , dont_run_event_loop_thread_t )
 {
     auto connection = sdbus::createBusConnection();

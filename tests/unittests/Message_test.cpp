@@ -433,7 +433,7 @@ TEST(AMessage, CanCarryAComplexType)
                             >
                         >;
 
-    ComplexType dataWritten = { {1, {{{5, {{"/some/object", true, 45, {{6, "hello"}, {7, "world"}}}}}}, "av", 3.14}}};
+    ComplexType dataWritten = { {1, {{{5, {{sdbus::ObjectPath{"/some/object"}, true, 45, {{6, "hello"}, {7, "world"}}}}}}, "av", 3.14}}};
 
     msg << dataWritten;
     msg.seal();
