@@ -604,31 +604,32 @@ void Message::rewind(bool complete)
 
 std::string Message::getInterfaceName() const
 {
-    auto interface = sd_bus_message_get_interface((sd_bus_message*)msg_);
+    const auto* interface = sd_bus_message_get_interface((sd_bus_message*)msg_);
     return interface != nullptr ? interface : "";
 }
 
 std::string Message::getMemberName() const
 {
-    auto member = sd_bus_message_get_member((sd_bus_message*)msg_);
+    const auto* member = sd_bus_message_get_member((sd_bus_message*)msg_);
     return member != nullptr ? member : "";
 }
 
-std::string Message::getSender() const
+ConnectionName Message::getSender() const
 {
-    return sd_bus_message_get_sender((sd_bus_message*)msg_);
+    const auto* sender = sd_bus_message_get_sender((sd_bus_message*)msg_);
+    return ConnectionName{sender};
 }
 
 ObjectPath Message::getPath() const
 {
-    auto path = sd_bus_message_get_path((sd_bus_message*)msg_);
+    const auto* path = sd_bus_message_get_path((sd_bus_message*)msg_);
     return path != nullptr ? ObjectPath{path} : ObjectPath{};
 }
 
-std::string Message::getDestination() const
+ConnectionName Message::getDestination() const
 {
-    auto destination = sd_bus_message_get_destination((sd_bus_message*)msg_);
-    return destination != nullptr ? destination : "";
+    const auto* destination = sd_bus_message_get_destination((sd_bus_message*)msg_);
+    return destination != nullptr ? ConnectionName{destination} : ConnectionName{};
 }
 
 void Message::peekType(std::string& type, std::string& contents) const
@@ -866,7 +867,7 @@ void Signal::send() const
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit signal", -r);
 }
 
-void Signal::setDestination(const std::string& destination)
+void Signal::setDestination(const ConnectionName& destination)
 {
     auto r = sdbus_->sd_bus_message_set_destination((sd_bus_message*)msg_, destination.c_str());
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to set signal destination", -r);

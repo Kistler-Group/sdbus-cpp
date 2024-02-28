@@ -65,7 +65,7 @@ namespace sdbus::internal {
                                                   , void* userData ) = 0;
 
         [[nodiscard]] virtual PlainMessage createPlainMessage() const = 0;
-        [[nodiscard]] virtual MethodCall createMethodCall( const std::string& destination
+        [[nodiscard]] virtual MethodCall createMethodCall( const ServiceName& destination
                                                          , const ObjectPath& objectPath
                                                          , const std::string& interfaceName
                                                          , const std::string& methodName ) const = 0;
@@ -90,7 +90,7 @@ namespace sdbus::internal {
         using sdbus::IConnection::addObjectManager;
         [[nodiscard]] virtual Slot addObjectManager(const ObjectPath& objectPath, return_slot_t) = 0;
 
-        [[nodiscard]] virtual Slot registerSignalHandler( const std::string& sender
+        [[nodiscard]] virtual Slot registerSignalHandler( const ServiceName& sender
                                                         , const ObjectPath& objectPath
                                                         , const std::string& interfaceName
                                                         , const std::string& signalName

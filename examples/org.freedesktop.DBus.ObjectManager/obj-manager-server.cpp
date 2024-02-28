@@ -84,7 +84,8 @@ void printCountDown(const std::string& message, int seconds)
 int main()
 {
     auto connection = sdbus::createSessionBusConnection();
-    connection->requestName("org.sdbuscpp.examplemanager");
+    sdbus::ServiceName serviceName{"org.sdbuscpp.examplemanager"};
+    connection->requestName(serviceName);
     connection->enterEventLoopAsync();
 
     auto manager = std::make_unique<ManagerAdaptor>(*connection, ObjectPath{"/org/sdbuscpp/examplemanager"});
@@ -104,7 +105,7 @@ int main()
         laconia.reset();
     }
 
-    connection->releaseName("org.sdbuscpp.examplemanager");
+    connection->releaseName(serviceName);
     connection->leaveEventLoop();
     return 0;
 }

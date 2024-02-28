@@ -81,9 +81,9 @@ namespace sdbus::internal {
         Connection(std::unique_ptr<ISdBus>&& interface, pseudo_bus_t);
         ~Connection() override;
 
-        void requestName(const std::string& name) override;
-        void releaseName(const std::string& name) override;
-        [[nodiscard]] std::string getUniqueName() const override;
+        void requestName(const ServiceName & name) override;
+        void releaseName(const ServiceName& name) override;
+        [[nodiscard]] BusName getUniqueName() const override;
         void enterEventLoop() override;
         void enterEventLoopAsync() override;
         void leaveEventLoop() override;
@@ -115,7 +115,7 @@ namespace sdbus::internal {
                             , void* userData ) override;
 
         [[nodiscard]] PlainMessage createPlainMessage() const override;
-        [[nodiscard]] MethodCall createMethodCall( const std::string& destination
+        [[nodiscard]] MethodCall createMethodCall( const ServiceName& destination
                                                  , const ObjectPath& objectPath
                                                  , const std::string& interfaceName
                                                  , const std::string& methodName ) const override;
@@ -137,7 +137,7 @@ namespace sdbus::internal {
         void emitInterfacesRemovedSignal( const ObjectPath& objectPath
                                         , const std::vector<std::string>& interfaces ) override;
 
-        Slot registerSignalHandler( const std::string& sender
+        Slot registerSignalHandler( const ServiceName& sender
                                   , const ObjectPath& objectPath
                                   , const std::string& interfaceName
                                   , const std::string& signalName

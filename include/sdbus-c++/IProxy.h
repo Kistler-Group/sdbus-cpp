@@ -594,7 +594,7 @@ namespace sdbus {
      * @endcode
      */
     [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( sdbus::IConnection& connection
-                                                            , std::string destination
+                                                            , ServiceName destination
                                                             , ObjectPath objectPath );
 
     /*!
@@ -620,7 +620,7 @@ namespace sdbus {
      * @endcode
      */
     [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( std::unique_ptr<sdbus::IConnection>&& connection
-                                                            , std::string destination
+                                                            , ServiceName destination
                                                             , ObjectPath objectPath );
 
     /*!
@@ -647,7 +647,7 @@ namespace sdbus {
      * @endcode
      */
     [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( std::unique_ptr<sdbus::IConnection>&& connection
-                                                            , std::string destination
+                                                            , ServiceName destination
                                                             , ObjectPath objectPath
                                                             , dont_run_event_loop_thread_t );
 
@@ -668,7 +668,7 @@ namespace sdbus {
      * auto proxy = sdbus::createProxy("com.kistler.foo", "/com/kistler/foo");
      * @endcode
      */
-    [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( std::string destination
+    [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( ServiceName destination
                                                             , ObjectPath objectPath );
 
     /*!
@@ -689,7 +689,7 @@ namespace sdbus {
      * auto proxy = sdbus::createProxy("com.kistler.foo", "/com/kistler/foo", sdbus::dont_run_event_loop_thread );
      * @endcode
      */
-    [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( std::string destination
+    [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( ServiceName destination
                                                             , ObjectPath objectPath
                                                             , dont_run_event_loop_thread_t );
 

@@ -91,7 +91,7 @@ std::string createRandomString(size_t length)
 //-----------------------------------------
 int main(int /*argc*/, char */*argv*/[])
 {
-    const char* serviceName = "org.sdbuscpp.perftests";
+    sdbus::ServiceName serviceName{"org.sdbuscpp.perftests"};
     auto connection = sdbus::createSystemBusConnection(serviceName);
 
     sdbus::ObjectPath objectPath{"/org/sdbuscpp/perftests"};

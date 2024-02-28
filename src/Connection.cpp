@@ -109,7 +109,7 @@ Connection::~Connection()
     Connection::leaveEventLoop();
 }
 
-void Connection::requestName(const std::string& name)
+void Connection::requestName(const ServiceName& name)
 {
     SDBUS_CHECK_SERVICE_NAME(name);
 
@@ -121,7 +121,7 @@ void Connection::requestName(const std::string& name)
     wakeUpEventLoopIfMessagesInQueue();
 }
 
-void Connection::releaseName(const std::string& name)
+void Connection::releaseName(const ServiceName& name)
 {
     auto r = sdbus_->sd_bus_release_name(bus_.get(), name.c_str());
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to release bus name", -r);
@@ -131,12 +131,12 @@ void Connection::releaseName(const std::string& name)
     wakeUpEventLoopIfMessagesInQueue();
 }
 
-std::string Connection::getUniqueName() const
+BusName Connection::getUniqueName() const
 {
-    const char* unique = nullptr;
-    auto r = sdbus_->sd_bus_get_unique_name(bus_.get(), &unique);
-    SDBUS_THROW_ERROR_IF(r < 0 || unique == nullptr, "Failed to get unique bus name", -r);
-    return unique;
+    const char* name{};
+    auto r = sdbus_->sd_bus_get_unique_name(bus_.get(), &name);
+    SDBUS_THROW_ERROR_IF(r < 0 || name == nullptr, "Failed to get unique bus name", -r);
+    return BusName{name};
 }
 
 void Connection::enterEventLoop()
@@ -487,7 +487,7 @@ PlainMessage Connection::createPlainMessage() const
     return Message::Factory::create<PlainMessage>(sdbusMsg, sdbus_.get(), adopt_message);
 }
 
-MethodCall Connection::createMethodCall( const std::string& destination
+MethodCall Connection::createMethodCall( const ServiceName& destination
                                        , const ObjectPath& objectPath
                                        , const std::string& interfaceName
                                        , const std::string& methodName ) const
@@ -615,7 +615,7 @@ void Connection::emitInterfacesRemovedSignal( const ObjectPath& objectPath
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit InterfacesRemoved signal", -r);
 }
 
-Slot Connection::registerSignalHandler( const std::string& sender
+Slot Connection::registerSignalHandler( const ServiceName& sender
                                       , const ObjectPath& objectPath
                                       , const std::string& interfaceName
                                       , const std::string& signalName
@@ -891,7 +891,7 @@ std::unique_ptr<sdbus::IConnection> createBusConnection()
     return std::make_unique<sdbus::internal::Connection>(std::move(interface), Connection::default_bus);
 }
 
-std::unique_ptr<sdbus::IConnection> createBusConnection(const std::string& name)
+std::unique_ptr<sdbus::IConnection> createBusConnection(const ServiceName& name)
 {
     auto conn = createBusConnection();
     conn->requestName(name);
@@ -904,7 +904,7 @@ std::unique_ptr<sdbus::IConnection> createSystemBusConnection()
     return std::make_unique<sdbus::internal::Connection>(std::move(interface), Connection::system_bus);
 }
 
-std::unique_ptr<sdbus::IConnection> createSystemBusConnection(const std::string& name)
+std::unique_ptr<sdbus::IConnection> createSystemBusConnection(const ServiceName& name)
 {
     auto conn = createSystemBusConnection();
     conn->requestName(name);
@@ -917,7 +917,7 @@ std::unique_ptr<sdbus::IConnection> createSessionBusConnection()
     return std::make_unique<sdbus::internal::Connection>(std::move(interface), Connection::session_bus);
 }
 
-std::unique_ptr<sdbus::IConnection> createSessionBusConnection(const std::string& name)
+std::unique_ptr<sdbus::IConnection> createSessionBusConnection(const ServiceName& name)
 {
     auto conn = createSessionBusConnection();
     conn->requestName(name);

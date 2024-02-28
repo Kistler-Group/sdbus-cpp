@@ -40,7 +40,7 @@ namespace sdbus { namespace test {
 class ObjectManagerTestProxy final : public sdbus::ProxyInterfaces< sdbus::ObjectManager_proxy >
 {
 public:
-    ObjectManagerTestProxy(sdbus::IConnection& connection, std::string destination, ObjectPath objectPath)
+    ObjectManagerTestProxy(sdbus::IConnection& connection, ServiceName destination, ObjectPath objectPath)
         : ProxyInterfaces(connection, std::move(destination), std::move(objectPath))
     {
         registerProxy();
@@ -74,9 +74,9 @@ class TestProxy final : public sdbus::ProxyInterfaces< org::sdbuscpp::integratio
                                                      , sdbus::Properties_proxy >
 {
 public:
-    TestProxy(std::string destination, ObjectPath objectPath);
-    TestProxy(std::string destination, ObjectPath objectPath, dont_run_event_loop_thread_t);
-    TestProxy(sdbus::IConnection& connection, std::string destination, ObjectPath objectPath);
+    TestProxy(ServiceName destination, ObjectPath objectPath);
+    TestProxy(ServiceName destination, ObjectPath objectPath, dont_run_event_loop_thread_t);
+    TestProxy(sdbus::IConnection& connection, ServiceName destination, ObjectPath objectPath);
     ~TestProxy();
 
 protected:
@@ -129,7 +129,7 @@ class DummyTestProxy final : public sdbus::ProxyInterfaces< org::sdbuscpp::integ
                                                           , sdbus::Properties_proxy >
 {
 public:
-    DummyTestProxy(std::string destination, ObjectPath objectPath)
+    DummyTestProxy(ServiceName destination, ObjectPath objectPath)
         : ProxyInterfaces(destination, objectPath)
     {
     }

@@ -154,9 +154,9 @@ namespace sdbus {
     /********************************************//**
      * @class ObjectPath
      *
-     * Representation of object path D-Bus type
+     * Strong type representing the D-Bus object path
      *
-     ***********************-************************/
+     ***********************************************/
     class ObjectPath : public std::string
     {
     public:
@@ -171,52 +171,48 @@ namespace sdbus {
         using std::string::operator=;
     };
 
+    /********************************************//**
+     * @class BusName
+     *
+     * Strong type representing the D-Bus bus/service/connection name
+     *
+     ***********************************************/
     class BusName : public std::string
     {
+    public:
         BusName() = default;
         explicit BusName(std::string value)
             : std::string(std::move(value))
         {}
+        explicit BusName(const char* value)
+            : std::string(value)
+        {}
 
-        using std::string::string;
         using std::string::operator=;
     };
 
+    using ServiceName = BusName;
+    using ConnectionName = BusName;
+
+    /********************************************//**
+     * @class InterfaceName
+     *
+     * Strong type representing the D-Bus interface name
+     *
+     ***********************************************/
     class InterfaceName : public std::string
     {
         InterfaceName() = default;
         explicit InterfaceName(std::string value)
             : std::string(std::move(value))
         {}
+        explicit InterfaceName(const char* value)
+            : std::string(value)
+        {}
 
         using std::string::string;
         using std::string::operator=;
     };
-
-//    struct ObjectPath
-//    {
-//        operator std::string() const
-//        {
-//            return path;
-//        }
-//
-//        std::string path;
-//    };
-
-//    struct BusName
-//    {
-//        explicit operator std::string() const
-//        {
-//            return name;
-//        }
-//
-//        std::string name;
-//    };
-//
-//    struct InterfaceName
-//    {
-//        std::string name;
-//    };
 
     /********************************************//**
      * @class Signature

@@ -46,13 +46,13 @@ namespace sdbus::internal {
     {
     public:
         Proxy( sdbus::internal::IConnection& connection
-             , std::string destination
+             , ServiceName destination
              , ObjectPath objectPath );
         Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
-             , std::string destination
+             , ServiceName destination
              , ObjectPath objectPath );
         Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
-             , std::string destination
+             , ServiceName destination
              , ObjectPath objectPath
              , dont_run_event_loop_thread_t );
 
@@ -85,7 +85,7 @@ namespace sdbus::internal {
         std::unique_ptr< sdbus::internal::IConnection
                        , std::function<void(sdbus::internal::IConnection*)>
                        > connection_;
-        std::string destination_;
+        ServiceName destination_;
         ObjectPath objectPath_;
 
         std::vector<Slot> floatingSignalSlots_;

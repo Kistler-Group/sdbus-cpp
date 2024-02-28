@@ -31,7 +31,7 @@
 
 namespace sdbus { namespace test {
 
-TestProxy::TestProxy(std::string destination, ObjectPath objectPath)
+TestProxy::TestProxy(ServiceName destination, ObjectPath objectPath)
     : ProxyInterfaces(std::move(destination), std::move(objectPath))
 {
     getProxy().uponSignal("signalWithoutRegistration").onInterface(sdbus::test::INTERFACE_NAME).call([this](const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& s){ this->onSignalWithoutRegistration(s); });
@@ -39,14 +39,14 @@ TestProxy::TestProxy(std::string destination, ObjectPath objectPath)
     registerProxy();
 }
 
-TestProxy::TestProxy(std::string destination, ObjectPath objectPath, dont_run_event_loop_thread_t)
+TestProxy::TestProxy(ServiceName destination, ObjectPath objectPath, dont_run_event_loop_thread_t)
     : ProxyInterfaces(std::move(destination), std::move(objectPath), dont_run_event_loop_thread)
 {
     // It doesn't make sense to register any signals here since proxy upon a D-Bus connection with no event loop thread
     // will not receive any incoming messages except replies to synchronous D-Bus calls.
 }
 
-TestProxy::TestProxy(sdbus::IConnection& connection, std::string destination, ObjectPath objectPath)
+TestProxy::TestProxy(sdbus::IConnection& connection, ServiceName destination, ObjectPath objectPath)
     : ProxyInterfaces(connection, std::move(destination), std::move(objectPath))
 {
     getProxy().uponSignal("signalWithoutRegistration").onInterface(sdbus::test::INTERFACE_NAME).call([this](const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& s){ this->onSignalWithoutRegistration(s); });
