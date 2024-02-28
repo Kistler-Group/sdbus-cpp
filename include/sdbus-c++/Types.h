@@ -202,6 +202,7 @@ namespace sdbus {
      ***********************************************/
     class InterfaceName : public std::string
     {
+    public:
         InterfaceName() = default;
         explicit InterfaceName(std::string value)
             : std::string(std::move(value))
@@ -210,7 +211,6 @@ namespace sdbus {
             : std::string(value)
         {}
 
-        using std::string::string;
         using std::string::operator=;
     };
 

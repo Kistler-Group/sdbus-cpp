@@ -82,7 +82,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        [[nodiscard]] virtual MethodCall createMethodCall(const std::string& interfaceName, const std::string& methodName) = 0;
+        [[nodiscard]] virtual MethodCall createMethodCall(const InterfaceName& interfaceName, const std::string& methodName) = 0;
 
         /*!
          * @brief Calls method on the remote D-Bus object
@@ -255,7 +255,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void registerSignalHandler( const std::string& interfaceName
+        virtual void registerSignalHandler( const InterfaceName& interfaceName
                                           , const std::string& signalName
                                           , signal_handler signalHandler ) = 0;
 
@@ -274,7 +274,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        [[nodiscard]] virtual Slot registerSignalHandler( const std::string& interfaceName
+        [[nodiscard]] virtual Slot registerSignalHandler( const InterfaceName& interfaceName
                                                         , const std::string& signalName
                                                         , signal_handler signalHandler
                                                         , return_slot_t ) = 0;

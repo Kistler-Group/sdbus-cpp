@@ -34,9 +34,9 @@
 
 namespace sdbus { namespace test {
 
-const std::string INTERFACE_NAME{"org.sdbuscpp.integrationtests"};
-const sdbus::ServiceName SERVICE_NAME{"org.sdbuscpp.integrationtests"};
-const sdbus::ServiceName EMPTY_DESTINATION;
+const InterfaceName INTERFACE_NAME{"org.sdbuscpp.integrationtests"};
+const ServiceName SERVICE_NAME{"org.sdbuscpp.integrationtests"};
+const ServiceName EMPTY_DESTINATION;
 const ObjectPath MANAGER_PATH {"/org/sdbuscpp/integrationtests"};
 const ObjectPath OBJECT_PATH  {"/org/sdbuscpp/integrationtests/ObjectA1"};
 const ObjectPath OBJECT_PATH_2{"/org/sdbuscpp/integrationtests/ObjectB1"};

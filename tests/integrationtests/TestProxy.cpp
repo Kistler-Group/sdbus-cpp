@@ -91,7 +91,7 @@ void TestProxy::onDoOperationReply(uint32_t returnValue, std::optional<sdbus::Er
         m_DoOperationClientSideAsyncReplyHandler(returnValue, error);
 }
 
-void TestProxy::onPropertiesChanged( const std::string& interfaceName
+void TestProxy::onPropertiesChanged( const sdbus::InterfaceName& interfaceName
                                    , const std::map<std::string, sdbus::Variant>& changedProperties
                                    , const std::vector<std::string>& invalidatedProperties )
 {
@@ -178,8 +178,9 @@ int32_t TestProxy::callNonexistentMethod()
 
 int32_t TestProxy::callMethodOnNonexistentInterface()
 {
+    sdbus::InterfaceName nonexistentInterfaceName{"sdbuscpp.interface.that.does.not.exist"};
     int32_t result;
-    getProxy().callMethod("someMethod").onInterface("sdbuscpp.interface.that.does.not.exist").storeResultsTo(result);
+    getProxy().callMethod("someMethod").onInterface(nonexistentInterfaceName).storeResultsTo(result);
     return result;
 }
 

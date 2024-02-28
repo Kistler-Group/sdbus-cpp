@@ -48,18 +48,18 @@ namespace sdbus::internal {
     public:
         Object(sdbus::internal::IConnection& connection, ObjectPath objectPath);
 
-        void addVTable(std::string interfaceName, std::vector<VTableItem> vtable) override;
-        Slot addVTable(std::string interfaceName, std::vector<VTableItem> vtable, return_slot_t) override;
+        void addVTable(InterfaceName interfaceName, std::vector<VTableItem> vtable) override;
+        Slot addVTable(InterfaceName interfaceName, std::vector<VTableItem> vtable, return_slot_t) override;
         void unregister() override;
 
-        sdbus::Signal createSignal(const std::string& interfaceName, const std::string& signalName) override;
+        sdbus::Signal createSignal(const InterfaceName& interfaceName, const std::string& signalName) override;
         void emitSignal(const sdbus::Signal& message) override;
-        void emitPropertiesChangedSignal(const std::string& interfaceName, const std::vector<std::string>& propNames) override;
-        void emitPropertiesChangedSignal(const std::string& interfaceName) override;
+        void emitPropertiesChangedSignal(const InterfaceName& interfaceName, const std::vector<std::string>& propNames) override;
+        void emitPropertiesChangedSignal(const InterfaceName& interfaceName) override;
         void emitInterfacesAddedSignal() override;
-        void emitInterfacesAddedSignal(const std::vector<std::string>& interfaces) override;
+        void emitInterfacesAddedSignal(const std::vector<InterfaceName>& interfaces) override;
         void emitInterfacesRemovedSignal() override;
-        void emitInterfacesRemovedSignal(const std::vector<std::string>& interfaces) override;
+        void emitInterfacesRemovedSignal(const std::vector<InterfaceName>& interfaces) override;
 
         void addObjectManager() override;
         void removeObjectManager() override;
@@ -75,7 +75,7 @@ namespace sdbus::internal {
         // An interface can have any number of vtables attached to it, not only one.
         struct VTable
         {
-            std::string interfaceName;
+            InterfaceName interfaceName;
             Flags interfaceFlags;
 
             struct MethodItem
@@ -122,7 +122,7 @@ namespace sdbus::internal {
             Slot slot;
         };
 
-        VTable createInternalVTable(std::string interfaceName, std::vector<VTableItem> vtable);
+        VTable createInternalVTable(InterfaceName interfaceName, std::vector<VTableItem> vtable);
         void writeInterfaceFlagsToVTable(InterfaceFlagsVTableItem flags, VTable& vtable);
         void writeMethodRecordToVTable(MethodVTableItem method, VTable& vtable);
         void writeSignalRecordToVTable(SignalVTableItem signal, VTable& vtable);

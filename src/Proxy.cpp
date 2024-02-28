@@ -83,7 +83,7 @@ Proxy::Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
     // This proxy is meant to be created, used for simple synchronous D-Bus call(s) and then dismissed.
 }
 
-MethodCall Proxy::createMethodCall(const std::string& interfaceName, const std::string& methodName)
+MethodCall Proxy::createMethodCall(const InterfaceName& interfaceName, const std::string& methodName)
 {
     return connection_->createMethodCall(destination_, objectPath_, interfaceName, methodName);
 }
@@ -134,7 +134,7 @@ std::future<MethodReply> Proxy::callMethodAsync(const MethodCall& message, uint6
     return future;
 }
 
-void Proxy::registerSignalHandler( const std::string& interfaceName
+void Proxy::registerSignalHandler( const InterfaceName& interfaceName
                                  , const std::string& signalName
                                  , signal_handler signalHandler )
 {
@@ -143,7 +143,7 @@ void Proxy::registerSignalHandler( const std::string& interfaceName
     floatingSignalSlots_.push_back(std::move(slot));
 }
 
-Slot Proxy::registerSignalHandler( const std::string& interfaceName
+Slot Proxy::registerSignalHandler( const InterfaceName& interfaceName
                                  , const std::string& signalName
                                  , signal_handler signalHandler
                                  , return_slot_t )

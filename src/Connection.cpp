@@ -458,7 +458,7 @@ void Connection::deleteSdEventSource(sd_event_source *s)
 #endif // SDBUS_basu
 
 Slot Connection::addObjectVTable( const ObjectPath& objectPath
-                                , const std::string& interfaceName
+                                , const InterfaceName& interfaceName
                                 , const sd_bus_vtable* vtable
                                 , void* userData )
 {
@@ -489,7 +489,7 @@ PlainMessage Connection::createPlainMessage() const
 
 MethodCall Connection::createMethodCall( const ServiceName& destination
                                        , const ObjectPath& objectPath
-                                       , const std::string& interfaceName
+                                       , const InterfaceName& interfaceName
                                        , const std::string& methodName ) const
 {
     sd_bus_message *sdbusMsg{};
@@ -507,7 +507,7 @@ MethodCall Connection::createMethodCall( const ServiceName& destination
 }
 
 Signal Connection::createSignal( const ObjectPath& objectPath
-                               , const std::string& interfaceName
+                               , const InterfaceName& interfaceName
                                , const std::string& signalName ) const
 {
     sd_bus_message *sdbusMsg{};
@@ -564,7 +564,7 @@ Slot Connection::callMethod(const MethodCall& message, void* callback, void* use
 }
 
 void Connection::emitPropertiesChangedSignal( const ObjectPath& objectPath
-                                            , const std::string& interfaceName
+                                            , const InterfaceName& interfaceName
                                             , const std::vector<std::string>& propNames )
 {
     auto names = to_strv(propNames);
@@ -585,7 +585,7 @@ void Connection::emitInterfacesAddedSignal(const ObjectPath& objectPath)
 }
 
 void Connection::emitInterfacesAddedSignal( const ObjectPath& objectPath
-                                          , const std::vector<std::string>& interfaces )
+                                          , const std::vector<InterfaceName>& interfaces )
 {
     auto names = to_strv(interfaces);
 
@@ -604,7 +604,7 @@ void Connection::emitInterfacesRemovedSignal(const ObjectPath& objectPath)
 }
 
 void Connection::emitInterfacesRemovedSignal( const ObjectPath& objectPath
-                                            , const std::vector<std::string>& interfaces )
+                                            , const std::vector<InterfaceName>& interfaces )
 {
     auto names = to_strv(interfaces);
 
@@ -617,7 +617,7 @@ void Connection::emitInterfacesRemovedSignal( const ObjectPath& objectPath
 
 Slot Connection::registerSignalHandler( const ServiceName& sender
                                       , const ObjectPath& objectPath
-                                      , const std::string& interfaceName
+                                      , const InterfaceName& interfaceName
                                       , const std::string& signalName
                                       , sd_bus_message_handler_t callback
                                       , void* userData )
@@ -778,7 +778,8 @@ Message Connection::getCurrentlyProcessedMessage() const
     return Message::Factory::create<Message>(sdbusMsg, sdbus_.get());
 }
 
-std::vector</*const */char*> Connection::to_strv(const std::vector<std::string>& strings)
+template <typename StringBasedType>
+std::vector</*const */char*> Connection::to_strv(const std::vector<StringBasedType>& strings)
 {
     std::vector</*const */char*> strv;
     for (auto& str : strings)

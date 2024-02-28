@@ -35,12 +35,14 @@
 #include <optional>
 #include <string>
 
+// Forward declarations
 struct sd_bus;
 struct sd_event;
 namespace sdbus {
-  class Message;
-  class BusName;
-  using ServiceName = BusName;
+    class Message;
+    class ObjectPath;
+    class BusName;
+    using ServiceName = BusName;
 }
 
 namespace sdbus {

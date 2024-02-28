@@ -289,7 +289,7 @@ void concatenate(sdbus::MethodCall call)
     reply.send();
 
     // Emit 'concatenated' signal
-    const char* interfaceName = "org.sdbuscpp.Concatenator";
+    sdbus::InterfaceName interfaceName{"org.sdbuscpp.Concatenator"};
     auto signal = g_concatenator->createSignal(interfaceName, "concatenated");
     signal << result;
     g_concatenator->emitSignal(signal);
@@ -308,7 +308,7 @@ int main(int argc, char *argv[])
     g_concatenator = concatenator.get();
 
     // Register D-Bus methods and signals on the concatenator object, and exports the object.
-    const char* interfaceName = "org.sdbuscpp.Concatenator";
+    sdbus::InterfaceName interfaceName{"org.sdbuscpp.Concatenator"};
     concatenator->addVTable( sdbus::MethodVTableItem{"concatenate", "ais", {}, "s", {}, &concatenate, {}}
                            , sdbus::SignalVTableItem{"concatenated", "s", {}, {}} )
                            .forInterface(interfaceName);
@@ -356,7 +356,7 @@ int main(int argc, char *argv[])
     auto concatenatorProxy = sdbus::createProxy(std::move(destination), std::move(objectPath));
 
     // Let's subscribe for the 'concatenated' signals
-    const char* interfaceName = "org.sdbuscpp.Concatenator";
+    sdbus::InterfaceName interfaceName{"org.sdbuscpp.Concatenator"};
     concatenatorProxy->registerSignalHandler(interfaceName, "concatenated", &onConcatenated);
 
     std::vector<int> numbers = {1, 2, 3};
@@ -525,14 +525,14 @@ int main(int argc, char *argv[])
         }
 
         // Emit 'concatenated' signal
-        const char* interfaceName = "org.sdbuscpp.Concatenator";
+        sdbus::InterfaceName interfaceName{"org.sdbuscpp.Concatenator"};
         concatenator->emitSignal("concatenated").onInterface(interfaceName).withArguments(result);
 
         return result;
     };
 
     // Register D-Bus methods and signals on the concatenator object, and exports the object.
-    const char* interfaceName = "org.sdbuscpp.Concatenator";
+    sdbus::InterfaceName interfaceName{"org.sdbuscpp.Concatenator"};
     concatenator->addVTable( sdbus::registerMethod("concatenate").implementedAs(std::move(concatenate))
                            , sdbus::registerSignal{"concatenated").withParameters<std::string>() )
                            .forInterface(interfaceName);
@@ -568,7 +568,7 @@ int main(int argc, char *argv[])
     auto concatenatorProxy = sdbus::createProxy(std::move(destination), std::move(objectPath));
 
     // Let's subscribe for the 'concatenated' signals
-    const char* interfaceName = "org.sdbuscpp.Concatenator";
+    sdbus::InterfaceName interfaceName{"org.sdbuscpp.Concatenator"};
     concatenatorProxy->uponSignal("concatenated").onInterface(interfaceName).call([](const std::string& str){ onConcatenated(str); });
 
     std::vector<int> numbers = {1, 2, 3};
@@ -713,7 +713,7 @@ namespace sdbuscpp {
 class Concatenator_adaptor
 {
 public:
-    static constexpr const char* INTERFACE_NAME = "org.sdbuscpp.Concatenator";
+    static inline const sdbus::InterfaceName INTERFACE_NAME{"org.sdbuscpp.Concatenator"};
 
 protected:
     Concatenator_adaptor(sdbus::IObject& object)
@@ -772,7 +772,7 @@ namespace sdbuscpp {
 class Concatenator_proxy
 {
 public:
-    static constexpr const char* INTERFACE_NAME = "org.sdbuscpp.Concatenator";
+    static inline const sdbus::InterfaceName INTERFACE_NAME{"org.sdbuscpp.Concatenator"};
 
 protected:
     Concatenator_proxy(sdbus::IProxy& proxy)
@@ -1035,7 +1035,7 @@ void concatenate(sdbus::MethodCall call)
         reply.send();
 
         // Emit 'concatenated' signal (creating and emitting signals is thread-safe)
-        const char* interfaceName = "org.sdbuscpp.Concatenator";
+        sdbus::InterfaceName interfaceName{"org.sdbuscpp.Concatenator"};
         auto signal = g_concatenator->createSignal(interfaceName, "concatenated");
         signal << result;
         g_concatenator->emitSignal(signal);

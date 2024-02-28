@@ -284,7 +284,8 @@ TYPED_TEST(SdbusTestObject, CanCallMethodSynchronouslyWithoutAnEventLoopThread)
 TYPED_TEST(SdbusTestObject, CanRegisterAdditionalVTableDynamicallyAtAnyTime)
 {
     auto& object = this->m_adaptor->getObject();
-    auto vtableSlot = object.addVTable( "org.sdbuscpp.integrationtests2"
+    sdbus::InterfaceName interfaceName{"org.sdbuscpp.integrationtests2"};
+    auto vtableSlot = object.addVTable( interfaceName
                                       , { sdbus::registerMethod("add").implementedAs([](const int64_t& a, const double& b){ return a + b; })
                                         , sdbus::registerMethod("subtract").implementedAs([](const int& a, const int& b){ return a - b; }) }
                                       , sdbus::return_slot );
@@ -292,7 +293,7 @@ TYPED_TEST(SdbusTestObject, CanRegisterAdditionalVTableDynamicallyAtAnyTime)
     // The new remote vtable is registered as long as we keep vtableSlot, so remote method calls now should pass
     auto proxy = sdbus::createProxy(SERVICE_NAME, OBJECT_PATH, sdbus::dont_run_event_loop_thread);
     int result{};
-    proxy->callMethod("subtract").onInterface("org.sdbuscpp.integrationtests2").withArguments(10, 2).storeResultsTo(result);
+    proxy->callMethod("subtract").onInterface(interfaceName).withArguments(10, 2).storeResultsTo(result);
 
     ASSERT_THAT(result, Eq(8));
 }
@@ -300,8 +301,9 @@ TYPED_TEST(SdbusTestObject, CanRegisterAdditionalVTableDynamicallyAtAnyTime)
 TYPED_TEST(SdbusTestObject, CanUnregisterAdditionallyRegisteredVTableAtAnyTime)
 {
     auto& object = this->m_adaptor->getObject();
+    sdbus::InterfaceName interfaceName{"org.sdbuscpp.integrationtests2"};
 
-    auto vtableSlot = object.addVTable( "org.sdbuscpp.integrationtests2"
+    auto vtableSlot = object.addVTable( interfaceName
                                       , { sdbus::registerMethod("add").implementedAs([](const int64_t& a, const double& b){ return a + b; })
                                         , sdbus::registerMethod("subtract").implementedAs([](const int& a, const int& b){ return a - b; }) }
                                       , sdbus::return_slot );
@@ -309,5 +311,5 @@ TYPED_TEST(SdbusTestObject, CanUnregisterAdditionallyRegisteredVTableAtAnyTime)
 
     // No such remote D-Bus method under given interface exists anymore...
     auto proxy = sdbus::createProxy(SERVICE_NAME, OBJECT_PATH, sdbus::dont_run_event_loop_thread);
-    ASSERT_THROW(proxy->callMethod("subtract").onInterface("org.sdbuscpp.integrationtests2").withArguments(10, 2), sdbus::Error);
+    ASSERT_THROW(proxy->callMethod("subtract").onInterface(interfaceName).withArguments(10, 2), sdbus::Error);
 }

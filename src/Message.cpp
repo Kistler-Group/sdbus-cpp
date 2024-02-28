@@ -602,10 +602,10 @@ void Message::rewind(bool complete)
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to rewind the message", -r);
 }
 
-std::string Message::getInterfaceName() const
+InterfaceName Message::getInterfaceName() const
 {
     const auto* interface = sd_bus_message_get_interface((sd_bus_message*)msg_);
-    return interface != nullptr ? interface : "";
+    return interface != nullptr ? InterfaceName{interface} : InterfaceName{};
 }
 
 std::string Message::getMemberName() const

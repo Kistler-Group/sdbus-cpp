@@ -90,7 +90,7 @@ namespace sdbus {
          */
         template < typename... VTableItems
                  , typename = std::enable_if_t<(is_one_of_variants_types<VTableItem, std::decay_t<VTableItems>> && ...)> >
-        void addVTable(std::string interfaceName, VTableItems&&... items);
+        void addVTable(InterfaceName interfaceName, VTableItems&&... items);
 
         /*!
          * @brief Adds a declaration of methods, properties and signals of the object at a given interface
@@ -115,7 +115,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void addVTable(std::string interfaceName, std::vector<VTableItem> vtable) = 0;
+        virtual void addVTable(InterfaceName interfaceName, std::vector<VTableItem> vtable) = 0;
 
         /*!
          * @brief Adds a declaration of methods, properties and signals of the object at a given interface
@@ -142,7 +142,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        [[nodiscard]] virtual Slot addVTable(std::string interfaceName, std::vector<VTableItem> vtable, return_slot_t) = 0;
+        [[nodiscard]] virtual Slot addVTable(InterfaceName interfaceName, std::vector<VTableItem> vtable, return_slot_t) = 0;
 
         /*!
          * @brief A little more convenient overload of addVTable() above
@@ -189,7 +189,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        [[nodiscard]] virtual Signal createSignal(const std::string& interfaceName, const std::string& signalName) = 0;
+        [[nodiscard]] virtual Signal createSignal(const InterfaceName& interfaceName, const std::string& signalName) = 0;
 
         /*!
          * @brief Emits signal for this object path
@@ -231,7 +231,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void emitPropertiesChangedSignal(const std::string& interfaceName, const std::vector<std::string>& propNames) = 0;
+        virtual void emitPropertiesChangedSignal(const InterfaceName& interfaceName, const std::vector<std::string>& propNames) = 0;
 
         /*!
          * @brief Emits PropertyChanged signal for all properties on a given interface of this object path
@@ -240,7 +240,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void emitPropertiesChangedSignal(const std::string& interfaceName) = 0;
+        virtual void emitPropertiesChangedSignal(const InterfaceName& interfaceName) = 0;
 
         /*!
          * @brief Emits InterfacesAdded signal on this object path
@@ -265,7 +265,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void emitInterfacesAddedSignal(const std::vector<std::string>& interfaces) = 0;
+        virtual void emitInterfacesAddedSignal(const std::vector<InterfaceName>& interfaces) = 0;
 
         /*!
          * @brief Emits InterfacesRemoved signal on this object path
@@ -287,7 +287,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void emitInterfacesRemovedSignal(const std::vector<std::string>& interfaces) = 0;
+        virtual void emitInterfacesRemovedSignal(const std::vector<InterfaceName>& interfaces) = 0;
 
         /*!
          * @brief Adds an ObjectManager interface at the path of this D-Bus object
@@ -349,7 +349,7 @@ namespace sdbus {
     }
 
     template <typename... VTableItems, typename>
-    void IObject::addVTable(std::string interfaceName, VTableItems&&... items)
+    void IObject::addVTable(InterfaceName interfaceName, VTableItems&&... items)
     {
         addVTable(std::move(interfaceName), {std::forward<VTableItems>(items)...});
     }

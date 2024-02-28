@@ -47,7 +47,7 @@ public:
 
     void handleExistingObjects()
     {
-        std::map<sdbus::ObjectPath, std::map<std::string, std::map<std::string, sdbus::Variant>>> objectsInterfacesAndProperties;
+        std::map<sdbus::ObjectPath, std::map<sdbus::InterfaceName, std::map<std::string, sdbus::Variant>>> objectsInterfacesAndProperties;
         objectsInterfacesAndProperties = GetManagedObjects();
         for (const auto& [object, interfacesAndProperties] : objectsInterfacesAndProperties) {
             onInterfacesAdded(object, interfacesAndProperties);
@@ -56,7 +56,7 @@ public:
 
 private:
     void onInterfacesAdded( const sdbus::ObjectPath& objectPath
-            , const std::map<std::string, std::map<std::string, sdbus::Variant>>& interfacesAndProperties) override
+                          , const std::map<sdbus::InterfaceName, std::map<std::string, sdbus::Variant>>& interfacesAndProperties) override
     {
         std::cout << objectPath << " added:\t";
         for (const auto& [interface, _] : interfacesAndProperties) {
@@ -78,7 +78,7 @@ private:
     }
 
     void onInterfacesRemoved( const sdbus::ObjectPath& objectPath
-            , const std::vector<std::string>& interfaces) override
+                            , const std::vector<sdbus::InterfaceName>& interfaces) override
     {
         std::cout << objectPath << " removed:\t";
         for (const auto& interface : interfaces) {

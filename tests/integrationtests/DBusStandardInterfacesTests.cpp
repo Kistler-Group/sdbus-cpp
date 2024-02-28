@@ -182,7 +182,7 @@ TYPED_TEST(SdbusTestObject, GetsAllPropertiesAsynchronouslyViaPropertiesInterfac
 TYPED_TEST(SdbusTestObject, EmitsPropertyChangedSignalForSelectedProperties)
 {
     std::atomic<bool> signalReceived{false};
-    this->m_proxy->m_onPropertiesChangedHandler = [&signalReceived]( const std::string& interfaceName
+    this->m_proxy->m_onPropertiesChangedHandler = [&signalReceived]( const sdbus::InterfaceName& interfaceName
                                                                    , const std::map<std::string, sdbus::Variant>& changedProperties
                                                                    , const std::vector<std::string>& /*invalidatedProperties*/ )
     {
@@ -202,7 +202,7 @@ TYPED_TEST(SdbusTestObject, EmitsPropertyChangedSignalForSelectedProperties)
 TYPED_TEST(SdbusTestObject, EmitsPropertyChangedSignalForAllProperties)
 {
     std::atomic<bool> signalReceived{false};
-    this->m_proxy->m_onPropertiesChangedHandler = [&signalReceived]( const std::string& interfaceName
+    this->m_proxy->m_onPropertiesChangedHandler = [&signalReceived]( const sdbus::InterfaceName& interfaceName
                                                                    , const std::map<std::string, sdbus::Variant>& changedProperties
                                                                    , const std::vector<std::string>& invalidatedProperties )
     {
@@ -245,7 +245,7 @@ TYPED_TEST(SdbusTestObject, EmitsInterfacesAddedSignalForSelectedObjectInterface
 {
     std::atomic<bool> signalReceived{false};
     this->m_objectManagerProxy->m_onInterfacesAddedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
-                                                                              , const std::map<std::string, std::map<std::string, sdbus::Variant>>& interfacesAndProperties )
+                                                                              , const std::map<sdbus::InterfaceName, std::map<std::string, sdbus::Variant>>& interfacesAndProperties )
     {
         EXPECT_THAT(objectPath, Eq(OBJECT_PATH));
         EXPECT_THAT(interfacesAndProperties, SizeIs(1));
@@ -276,7 +276,7 @@ TYPED_TEST(SdbusTestObject, EmitsInterfacesAddedSignalForAllObjectInterfaces)
 {
     std::atomic<bool> signalReceived{false};
     this->m_objectManagerProxy->m_onInterfacesAddedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
-                                                                              , const std::map<std::string, std::map<std::string, sdbus::Variant>>& interfacesAndProperties )
+                                                                              , const std::map<sdbus::InterfaceName, std::map<std::string, sdbus::Variant>>& interfacesAndProperties )
     {
         EXPECT_THAT(objectPath, Eq(OBJECT_PATH));
 #if LIBSYSTEMD_VERSION<=250
@@ -312,7 +312,7 @@ TYPED_TEST(SdbusTestObject, EmitsInterfacesRemovedSignalForSelectedObjectInterfa
 {
     std::atomic<bool> signalReceived{false};
     this->m_objectManagerProxy->m_onInterfacesRemovedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
-                                                                                , const std::vector<std::string>& interfaces )
+                                                                                , const std::vector<sdbus::InterfaceName>& interfaces )
     {
         EXPECT_THAT(objectPath, Eq(OBJECT_PATH));
         ASSERT_THAT(interfaces, SizeIs(1));
@@ -329,7 +329,7 @@ TYPED_TEST(SdbusTestObject, EmitsInterfacesRemovedSignalForAllObjectInterfaces)
 {
     std::atomic<bool> signalReceived{false};
     this->m_objectManagerProxy->m_onInterfacesRemovedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
-                                                                                , const std::vector<std::string>& interfaces )
+                                                                                , const std::vector<sdbus::InterfaceName>& interfaces )
     {
         EXPECT_THAT(objectPath, Eq(OBJECT_PATH));
 #if LIBSYSTEMD_VERSION<=250

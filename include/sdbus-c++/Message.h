@@ -51,6 +51,7 @@
 namespace sdbus {
     class Variant;
     class ObjectPath;
+    class InterfaceName;
     class Signature;
     template <typename... _ValueTypes> class Struct;
     class UnixFd;
@@ -179,7 +180,7 @@ namespace sdbus {
         explicit operator bool() const;
         void clearFlags();
 
-        std::string getInterfaceName() const;
+        InterfaceName getInterfaceName() const;
         std::string getMemberName() const;
         ConnectionName getSender() const;
         ObjectPath getPath() const;

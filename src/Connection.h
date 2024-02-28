@@ -41,7 +41,14 @@
 #include <thread>
 #include <vector>
 
+// Forward declarations
 struct sd_event_source;
+namespace sdbus {
+    class ObjectPath;
+    class InterfaceName;
+    class BusName;
+    using ServiceName = BusName;
+}
 
 namespace sdbus::internal {
 
@@ -110,17 +117,17 @@ namespace sdbus::internal {
         [[nodiscard]] ISdBus& getSdBusInterface() override;
 
         Slot addObjectVTable( const ObjectPath& objectPath
-                            , const std::string& interfaceName
+                            , const InterfaceName& interfaceName
                             , const sd_bus_vtable* vtable
                             , void* userData ) override;
 
         [[nodiscard]] PlainMessage createPlainMessage() const override;
         [[nodiscard]] MethodCall createMethodCall( const ServiceName& destination
                                                  , const ObjectPath& objectPath
-                                                 , const std::string& interfaceName
+                                                 , const InterfaceName& interfaceName
                                                  , const std::string& methodName ) const override;
         [[nodiscard]] Signal createSignal( const ObjectPath& objectPath
-                                         , const std::string& interfaceName
+                                         , const InterfaceName& interfaceName
                                          , const std::string& signalName ) const override;
 
         MethodReply callMethod(const MethodCall& message, uint64_t timeout) override;
@@ -128,18 +135,18 @@ namespace sdbus::internal {
         Slot callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout) override;
 
         void emitPropertiesChangedSignal( const ObjectPath& objectPath
-                                        , const std::string& interfaceName
+                                        , const InterfaceName& interfaceName
                                         , const std::vector<std::string>& propNames ) override;
         void emitInterfacesAddedSignal(const ObjectPath& objectPath) override;
         void emitInterfacesAddedSignal( const ObjectPath& objectPath
-                                      , const std::vector<std::string>& interfaces ) override;
+                                      , const std::vector<InterfaceName>& interfaces ) override;
         void emitInterfacesRemovedSignal(const ObjectPath& objectPath) override;
         void emitInterfacesRemovedSignal( const ObjectPath& objectPath
-                                        , const std::vector<std::string>& interfaces ) override;
+                                        , const std::vector<InterfaceName>& interfaces ) override;
 
         Slot registerSignalHandler( const ServiceName& sender
                                   , const ObjectPath& objectPath
-                                  , const std::string& interfaceName
+                                  , const InterfaceName& interfaceName
                                   , const std::string& signalName
                                   , sd_bus_message_handler_t callback
                                   , void* userData ) override;
@@ -161,7 +168,8 @@ namespace sdbus::internal {
         void wakeUpEventLoopIfMessagesInQueue();
         void joinWithEventLoop();
 
-        static std::vector</*const */char*> to_strv(const std::vector<std::string>& strings);
+        template <typename StringBasedType>
+        static std::vector</*const */char*> to_strv(const std::vector<StringBasedType>& strings);
 
         static int sdbus_match_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
         static int sdbus_match_install_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);

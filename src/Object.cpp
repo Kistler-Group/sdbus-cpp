@@ -49,14 +49,14 @@ Object::Object(sdbus::internal::IConnection& connection, ObjectPath objectPath)
     SDBUS_CHECK_OBJECT_PATH(objectPath_);
 }
 
-void Object::addVTable(std::string interfaceName, std::vector<VTableItem> vtable)
+void Object::addVTable(InterfaceName interfaceName, std::vector<VTableItem> vtable)
 {
     auto slot = Object::addVTable(std::move(interfaceName), std::move(vtable), return_slot);
 
     vtables_.push_back(std::move(slot));
 }
 
-Slot Object::addVTable(std::string interfaceName, std::vector<VTableItem> vtable, return_slot_t)
+Slot Object::addVTable(InterfaceName interfaceName, std::vector<VTableItem> vtable, return_slot_t)
 {
     SDBUS_CHECK_INTERFACE_NAME(interfaceName);
 
@@ -79,7 +79,7 @@ void Object::unregister()
     removeObjectManager();
 }
 
-sdbus::Signal Object::createSignal(const std::string& interfaceName, const std::string& signalName)
+sdbus::Signal Object::createSignal(const InterfaceName& interfaceName, const std::string& signalName)
 {
     return connection_.createSignal(objectPath_, interfaceName, signalName);
 }
@@ -91,12 +91,12 @@ void Object::emitSignal(const sdbus::Signal& message)
     message.send();
 }
 
-void Object::emitPropertiesChangedSignal(const std::string& interfaceName, const std::vector<std::string>& propNames)
+void Object::emitPropertiesChangedSignal(const InterfaceName& interfaceName, const std::vector<std::string>& propNames)
 {
     connection_.emitPropertiesChangedSignal(objectPath_, interfaceName, propNames);
 }
 
-void Object::emitPropertiesChangedSignal(const std::string& interfaceName)
+void Object::emitPropertiesChangedSignal(const InterfaceName& interfaceName)
 {
     Object::emitPropertiesChangedSignal(interfaceName, {});
 }
@@ -106,7 +106,7 @@ void Object::emitInterfacesAddedSignal()
     connection_.emitInterfacesAddedSignal(objectPath_);
 }
 
-void Object::emitInterfacesAddedSignal(const std::vector<std::string>& interfaces)
+void Object::emitInterfacesAddedSignal(const std::vector<InterfaceName>& interfaces)
 {
     connection_.emitInterfacesAddedSignal(objectPath_, interfaces);
 }
@@ -116,7 +116,7 @@ void Object::emitInterfacesRemovedSignal()
     connection_.emitInterfacesRemovedSignal(objectPath_);
 }
 
-void Object::emitInterfacesRemovedSignal(const std::vector<std::string>& interfaces)
+void Object::emitInterfacesRemovedSignal(const std::vector<InterfaceName>& interfaces)
 {
     connection_.emitInterfacesRemovedSignal(objectPath_, interfaces);
 }
@@ -151,7 +151,7 @@ Message Object::getCurrentlyProcessedMessage() const
     return connection_.getCurrentlyProcessedMessage();
 }
 
-Object::VTable Object::createInternalVTable(std::string interfaceName, std::vector<VTableItem> vtable)
+Object::VTable Object::createInternalVTable(InterfaceName interfaceName, std::vector<VTableItem> vtable)
 {
     VTable internalVTable;
 
