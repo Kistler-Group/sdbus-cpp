@@ -78,6 +78,7 @@ namespace
     TYPE(sdbus::Struct<uint16_t, double, std::string, sdbus::Variant>)HAS_DBUS_TYPE_SIGNATURE("(qdsv)")
     TYPE(std::vector<int16_t>)HAS_DBUS_TYPE_SIGNATURE("an")
     TYPE(std::array<int16_t, 3>)HAS_DBUS_TYPE_SIGNATURE("an")
+    TYPE(std::variant<int16_t, std::string>)HAS_DBUS_TYPE_SIGNATURE("v")
 #if __cplusplus >= 202002L
     TYPE(std::span<int16_t>)HAS_DBUS_TYPE_SIGNATURE("ao")
 #endif
@@ -124,6 +125,7 @@ namespace
                             , sdbus::Struct<uint16_t, double, std::string, sdbus::Variant>
                             , std::vector<int16_t>
                             , std::array<int16_t, 3>
+                            , std::variant<int16_t, std::string>
 #if __cplusplus >= 202002L
                             , std::span<int16_t>
 #endif

@@ -483,3 +483,39 @@ TEST(AMessage, CanCarryDBusStructGivenAsCustomType)
 
     ASSERT_THAT(dataRead, Eq(dataWritten));
 }
+
+class AMessageVariant: public ::testing::TestWithParam<std::variant<int32_t, std::string, my::Struct>>
+{
+};
+
+TEST_P(AMessageVariant, CanCarryDBusVariantGivenAsStdVariant)
+{
+    auto msg = sdbus::createPlainMessage();
+
+    const std::variant<int32_t, std::string, my::Struct> dataWritten{GetParam()};
+
+    msg << dataWritten;
+    msg.seal();
+
+    std::variant<int32_t, std::string, my::Struct> dataRead;
+    msg >> dataRead;
+
+    ASSERT_THAT(dataRead, Eq(dataWritten));
+}
+
+TEST_P(AMessageVariant, ThrowsWhenDestinationStdVariantHasWrongTypeDuringDeserialization)
+{
+    auto msg = sdbus::createPlainMessage();
+
+    const std::variant<int32_t, std::string, my::Struct> dataWritten{GetParam()};
+
+    msg << dataWritten;
+    msg.seal();
+
+    std::variant<std::vector<bool>> dataRead;
+    ASSERT_THROW(msg >> dataRead, sdbus::Error);
+}
+
+INSTANTIATE_TEST_SUITE_P(StringIntStruct,
+                         AMessageVariant,
+                         ::testing::Values("hello"s, 1, my::Struct {}));

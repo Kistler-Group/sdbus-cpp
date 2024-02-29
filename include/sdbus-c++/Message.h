@@ -96,6 +96,9 @@ namespace sdbus {
         Message& operator<<(const std::vector<_Element, _Allocator>& items);
         template <typename _Element, std::size_t _Size>
         Message& operator<<(const std::array<_Element, _Size>& items);
+
+        template <typename ...Elements>
+        Message& operator<<(const std::variant<Elements...>& value);
 #if __cplusplus >= 202002L
         template <typename _Element, std::size_t _Extent>
         Message& operator<<(const std::span<_Element, _Extent>& items);
@@ -128,6 +131,8 @@ namespace sdbus {
         Message& operator>>(std::vector<_Element, _Allocator>& items);
         template <typename _Element, std::size_t _Size>
         Message& operator>>(std::array<_Element, _Size>& items);
+        template <typename ...Elements>
+        Message& operator>>(std::variant<Elements...>& value);
 #if __cplusplus >= 202002L
         template <typename _Element, std::size_t _Extent>
         Message& operator>>(std::span<_Element, _Extent>& items);
@@ -322,6 +327,18 @@ namespace sdbus {
         return *this;
     }
 
+    template <typename ...Elements>
+    inline Message& Message::operator<<(const std::variant<Elements...>& value)
+    {
+        std::visit([this](const auto& inner){
+            openVariant(signature_of<decltype(inner)>::str());
+            *this << inner;
+            closeVariant();
+        }, value);
+
+        return *this;
+    }
+
 #if __cplusplus >= 202002L
     template <typename _Element, std::size_t _Extent>
     inline Message& Message::operator<<(const std::span<_Element, _Extent>& items)
@@ -444,6 +461,42 @@ namespace sdbus {
     {
         deserializeArray(items);
 
+        return *this;
+    }
+
+    namespace detail
+    {
+        template <typename Variant>
+        void deserializeStdVariant(const Message& /*msg*/, const std::string& /*signature*/, const Variant& /*value*/)
+        {
+            SDBUS_THROW_ERROR("Failed to deserialize variant: signature did not match any of the variant types", EINVAL);
+        }
+
+        template <typename Variant, typename Element, typename ...Elements>
+        void deserializeStdVariant(Message& msg, const std::string& signature, Variant& value)
+        {
+            if (signature == signature_of<Element>::str())
+            {
+                Element temp;
+                msg.enterVariant(signature);
+                msg >> temp;
+                msg.exitVariant();
+                value = std::move(temp);
+            }
+            else
+            {
+                deserializeStdVariant<Variant, Elements...>(msg, signature, value);
+            }
+        }
+    }
+
+    template <typename ...Elements>
+    inline Message& Message::operator>>(std::variant<Elements...>& value)
+    {
+        std::string type;
+        std::string contentType;
+        peekType(type, contentType);
+        detail::deserializeStdVariant<std::variant<Elements...>, Elements...>(*this, contentType, value);
         return *this;
     }
 
