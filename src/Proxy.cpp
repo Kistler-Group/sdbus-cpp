@@ -83,7 +83,7 @@ Proxy::Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
     // This proxy is meant to be created, used for simple synchronous D-Bus call(s) and then dismissed.
 }
 
-MethodCall Proxy::createMethodCall(const InterfaceName& interfaceName, const std::string& methodName)
+MethodCall Proxy::createMethodCall(const InterfaceName& interfaceName, const MethodName& methodName)
 {
     return connection_->createMethodCall(destination_, objectPath_, interfaceName, methodName);
 }

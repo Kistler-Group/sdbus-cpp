@@ -82,7 +82,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        [[nodiscard]] virtual MethodCall createMethodCall(const InterfaceName& interfaceName, const std::string& methodName) = 0;
+        [[nodiscard]] virtual MethodCall createMethodCall(const InterfaceName& interfaceName, const MethodName& methodName) = 0;
 
         /*!
          * @brief Calls method on the remote D-Bus object
@@ -212,12 +212,59 @@ namespace sdbus {
          * Example of use:
          * @code
          * int result, a = ..., b = ...;
+         * MethodName multiply{"multiply"};
+         * object_.callMethod(multiply).onInterface(INTERFACE_NAME).withArguments(a, b).storeResultsTo(result);
+         * @endcode
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] MethodInvoker callMethod(const MethodName& methodName);
+
+        /*!
+         * @brief Calls method on the D-Bus object
+         *
+         * @param[in] methodName Name of the method
+         * @return A helper object for convenient invocation of the method
+         *
+         * This is a high-level, convenience way of calling D-Bus methods that abstracts
+         * from the D-Bus message concept. Method arguments/return value are automatically (de)serialized
+         * in a message and D-Bus signatures automatically deduced from the provided native arguments
+         * and return values.
+         *
+         * Example of use:
+         * @code
+         * int result, a = ..., b = ...;
          * object_.callMethod("multiply").onInterface(INTERFACE_NAME).withArguments(a, b).storeResultsTo(result);
          * @endcode
          *
          * @throws sdbus::Error in case of failure
          */
         [[nodiscard]] MethodInvoker callMethod(const std::string& methodName);
+
+        /*!
+         * @brief Calls method on the D-Bus object asynchronously
+         *
+         * @param[in] methodName Name of the method
+         * @return A helper object for convenient asynchronous invocation of the method
+         *
+         * This is a high-level, convenience way of calling D-Bus methods that abstracts
+         * from the D-Bus message concept. Method arguments/return value are automatically (de)serialized
+         * in a message and D-Bus signatures automatically deduced from the provided native arguments
+         * and return values.
+         *
+         * Example of use:
+         * @code
+         * int a = ..., b = ...;
+         * MethodName multiply{"multiply"};
+         * object_.callMethodAsync(multiply).onInterface(INTERFACE_NAME).withArguments(a, b).uponReplyInvoke([](int result)
+         * {
+         *     std::cout << "Got result of multiplying " << a << " and " << b << ": " << result << std::endl;
+         * });
+         * @endcode
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] AsyncMethodInvoker callMethodAsync(const MethodName& methodName);
 
         /*!
          * @brief Calls method on the D-Bus object asynchronously
@@ -526,14 +573,28 @@ namespace sdbus {
         return callMethodAsync(message, microsecs.count(), with_future);
     }
 
-    inline MethodInvoker IProxy::callMethod(const std::string& methodName)
+    inline MethodInvoker IProxy::callMethod(const MethodName& methodName)
     {
         return MethodInvoker(*this, methodName);
     }
 
-    inline AsyncMethodInvoker IProxy::callMethodAsync(const std::string& methodName)
+    inline MethodInvoker IProxy::callMethod(const std::string& methodName)
+    {
+        // Down-cast through static cast for performance reasons (no extra copy and object construction needed)
+        static_assert(sizeof(methodName) == sizeof(MethodName));
+        return callMethod(static_cast<const MethodName&>(methodName));
+    }
+
+    inline AsyncMethodInvoker IProxy::callMethodAsync(const MethodName& methodName)
     {
         return AsyncMethodInvoker(*this, methodName);
+    }
+
+    inline AsyncMethodInvoker IProxy::callMethodAsync(const std::string& methodName)
+    {
+        // Down-cast through static cast for performance reasons (no extra copy and object construction needed)
+        static_assert(sizeof(methodName) == sizeof(MethodName));
+        return callMethodAsync(static_cast<const MethodName&>(methodName));
     }
 
     inline SignalSubscriber IProxy::uponSignal(const std::string& signalName)

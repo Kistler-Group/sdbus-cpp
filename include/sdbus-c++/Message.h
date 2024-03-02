@@ -52,6 +52,7 @@ namespace sdbus {
     class Variant;
     class ObjectPath;
     class InterfaceName;
+    class MemberName;
     class Signature;
     template <typename... _ValueTypes> class Struct;
     class UnixFd;
@@ -181,7 +182,7 @@ namespace sdbus {
         void clearFlags();
 
         InterfaceName getInterfaceName() const;
-        std::string getMemberName() const;
+        MemberName getMemberName() const;
         ConnectionName getSender() const;
         ObjectPath getPath() const;
         ConnectionName getDestination() const;

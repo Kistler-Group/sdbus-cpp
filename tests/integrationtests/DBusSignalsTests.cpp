@@ -123,7 +123,7 @@ TYPED_TEST(SdbusTestObject, CanAccessAssociatedSignalMessageInSignalHandler)
     waitUntil(this->m_proxy->m_gotSimpleSignal);
 
     ASSERT_THAT(this->m_proxy->m_signalMsg, NotNull());
-    ASSERT_THAT(this->m_proxy->m_signalMemberName, Eq("simpleSignal"));
+    ASSERT_THAT(this->m_proxy->m_signalName, Eq(std::string("simpleSignal")));
 }
 
 TYPED_TEST(SdbusTestObject, UnregistersSignalHandler)

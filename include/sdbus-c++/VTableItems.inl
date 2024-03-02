@@ -125,9 +125,14 @@ namespace sdbus {
         return *this;
     }
 
-    inline MethodVTableItem registerMethod(std::string methodName)
+    inline MethodVTableItem registerMethod(MethodName methodName)
     {
         return {std::move(methodName), {}, {}, {}, {}, {}, {}};
+    }
+
+    inline MethodVTableItem registerMethod(std::string methodName)
+    {
+        return registerMethod(MethodName{std::move(methodName)});
     }
 
     /*** -------------------- ***/

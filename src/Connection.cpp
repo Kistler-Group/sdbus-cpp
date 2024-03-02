@@ -490,7 +490,7 @@ PlainMessage Connection::createPlainMessage() const
 MethodCall Connection::createMethodCall( const ServiceName& destination
                                        , const ObjectPath& objectPath
                                        , const InterfaceName& interfaceName
-                                       , const std::string& methodName ) const
+                                       , const MethodName& methodName ) const
 {
     sd_bus_message *sdbusMsg{};
 

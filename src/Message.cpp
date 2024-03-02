@@ -608,10 +608,10 @@ InterfaceName Message::getInterfaceName() const
     return interface != nullptr ? InterfaceName{interface} : InterfaceName{};
 }
 
-std::string Message::getMemberName() const
+MemberName Message::getMemberName() const
 {
     const auto* member = sd_bus_message_get_member((sd_bus_message*)msg_);
-    return member != nullptr ? member : "";
+    return member != nullptr ? MemberName{member} : MemberName{};
 }
 
 ConnectionName Message::getSender() const

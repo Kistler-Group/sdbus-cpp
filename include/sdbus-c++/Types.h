@@ -215,6 +215,30 @@ namespace sdbus {
     };
 
     /********************************************//**
+     * @class MemberName
+     *
+     * Strong type representing the D-Bus member name
+     *
+     ***********************************************/
+    class MemberName : public std::string
+    {
+    public:
+        MemberName() = default;
+        explicit MemberName(std::string value)
+                : std::string(std::move(value))
+        {}
+        explicit MemberName(const char* value)
+                : std::string(value)
+        {}
+
+        using std::string::operator=;
+    };
+
+    using MethodName = MemberName;
+    using SignalName = MemberName;
+    using PropertyName = MemberName;
+
+    /********************************************//**
      * @class Signature
      *
      * Representation of Signature D-Bus type

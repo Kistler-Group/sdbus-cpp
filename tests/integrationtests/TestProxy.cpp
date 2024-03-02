@@ -62,7 +62,7 @@ TestProxy::~TestProxy()
 void TestProxy::onSimpleSignal()
 {
     m_signalMsg = std::make_unique<sdbus::Message>(getProxy().getCurrentlyProcessedMessage());
-    m_signalMemberName = m_signalMsg->getMemberName();
+    m_signalName = m_signalMsg->getMemberName();
 
     m_gotSimpleSignal = true;
 }
@@ -133,7 +133,7 @@ std::future<uint32_t> TestProxy::doOperationClientSideAsync(uint32_t param, with
 
 std::future<MethodReply> TestProxy::doOperationClientSideAsyncOnBasicAPILevel(uint32_t param)
 {
-    auto methodCall = getProxy().createMethodCall(sdbus::test::INTERFACE_NAME, "doOperation");
+    auto methodCall = getProxy().createMethodCall(sdbus::test::INTERFACE_NAME, sdbus::MethodName{"doOperation"});
     methodCall << param;
 
     return getProxy().callMethodAsync(methodCall, sdbus::with_future);

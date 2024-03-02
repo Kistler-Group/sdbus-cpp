@@ -48,6 +48,8 @@ namespace sdbus {
     class InterfaceName;
     class BusName;
     using ServiceName = BusName;
+    class MemberName;
+    using MethodName = MemberName;
 }
 
 namespace sdbus::internal {
@@ -125,7 +127,7 @@ namespace sdbus::internal {
         [[nodiscard]] MethodCall createMethodCall( const ServiceName& destination
                                                  , const ObjectPath& objectPath
                                                  , const InterfaceName& interfaceName
-                                                 , const std::string& methodName ) const override;
+                                                 , const MethodName& methodName ) const override;
         [[nodiscard]] Signal createSignal( const ObjectPath& objectPath
                                          , const InterfaceName& interfaceName
                                          , const std::string& signalName ) const override;

@@ -278,7 +278,7 @@ void Object::finalizeSdBusVTable(std::vector<sd_bus_vtable>& vtable)
     vtable.push_back(createSdBusVTableEndItem());
 }
 
-const Object::VTable::MethodItem* Object::findMethod(const VTable& vtable, const std::string& methodName)
+const Object::VTable::MethodItem* Object::findMethod(const VTable& vtable, const MethodName& methodName)
 {
     auto it = std::lower_bound(vtable.methods.begin(), vtable.methods.end(), methodName, [](const auto& methodItem, const auto& methodName)
     {

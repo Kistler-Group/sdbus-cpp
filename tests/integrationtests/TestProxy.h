@@ -120,7 +120,7 @@ public: // for tests
     std::function<void(const sdbus::InterfaceName&, const std::map<std::string, sdbus::Variant>&, const std::vector<std::string>&)> m_onPropertiesChangedHandler;
 
     std::unique_ptr<const Message> m_signalMsg;
-    std::string m_signalMemberName;
+    SignalName m_signalName;
 };
 
 class DummyTestProxy final : public sdbus::ProxyInterfaces< org::sdbuscpp::integrationtests_proxy

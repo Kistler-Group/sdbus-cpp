@@ -47,6 +47,8 @@ namespace sdbus {
     class InterfaceName;
     class BusName;
     using ServiceName = BusName;
+    class MemberName;
+    using MethodName = MemberName;
     namespace internal {
         class ISdBus;
     }
@@ -72,7 +74,7 @@ namespace sdbus::internal {
         [[nodiscard]] virtual MethodCall createMethodCall( const ServiceName& destination
                                                          , const ObjectPath& objectPath
                                                          , const InterfaceName& interfaceName
-                                                         , const std::string& methodName ) const = 0;
+                                                         , const MethodName& methodName ) const = 0;
         [[nodiscard]] virtual Signal createSignal( const ObjectPath& objectPath
                                                  , const InterfaceName& interfaceName
                                                  , const std::string& signalName ) const = 0;

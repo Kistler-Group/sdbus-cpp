@@ -128,7 +128,7 @@ namespace sdbus {
     /*** MethodInvoker ***/
     /*** ------------- ***/
 
-    inline MethodInvoker::MethodInvoker(IProxy& proxy, const std::string& methodName)
+    inline MethodInvoker::MethodInvoker(IProxy& proxy, const MethodName& methodName)
         : proxy_(proxy)
         , methodName_(methodName)
         , exceptions_(std::uncaught_exceptions())
@@ -214,7 +214,7 @@ namespace sdbus {
     /*** AsyncMethodInvoker ***/
     /*** ------------------ ***/
 
-    inline AsyncMethodInvoker::AsyncMethodInvoker(IProxy& proxy, const std::string& methodName)
+    inline AsyncMethodInvoker::AsyncMethodInvoker(IProxy& proxy, const MethodName& methodName)
         : proxy_(proxy)
         , methodName_(methodName)
     {

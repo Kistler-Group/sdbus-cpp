@@ -362,9 +362,10 @@ int main(int argc, char *argv[])
     std::vector<int> numbers = {1, 2, 3};
     std::string separator = ":";
 
+    MethodName concatenate{"concatenate"};
     // Invoke concatenate on given interface of the object
     {
-        auto method = concatenatorProxy->createMethodCall(interfaceName, "concatenate");
+        auto method = concatenatorProxy->createMethodCall(interfaceName, concatenate);
         method << numbers << separator;
         auto reply = concatenatorProxy->callMethod(method);
         std::string result;
@@ -374,7 +375,7 @@ int main(int argc, char *argv[])
 
 /    // Invoke concatenate again, this time with no numbers and we shall get an error
     {
-        auto method = concatenatorProxy->createMethodCall(interfaceName, "concatenate");
+        auto method = concatenatorProxy->createMethodCall(interfaceName, concatenate);
         method << std::vector<int>() << separator;
         try
         {
@@ -1145,7 +1146,7 @@ int main(int argc, char *argv[])
 
     // Invoke concatenate on given interface of the object
     {
-        auto method = concatenatorProxy->createMethodCall(interfaceName, "concatenate");
+        auto method = concatenatorProxy->createMethodCall(interfaceName, concatenate);
         method << numbers << separator;
         concatenatorProxy->callMethod(method, callback);
         // When the reply comes, we shall get "Got concatenate result 1:2:3" on the standard output
@@ -1153,7 +1154,7 @@ int main(int argc, char *argv[])
 
     // Invoke concatenate again, this time with no numbers and we shall get an error
     {
-        auto method = concatenatorProxy->createMethodCall(interfaceName, "concatenate");
+        auto method = concatenatorProxy->createMethodCall(interfaceName, concatenate);
         method << std::vector<int>() << separator;
         concatenatorProxy->callMethod(method, callback);
         // When the reply comes, we shall get concatenation error message on the standard error output
@@ -1175,7 +1176,7 @@ Another option is to use `std::future`-based overload of the `IProxy::callMethod
     ...
     // Invoke concatenate on given interface of the object
     {
-        auto method = concatenatorProxy->createMethodCall(interfaceName, "concatenate");
+        auto method = concatenatorProxy->createMethodCall(interfaceName, concatenate);
         method << numbers << separator;
         auto future = concatenatorProxy->callMethod(method, sdbus::with_future);
         try

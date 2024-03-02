@@ -83,7 +83,7 @@ namespace sdbus {
     class MethodInvoker
     {
     public:
-        MethodInvoker(IProxy& proxy, const std::string& methodName);
+        MethodInvoker(IProxy& proxy, const MethodName& methodName);
         MethodInvoker(MethodInvoker&& other) = default;
         ~MethodInvoker() noexcept(false);
 
@@ -99,7 +99,7 @@ namespace sdbus {
 
     private:
         IProxy& proxy_;
-        const std::string& methodName_;
+        const MethodName& methodName_;
         uint64_t timeout_{};
         MethodCall method_;
         int exceptions_{}; // Number of active exceptions when MethodInvoker is constructed
@@ -109,7 +109,7 @@ namespace sdbus {
     class AsyncMethodInvoker
     {
     public:
-        AsyncMethodInvoker(IProxy& proxy, const std::string& methodName);
+        AsyncMethodInvoker(IProxy& proxy, const MethodName& methodName);
         AsyncMethodInvoker& onInterface(const InterfaceName& interfaceName);
         AsyncMethodInvoker& onInterface(const std::string& interfaceName);
         AsyncMethodInvoker& withTimeout(uint64_t usec);
@@ -124,7 +124,7 @@ namespace sdbus {
 
     private:
         IProxy& proxy_;
-        const std::string& methodName_;
+        const MethodName& methodName_;
         uint64_t timeout_{};
         MethodCall method_;
     };

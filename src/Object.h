@@ -80,7 +80,7 @@ namespace sdbus::internal {
 
             struct MethodItem
             {
-                std::string name;
+                MethodName name;
                 std::string inputArgs;
                 std::string outputArgs;
                 std::string paramNames;
@@ -135,7 +135,7 @@ namespace sdbus::internal {
         static void writePropertyRecordToSdBusVTable(const VTable::PropertyItem& property, std::vector<sd_bus_vtable>& vtable);
         static void finalizeSdBusVTable(std::vector<sd_bus_vtable>& vtable);
 
-        static const VTable::MethodItem* findMethod(const VTable& vtable, const std::string& methodName);
+        static const VTable::MethodItem* findMethod(const VTable& vtable, const MethodName& methodName);
         static const VTable::PropertyItem* findProperty(const VTable& vtable, const std::string& propertyName);
 
         static std::string paramNamesToString(const std::vector<std::string>& paramNames);

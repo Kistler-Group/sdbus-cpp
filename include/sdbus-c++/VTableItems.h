@@ -46,7 +46,7 @@ namespace sdbus {
         MethodVTableItem& markAsPrivileged();
         MethodVTableItem& withNoReply();
 
-        std::string name;
+        MethodName name;
         std::string inputSignature;
         std::vector<std::string> inputParamNames;
         std::string outputSignature;
@@ -55,6 +55,7 @@ namespace sdbus {
         Flags flags;
     };
 
+    MethodVTableItem registerMethod(MethodName methodName);
     MethodVTableItem registerMethod(std::string methodName);
 
     struct SignalVTableItem
