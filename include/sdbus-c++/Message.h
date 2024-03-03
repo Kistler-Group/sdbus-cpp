@@ -103,7 +103,6 @@ namespace sdbus {
         Message& operator<<(const ObjectPath &item);
         Message& operator<<(const Signature &item);
         Message& operator<<(const UnixFd &item);
-
         template <typename _Element, typename _Allocator>
         Message& operator<<(const std::vector<_Element, _Allocator>& items);
         template <typename _Element, std::size_t _Size>

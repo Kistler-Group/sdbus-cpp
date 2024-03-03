@@ -37,6 +37,7 @@
 #include <list>
 #include <memory>
 #include <string>
+#include <string_view>
 #include SDBUS_HEADER
 #include <vector>
 
@@ -52,9 +53,9 @@ namespace sdbus::internal {
         Slot addVTable(InterfaceName interfaceName, std::vector<VTableItem> vtable, return_slot_t) override;
         void unregister() override;
 
-        sdbus::Signal createSignal(const InterfaceName& interfaceName, const std::string& signalName) override;
+        sdbus::Signal createSignal(const InterfaceName& interfaceName, const SignalName& signalName) override;
         void emitSignal(const sdbus::Signal& message) override;
-        void emitPropertiesChangedSignal(const InterfaceName& interfaceName, const std::vector<std::string>& propNames) override;
+        void emitPropertiesChangedSignal(const InterfaceName& interfaceName, const std::vector<PropertyName>& propNames) override;
         void emitPropertiesChangedSignal(const InterfaceName& interfaceName) override;
         void emitInterfacesAddedSignal() override;
         void emitInterfacesAddedSignal(const std::vector<InterfaceName>& interfaces) override;
@@ -92,7 +93,7 @@ namespace sdbus::internal {
 
             struct SignalItem
             {
-                std::string name;
+                SignalName name;
                 std::string signature;
                 std::string paramNames;
                 Flags flags;
@@ -102,7 +103,7 @@ namespace sdbus::internal {
 
             struct PropertyItem
             {
-                std::string name;
+                PropertyName name;
                 std::string signature;
                 property_get_callback getCallback;
                 property_set_callback setCallback;
@@ -135,8 +136,8 @@ namespace sdbus::internal {
         static void writePropertyRecordToSdBusVTable(const VTable::PropertyItem& property, std::vector<sd_bus_vtable>& vtable);
         static void finalizeSdBusVTable(std::vector<sd_bus_vtable>& vtable);
 
-        static const VTable::MethodItem* findMethod(const VTable& vtable, const MethodName& methodName);
-        static const VTable::PropertyItem* findProperty(const VTable& vtable, const std::string& propertyName);
+        static const VTable::MethodItem* findMethod(const VTable& vtable, std::string_view methodName);
+        static const VTable::PropertyItem* findProperty(const VTable& vtable, std::string_view propertyName);
 
         static std::string paramNamesToString(const std::vector<std::string>& paramNames);
 

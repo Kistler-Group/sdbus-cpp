@@ -171,9 +171,14 @@ namespace sdbus {
         return *this;
     }
 
-    inline SignalVTableItem registerSignal(std::string signalName)
+    inline SignalVTableItem registerSignal(SignalName signalName)
     {
         return {std::move(signalName), {}, {}, {}};
+    }
+
+    inline SignalVTableItem registerSignal(std::string signalName)
+    {
+        return registerSignal(SignalName{std::move(signalName)});
     }
 
     /*** -------------------- ***/
@@ -244,9 +249,14 @@ namespace sdbus {
         return *this;
     }
 
-    inline PropertyVTableItem registerProperty(std::string propertyName)
+    inline PropertyVTableItem registerProperty(PropertyName propertyName)
     {
         return {std::move(propertyName), {}, {}, {}, {}};
+    }
+
+    inline PropertyVTableItem registerProperty(std::string propertyName)
+    {
+        return registerProperty(PropertyName{std::move(propertyName)});
     }
 
     /*** --------------------------- ***/

@@ -508,7 +508,7 @@ MethodCall Connection::createMethodCall( const ServiceName& destination
 
 Signal Connection::createSignal( const ObjectPath& objectPath
                                , const InterfaceName& interfaceName
-                               , const std::string& signalName ) const
+                               , const SignalName& signalName ) const
 {
     sd_bus_message *sdbusMsg{};
 
@@ -565,7 +565,7 @@ Slot Connection::callMethod(const MethodCall& message, void* callback, void* use
 
 void Connection::emitPropertiesChangedSignal( const ObjectPath& objectPath
                                             , const InterfaceName& interfaceName
-                                            , const std::vector<std::string>& propNames )
+                                            , const std::vector<PropertyName>& propNames )
 {
     auto names = to_strv(propNames);
 
@@ -618,7 +618,7 @@ void Connection::emitInterfacesRemovedSignal( const ObjectPath& objectPath
 Slot Connection::registerSignalHandler( const ServiceName& sender
                                       , const ObjectPath& objectPath
                                       , const InterfaceName& interfaceName
-                                      , const std::string& signalName
+                                      , const SignalName& signalName
                                       , sd_bus_message_handler_t callback
                                       , void* userData )
 {

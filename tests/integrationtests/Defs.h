@@ -40,6 +40,9 @@ const ServiceName EMPTY_DESTINATION;
 const ObjectPath MANAGER_PATH {"/org/sdbuscpp/integrationtests"};
 const ObjectPath OBJECT_PATH  {"/org/sdbuscpp/integrationtests/ObjectA1"};
 const ObjectPath OBJECT_PATH_2{"/org/sdbuscpp/integrationtests/ObjectB1"};
+const PropertyName STATE_PROPERTY{"state"};
+const PropertyName ACTION_PROPERTY{"action"};
+const PropertyName BLOCKING_PROPERTY{"blocking"};
 const std::string DIRECT_CONNECTION_SOCKET_PATH{std::filesystem::temp_directory_path() / "sdbus-cpp-direct-connection-test"};
 
 constexpr const uint8_t UINT8_VALUE{1};

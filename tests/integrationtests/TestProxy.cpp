@@ -92,8 +92,8 @@ void TestProxy::onDoOperationReply(uint32_t returnValue, std::optional<sdbus::Er
 }
 
 void TestProxy::onPropertiesChanged( const sdbus::InterfaceName& interfaceName
-                                   , const std::map<std::string, sdbus::Variant>& changedProperties
-                                   , const std::vector<std::string>& invalidatedProperties )
+                                   , const std::map<PropertyName, sdbus::Variant>& changedProperties
+                                   , const std::vector<PropertyName>& invalidatedProperties )
 {
     if (m_onPropertiesChangedHandler)
         m_onPropertiesChangedHandler(interfaceName, changedProperties, invalidatedProperties);

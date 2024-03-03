@@ -66,7 +66,7 @@ namespace sdbus {
     class SignalEmitter
     {
     public:
-        SignalEmitter(IObject& object, const std::string& signalName);
+        SignalEmitter(IObject& object, const SignalName& signalName);
         SignalEmitter(SignalEmitter&& other) = default;
         ~SignalEmitter() noexcept(false);
         SignalEmitter& onInterface(const InterfaceName& interfaceName);
@@ -75,7 +75,7 @@ namespace sdbus {
 
     private:
         IObject& object_;
-        const std::string& signalName_;
+        const SignalName& signalName_;
         Signal signal_;
         int exceptions_{}; // Number of active exceptions when SignalEmitter is constructed
     };
@@ -132,7 +132,7 @@ namespace sdbus {
     class SignalSubscriber
     {
     public:
-        SignalSubscriber(IProxy& proxy, const std::string& signalName);
+        SignalSubscriber(IProxy& proxy, const SignalName& signalName);
         SignalSubscriber& onInterface(InterfaceName interfaceName);
         SignalSubscriber& onInterface(std::string interfaceName);
         template <typename _Function> void call(_Function&& callback);
@@ -143,14 +143,14 @@ namespace sdbus {
 
     private:
         IProxy& proxy_;
-        const std::string& signalName_;
+        const SignalName& signalName_;
         InterfaceName interfaceName_;
     };
 
     class PropertyGetter
     {
     public:
-        PropertyGetter(IProxy& proxy, const std::string& propertyName);
+        PropertyGetter(IProxy& proxy, const PropertyName& propertyName);
         Variant onInterface(const InterfaceName& interfaceName);
         Variant onInterface(const std::string& interfaceName);
 
@@ -159,13 +159,13 @@ namespace sdbus {
 
     private:
         IProxy& proxy_;
-        const std::string& propertyName_;
+        const PropertyName& propertyName_;
     };
 
     class AsyncPropertyGetter
     {
     public:
-        AsyncPropertyGetter(IProxy& proxy, const std::string& propertyName);
+        AsyncPropertyGetter(IProxy& proxy, const PropertyName& propertyName);
         AsyncPropertyGetter& onInterface(const InterfaceName& interfaceName);
         AsyncPropertyGetter& onInterface(const std::string& interfaceName);
         template <typename _Function> PendingAsyncCall uponReplyInvoke(_Function&& callback);
@@ -176,14 +176,14 @@ namespace sdbus {
 
     private:
         IProxy& proxy_;
-        const std::string& propertyName_;
+        const PropertyName& propertyName_;
         const InterfaceName* interfaceName_{};
     };
 
     class PropertySetter
     {
     public:
-        PropertySetter(IProxy& proxy, const std::string& propertyName);
+        PropertySetter(IProxy& proxy, const PropertyName& propertyName);
         PropertySetter& onInterface(const InterfaceName& interfaceName);
         PropertySetter& onInterface(const std::string& interfaceName);
         template <typename _Value> void toValue(const _Value& value);
@@ -196,14 +196,14 @@ namespace sdbus {
 
     private:
         IProxy& proxy_;
-        const std::string& propertyName_;
+        const PropertyName& propertyName_;
         const InterfaceName* interfaceName_{};
     };
 
     class AsyncPropertySetter
     {
     public:
-        AsyncPropertySetter(IProxy& proxy, const std::string& propertyName);
+        AsyncPropertySetter(IProxy& proxy, const PropertyName& propertyName);
         AsyncPropertySetter& onInterface(const InterfaceName& interfaceName);
         AsyncPropertySetter& onInterface(const std::string& interfaceName);
         template <typename _Value> AsyncPropertySetter& toValue(_Value&& value);
@@ -216,7 +216,7 @@ namespace sdbus {
 
     private:
         IProxy& proxy_;
-        const std::string& propertyName_;
+        const PropertyName& propertyName_;
         const InterfaceName* interfaceName_{};
         Variant value_;
     };
@@ -225,8 +225,8 @@ namespace sdbus {
     {
     public:
         AllPropertiesGetter(IProxy& proxy);
-        std::map<std::string, Variant> onInterface(const InterfaceName& interfaceName);
-        std::map<std::string, Variant> onInterface(const std::string& interfaceName);
+        std::map<PropertyName, Variant> onInterface(const InterfaceName& interfaceName);
+        std::map<PropertyName, Variant> onInterface(const std::string& interfaceName);
 
     private:
         static inline const InterfaceName DBUS_PROPERTIES_INTERFACE_NAME{"org.freedesktop.DBus.Properties"};
@@ -242,7 +242,7 @@ namespace sdbus {
         AsyncAllPropertiesGetter& onInterface(const InterfaceName& interfaceName);
         AsyncAllPropertiesGetter& onInterface(const std::string& interfaceName);
         template <typename _Function> PendingAsyncCall uponReplyInvoke(_Function&& callback);
-        std::future<std::map<std::string, Variant>> getResultAsFuture();
+        std::future<std::map<PropertyName, Variant>> getResultAsFuture();
 
     private:
         static inline const InterfaceName DBUS_PROPERTIES_INTERFACE_NAME{"org.freedesktop.DBus.Properties"};

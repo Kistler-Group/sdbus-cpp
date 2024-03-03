@@ -50,6 +50,8 @@ namespace sdbus {
     using ServiceName = BusName;
     class MemberName;
     using MethodName = MemberName;
+    using SignalName = MemberName;
+    using PropertyName = MemberName;
 }
 
 namespace sdbus::internal {
@@ -130,7 +132,7 @@ namespace sdbus::internal {
                                                  , const MethodName& methodName ) const override;
         [[nodiscard]] Signal createSignal( const ObjectPath& objectPath
                                          , const InterfaceName& interfaceName
-                                         , const std::string& signalName ) const override;
+                                         , const SignalName& signalName ) const override;
 
         MethodReply callMethod(const MethodCall& message, uint64_t timeout) override;
         void callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout, floating_slot_t) override;
@@ -138,7 +140,7 @@ namespace sdbus::internal {
 
         void emitPropertiesChangedSignal( const ObjectPath& objectPath
                                         , const InterfaceName& interfaceName
-                                        , const std::vector<std::string>& propNames ) override;
+                                        , const std::vector<PropertyName>& propNames ) override;
         void emitInterfacesAddedSignal(const ObjectPath& objectPath) override;
         void emitInterfacesAddedSignal( const ObjectPath& objectPath
                                       , const std::vector<InterfaceName>& interfaces ) override;
@@ -149,7 +151,7 @@ namespace sdbus::internal {
         Slot registerSignalHandler( const ServiceName& sender
                                   , const ObjectPath& objectPath
                                   , const InterfaceName& interfaceName
-                                  , const std::string& signalName
+                                  , const SignalName& signalName
                                   , sd_bus_message_handler_t callback
                                   , void* userData ) override;
 

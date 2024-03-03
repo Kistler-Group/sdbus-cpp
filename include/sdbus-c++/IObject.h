@@ -189,7 +189,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        [[nodiscard]] virtual Signal createSignal(const InterfaceName& interfaceName, const std::string& signalName) = 0;
+        [[nodiscard]] virtual Signal createSignal(const InterfaceName& interfaceName, const SignalName& signalName) = 0;
 
         /*!
          * @brief Emits signal for this object path
@@ -201,6 +201,28 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         virtual void emitSignal(const sdbus::Signal& message) = 0;
+
+        /*!
+         * @brief Emits signal on D-Bus
+         *
+         * @param[in] signalName Name of the signal
+         * @return A helper object for convenient emission of signals
+         *
+         * This is a high-level, convenience way of emitting D-Bus signals that abstracts
+         * from the D-Bus message concept. Signal arguments are automatically serialized
+         * in a message and D-Bus signatures automatically deduced from the provided native arguments.
+         *
+         * Example of use:
+         * @code
+         * int arg1 = ...;
+         * double arg2 = ...;
+         * SignalName fooSignal{"fooSignal"};
+         * object_.emitSignal(fooSignal).onInterface("com.kistler.foo").withArguments(arg1, arg2);
+         * @endcode
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] SignalEmitter emitSignal(const SignalName& signalName);
 
         /*!
          * @brief Emits signal on D-Bus
@@ -231,7 +253,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void emitPropertiesChangedSignal(const InterfaceName& interfaceName, const std::vector<std::string>& propNames) = 0;
+        virtual void emitPropertiesChangedSignal(const InterfaceName& interfaceName, const std::vector<PropertyName>& propNames) = 0;
 
         /*!
          * @brief Emits PropertyChanged signal for all properties on a given interface of this object path
@@ -343,9 +365,16 @@ namespace sdbus {
 
     // Out-of-line member definitions
 
-    inline SignalEmitter IObject::emitSignal(const std::string& signalName)
+    inline SignalEmitter IObject::emitSignal(const SignalName& signalName)
     {
         return SignalEmitter(*this, signalName);
+    }
+
+    inline SignalEmitter IObject::emitSignal(const std::string& signalName)
+    {
+        // Down-cast through static cast for performance reasons (no extra copy and object construction needed)
+        static_assert(sizeof(signalName) == sizeof(SignalName));
+        return emitSignal(static_cast<const SignalName&>(signalName));
     }
 
     template <typename... VTableItems, typename>

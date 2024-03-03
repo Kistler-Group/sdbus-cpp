@@ -63,10 +63,10 @@ namespace sdbus::internal {
         std::future<MethodReply> callMethodAsync(const MethodCall& message, uint64_t timeout, with_future_t) override;
 
         void registerSignalHandler( const InterfaceName& interfaceName
-                                  , const std::string& signalName
+                                  , const SignalName& signalName
                                   , signal_handler signalHandler ) override;
         Slot registerSignalHandler( const InterfaceName& interfaceName
-                                  , const std::string& signalName
+                                  , const SignalName& signalName
                                   , signal_handler signalHandler
                                   , return_slot_t ) override;
         void unregister() override;

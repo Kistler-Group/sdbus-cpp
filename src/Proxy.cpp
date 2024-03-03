@@ -135,7 +135,7 @@ std::future<MethodReply> Proxy::callMethodAsync(const MethodCall& message, uint6
 }
 
 void Proxy::registerSignalHandler( const InterfaceName& interfaceName
-                                 , const std::string& signalName
+                                 , const SignalName& signalName
                                  , signal_handler signalHandler )
 {
     auto slot = Proxy::registerSignalHandler(interfaceName, signalName, std::move(signalHandler), return_slot);
@@ -144,7 +144,7 @@ void Proxy::registerSignalHandler( const InterfaceName& interfaceName
 }
 
 Slot Proxy::registerSignalHandler( const InterfaceName& interfaceName
-                                 , const std::string& signalName
+                                 , const SignalName& signalName
                                  , signal_handler signalHandler
                                  , return_slot_t )
 {

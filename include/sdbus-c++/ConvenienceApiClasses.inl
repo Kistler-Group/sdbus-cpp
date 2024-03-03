@@ -77,7 +77,7 @@ namespace sdbus {
     /*** SignalEmitter ***/
     /*** ------------- ***/
 
-    inline SignalEmitter::SignalEmitter(IObject& object, const std::string& signalName)
+    inline SignalEmitter::SignalEmitter(IObject& object, const SignalName& signalName)
         : object_(object)
         , signalName_(signalName)
         , exceptions_(std::uncaught_exceptions())
@@ -319,7 +319,7 @@ namespace sdbus {
     /*** SignalSubscriber ***/
     /*** ---------------- ***/
 
-    inline SignalSubscriber::SignalSubscriber(IProxy& proxy, const std::string& signalName)
+    inline SignalSubscriber::SignalSubscriber(IProxy& proxy, const SignalName& signalName)
         : proxy_(proxy)
         , signalName_(signalName)
     {
@@ -404,7 +404,7 @@ namespace sdbus {
     /*** PropertyGetter ***/
     /*** -------------- ***/
 
-    inline PropertyGetter::PropertyGetter(IProxy& proxy, const std::string& propertyName)
+    inline PropertyGetter::PropertyGetter(IProxy& proxy, const PropertyName& propertyName)
         : proxy_(proxy)
         , propertyName_(propertyName)
     {
@@ -431,7 +431,7 @@ namespace sdbus {
     /*** AsyncPropertyGetter ***/
     /*** ------------------- ***/
 
-    inline AsyncPropertyGetter::AsyncPropertyGetter(IProxy& proxy, const std::string& propertyName)
+    inline AsyncPropertyGetter::AsyncPropertyGetter(IProxy& proxy, const PropertyName& propertyName)
             : proxy_(proxy)
             , propertyName_(propertyName)
     {
@@ -478,7 +478,7 @@ namespace sdbus {
     /*** PropertySetter ***/
     /*** -------------- ***/
 
-    inline PropertySetter::PropertySetter(IProxy& proxy, const std::string& propertyName)
+    inline PropertySetter::PropertySetter(IProxy& proxy, const PropertyName& propertyName)
         : proxy_(proxy)
         , propertyName_(propertyName)
     {
@@ -533,7 +533,7 @@ namespace sdbus {
     /*** AsyncPropertySetter ***/
     /*** ------------------- ***/
 
-    inline AsyncPropertySetter::AsyncPropertySetter(IProxy& proxy, const std::string& propertyName)
+    inline AsyncPropertySetter::AsyncPropertySetter(IProxy& proxy, const PropertyName& propertyName)
             : proxy_(proxy)
             , propertyName_(propertyName)
     {
@@ -598,9 +598,9 @@ namespace sdbus {
     {
     }
 
-    inline std::map<std::string, Variant> AllPropertiesGetter::onInterface(const InterfaceName& interfaceName)
+    inline std::map<PropertyName, Variant> AllPropertiesGetter::onInterface(const InterfaceName& interfaceName)
     {
-        std::map<std::string, Variant> props;
+        std::map<PropertyName, Variant> props;
         proxy_.callMethod("GetAll")
                 .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
                 .withArguments(interfaceName)
@@ -608,7 +608,7 @@ namespace sdbus {
         return props;
     }
 
-    inline std::map<std::string, Variant> AllPropertiesGetter::onInterface(const std::string& interfaceName)
+    inline std::map<PropertyName, Variant> AllPropertiesGetter::onInterface(const std::string& interfaceName)
     {
         // Down-cast through static cast for performance reasons (no extra copy and object construction needed)
         static_assert(sizeof(interfaceName) == sizeof(InterfaceName));
@@ -641,8 +641,8 @@ namespace sdbus {
     template <typename _Function>
     PendingAsyncCall AsyncAllPropertiesGetter::uponReplyInvoke(_Function&& callback)
     {
-        static_assert( std::is_invocable_r_v<void, _Function, std::optional<Error>, std::map<std::string, Variant>>
-                     , "All properties get callback function must accept std::optional<Error< and a map of property names to their values" );
+        static_assert( std::is_invocable_r_v<void, _Function, std::optional<Error>, std::map<PropertyName, Variant>>
+                     , "All properties get callback function must accept std::optional<Error> and a map of property names to their values" );
 
         assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
 
@@ -652,14 +652,14 @@ namespace sdbus {
                      .uponReplyInvoke(std::forward<_Function>(callback));
     }
 
-    inline std::future<std::map<std::string, Variant>> AsyncAllPropertiesGetter::getResultAsFuture()
+    inline std::future<std::map<PropertyName, Variant>> AsyncAllPropertiesGetter::getResultAsFuture()
     {
         assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
 
         return proxy_.callMethodAsync("GetAll")
                      .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
                      .withArguments(*interfaceName_)
-                     .getResultAsFuture<std::map<std::string, Variant>>();
+                     .getResultAsFuture<std::map<PropertyName, Variant>>();
     }
 
 } // namespace sdbus

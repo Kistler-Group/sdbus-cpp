@@ -247,7 +247,7 @@ TYPED_TEST(SdbusTestObject, CanAccessAssociatedMethodCallMessageInMethodCallHand
     this->m_proxy->doOperation(10); // This will save pointer to method call message on server side
 
     ASSERT_THAT(this->m_adaptor->m_methodCallMsg, NotNull());
-    ASSERT_THAT(this->m_adaptor->m_methodName, Eq("doOperation")); // TODO: Fix this
+    ASSERT_THAT(this->m_adaptor->m_methodName, Eq("doOperation"));
 }
 
 TYPED_TEST(SdbusTestObject, CanAccessAssociatedMethodCallMessageInAsyncMethodCallHandler)

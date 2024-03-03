@@ -47,8 +47,7 @@ public:
 
     void handleExistingObjects()
     {
-        std::map<sdbus::ObjectPath, std::map<sdbus::InterfaceName, std::map<std::string, sdbus::Variant>>> objectsInterfacesAndProperties;
-        objectsInterfacesAndProperties = GetManagedObjects();
+        auto objectsInterfacesAndProperties = GetManagedObjects();
         for (const auto& [object, interfacesAndProperties] : objectsInterfacesAndProperties) {
             onInterfacesAdded(object, interfacesAndProperties);
         }
@@ -56,7 +55,7 @@ public:
 
 private:
     void onInterfacesAdded( const sdbus::ObjectPath& objectPath
-                          , const std::map<sdbus::InterfaceName, std::map<std::string, sdbus::Variant>>& interfacesAndProperties) override
+                          , const std::map<sdbus::InterfaceName, std::map<sdbus::PropertyName, sdbus::Variant>>& interfacesAndProperties) override
     {
         std::cout << objectPath << " added:\t";
         for (const auto& [interface, _] : interfacesAndProperties) {
@@ -71,7 +70,7 @@ private:
         }
         const auto& properties = planetInterface->second;
         // get a property which was passed as part of the signal.
-        const auto& name = properties.at("Name").get<std::string>();
+        const auto& name = properties.at(sdbus::PropertyName{"Name"}).get<std::string>();
         // or create a proxy instance to the newly added object.
         PlanetProxy planet(m_connection, m_destination, objectPath);
         std::cout << name << " has a population of " << planet.GetPopulation() << ".\n" << std::endl;

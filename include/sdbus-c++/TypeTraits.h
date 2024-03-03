@@ -54,7 +54,9 @@ namespace sdbus {
     class ObjectPath;
     class Signature;
     class UnixFd;
+    class BusName;
     class InterfaceName;
+    class MemberName;
     class MethodCall;
     class MethodReply;
     class Signal;
@@ -308,7 +310,17 @@ namespace sdbus {
     };
 
     template <>
+    struct signature_of<BusName> : signature_of<std::string>
+    {
+    };
+
+    template <>
     struct signature_of<InterfaceName> : signature_of<std::string>
+    {
+    };
+
+    template <>
+    struct signature_of<MemberName> : signature_of<std::string>
     {
     };
 

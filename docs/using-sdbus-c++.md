@@ -290,7 +290,8 @@ void concatenate(sdbus::MethodCall call)
 
     // Emit 'concatenated' signal
     sdbus::InterfaceName interfaceName{"org.sdbuscpp.Concatenator"};
-    auto signal = g_concatenator->createSignal(interfaceName, "concatenated");
+    sdbus::SignalName signalName{"concatenated"};
+    auto signal = g_concatenator->createSignal(interfaceName, signalName);
     signal << result;
     g_concatenator->emitSignal(signal);
 }
@@ -357,7 +358,8 @@ int main(int argc, char *argv[])
 
     // Let's subscribe for the 'concatenated' signals
     sdbus::InterfaceName interfaceName{"org.sdbuscpp.Concatenator"};
-    concatenatorProxy->registerSignalHandler(interfaceName, "concatenated", &onConcatenated);
+    sdbus::SignalName signalName{"concatenated"};
+    concatenatorProxy->registerSignalHandler(interfaceName, signalName, &onConcatenated);
 
     std::vector<int> numbers = {1, 2, 3};
     std::string separator = ":";
@@ -526,17 +528,15 @@ int main(int argc, char *argv[])
         }
 
         // Emit 'concatenated' signal
-        sdbus::InterfaceName interfaceName{"org.sdbuscpp.Concatenator"};
-        concatenator->emitSignal("concatenated").onInterface(interfaceName).withArguments(result);
+        concatenator->emitSignal("concatenated").onInterface("org.sdbuscpp.Concatenator").withArguments(result);
 
         return result;
     };
 
     // Register D-Bus methods and signals on the concatenator object, and exports the object.
-    sdbus::InterfaceName interfaceName{"org.sdbuscpp.Concatenator"};
     concatenator->addVTable( sdbus::registerMethod("concatenate").implementedAs(std::move(concatenate))
                            , sdbus::registerSignal{"concatenated").withParameters<std::string>() )
-                           .forInterface(interfaceName);
+                           .forInterface("org.sdbuscpp.Concatenator");
 
     // Run the loop on the connection.
     connection->enterEventLoop();
@@ -1037,7 +1037,8 @@ void concatenate(sdbus::MethodCall call)
 
         // Emit 'concatenated' signal (creating and emitting signals is thread-safe)
         sdbus::InterfaceName interfaceName{"org.sdbuscpp.Concatenator"};
-        auto signal = g_concatenator->createSignal(interfaceName, "concatenated");
+        sdbus::SignalName signalName{"concatenated"};
+        auto signal = g_concatenator->createSignal(interfaceName, signalName);
         signal << result;
         g_concatenator->emitSignal(signal);
     }).detach();

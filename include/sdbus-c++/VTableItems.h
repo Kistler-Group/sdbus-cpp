@@ -65,12 +65,13 @@ namespace sdbus {
         template <typename... _Args, typename... _String> SignalVTableItem& withParameters(_String... names);
         SignalVTableItem& markAsDeprecated();
 
-        std::string name;
+        SignalName name;
         std::string signature;
         std::vector<std::string> paramNames;
         Flags flags;
     };
 
+    SignalVTableItem registerSignal(SignalName signalName);
     SignalVTableItem registerSignal(std::string signalName);
 
     struct PropertyVTableItem
@@ -81,13 +82,14 @@ namespace sdbus {
         PropertyVTableItem& markAsPrivileged();
         PropertyVTableItem& withUpdateBehavior(Flags::PropertyUpdateBehaviorFlags behavior);
 
-        std::string name;
+        PropertyName name;
         std::string signature;
         property_get_callback getter;
         property_set_callback setter;
         Flags flags;
     };
 
+    PropertyVTableItem registerProperty(PropertyName propertyName);
     PropertyVTableItem registerProperty(std::string propertyName);
 
     struct InterfaceFlagsVTableItem

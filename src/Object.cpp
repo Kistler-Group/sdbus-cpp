@@ -79,7 +79,7 @@ void Object::unregister()
     removeObjectManager();
 }
 
-sdbus::Signal Object::createSignal(const InterfaceName& interfaceName, const std::string& signalName)
+sdbus::Signal Object::createSignal(const InterfaceName& interfaceName, const SignalName& signalName)
 {
     return connection_.createSignal(objectPath_, interfaceName, signalName);
 }
@@ -91,7 +91,7 @@ void Object::emitSignal(const sdbus::Signal& message)
     message.send();
 }
 
-void Object::emitPropertiesChangedSignal(const InterfaceName& interfaceName, const std::vector<std::string>& propNames)
+void Object::emitPropertiesChangedSignal(const InterfaceName& interfaceName, const std::vector<PropertyName>& propNames)
 {
     connection_.emitPropertiesChangedSignal(objectPath_, interfaceName, propNames);
 }
@@ -278,22 +278,26 @@ void Object::finalizeSdBusVTable(std::vector<sd_bus_vtable>& vtable)
     vtable.push_back(createSdBusVTableEndItem());
 }
 
-const Object::VTable::MethodItem* Object::findMethod(const VTable& vtable, const MethodName& methodName)
+const Object::VTable::MethodItem* Object::findMethod(const VTable& vtable, std::string_view methodName)
 {
     auto it = std::lower_bound(vtable.methods.begin(), vtable.methods.end(), methodName, [](const auto& methodItem, const auto& methodName)
     {
         return methodItem.name < methodName;
     });
 
+    (void)it;
+
     return it != vtable.methods.end() && it->name == methodName ? &*it : nullptr;
 }
 
-const Object::VTable::PropertyItem* Object::findProperty(const VTable& vtable, const std::string& propertyName)
+const Object::VTable::PropertyItem* Object::findProperty(const VTable& vtable, std::string_view propertyName)
 {
     auto it = std::lower_bound(vtable.properties.begin(), vtable.properties.end(), propertyName, [](const auto& propertyItem, const auto& propertyName)
     {
         return propertyItem.name < propertyName;
     });
+
+    (void)it;
 
     return it != vtable.properties.end() && it->name == propertyName ? &*it : nullptr;
 }
@@ -314,7 +318,7 @@ int Object::sdbus_method_callback(sd_bus_message *sdbusMessage, void *userData, 
 
     auto message = Message::Factory::create<MethodCall>(sdbusMessage, &vtable->object->connection_.getSdBusInterface());
 
-    const auto* methodItem = findMethod(*vtable, message.getMemberName());
+    const auto* methodItem = findMethod(*vtable, message.getMemberName()); // TODO: optimize the situation around getMemberName()
     assert(methodItem != nullptr);
     assert(methodItem->callback);
 

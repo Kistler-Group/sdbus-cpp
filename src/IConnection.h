@@ -49,6 +49,8 @@ namespace sdbus {
     using ServiceName = BusName;
     class MemberName;
     using MethodName = MemberName;
+    using SignalName = MemberName;
+    using PropertyName = MemberName;
     namespace internal {
         class ISdBus;
     }
@@ -77,7 +79,7 @@ namespace sdbus::internal {
                                                          , const MethodName& methodName ) const = 0;
         [[nodiscard]] virtual Signal createSignal( const ObjectPath& objectPath
                                                  , const InterfaceName& interfaceName
-                                                 , const std::string& signalName ) const = 0;
+                                                 , const SignalName& signalName ) const = 0;
 
         virtual MethodReply callMethod(const MethodCall& message, uint64_t timeout) = 0;
         virtual void callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout, floating_slot_t) = 0;
@@ -85,7 +87,7 @@ namespace sdbus::internal {
 
         virtual void emitPropertiesChangedSignal( const ObjectPath& objectPath
                                                 , const InterfaceName& interfaceName
-                                                , const std::vector<std::string>& propNames ) = 0;
+                                                , const std::vector<PropertyName>& propNames ) = 0;
         virtual void emitInterfacesAddedSignal(const ObjectPath& objectPath) = 0;
         virtual void emitInterfacesAddedSignal( const ObjectPath& objectPath
                                               , const std::vector<InterfaceName>& interfaces ) = 0;
@@ -99,7 +101,7 @@ namespace sdbus::internal {
         [[nodiscard]] virtual Slot registerSignalHandler( const ServiceName& sender
                                                         , const ObjectPath& objectPath
                                                         , const InterfaceName& interfaceName
-                                                        , const std::string& signalName
+                                                        , const SignalName& signalName
                                                         , sd_bus_message_handler_t callback
                                                         , void* userData ) = 0;
     };

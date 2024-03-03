@@ -51,7 +51,7 @@ public:
         unregisterProxy();
     }
 protected:
-    void onInterfacesAdded(const sdbus::ObjectPath& objectPath, const std::map<sdbus::InterfaceName, std::map<std::string, sdbus::Variant>>& interfacesAndProperties) override
+    void onInterfacesAdded(const sdbus::ObjectPath& objectPath, const std::map<sdbus::InterfaceName, std::map<PropertyName, sdbus::Variant>>& interfacesAndProperties) override
     {
         if (m_onInterfacesAddedHandler)
             m_onInterfacesAddedHandler(objectPath, interfacesAndProperties);
@@ -64,7 +64,7 @@ protected:
     }
 
 public: // for tests
-    std::function<void(const sdbus::ObjectPath&, const std::map<sdbus::InterfaceName, std::map<std::string, sdbus::Variant>>&)> m_onInterfacesAddedHandler;
+    std::function<void(const sdbus::ObjectPath&, const std::map<sdbus::InterfaceName, std::map<PropertyName, sdbus::Variant>>&)> m_onInterfacesAddedHandler;
     std::function<void(const sdbus::ObjectPath&, const std::vector<sdbus::InterfaceName>&)> m_onInterfacesRemovedHandler;
 };
 
@@ -89,8 +89,8 @@ protected:
 
     // Signals of standard D-Bus interfaces
     void onPropertiesChanged( const sdbus::InterfaceName& interfaceName
-                            , const std::map<std::string, sdbus::Variant>& changedProperties
-                            , const std::vector<std::string>& invalidatedProperties ) override;
+                            , const std::map<PropertyName, sdbus::Variant>& changedProperties
+                            , const std::vector<PropertyName>& invalidatedProperties ) override;
 
 public:
     void installDoOperationClientSideAsyncReplyHandler(std::function<void(uint32_t res, std::optional<sdbus::Error> err)> handler);
@@ -117,7 +117,7 @@ public: // for tests
     std::map<std::string, std::string> m_signatureFromSignal;
 
     std::function<void(uint32_t res, std::optional<sdbus::Error> err)> m_DoOperationClientSideAsyncReplyHandler;
-    std::function<void(const sdbus::InterfaceName&, const std::map<std::string, sdbus::Variant>&, const std::vector<std::string>&)> m_onPropertiesChangedHandler;
+    std::function<void(const sdbus::InterfaceName&, const std::map<PropertyName, sdbus::Variant>&, const std::vector<PropertyName>&)> m_onPropertiesChangedHandler;
 
     std::unique_ptr<const Message> m_signalMsg;
     SignalName m_signalName;
@@ -143,7 +143,7 @@ protected:
     void onDoOperationReply(uint32_t, std::optional<sdbus::Error>) {}
 
     // Signals of standard D-Bus interfaces
-    void onPropertiesChanged( const InterfaceName&, const std::map<std::string, sdbus::Variant>&, const std::vector<std::string>& ) override {}
+    void onPropertiesChanged(const InterfaceName&, const std::map<PropertyName, sdbus::Variant>&, const std::vector<PropertyName>&) override {}
 };
 
 }}
