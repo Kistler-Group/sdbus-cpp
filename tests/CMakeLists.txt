@@ -107,10 +107,12 @@ add_executable(sdbus-c++-unit-tests ${UNITTESTS_SRCS})
 target_compile_definitions(sdbus-c++-unit-tests PRIVATE
     LIBSYSTEMD_VERSION=${LIBSYSTEMD_VERSION}
     SDBUS_HEADER=<${LIBSYSTEMD_IMPL}/sd-bus.h>)
+target_compile_features(sdbus-c++-unit-tests PUBLIC cxx_std_20)
 target_link_libraries(sdbus-c++-unit-tests sdbus-c++-objlib GTest::gmock)
 
 add_executable(sdbus-c++-integration-tests ${INTEGRATIONTESTS_SRCS})
 target_compile_definitions(sdbus-c++-integration-tests PRIVATE LIBSYSTEMD_VERSION=${LIBSYSTEMD_VERSION})
+target_compile_features(sdbus-c++-integration-tests PUBLIC cxx_std_20)
 target_link_libraries(sdbus-c++-integration-tests sdbus-c++ GTest::gmock)
 
 # Manual performance and stress tests

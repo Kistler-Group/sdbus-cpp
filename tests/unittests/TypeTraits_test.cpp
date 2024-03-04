@@ -79,7 +79,7 @@ namespace
     TYPE(std::vector<int16_t>)HAS_DBUS_TYPE_SIGNATURE("an")
     TYPE(std::array<int16_t, 3>)HAS_DBUS_TYPE_SIGNATURE("an")
 #if __cplusplus >= 202002L
-    TYPE(std::span<int16_t>)HAS_DBUS_TYPE_SIGNATURE("ao")
+    TYPE(std::span<int16_t>)HAS_DBUS_TYPE_SIGNATURE("an")
 #endif
     TYPE(std::map<int32_t, int64_t>)HAS_DBUS_TYPE_SIGNATURE("a{ix}")
     TYPE(std::unordered_map<int32_t, int64_t>)HAS_DBUS_TYPE_SIGNATURE("a{ix}")

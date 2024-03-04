@@ -429,7 +429,6 @@ namespace sdbus {
         }
     };
 
-
     // Function traits implementation inspired by (c) kennytm,
     // https://github.com/kennytm/utils/blob/master/traits.hpp
     template <typename _Type>
