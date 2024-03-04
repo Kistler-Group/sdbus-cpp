@@ -79,7 +79,23 @@ namespace
     TYPE(std::vector<int16_t>)HAS_DBUS_TYPE_SIGNATURE("an")
     TYPE(std::array<int16_t, 3>)HAS_DBUS_TYPE_SIGNATURE("an")
 #if __cplusplus >= 202002L
+
+    enum class SomeEnumClass : uint8_t {
+        A, B, C
+    };
+
+    enum struct SomeEnumStruct : int64_t {
+        A, B, C
+    };
+
+    enum struct StandardEnumClass {
+        A, B, C
+    };
+
     TYPE(std::span<int16_t>)HAS_DBUS_TYPE_SIGNATURE("an")
+    TYPE(SomeEnumClass)HAS_DBUS_TYPE_SIGNATURE("y")
+    TYPE(SomeEnumStruct)HAS_DBUS_TYPE_SIGNATURE("x")
+    TYPE(StandardEnumClass)HAS_DBUS_TYPE_SIGNATURE("i")
 #endif
     TYPE(std::map<int32_t, int64_t>)HAS_DBUS_TYPE_SIGNATURE("a{ix}")
     TYPE(std::unordered_map<int32_t, int64_t>)HAS_DBUS_TYPE_SIGNATURE("a{ix}")
@@ -126,6 +142,9 @@ namespace
                             , std::array<int16_t, 3>
 #if __cplusplus >= 202002L
                             , std::span<int16_t>
+                            , SomeEnumClass
+                            , SomeEnumStruct
+                            , StandardEnumClass
 #endif
                             , std::map<int32_t, int64_t>
                             , std::unordered_map<int32_t, int64_t>

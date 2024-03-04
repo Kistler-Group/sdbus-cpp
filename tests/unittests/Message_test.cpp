@@ -345,6 +345,28 @@ TEST(AMessage, CanCarryDBusArrayOfNontrivialTypesGivenAsStdSpan)
 
     ASSERT_THAT(std::vector(dataRead.begin(), dataRead.end()), Eq(std::vector(dataWritten.begin(), dataWritten.end())));
 }
+
+TEST(ECmessage, CanCarryDBusArrayOfEnumClass)
+{
+    auto msg = sdbus::createPlainMessage();
+
+    enum class A : int16_t {X = 0};
+    enum class B : int32_t {Y = 1};
+    enum struct C : uint64_t { Z = 787};
+
+    A a = A::X;
+    B b = B::Y;
+    C c = C::Z;
+
+    msg << a << b << c;
+    msg.seal();
+
+    msg >> a >> b >> c;
+
+    ASSERT_EQ(a, A::X);
+    ASSERT_EQ(b, B::Y);
+    ASSERT_EQ(c, C::Z);
+}
 #endif
 
 TEST(AMessage, ThrowsWhenDestinationStdArrayIsTooSmallDuringDeserialization)

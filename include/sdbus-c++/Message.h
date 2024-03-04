@@ -29,9 +29,10 @@
 
 #include <sdbus-c++/TypeTraits.h>
 #include <sdbus-c++/Error.h>
-#include <string>
-#include <vector>
 #include <array>
+#include <string>
+#include <utility>
+#include <vector>
 #if __cplusplus >= 202002L
 #include <span>
 #endif
@@ -99,6 +100,11 @@ namespace sdbus {
 #if __cplusplus >= 202002L
         template <typename _Element, std::size_t _Extent>
         Message& operator<<(const std::span<_Element, _Extent>& items);
+
+        template <typename Enum> requires std::is_enum_v<Enum>
+        Message& operator<<(const Enum &item) {
+            return operator<<(static_cast<std::underlying_type_t<Enum>>(item));
+        }
 #endif
         template <typename _Key, typename _Value, typename _Compare, typename _Allocator>
         Message& operator<<(const std::map<_Key, _Value, _Compare, _Allocator>& items);
@@ -131,6 +137,14 @@ namespace sdbus {
 #if __cplusplus >= 202002L
         template <typename _Element, std::size_t _Extent>
         Message& operator>>(std::span<_Element, _Extent>& items);
+
+        template <typename Enum> requires std::is_enum_v<Enum>
+        Message& operator>>(Enum &item) {
+            std::underlying_type_t<Enum> val;
+            *this >> val;
+            item = static_cast<Enum>(val);
+            return *this;
+        }
 #endif
         template <typename _Key, typename _Value, typename _Compare, typename _Allocator>
         Message& operator>>(std::map<_Key, _Value, _Compare, _Allocator>& items);
