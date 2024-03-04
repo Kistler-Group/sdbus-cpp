@@ -211,7 +211,7 @@ int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userDat
         }
         else
         {
-            Error exception(error->name, error->message);
+            Error exception(Error::Name{error->name}, error->message);
             asyncCallData->callback(std::move(message), std::move(exception));
         }
     }, retError);

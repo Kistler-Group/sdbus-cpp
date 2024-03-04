@@ -66,12 +66,12 @@ namespace sdbus::internal {
         }
         catch (const std::exception& e)
         {
-            sd_bus_error_set(retError, SDBUSCPP_ERROR_NAME, e.what());
+            sd_bus_error_set(retError, SDBUSCPP_ERROR_NAME.c_str(), e.what());
             return false;
         }
         catch (...)
         {
-            sd_bus_error_set(retError, SDBUSCPP_ERROR_NAME, "Unknown error occurred");
+            sd_bus_error_set(retError, SDBUSCPP_ERROR_NAME.c_str(), "Unknown error occurred");
             return false;
         }
 

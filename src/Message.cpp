@@ -802,7 +802,7 @@ MethodReply MethodCall::sendWithReply(uint64_t timeout) const
     auto r = sdbus_->sd_bus_call(nullptr, (sd_bus_message*)msg_, timeout, &sdbusError, &sdbusReply);
 
     if (sd_bus_error_is_set(&sdbusError))
-        throw sdbus::Error(sdbusError.name, sdbusError.message);
+        throw Error(Error::Name{sdbusError.name}, sdbusError.message);
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method", -r);
 

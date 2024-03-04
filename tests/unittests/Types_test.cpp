@@ -391,17 +391,17 @@ TEST(AUnixFd, TakesOverNewFdAndClosesOriginalFdOnAdoptingReset)
 
 TEST(AnError, CanBeConstructedFromANameAndAMessage)
 {
-    auto error = sdbus::Error("name", "message");
-    EXPECT_THAT(error.getName(), Eq<std::string>("name"));
+    auto error = sdbus::Error(sdbus::Error::Name{"org.sdbuscpp.error"}, "message");
+    EXPECT_THAT(error.getName(), Eq<std::string>("org.sdbuscpp.error"));
     EXPECT_THAT(error.getMessage(), Eq<std::string>("message"));
 }
 
 TEST(AnError, CanBeConstructedFromANameOnly)
 {
-    auto error1 = sdbus::Error("name");
-    auto error2 = sdbus::Error("name", nullptr);
-    EXPECT_THAT(error1.getName(), Eq<std::string>("name"));
-    EXPECT_THAT(error2.getName(), Eq<std::string>("name"));
+    auto error1 = sdbus::Error(sdbus::Error::Name{"org.sdbuscpp.error"});
+    auto error2 = sdbus::Error(sdbus::Error::Name{"org.sdbuscpp.error"}, nullptr);
+    EXPECT_THAT(error1.getName(), Eq<std::string>("org.sdbuscpp.error"));
+    EXPECT_THAT(error2.getName(), Eq<std::string>("org.sdbuscpp.error"));
 
     EXPECT_THAT(error1.getMessage(), Eq<std::string>(""));
     EXPECT_THAT(error2.getMessage(), Eq<std::string>(""));
