@@ -347,6 +347,24 @@ TEST(AMessage, CanCarryDBusArrayOfNontrivialTypesGivenAsStdSpan)
 }
 #endif
 
+TEST(AMessage, CanCarryAnEnumValue)
+{
+    auto msg = sdbus::createPlainMessage();
+
+    enum class EnumA : int16_t {X = 5} aWritten{EnumA::X};
+    enum EnumB {Y = 11} bWritten{EnumB::Y};
+
+    msg << aWritten << bWritten;
+    msg.seal();
+
+    EnumA aRead{};
+    EnumB bRead{};
+    msg >> aRead >> bRead;
+
+    ASSERT_THAT(aRead, Eq(aWritten));
+    ASSERT_THAT(bRead, Eq(bWritten));
+}
+
 TEST(AMessage, ThrowsWhenDestinationStdArrayIsTooSmallDuringDeserialization)
 {
     auto msg = sdbus::createPlainMessage();

@@ -98,7 +98,7 @@ namespace sdbus {
     inline constexpr dont_expect_reply_t dont_expect_reply{};
 
     // Template specializations for getting D-Bus signatures from C++ types
-    template <typename _T>
+    template <typename _T, typename _Enable = void>
     struct signature_of
     {
         static constexpr bool is_valid = false;
@@ -120,7 +120,7 @@ namespace sdbus {
 
     template <typename _T>
     struct signature_of<_T&>
-            : public signature_of<_T>
+        : public signature_of<_T>
     {};
 
     template <>
@@ -405,6 +405,12 @@ namespace sdbus {
     };
 #endif
 
+    template <typename _Enum>
+    struct signature_of<_Enum, typename std::enable_if_t<std::is_enum_v<_Enum>>>
+        : public signature_of<std::underlying_type_t<_Enum>>
+    {};
+
+
     template <typename _Key, typename _Value, typename _Compare, typename _Allocator>
     struct signature_of<std::map<_Key, _Value, _Compare, _Allocator>>
     {
@@ -428,7 +434,6 @@ namespace sdbus {
             return "a{" + signature_of<_Key>::str() + signature_of<_Value>::str() + "}";
         }
     };
-
 
     // Function traits implementation inspired by (c) kennytm,
     // https://github.com/kennytm/utils/blob/master/traits.hpp

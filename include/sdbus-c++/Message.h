@@ -29,9 +29,10 @@
 
 #include <sdbus-c++/TypeTraits.h>
 #include <sdbus-c++/Error.h>
-#include <string>
-#include <vector>
 #include <array>
+#include <string>
+#include <utility>
+#include <vector>
 #if __cplusplus >= 202002L
 #include <span>
 #endif
@@ -100,6 +101,8 @@ namespace sdbus {
         template <typename _Element, std::size_t _Extent>
         Message& operator<<(const std::span<_Element, _Extent>& items);
 #endif
+        template <typename _Enum, typename = std::enable_if_t<std::is_enum_v<_Enum>>>
+        Message& operator<<(const _Enum& item);
         template <typename _Key, typename _Value, typename _Compare, typename _Allocator>
         Message& operator<<(const std::map<_Key, _Value, _Compare, _Allocator>& items);
         template <typename _Key, typename _Value, typename _Hash, typename _KeyEqual, typename _Allocator>
@@ -132,6 +135,8 @@ namespace sdbus {
         template <typename _Element, std::size_t _Extent>
         Message& operator>>(std::span<_Element, _Extent>& items);
 #endif
+        template <typename _Enum, typename = std::enable_if_t<std::is_enum_v<_Enum>>>
+        Message& operator>>(_Enum& item);
         template <typename _Key, typename _Value, typename _Compare, typename _Allocator>
         Message& operator>>(std::map<_Key, _Value, _Compare, _Allocator>& items);
         template <typename _Key, typename _Value, typename _Hash, typename _KeyEqual, typename _Allocator>
@@ -332,6 +337,12 @@ namespace sdbus {
     }
 #endif
 
+    template <typename _Enum, typename>
+    inline Message& Message::operator<<(const _Enum &item)
+    {
+        return operator<<(static_cast<std::underlying_type_t<_Enum>>(item));
+    }
+
     template <typename _Array>
     inline void Message::serializeArray(const _Array& items)
     {
@@ -456,6 +467,15 @@ namespace sdbus {
         return *this;
     }
 #endif
+
+    template <typename _Enum, typename>
+    inline Message& Message::operator>>(_Enum& item)
+    {
+        std::underlying_type_t<_Enum> val;
+        *this >> val;
+        item = static_cast<_Enum>(val);
+        return *this;
+    }
 
     template <typename _Array>
     inline void Message::deserializeArray(_Array& items)
