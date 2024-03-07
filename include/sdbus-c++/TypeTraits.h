@@ -98,7 +98,7 @@ namespace sdbus {
     inline constexpr dont_expect_reply_t dont_expect_reply{};
 
     // Template specializations for getting D-Bus signatures from C++ types
-    template <typename _T>
+    template <typename _T, typename _Enable = void>
     struct signature_of
     {
         static constexpr bool is_valid = false;
@@ -120,7 +120,7 @@ namespace sdbus {
 
     template <typename _T>
     struct signature_of<_T&>
-            : public signature_of<_T>
+        : public signature_of<_T>
     {};
 
     template <>
@@ -404,9 +404,14 @@ namespace sdbus {
         }
     };
 
-    template <typename Enum> requires std::is_enum_v<Enum>
-    struct signature_of<Enum>
-        : public signature_of<std::underlying_type_t<Enum>>
+    template <typename _Enum> requires std::is_enum_v<_Enum>
+    struct signature_of<_Enum>
+        : public signature_of<std::underlying_type_t<_Enum>>
+    {};
+#else
+    template <typename _Enum>
+    struct signature_of<_Enum, typename std::enable_if_t<std::is_enum_v<_Enum>>>
+        : public signature_of<std::underlying_type_t<_Enum>>
     {};
 #endif
 

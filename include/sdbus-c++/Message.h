@@ -100,11 +100,11 @@ namespace sdbus {
 #if __cplusplus >= 202002L
         template <typename _Element, std::size_t _Extent>
         Message& operator<<(const std::span<_Element, _Extent>& items);
-
-        template <typename Enum> requires std::is_enum_v<Enum>
-        Message& operator<<(const Enum &item) {
-            return operator<<(static_cast<std::underlying_type_t<Enum>>(item));
-        }
+        template <typename _Enum> requires std::is_enum_v<_Enum>
+        Message& operator<<(const _Enum& item);
+#else
+        template <typename _Enum, typename = std::enable_if_t<std::is_enum_v<_Enum>>>
+        Message& operator<<(const _Enum& item);
 #endif
         template <typename _Key, typename _Value, typename _Compare, typename _Allocator>
         Message& operator<<(const std::map<_Key, _Value, _Compare, _Allocator>& items);
@@ -137,14 +137,11 @@ namespace sdbus {
 #if __cplusplus >= 202002L
         template <typename _Element, std::size_t _Extent>
         Message& operator>>(std::span<_Element, _Extent>& items);
-
-        template <typename Enum> requires std::is_enum_v<Enum>
-        Message& operator>>(Enum &item) {
-            std::underlying_type_t<Enum> val;
-            *this >> val;
-            item = static_cast<Enum>(val);
-            return *this;
-        }
+        template <typename _Enum> requires std::is_enum_v<_Enum>
+        Message& operator>>(_Enum& item);
+#else
+        template <typename _Enum, typename = std::enable_if_t<std::is_enum_v<_Enum>>>
+        Message& operator>>(_Enum& item);
 #endif
         template <typename _Key, typename _Value, typename _Compare, typename _Allocator>
         Message& operator>>(std::map<_Key, _Value, _Compare, _Allocator>& items);
@@ -344,6 +341,18 @@ namespace sdbus {
 
         return *this;
     }
+
+    template <typename _Enum> requires std::is_enum_v<_Enum>
+    inline Message& Message::operator<<(const _Enum &item)
+    {
+        return operator<<(static_cast<std::underlying_type_t<_Enum>>(item));
+    }
+#else
+    template <typename _Enum, typename>
+    inline Message& Message::operator<<(const _Enum &item)
+    {
+        return operator<<(static_cast<std::underlying_type_t<_Enum>>(item));
+    }
 #endif
 
     template <typename _Array>
@@ -467,6 +476,24 @@ namespace sdbus {
     {
         deserializeArray(items);
 
+        return *this;
+    }
+
+    template <typename _Enum> requires std::is_enum_v<_Enum>
+    inline Message& Message::operator>>(_Enum& item)
+    {
+        std::underlying_type_t<_Enum> val;
+        *this >> val;
+        item = static_cast<_Enum>(val);
+        return *this;
+    }
+#else
+    template <typename _Enum, typename>
+    inline Message& Message::operator>>(_Enum& item)
+    {
+        std::underlying_type_t<_Enum> val;
+        *this >> val;
+        item = static_cast<_Enum>(val);
         return *this;
     }
 #endif
