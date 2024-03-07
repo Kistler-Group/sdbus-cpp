@@ -403,17 +403,13 @@ namespace sdbus {
             return "a" + signature_of<_Element>::str();
         }
     };
+#endif
 
-    template <typename _Enum> requires std::is_enum_v<_Enum>
-    struct signature_of<_Enum>
-        : public signature_of<std::underlying_type_t<_Enum>>
-    {};
-#else
     template <typename _Enum>
     struct signature_of<_Enum, typename std::enable_if_t<std::is_enum_v<_Enum>>>
         : public signature_of<std::underlying_type_t<_Enum>>
     {};
-#endif
+
 
     template <typename _Key, typename _Value, typename _Compare, typename _Allocator>
     struct signature_of<std::map<_Key, _Value, _Compare, _Allocator>>
