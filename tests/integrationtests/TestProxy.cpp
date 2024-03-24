@@ -81,6 +81,7 @@ void TestProxy::onSignalWithVariant(const sdbus::Variant& aVariant)
 
 void TestProxy::onSignalWithoutRegistration(const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& s)
 {
+    // Static cast to std::string is a workaround for gcc 11.4 false positive warning (which later gcc versions nor Clang emit)
     m_signatureFromSignal[std::get<0>(s)] = static_cast<std::string>(std::get<0>(std::get<1>(s)));
     m_gotSignalWithSignature = true;
 }

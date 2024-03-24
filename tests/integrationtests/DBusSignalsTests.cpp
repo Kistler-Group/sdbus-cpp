@@ -110,10 +110,10 @@ TYPED_TEST(SdbusTestObject, EmitsSignalWithVariantSuccesfully)
 
 TYPED_TEST(SdbusTestObject, EmitsSignalWithoutRegistrationSuccesfully)
 {
-    this->m_adaptor->emitSignalWithoutRegistration({"platform", {"av"}});
+    this->m_adaptor->emitSignalWithoutRegistration({"platform", sdbus::Signature{"av"}});
 
     ASSERT_TRUE(waitUntil(this->m_proxy->m_gotSignalWithSignature));
-    ASSERT_THAT(this->m_proxy->m_signatureFromSignal["platform"], Eq("av"));
+    ASSERT_THAT(this->m_proxy->m_signatureFromSignal["platform"], Eq(sdbus::Signature{"av"}));
 }
 
 TYPED_TEST(SdbusTestObject, CanAccessAssociatedSignalMessageInSignalHandler)

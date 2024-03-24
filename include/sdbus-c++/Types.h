@@ -241,21 +241,20 @@ namespace sdbus {
     /********************************************//**
      * @class Signature
      *
-     * Representation of Signature D-Bus type
+     * Strong type representing the D-Bus object path
      *
      ***********************************************/
     class Signature : public std::string
     {
     public:
-        using std::string::string;
-        Signature() = default; // Fixes gcc 6.3 error (default c-tor is not imported in above using declaration)
-        Signature(const Signature&) = default; // Fixes gcc 8.3 error (deleted copy constructor)
-        Signature(Signature&&) = default; // Enable move - user-declared copy ctor prevents implicit creation
-        Signature& operator = (const Signature&) = default; // Fixes gcc 8.3 error (deleted copy assignment)
-        Signature& operator = (Signature&&) = default; // Enable move - user-declared copy assign prevents implicit creation
-        Signature(std::string value)
+        Signature() = default;
+        explicit Signature(std::string value)
             : std::string(std::move(value))
         {}
+        explicit Signature(const char* value)
+            : std::string(value)
+        {}
+
         using std::string::operator=;
     };
 
