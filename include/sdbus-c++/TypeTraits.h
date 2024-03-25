@@ -44,6 +44,7 @@
 #include <tuple>
 #include <type_traits>
 #include <unordered_map>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -54,6 +55,7 @@ namespace sdbus {
     class ObjectPath;
     class Signature;
     class UnixFd;
+    template<typename _T1, typename _T2> using DictEntry = std::pair<_T1, _T2>;
     class BusName;
     class InterfaceName;
     class MemberName;
@@ -65,6 +67,7 @@ namespace sdbus {
     class PropertyGetReply;
     template <typename... _Results> class Result;
     class Error;
+    template <typename _T, typename _Enable = void> struct signature_of;
 }
 
 namespace sdbus {
@@ -106,253 +109,171 @@ namespace sdbus {
     // Helper for static assert
     template <class... _T> constexpr bool always_false = false;
 
+    // Helper operator+ for concatenation of `std::array`s
+    template <typename _T, std::size_t _N1, std::size_t _N2>
+    constexpr std::array<_T, _N1 + _N2> operator+(std::array<_T, _N1> lhs, std::array<_T, _N2> rhs);
+
     // Template specializations for getting D-Bus signatures from C++ types
-    template <typename _T, typename _Enable = void>
+    template <typename _T>
+    constexpr auto signature_of_v = signature_of<_T>::value;
+
+    template <typename _T, typename _Enable>
     struct signature_of
     {
         static constexpr bool is_valid = false;
         static constexpr bool is_trivial_dbus_type = false;
 
-        static const std::string str()
+        static constexpr void* value = []
         {
             // See using-sdbus-c++.md, section "Extending sdbus-c++ type system",
             // on how to teach sdbus-c++ about your custom types
-            static_assert(always_false<_T>, "Unsupported DBus type (template specializations are needed for your custom types)");
-            return "";
-        }
+            static_assert(always_false<_T>, "Unsupported D-Bus type (specialize `signature_of` for your custom types)");
+        };
     };
 
     template <typename _T>
-    struct signature_of<const _T>
-        : public signature_of<_T>
+    struct signature_of<const _T> : signature_of<_T>
     {};
 
     template <typename _T>
-    struct signature_of<_T&>
-        : public signature_of<_T>
+    struct signature_of<volatile _T> : signature_of<_T>
+    {};
+
+    template <typename _T>
+    struct signature_of<_T&> : signature_of<_T>
     {};
 
     template <>
     struct signature_of<void>
     {
+        static constexpr std::array<char, 0> value{};
         static constexpr bool is_valid = true;
         static constexpr bool is_trivial_dbus_type = false;
-
-        static const std::string str()
-        {
-            return "";
-        }
     };
 
     template <>
     struct signature_of<bool>
     {
+        static constexpr std::array value{'b'};
         static constexpr bool is_valid = true;
         static constexpr bool is_trivial_dbus_type = true;
-
-        static const std::string str()
-        {
-            return "b";
-        }
     };
 
     template <>
     struct signature_of<uint8_t>
     {
+        static constexpr std::array value{'y'};
         static constexpr bool is_valid = true;
         static constexpr bool is_trivial_dbus_type = true;
-
-        static const std::string str()
-        {
-            return "y";
-        }
     };
 
     template <>
     struct signature_of<int16_t>
     {
+        static constexpr std::array value{'n'};
         static constexpr bool is_valid = true;
         static constexpr bool is_trivial_dbus_type = true;
-
-        static const std::string str()
-        {
-            return "n";
-        }
     };
 
     template <>
     struct signature_of<uint16_t>
     {
+        static constexpr std::array value{'q'};
         static constexpr bool is_valid = true;
         static constexpr bool is_trivial_dbus_type = true;
-
-        static const std::string str()
-        {
-            return "q";
-        }
     };
 
     template <>
     struct signature_of<int32_t>
     {
+        static constexpr std::array value{'i'};
         static constexpr bool is_valid = true;
         static constexpr bool is_trivial_dbus_type = true;
-
-        static const std::string str()
-        {
-            return "i";
-        }
     };
 
     template <>
     struct signature_of<uint32_t>
     {
+        static constexpr std::array value{'u'};
         static constexpr bool is_valid = true;
         static constexpr bool is_trivial_dbus_type = true;
-
-        static const std::string str()
-        {
-            return "u";
-        }
     };
 
     template <>
     struct signature_of<int64_t>
     {
+        static constexpr std::array value{'x'};
         static constexpr bool is_valid = true;
         static constexpr bool is_trivial_dbus_type = true;
-
-        static const std::string str()
-        {
-            return "x";
-        }
     };
 
     template <>
     struct signature_of<uint64_t>
     {
+        static constexpr std::array value{'t'};
         static constexpr bool is_valid = true;
         static constexpr bool is_trivial_dbus_type = true;
-
-        static const std::string str()
-        {
-            return "t";
-        }
     };
 
     template <>
     struct signature_of<double>
     {
+        static constexpr std::array value{'d'};
         static constexpr bool is_valid = true;
         static constexpr bool is_trivial_dbus_type = true;
-
-        static const std::string str()
-        {
-            return "d";
-        }
-    };
-
-    template <>
-    struct signature_of<char*>
-    {
-        static constexpr bool is_valid = true;
-        static constexpr bool is_trivial_dbus_type = false;
-
-        static const std::string str()
-        {
-            return "s";
-        }
-    };
-
-    template <>
-    struct signature_of<const char*>
-    {
-        static constexpr bool is_valid = true;
-        static constexpr bool is_trivial_dbus_type = false;
-
-        static const std::string str()
-        {
-            return "s";
-        }
-    };
-
-    template <std::size_t _N>
-    struct signature_of<char[_N]>
-    {
-        static constexpr bool is_valid = true;
-        static constexpr bool is_trivial_dbus_type = false;
-
-        static const std::string str()
-        {
-            return "s";
-        }
-    };
-
-    template <std::size_t _N>
-    struct signature_of<const char[_N]>
-    {
-        static constexpr bool is_valid = true;
-        static constexpr bool is_trivial_dbus_type = false;
-
-        static const std::string str()
-        {
-            return "s";
-        }
     };
 
     template <>
     struct signature_of<std::string>
     {
+        static constexpr std::array value{'s'};
         static constexpr bool is_valid = true;
         static constexpr bool is_trivial_dbus_type = false;
-
-        static const std::string str()
-        {
-            return "s";
-        }
     };
+
+    template <>
+    struct signature_of<char*> : signature_of<std::string>
+    {};
+
+    template <>
+    struct signature_of<const char*> : signature_of<std::string>
+    {};
+
+    template <std::size_t _N>
+    struct signature_of<char[_N]> : signature_of<std::string>
+    {};
+
+    template <std::size_t _N>
+    struct signature_of<const char[_N]> : signature_of<std::string>
+    {};
 
     template <>
     struct signature_of<BusName> : signature_of<std::string>
-    {
-    };
+    {};
 
     template <>
     struct signature_of<InterfaceName> : signature_of<std::string>
-    {
-    };
+    {};
 
     template <>
     struct signature_of<MemberName> : signature_of<std::string>
-    {
-    };
+    {};
 
     template <typename... _ValueTypes>
     struct signature_of<Struct<_ValueTypes...>>
     {
+        static constexpr std::array contents = (signature_of_v<_ValueTypes> + ...);
+        static constexpr std::array value = std::array{'('} + contents + std::array{')'};
         static constexpr bool is_valid = true;
         static constexpr bool is_trivial_dbus_type = false;
-
-        static const std::string str()
-        {
-            std::string signature;
-            signature += "(";
-            (signature += ... += signature_of<_ValueTypes>::str());
-            signature += ")";
-            return signature;
-        }
     };
 
     template <>
     struct signature_of<Variant>
     {
+        static constexpr std::array value{'v'};
         static constexpr bool is_valid = true;
         static constexpr bool is_trivial_dbus_type = false;
-
-        static const std::string str()
-        {
-            return "v";
-        }
     };
 
     template <typename... Elements>
@@ -362,74 +283,52 @@ namespace sdbus {
     template <>
     struct signature_of<ObjectPath>
     {
+        static constexpr std::array value{'o'};
         static constexpr bool is_valid = true;
         static constexpr bool is_trivial_dbus_type = false;
-
-        static const std::string str()
-        {
-            return "o";
-        }
     };
 
     template <>
     struct signature_of<Signature>
     {
+        static constexpr std::array value{'g'};
         static constexpr bool is_valid = true;
         static constexpr bool is_trivial_dbus_type = false;
-
-        static const std::string str()
-        {
-            return "g";
-        }
     };
 
     template <>
     struct signature_of<UnixFd>
     {
+        static constexpr std::array value{'h'};
         static constexpr bool is_valid = true;
         static constexpr bool is_trivial_dbus_type = false;
+    };
 
-        static const std::string str()
-        {
-            return "h";
-        }
+    template <typename _T1, typename _T2>
+    struct signature_of<DictEntry<_T1, _T2>>
+    {
+        static constexpr std::array value = std::array{'{'} + signature_of_v<std::tuple<_T1, _T2>> + std::array{'}'};
+        static constexpr bool is_valid = true;
+        static constexpr bool is_trivial_dbus_type = false;
     };
 
     template <typename _Element, typename _Allocator>
     struct signature_of<std::vector<_Element, _Allocator>>
     {
+        static constexpr std::array value = std::array{'a'} + signature_of_v<_Element>;
         static constexpr bool is_valid = true;
         static constexpr bool is_trivial_dbus_type = false;
-
-        static const std::string str()
-        {
-            return "a" + signature_of<_Element>::str();
-        }
     };
 
     template <typename _Element, std::size_t _Size>
-    struct signature_of<std::array<_Element, _Size>>
+    struct signature_of<std::array<_Element, _Size>> : signature_of<std::vector<_Element>>
     {
-        static constexpr bool is_valid = true;
-        static constexpr bool is_trivial_dbus_type = false;
-
-        static const std::string str()
-        {
-            return "a" + signature_of<_Element>::str();
-        }
     };
 
 #ifdef __cpp_lib_span
     template <typename _Element, std::size_t _Extent>
-    struct signature_of<std::span<_Element, _Extent>>
+    struct signature_of<std::span<_Element, _Extent>> : signature_of<std::vector<_Element>>
     {
-        static constexpr bool is_valid = true;
-        static constexpr bool is_trivial_dbus_type = false;
-
-        static const std::string str()
-        {
-            return "a" + signature_of<_Element>::str();
-        }
     };
 #endif
 
@@ -438,46 +337,49 @@ namespace sdbus {
         : public signature_of<std::underlying_type_t<_Enum>>
     {};
 
-
     template <typename _Key, typename _Value, typename _Compare, typename _Allocator>
     struct signature_of<std::map<_Key, _Value, _Compare, _Allocator>>
     {
+        static constexpr std::array contents = signature_of_v<std::tuple<_Key, _Value>>;
+        static constexpr std::array dict_entry = std::array{'{'} + contents + std::array{'}'};
+        static constexpr std::array value = std::array{'a'} + dict_entry;
         static constexpr bool is_valid = true;
         static constexpr bool is_trivial_dbus_type = false;
-
-        static const std::string str()
-        {
-            return "a{" + signature_of<_Key>::str() + signature_of<_Value>::str() + "}";
-        }
     };
 
     template <typename _Key, typename _Value, typename _Hash, typename _KeyEqual, typename _Allocator>
     struct signature_of<std::unordered_map<_Key, _Value, _Hash, _KeyEqual, _Allocator>>
+        : signature_of<std::map<_Key, _Value>>
     {
-        static constexpr bool is_valid = true;
-        static constexpr bool is_trivial_dbus_type = false;
-
-        static const std::string str()
-        {
-            return "a{" + signature_of<_Key>::str() + signature_of<_Value>::str() + "}";
-        }
     };
+
+    template <typename... _Types>
+    struct signature_of<std::tuple<_Types...>> // A simple concatenation of signatures of _Types
+    {
+        static constexpr std::array value = (std::array<char, 0>{} + ... + signature_of_v<_Types>);
+        static constexpr bool is_valid = false;
+        static constexpr bool is_trivial_dbus_type = false;
+    };
+
+    // To simplify conversions of arrays to C strings
+    template <typename _T, std::size_t _N>
+    constexpr auto as_null_terminated(std::array<_T, _N> arr)
+    {
+        return arr + std::array<_T, 1>{0};
+    }
 
     // Function traits implementation inspired by (c) kennytm,
     // https://github.com/kennytm/utils/blob/master/traits.hpp
     template <typename _Type>
-    struct function_traits
-        : public function_traits<decltype(&_Type::operator())>
+    struct function_traits : function_traits<decltype(&_Type::operator())>
     {};
 
     template <typename _Type>
-    struct function_traits<const _Type>
-        : public function_traits<_Type>
+    struct function_traits<const _Type> : function_traits<_Type>
     {};
 
     template <typename _Type>
-    struct function_traits<_Type&>
-        : public function_traits<_Type>
+    struct function_traits<_Type&> : function_traits<_Type>
     {};
 
     template <typename _ReturnType, typename... _Args>
@@ -517,72 +419,62 @@ namespace sdbus {
     };
 
     template <typename _ReturnType, typename... _Args>
-    struct function_traits<_ReturnType(_Args...)>
-        : public function_traits_base<_ReturnType, _Args...>
+    struct function_traits<_ReturnType(_Args...)> : function_traits_base<_ReturnType, _Args...>
     {
         static constexpr bool is_async = false;
         static constexpr bool has_error_param = false;
     };
 
     template <typename... _Args>
-    struct function_traits<void(std::optional<Error>, _Args...)>
-        : public function_traits_base<void, _Args...>
+    struct function_traits<void(std::optional<Error>, _Args...)> : function_traits_base<void, _Args...>
     {
         static constexpr bool has_error_param = true;
     };
 
     template <typename... _Args, typename... _Results>
-    struct function_traits<void(Result<_Results...>, _Args...)>
-        : public function_traits_base<std::tuple<_Results...>, _Args...>
+    struct function_traits<void(Result<_Results...>, _Args...)> : function_traits_base<std::tuple<_Results...>, _Args...>
     {
         static constexpr bool is_async = true;
         using async_result_t = Result<_Results...>;
     };
 
     template <typename... _Args, typename... _Results>
-    struct function_traits<void(Result<_Results...>&&, _Args...)>
-        : public function_traits_base<std::tuple<_Results...>, _Args...>
+    struct function_traits<void(Result<_Results...>&&, _Args...)> : function_traits_base<std::tuple<_Results...>, _Args...>
     {
         static constexpr bool is_async = true;
         using async_result_t = Result<_Results...>;
     };
 
     template <typename _ReturnType, typename... _Args>
-    struct function_traits<_ReturnType(*)(_Args...)>
-        : public function_traits<_ReturnType(_Args...)>
+    struct function_traits<_ReturnType(*)(_Args...)> : function_traits<_ReturnType(_Args...)>
     {};
 
     template <typename _ClassType, typename _ReturnType, typename... _Args>
-    struct function_traits<_ReturnType(_ClassType::*)(_Args...)>
-        : public function_traits<_ReturnType(_Args...)>
+    struct function_traits<_ReturnType(_ClassType::*)(_Args...)> : function_traits<_ReturnType(_Args...)>
     {
         typedef _ClassType& owner_type;
     };
 
     template <typename _ClassType, typename _ReturnType, typename... _Args>
-    struct function_traits<_ReturnType(_ClassType::*)(_Args...) const>
-        : public function_traits<_ReturnType(_Args...)>
+    struct function_traits<_ReturnType(_ClassType::*)(_Args...) const> : function_traits<_ReturnType(_Args...)>
     {
         typedef const _ClassType& owner_type;
     };
 
     template <typename _ClassType, typename _ReturnType, typename... _Args>
-    struct function_traits<_ReturnType(_ClassType::*)(_Args...) volatile>
-        : public function_traits<_ReturnType(_Args...)>
+    struct function_traits<_ReturnType(_ClassType::*)(_Args...) volatile> : function_traits<_ReturnType(_Args...)>
     {
         typedef volatile _ClassType& owner_type;
     };
 
     template <typename _ClassType, typename _ReturnType, typename... _Args>
-    struct function_traits<_ReturnType(_ClassType::*)(_Args...) const volatile>
-        : public function_traits<_ReturnType(_Args...)>
+    struct function_traits<_ReturnType(_ClassType::*)(_Args...) const volatile> : function_traits<_ReturnType(_Args...)>
     {
         typedef const volatile _ClassType& owner_type;
     };
 
     template <typename FunctionType>
-    struct function_traits<std::function<FunctionType>>
-        : public function_traits<FunctionType>
+    struct function_traits<std::function<FunctionType>> : function_traits<FunctionType>
     {};
 
     template <class _Function>
@@ -621,45 +513,33 @@ namespace sdbus {
     template <typename _Function>
     using tuple_of_function_output_arg_types_t = typename tuple_of_function_output_arg_types<_Function>::type;
 
-    template <typename _Type>
-    struct aggregate_signature
+    template <typename _Function>
+    struct signature_of_function_input_arguments : signature_of<tuple_of_function_input_arg_types_t<_Function>>
     {
-        static const std::string str()
+        static std::string value_as_string()
         {
-            return signature_of<std::decay_t<_Type>>::str();
-        }
-    };
-
-    template <typename... _Types>
-    struct aggregate_signature<std::tuple<_Types...>>
-    {
-        static const std::string str()
-        {
-            std::string signature;
-            (void)(signature += ... += signature_of<std::decay_t<_Types>>::str());
-            return signature;
+            constexpr auto signature = as_null_terminated(signature_of_v<tuple_of_function_input_arg_types_t<_Function>>);
+            return signature.data();
         }
     };
 
     template <typename _Function>
-    struct signature_of_function_input_arguments
+    inline auto signature_of_function_input_arguments_v = signature_of_function_input_arguments<_Function>::value_as_string();
+
+    template <typename _Function>
+    struct signature_of_function_output_arguments : signature_of<tuple_of_function_output_arg_types_t<_Function>>
     {
-        static const std::string str()
+        static std::string value_as_string()
         {
-            return aggregate_signature<tuple_of_function_input_arg_types_t<_Function>>::str();
+            constexpr auto signature = as_null_terminated(signature_of_v<tuple_of_function_output_arg_types_t<_Function>>);
+            return signature.data();
         }
     };
 
     template <typename _Function>
-    struct signature_of_function_output_arguments
-    {
-        static const std::string str()
-        {
-            return aggregate_signature<tuple_of_function_output_arg_types_t<_Function>>::str();
-        }
-    };
+    inline auto signature_of_function_output_arguments_v = signature_of_function_output_arguments<_Function>::value_as_string();
 
-
+    // std::future stuff for return values of async calls
     template <typename... _Args> struct future_return
     {
         typedef std::tuple<_Args...> type;
@@ -678,7 +558,6 @@ namespace sdbus {
     template <typename... _Args>
     using future_return_t = typename future_return<_Args...>::type;
 
-
     // Credit: Piotr Skotnicki (https://stackoverflow.com/a/57639506)
     template <typename, typename>
     constexpr bool is_one_of_variants_types = false;
@@ -686,7 +565,6 @@ namespace sdbus {
     template <typename... _VariantTypes, typename _QueriedType>
     constexpr bool is_one_of_variants_types<std::variant<_VariantTypes...>, _QueriedType>
         = (std::is_same_v<_QueriedType, _VariantTypes> || ...);
-
 
     namespace detail
     {
@@ -753,6 +631,26 @@ namespace sdbus {
                                  , std::forward<_Tuple>(t)
                                  , std::make_index_sequence<std::tuple_size<std::decay_t<_Tuple>>::value>{} );
     }
+
+    // Convenient concatenation of arrays
+    template <typename _T, std::size_t _N1, std::size_t _N2>
+    constexpr std::array<_T, _N1 + _N2> operator+(std::array<_T, _N1> lhs, std::array<_T, _N2> rhs)
+    {
+        std::array<_T, _N1 + _N2> result{};
+        std::size_t index = 0;
+
+        for (auto& el : lhs) {
+            result[index] = std::move(el);
+            ++index;
+        }
+        for (auto& el : rhs) {
+            result[index] = std::move(el);
+            ++index;
+        }
+
+        return result;
+    }
+
 }
 
 #endif /* SDBUS_CXX_TYPETRAITS_H_ */

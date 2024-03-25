@@ -170,7 +170,8 @@ namespace
 
 TYPED_TEST(Type2DBusTypeSignatureConversion, ConvertsTypeToProperDBusSignature)
 {
-    ASSERT_THAT(sdbus::signature_of<TypeParam>::str(), Eq(this->dbusTypeSignature_));
+    constexpr auto signature = sdbus::as_null_terminated(sdbus::signature_of_v<TypeParam>);
+    ASSERT_THAT(signature.data(), Eq(this->dbusTypeSignature_));
 }
 
 TEST(FreeFunctionTypeTraits, DetectsTraitsOfTrivialSignatureFunction)
