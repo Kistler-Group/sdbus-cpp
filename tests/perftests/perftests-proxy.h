@@ -16,7 +16,7 @@ namespace sdbuscpp {
 class perftests_proxy
 {
 public:
-    static constexpr const char* INTERFACE_NAME = "org.sdbuscpp.perftests";
+    static inline const sdbus::InterfaceName INTERFACE_NAME{"org.sdbuscpp.perftests"};
 
 protected:
     perftests_proxy(sdbus::IProxy& proxy)

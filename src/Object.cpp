@@ -43,20 +43,20 @@
 
 namespace sdbus::internal {
 
-Object::Object(sdbus::internal::IConnection& connection, std::string objectPath)
+Object::Object(sdbus::internal::IConnection& connection, ObjectPath objectPath)
     : connection_(connection), objectPath_(std::move(objectPath))
 {
     SDBUS_CHECK_OBJECT_PATH(objectPath_);
 }
 
-void Object::addVTable(std::string interfaceName, std::vector<VTableItem> vtable)
+void Object::addVTable(InterfaceName interfaceName, std::vector<VTableItem> vtable)
 {
     auto slot = Object::addVTable(std::move(interfaceName), std::move(vtable), return_slot);
 
     vtables_.push_back(std::move(slot));
 }
 
-Slot Object::addVTable(std::string interfaceName, std::vector<VTableItem> vtable, return_slot_t)
+Slot Object::addVTable(InterfaceName interfaceName, std::vector<VTableItem> vtable, return_slot_t)
 {
     SDBUS_CHECK_INTERFACE_NAME(interfaceName);
 
@@ -79,7 +79,7 @@ void Object::unregister()
     removeObjectManager();
 }
 
-sdbus::Signal Object::createSignal(const std::string& interfaceName, const std::string& signalName)
+sdbus::Signal Object::createSignal(const InterfaceName& interfaceName, const SignalName& signalName)
 {
     return connection_.createSignal(objectPath_, interfaceName, signalName);
 }
@@ -91,12 +91,12 @@ void Object::emitSignal(const sdbus::Signal& message)
     message.send();
 }
 
-void Object::emitPropertiesChangedSignal(const std::string& interfaceName, const std::vector<std::string>& propNames)
+void Object::emitPropertiesChangedSignal(const InterfaceName& interfaceName, const std::vector<PropertyName>& propNames)
 {
     connection_.emitPropertiesChangedSignal(objectPath_, interfaceName, propNames);
 }
 
-void Object::emitPropertiesChangedSignal(const std::string& interfaceName)
+void Object::emitPropertiesChangedSignal(const InterfaceName& interfaceName)
 {
     Object::emitPropertiesChangedSignal(interfaceName, {});
 }
@@ -106,7 +106,7 @@ void Object::emitInterfacesAddedSignal()
     connection_.emitInterfacesAddedSignal(objectPath_);
 }
 
-void Object::emitInterfacesAddedSignal(const std::vector<std::string>& interfaces)
+void Object::emitInterfacesAddedSignal(const std::vector<InterfaceName>& interfaces)
 {
     connection_.emitInterfacesAddedSignal(objectPath_, interfaces);
 }
@@ -116,7 +116,7 @@ void Object::emitInterfacesRemovedSignal()
     connection_.emitInterfacesRemovedSignal(objectPath_);
 }
 
-void Object::emitInterfacesRemovedSignal(const std::vector<std::string>& interfaces)
+void Object::emitInterfacesRemovedSignal(const std::vector<InterfaceName>& interfaces)
 {
     connection_.emitInterfacesRemovedSignal(objectPath_, interfaces);
 }
@@ -141,7 +141,7 @@ sdbus::IConnection& Object::getConnection() const
     return connection_;
 }
 
-const std::string& Object::getObjectPath() const
+const ObjectPath& Object::getObjectPath() const
 {
     return objectPath_;
 }
@@ -151,7 +151,7 @@ Message Object::getCurrentlyProcessedMessage() const
     return connection_.getCurrentlyProcessedMessage();
 }
 
-Object::VTable Object::createInternalVTable(std::string interfaceName, std::vector<VTableItem> vtable)
+Object::VTable Object::createInternalVTable(InterfaceName interfaceName, std::vector<VTableItem> vtable)
 {
     VTable internalVTable;
 
@@ -241,8 +241,8 @@ void Object::startSdBusVTable(const Flags& interfaceFlags, std::vector<sd_bus_vt
 void Object::writeMethodRecordToSdBusVTable(const VTable::MethodItem& method, std::vector<sd_bus_vtable>& vtable)
 {
     auto vtableItem = createSdBusVTableMethodItem( method.name.c_str()
-                                                 , method.inputArgs.c_str()
-                                                 , method.outputArgs.c_str()
+                                                 , method.inputSignature.c_str()
+                                                 , method.outputSignature.c_str()
                                                  , method.paramNames.c_str()
                                                  , &Object::sdbus_method_callback
                                                  , method.flags.toSdBusMethodFlags() );
@@ -278,22 +278,26 @@ void Object::finalizeSdBusVTable(std::vector<sd_bus_vtable>& vtable)
     vtable.push_back(createSdBusVTableEndItem());
 }
 
-const Object::VTable::MethodItem* Object::findMethod(const VTable& vtable, const std::string& methodName)
+const Object::VTable::MethodItem* Object::findMethod(const VTable& vtable, std::string_view methodName)
 {
     auto it = std::lower_bound(vtable.methods.begin(), vtable.methods.end(), methodName, [](const auto& methodItem, const auto& methodName)
     {
         return methodItem.name < methodName;
     });
 
+    (void)it;
+
     return it != vtable.methods.end() && it->name == methodName ? &*it : nullptr;
 }
 
-const Object::VTable::PropertyItem* Object::findProperty(const VTable& vtable, const std::string& propertyName)
+const Object::VTable::PropertyItem* Object::findProperty(const VTable& vtable, std::string_view propertyName)
 {
     auto it = std::lower_bound(vtable.properties.begin(), vtable.properties.end(), propertyName, [](const auto& propertyItem, const auto& propertyName)
     {
         return propertyItem.name < propertyName;
     });
+
+    (void)it;
 
     return it != vtable.properties.end() && it->name == propertyName ? &*it : nullptr;
 }
@@ -314,7 +318,7 @@ int Object::sdbus_method_callback(sd_bus_message *sdbusMessage, void *userData, 
 
     auto message = Message::Factory::create<MethodCall>(sdbusMessage, &vtable->object->connection_.getSdBusInterface());
 
-    const auto* methodItem = findMethod(*vtable, message.getMemberName());
+    const auto* methodItem = findMethod(*vtable, message.getMemberName()); // TODO: optimize the situation around getMemberName()
     assert(methodItem != nullptr);
     assert(methodItem->callback);
 
@@ -379,7 +383,7 @@ int Object::sdbus_property_set_callback( sd_bus */*bus*/
 
 namespace sdbus {
 
-std::unique_ptr<sdbus::IObject> createObject(sdbus::IConnection& connection, std::string objectPath)
+std::unique_ptr<sdbus::IObject> createObject(sdbus::IConnection& connection, ObjectPath objectPath)
 {
     auto* sdbusConnection = dynamic_cast<sdbus::internal::IConnection*>(&connection);
     SDBUS_THROW_ERROR_IF(!sdbusConnection, "Connection is not a real sdbus-c++ connection", EINVAL);

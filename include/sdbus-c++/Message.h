@@ -51,10 +51,14 @@
 namespace sdbus {
     class Variant;
     class ObjectPath;
+    class InterfaceName;
+    class MemberName;
     class Signature;
     template <typename... _ValueTypes> class Struct;
     class UnixFd;
     class MethodReply;
+    class BusName;
+    using ConnectionName = BusName;
     namespace internal {
         class ISdBus;
     }
@@ -99,7 +103,6 @@ namespace sdbus {
         Message& operator<<(const ObjectPath &item);
         Message& operator<<(const Signature &item);
         Message& operator<<(const UnixFd &item);
-
         template <typename _Element, typename _Allocator>
         Message& operator<<(const std::vector<_Element, _Allocator>& items);
         template <typename _Element, std::size_t _Size>
@@ -173,11 +176,11 @@ namespace sdbus {
         explicit operator bool() const;
         void clearFlags();
 
-        std::string getInterfaceName() const;
-        std::string getMemberName() const;
-        std::string getSender() const;
-        std::string getPath() const;
-        std::string getDestination() const;
+        InterfaceName getInterfaceName() const;
+        MemberName getMemberName() const;
+        ConnectionName getSender() const;
+        ObjectPath getPath() const;
+        ConnectionName getDestination() const;
         void peekType(std::string& type, std::string& contents) const;
         bool isValid() const;
         bool isEmpty() const;
@@ -273,7 +276,7 @@ namespace sdbus {
 
     public:
         Signal() = default;
-        void setDestination(const std::string& destination);
+        void setDestination(const ConnectionName& destination);
         void send() const;
     };
 

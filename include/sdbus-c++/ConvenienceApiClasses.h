@@ -53,7 +53,9 @@ namespace sdbus {
     {
     public:
         VTableAdder(IObject& object, std::vector<VTableItem> vtable);
+        void forInterface(InterfaceName interfaceName);
         void forInterface(std::string interfaceName);
+        [[nodiscard]] Slot forInterface(InterfaceName interfaceName, return_slot_t);
         [[nodiscard]] Slot forInterface(std::string interfaceName, return_slot_t);
 
     private:
@@ -64,15 +66,16 @@ namespace sdbus {
     class SignalEmitter
     {
     public:
-        SignalEmitter(IObject& object, const std::string& signalName);
+        SignalEmitter(IObject& object, const SignalName& signalName);
         SignalEmitter(SignalEmitter&& other) = default;
         ~SignalEmitter() noexcept(false);
+        SignalEmitter& onInterface(const InterfaceName& interfaceName);
         SignalEmitter& onInterface(const std::string& interfaceName);
         template <typename... _Args> void withArguments(_Args&&... args);
 
     private:
         IObject& object_;
-        const std::string& signalName_;
+        const SignalName& signalName_;
         Signal signal_;
         int exceptions_{}; // Number of active exceptions when SignalEmitter is constructed
     };
@@ -80,10 +83,11 @@ namespace sdbus {
     class MethodInvoker
     {
     public:
-        MethodInvoker(IProxy& proxy, const std::string& methodName);
+        MethodInvoker(IProxy& proxy, const MethodName& methodName);
         MethodInvoker(MethodInvoker&& other) = default;
         ~MethodInvoker() noexcept(false);
 
+        MethodInvoker& onInterface(const InterfaceName& interfaceName);
         MethodInvoker& onInterface(const std::string& interfaceName);
         MethodInvoker& withTimeout(uint64_t usec);
         template <typename _Rep, typename _Period>
@@ -95,7 +99,7 @@ namespace sdbus {
 
     private:
         IProxy& proxy_;
-        const std::string& methodName_;
+        const MethodName& methodName_;
         uint64_t timeout_{};
         MethodCall method_;
         int exceptions_{}; // Number of active exceptions when MethodInvoker is constructed
@@ -105,7 +109,8 @@ namespace sdbus {
     class AsyncMethodInvoker
     {
     public:
-        AsyncMethodInvoker(IProxy& proxy, const std::string& methodName);
+        AsyncMethodInvoker(IProxy& proxy, const MethodName& methodName);
+        AsyncMethodInvoker& onInterface(const InterfaceName& interfaceName);
         AsyncMethodInvoker& onInterface(const std::string& interfaceName);
         AsyncMethodInvoker& withTimeout(uint64_t usec);
         template <typename _Rep, typename _Period>
@@ -119,7 +124,7 @@ namespace sdbus {
 
     private:
         IProxy& proxy_;
-        const std::string& methodName_;
+        const MethodName& methodName_;
         uint64_t timeout_{};
         MethodCall method_;
     };
@@ -127,7 +132,8 @@ namespace sdbus {
     class SignalSubscriber
     {
     public:
-        SignalSubscriber(IProxy& proxy, const std::string& signalName);
+        SignalSubscriber(IProxy& proxy, const SignalName& signalName);
+        SignalSubscriber& onInterface(InterfaceName interfaceName);
         SignalSubscriber& onInterface(std::string interfaceName);
         template <typename _Function> void call(_Function&& callback);
         template <typename _Function> [[nodiscard]] Slot call(_Function&& callback, return_slot_t);
@@ -137,39 +143,48 @@ namespace sdbus {
 
     private:
         IProxy& proxy_;
-        const std::string& signalName_;
-        std::string interfaceName_;
+        const SignalName& signalName_;
+        InterfaceName interfaceName_;
     };
 
     class PropertyGetter
     {
     public:
-        PropertyGetter(IProxy& proxy, const std::string& propertyName);
+        PropertyGetter(IProxy& proxy, const PropertyName& propertyName);
+        Variant onInterface(const InterfaceName& interfaceName);
         Variant onInterface(const std::string& interfaceName);
 
     private:
+        static inline const InterfaceName DBUS_PROPERTIES_INTERFACE_NAME{"org.freedesktop.DBus.Properties"};
+
+    private:
         IProxy& proxy_;
-        const std::string& propertyName_;
+        const PropertyName& propertyName_;
     };
 
     class AsyncPropertyGetter
     {
     public:
-        AsyncPropertyGetter(IProxy& proxy, const std::string& propertyName);
+        AsyncPropertyGetter(IProxy& proxy, const PropertyName& propertyName);
+        AsyncPropertyGetter& onInterface(const InterfaceName& interfaceName);
         AsyncPropertyGetter& onInterface(const std::string& interfaceName);
         template <typename _Function> PendingAsyncCall uponReplyInvoke(_Function&& callback);
         std::future<Variant> getResultAsFuture();
 
     private:
+        static inline const InterfaceName DBUS_PROPERTIES_INTERFACE_NAME{"org.freedesktop.DBus.Properties"};
+
+    private:
         IProxy& proxy_;
-        const std::string& propertyName_;
-        const std::string* interfaceName_{};
+        const PropertyName& propertyName_;
+        const InterfaceName* interfaceName_{};
     };
 
     class PropertySetter
     {
     public:
-        PropertySetter(IProxy& proxy, const std::string& propertyName);
+        PropertySetter(IProxy& proxy, const PropertyName& propertyName);
+        PropertySetter& onInterface(const InterfaceName& interfaceName);
         PropertySetter& onInterface(const std::string& interfaceName);
         template <typename _Value> void toValue(const _Value& value);
         template <typename _Value> void toValue(const _Value& value, dont_expect_reply_t);
@@ -177,15 +192,19 @@ namespace sdbus {
         void toValue(const Variant& value, dont_expect_reply_t);
 
     private:
+        static inline const InterfaceName DBUS_PROPERTIES_INTERFACE_NAME{"org.freedesktop.DBus.Properties"};
+
+    private:
         IProxy& proxy_;
-        const std::string& propertyName_;
-        const std::string* interfaceName_{};
+        const PropertyName& propertyName_;
+        const InterfaceName* interfaceName_{};
     };
 
     class AsyncPropertySetter
     {
     public:
-        AsyncPropertySetter(IProxy& proxy, const std::string& propertyName);
+        AsyncPropertySetter(IProxy& proxy, const PropertyName& propertyName);
+        AsyncPropertySetter& onInterface(const InterfaceName& interfaceName);
         AsyncPropertySetter& onInterface(const std::string& interfaceName);
         template <typename _Value> AsyncPropertySetter& toValue(_Value&& value);
         AsyncPropertySetter& toValue(Variant value);
@@ -193,9 +212,12 @@ namespace sdbus {
         std::future<void> getResultAsFuture();
 
     private:
+        static inline const InterfaceName DBUS_PROPERTIES_INTERFACE_NAME{"org.freedesktop.DBus.Properties"};
+
+    private:
         IProxy& proxy_;
-        const std::string& propertyName_;
-        const std::string* interfaceName_{};
+        const PropertyName& propertyName_;
+        const InterfaceName* interfaceName_{};
         Variant value_;
     };
 
@@ -203,7 +225,11 @@ namespace sdbus {
     {
     public:
         AllPropertiesGetter(IProxy& proxy);
-        std::map<std::string, Variant> onInterface(const std::string& interfaceName);
+        std::map<PropertyName, Variant> onInterface(const InterfaceName& interfaceName);
+        std::map<PropertyName, Variant> onInterface(const std::string& interfaceName);
+
+    private:
+        static inline const InterfaceName DBUS_PROPERTIES_INTERFACE_NAME{"org.freedesktop.DBus.Properties"};
 
     private:
         IProxy& proxy_;
@@ -213,13 +239,17 @@ namespace sdbus {
     {
     public:
         AsyncAllPropertiesGetter(IProxy& proxy);
+        AsyncAllPropertiesGetter& onInterface(const InterfaceName& interfaceName);
         AsyncAllPropertiesGetter& onInterface(const std::string& interfaceName);
         template <typename _Function> PendingAsyncCall uponReplyInvoke(_Function&& callback);
-        std::future<std::map<std::string, Variant>> getResultAsFuture();
+        std::future<std::map<PropertyName, Variant>> getResultAsFuture();
+
+    private:
+        static inline const InterfaceName DBUS_PROPERTIES_INTERFACE_NAME{"org.freedesktop.DBus.Properties"};
 
     private:
         IProxy& proxy_;
-        const std::string* interfaceName_{};
+        const InterfaceName* interfaceName_{};
     };
 
 } // namespace sdbus

@@ -30,12 +30,14 @@
 #include "sdbus-c++/IObject.h"
 
 #include "IConnection.h"
+#include "sdbus-c++/Types.h"
 
 #include <cassert>
 #include <functional>
 #include <list>
 #include <memory>
 #include <string>
+#include <string_view>
 #include SDBUS_HEADER
 #include <vector>
 
@@ -45,27 +47,27 @@ namespace sdbus::internal {
         : public IObject
     {
     public:
-        Object(sdbus::internal::IConnection& connection, std::string objectPath);
+        Object(sdbus::internal::IConnection& connection, ObjectPath objectPath);
 
-        void addVTable(std::string interfaceName, std::vector<VTableItem> vtable) override;
-        Slot addVTable(std::string interfaceName, std::vector<VTableItem> vtable, return_slot_t) override;
+        void addVTable(InterfaceName interfaceName, std::vector<VTableItem> vtable) override;
+        Slot addVTable(InterfaceName interfaceName, std::vector<VTableItem> vtable, return_slot_t) override;
         void unregister() override;
 
-        sdbus::Signal createSignal(const std::string& interfaceName, const std::string& signalName) override;
+        sdbus::Signal createSignal(const InterfaceName& interfaceName, const SignalName& signalName) override;
         void emitSignal(const sdbus::Signal& message) override;
-        void emitPropertiesChangedSignal(const std::string& interfaceName, const std::vector<std::string>& propNames) override;
-        void emitPropertiesChangedSignal(const std::string& interfaceName) override;
+        void emitPropertiesChangedSignal(const InterfaceName& interfaceName, const std::vector<PropertyName>& propNames) override;
+        void emitPropertiesChangedSignal(const InterfaceName& interfaceName) override;
         void emitInterfacesAddedSignal() override;
-        void emitInterfacesAddedSignal(const std::vector<std::string>& interfaces) override;
+        void emitInterfacesAddedSignal(const std::vector<InterfaceName>& interfaces) override;
         void emitInterfacesRemovedSignal() override;
-        void emitInterfacesRemovedSignal(const std::vector<std::string>& interfaces) override;
+        void emitInterfacesRemovedSignal(const std::vector<InterfaceName>& interfaces) override;
 
         void addObjectManager() override;
         void removeObjectManager() override;
         [[nodiscard]] bool hasObjectManager() const override;
 
         [[nodiscard]] sdbus::IConnection& getConnection() const override;
-        [[nodiscard]] const std::string& getObjectPath() const override;
+        [[nodiscard]] const ObjectPath& getObjectPath() const override;
         [[nodiscard]] Message getCurrentlyProcessedMessage() const override;
 
     private:
@@ -74,14 +76,14 @@ namespace sdbus::internal {
         // An interface can have any number of vtables attached to it, not only one.
         struct VTable
         {
-            std::string interfaceName;
+            InterfaceName interfaceName;
             Flags interfaceFlags;
 
             struct MethodItem
             {
-                std::string name;
-                std::string inputArgs;
-                std::string outputArgs;
+                MethodName name;
+                Signature inputSignature;
+                Signature outputSignature;
                 std::string paramNames;
                 method_callback callback;
                 Flags flags;
@@ -91,8 +93,8 @@ namespace sdbus::internal {
 
             struct SignalItem
             {
-                std::string name;
-                std::string signature;
+                SignalName name;
+                Signature signature;
                 std::string paramNames;
                 Flags flags;
             };
@@ -101,8 +103,8 @@ namespace sdbus::internal {
 
             struct PropertyItem
             {
-                std::string name;
-                std::string signature;
+                PropertyName name;
+                Signature signature;
                 property_get_callback getCallback;
                 property_set_callback setCallback;
                 Flags flags;
@@ -121,7 +123,7 @@ namespace sdbus::internal {
             Slot slot;
         };
 
-        VTable createInternalVTable(std::string interfaceName, std::vector<VTableItem> vtable);
+        VTable createInternalVTable(InterfaceName interfaceName, std::vector<VTableItem> vtable);
         void writeInterfaceFlagsToVTable(InterfaceFlagsVTableItem flags, VTable& vtable);
         void writeMethodRecordToVTable(MethodVTableItem method, VTable& vtable);
         void writeSignalRecordToVTable(SignalVTableItem signal, VTable& vtable);
@@ -134,8 +136,8 @@ namespace sdbus::internal {
         static void writePropertyRecordToSdBusVTable(const VTable::PropertyItem& property, std::vector<sd_bus_vtable>& vtable);
         static void finalizeSdBusVTable(std::vector<sd_bus_vtable>& vtable);
 
-        static const VTable::MethodItem* findMethod(const VTable& vtable, const std::string& methodName);
-        static const VTable::PropertyItem* findProperty(const VTable& vtable, const std::string& propertyName);
+        static const VTable::MethodItem* findMethod(const VTable& vtable, std::string_view methodName);
+        static const VTable::PropertyItem* findProperty(const VTable& vtable, std::string_view propertyName);
 
         static std::string paramNamesToString(const std::vector<std::string>& paramNames);
 
@@ -157,7 +159,7 @@ namespace sdbus::internal {
 
     private:
         sdbus::internal::IConnection& connection_;
-        std::string objectPath_;
+        ObjectPath objectPath_;
         std::vector<Slot> vtables_;
         Slot objectManagerSlot_;
     };

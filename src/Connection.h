@@ -41,7 +41,18 @@
 #include <thread>
 #include <vector>
 
+// Forward declarations
 struct sd_event_source;
+namespace sdbus {
+    class ObjectPath;
+    class InterfaceName;
+    class BusName;
+    using ServiceName = BusName;
+    class MemberName;
+    using MethodName = MemberName;
+    using SignalName = MemberName;
+    using PropertyName = MemberName;
+}
 
 namespace sdbus::internal {
 
@@ -81,9 +92,9 @@ namespace sdbus::internal {
         Connection(std::unique_ptr<ISdBus>&& interface, pseudo_bus_t);
         ~Connection() override;
 
-        void requestName(const std::string& name) override;
-        void releaseName(const std::string& name) override;
-        [[nodiscard]] std::string getUniqueName() const override;
+        void requestName(const ServiceName & name) override;
+        void releaseName(const ServiceName& name) override;
+        [[nodiscard]] BusName getUniqueName() const override;
         void enterEventLoop() override;
         void enterEventLoopAsync() override;
         void leaveEventLoop() override;
@@ -91,8 +102,8 @@ namespace sdbus::internal {
         bool processPendingEvent() override;
         Message getCurrentlyProcessedMessage() const override;
 
-        void addObjectManager(const std::string& objectPath, floating_slot_t) override;
-        Slot addObjectManager(const std::string& objectPath, return_slot_t) override;
+        void addObjectManager(const ObjectPath& objectPath, floating_slot_t) override;
+        Slot addObjectManager(const ObjectPath& objectPath, return_slot_t) override;
 
         void setMethodCallTimeout(uint64_t timeout) override;
         [[nodiscard]] uint64_t getMethodCallTimeout() const override;
@@ -109,38 +120,38 @@ namespace sdbus::internal {
         [[nodiscard]] const ISdBus& getSdBusInterface() const override;
         [[nodiscard]] ISdBus& getSdBusInterface() override;
 
-        Slot addObjectVTable( const std::string& objectPath
-                            , const std::string& interfaceName
+        Slot addObjectVTable( const ObjectPath& objectPath
+                            , const InterfaceName& interfaceName
                             , const sd_bus_vtable* vtable
                             , void* userData ) override;
 
         [[nodiscard]] PlainMessage createPlainMessage() const override;
-        [[nodiscard]] MethodCall createMethodCall( const std::string& destination
-                                                 , const std::string& objectPath
-                                                 , const std::string& interfaceName
-                                                 , const std::string& methodName ) const override;
-        [[nodiscard]] Signal createSignal( const std::string& objectPath
-                                         , const std::string& interfaceName
-                                         , const std::string& signalName ) const override;
+        [[nodiscard]] MethodCall createMethodCall( const ServiceName& destination
+                                                 , const ObjectPath& objectPath
+                                                 , const InterfaceName& interfaceName
+                                                 , const MethodName& methodName ) const override;
+        [[nodiscard]] Signal createSignal( const ObjectPath& objectPath
+                                         , const InterfaceName& interfaceName
+                                         , const SignalName& signalName ) const override;
 
         MethodReply callMethod(const MethodCall& message, uint64_t timeout) override;
         void callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout, floating_slot_t) override;
         Slot callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout) override;
 
-        void emitPropertiesChangedSignal( const std::string& objectPath
-                                        , const std::string& interfaceName
-                                        , const std::vector<std::string>& propNames ) override;
-        void emitInterfacesAddedSignal(const std::string& objectPath) override;
-        void emitInterfacesAddedSignal( const std::string& objectPath
-                                      , const std::vector<std::string>& interfaces ) override;
-        void emitInterfacesRemovedSignal(const std::string& objectPath) override;
-        void emitInterfacesRemovedSignal( const std::string& objectPath
-                                        , const std::vector<std::string>& interfaces ) override;
+        void emitPropertiesChangedSignal( const ObjectPath& objectPath
+                                        , const InterfaceName& interfaceName
+                                        , const std::vector<PropertyName>& propNames ) override;
+        void emitInterfacesAddedSignal(const ObjectPath& objectPath) override;
+        void emitInterfacesAddedSignal( const ObjectPath& objectPath
+                                      , const std::vector<InterfaceName>& interfaces ) override;
+        void emitInterfacesRemovedSignal(const ObjectPath& objectPath) override;
+        void emitInterfacesRemovedSignal( const ObjectPath& objectPath
+                                        , const std::vector<InterfaceName>& interfaces ) override;
 
-        Slot registerSignalHandler( const std::string& sender
-                                  , const std::string& objectPath
-                                  , const std::string& interfaceName
-                                  , const std::string& signalName
+        Slot registerSignalHandler( const ServiceName& sender
+                                  , const ObjectPath& objectPath
+                                  , const InterfaceName& interfaceName
+                                  , const SignalName& signalName
                                   , sd_bus_message_handler_t callback
                                   , void* userData ) override;
 
@@ -161,7 +172,8 @@ namespace sdbus::internal {
         void wakeUpEventLoopIfMessagesInQueue();
         void joinWithEventLoop();
 
-        static std::vector</*const */char*> to_strv(const std::vector<std::string>& strings);
+        template <typename StringBasedType>
+        static std::vector</*const */char*> to_strv(const std::vector<StringBasedType>& strings);
 
         static int sdbus_match_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
         static int sdbus_match_install_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);

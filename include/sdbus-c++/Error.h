@@ -43,19 +43,34 @@ namespace sdbus {
         : public std::runtime_error
     {
     public:
-        explicit Error(const std::string& name, const char* message = nullptr)
-            : Error(name, std::string(message ? message : ""))
+        // Strong type representing the D-Bus error name
+        class Name : public std::string
+        {
+        public:
+            Name() = default;
+            explicit Name(std::string value)
+                : std::string(std::move(value))
+            {}
+            explicit Name(const char* value)
+                : std::string(value)
+            {}
+
+            using std::string::operator=;
+        };
+
+        explicit Error(Name name, const char* message = nullptr)
+            : Error(std::move(name), std::string(message ? message : ""))
         {
         }
 
-        Error(const std::string& name, const std::string& message)
+        Error(Name name, std::string message)
             : std::runtime_error("[" + name + "] " + message)
-            , name_(name)
-            , message_(message)
+            , name_(std::move(name))
+            , message_(std::move(message))
         {
         }
 
-        [[nodiscard]] const std::string& getName() const
+        [[nodiscard]] const Name& getName() const
         {
             return name_;
         }
@@ -71,13 +86,13 @@ namespace sdbus {
         }
 
     private:
-        std::string name_;
+        Name name_;
         std::string message_;
     };
 
-    sdbus::Error createError(int errNo, const std::string& customMsg);
+    Error createError(int errNo, std::string customMsg);
 
-    inline const char* SDBUSCPP_ERROR_NAME = "org.sdbuscpp.Error";
+    inline const Error::Name SDBUSCPP_ERROR_NAME{"org.sdbuscpp.Error"};
 }
 
 #define SDBUS_THROW_ERROR(_MSG, _ERRNO)                         \

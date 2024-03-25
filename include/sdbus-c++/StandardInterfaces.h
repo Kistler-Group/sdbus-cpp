@@ -39,7 +39,7 @@ namespace sdbus {
     // Proxy for peer
     class Peer_proxy
     {
-        static constexpr const char* INTERFACE_NAME = "org.freedesktop.DBus.Peer";
+        static inline const InterfaceName INTERFACE_NAME{"org.freedesktop.DBus.Peer"};
 
     protected:
         Peer_proxy(sdbus::IProxy& proxy)
@@ -78,7 +78,7 @@ namespace sdbus {
     // Proxy for introspection
     class Introspectable_proxy
     {
-        static constexpr const char* INTERFACE_NAME = "org.freedesktop.DBus.Introspectable";
+        static inline const InterfaceName INTERFACE_NAME{"org.freedesktop.DBus.Introspectable"};
 
     protected:
         Introspectable_proxy(sdbus::IProxy& proxy)
@@ -112,7 +112,7 @@ namespace sdbus {
     // Proxy for properties
     class Properties_proxy
     {
-        static constexpr const char* INTERFACE_NAME = "org.freedesktop.DBus.Properties";
+        static inline const InterfaceName INTERFACE_NAME{"org.freedesktop.DBus.Properties"};
 
     protected:
         Properties_proxy(sdbus::IProxy& proxy)
@@ -132,68 +132,106 @@ namespace sdbus {
             proxy_
                 ->uponSignal("PropertiesChanged")
                 .onInterface(INTERFACE_NAME)
-                .call([this]( const std::string& interfaceName
-                            , const std::map<std::string, sdbus::Variant>& changedProperties
-                            , const std::vector<std::string>& invalidatedProperties )
+                .call([this]( const InterfaceName& interfaceName
+                            , const std::map<PropertyName, sdbus::Variant>& changedProperties
+                            , const std::vector<PropertyName>& invalidatedProperties )
                             {
                                 this->onPropertiesChanged(interfaceName, changedProperties, invalidatedProperties);
                             });
         }
 
-        virtual void onPropertiesChanged( const std::string& interfaceName
-                                        , const std::map<std::string, sdbus::Variant>& changedProperties
-                                        , const std::vector<std::string>& invalidatedProperties ) = 0;
+        virtual void onPropertiesChanged( const InterfaceName& interfaceName
+                                        , const std::map<PropertyName, sdbus::Variant>& changedProperties
+                                        , const std::vector<PropertyName>& invalidatedProperties ) = 0;
 
     public:
-        sdbus::Variant Get(const std::string& interfaceName, const std::string& propertyName)
+        sdbus::Variant Get(const InterfaceName& interfaceName, const PropertyName& propertyName)
+        {
+            return proxy_->getProperty(propertyName).onInterface(interfaceName);
+        }
+
+        // TODO: Refactor from std::string to std::string_view before release/v2.0 !!!
+        sdbus::Variant Get(const InterfaceName& interfaceName, const std::string& propertyName)
         {
             return proxy_->getProperty(propertyName).onInterface(interfaceName);
         }
 
         template <typename _Function>
-        PendingAsyncCall GetAsync(const std::string& interfaceName, const std::string& propertyName, _Function&& callback)
+        PendingAsyncCall GetAsync(const InterfaceName& interfaceName, const PropertyName& propertyName, _Function&& callback)
         {
             return proxy_->getPropertyAsync(propertyName).onInterface(interfaceName).uponReplyInvoke(std::forward<_Function>(callback));
         }
 
-        std::future<sdbus::Variant> GetAsync(const std::string& interfaceName, const std::string& propertyName, with_future_t)
+        template <typename _Function>
+        PendingAsyncCall GetAsync(const InterfaceName& interfaceName, const std::string& propertyName, _Function&& callback)
+        {
+            return proxy_->getPropertyAsync(propertyName).onInterface(interfaceName).uponReplyInvoke(std::forward<_Function>(callback));
+        }
+
+        std::future<sdbus::Variant> GetAsync(const InterfaceName& interfaceName, const PropertyName& propertyName, with_future_t)
         {
             return proxy_->getPropertyAsync(propertyName).onInterface(interfaceName).getResultAsFuture();
         }
 
-        void Set(const std::string& interfaceName, const std::string& propertyName, const sdbus::Variant& value)
+        std::future<sdbus::Variant> GetAsync(const InterfaceName& interfaceName, const std::string& propertyName, with_future_t)
+        {
+            return proxy_->getPropertyAsync(propertyName).onInterface(interfaceName).getResultAsFuture();
+        }
+
+        void Set(const InterfaceName& interfaceName, const PropertyName& propertyName, const sdbus::Variant& value)
         {
             proxy_->setProperty(propertyName).onInterface(interfaceName).toValue(value);
         }
 
-        void Set(const std::string& interfaceName, const std::string& propertyName, const sdbus::Variant& value, dont_expect_reply_t)
+        void Set(const InterfaceName& interfaceName, const std::string& propertyName, const sdbus::Variant& value)
+        {
+            proxy_->setProperty(propertyName).onInterface(interfaceName).toValue(value);
+        }
+
+        void Set(const InterfaceName& interfaceName, const PropertyName& propertyName, const sdbus::Variant& value, dont_expect_reply_t)
+        {
+            proxy_->setProperty(propertyName).onInterface(interfaceName).toValue(value, dont_expect_reply);
+        }
+
+        void Set(const InterfaceName& interfaceName, const std::string& propertyName, const sdbus::Variant& value, dont_expect_reply_t)
         {
             proxy_->setProperty(propertyName).onInterface(interfaceName).toValue(value, dont_expect_reply);
         }
 
         template <typename _Function>
-        PendingAsyncCall SetAsync(const std::string& interfaceName, const std::string& propertyName, const sdbus::Variant& value, _Function&& callback)
+        PendingAsyncCall SetAsync(const InterfaceName& interfaceName, const PropertyName& propertyName, const sdbus::Variant& value, _Function&& callback)
         {
             return proxy_->setPropertyAsync(propertyName).onInterface(interfaceName).toValue(value).uponReplyInvoke(std::forward<_Function>(callback));
         }
 
-        std::future<void> SetAsync(const std::string& interfaceName, const std::string& propertyName, const sdbus::Variant& value, with_future_t)
+        template <typename _Function>
+        PendingAsyncCall SetAsync(const InterfaceName& interfaceName, const std::string& propertyName, const sdbus::Variant& value, _Function&& callback)
+        {
+            return proxy_->setPropertyAsync(propertyName).onInterface(interfaceName).toValue(value).uponReplyInvoke(std::forward<_Function>(callback));
+        }
+
+        std::future<void> SetAsync(const InterfaceName& interfaceName, const PropertyName& propertyName, const sdbus::Variant& value, with_future_t)
         {
             return proxy_->setPropertyAsync(propertyName).onInterface(interfaceName).toValue(value).getResultAsFuture();
         }
 
-        std::map<std::string, sdbus::Variant> GetAll(const std::string& interfaceName)
+        std::future<void> SetAsync(const InterfaceName& interfaceName, const std::string& propertyName, const sdbus::Variant& value, with_future_t)
+        {
+            return proxy_->setPropertyAsync(propertyName).onInterface(interfaceName).toValue(value).getResultAsFuture();
+        }
+
+        std::map<PropertyName, sdbus::Variant> GetAll(const InterfaceName& interfaceName)
         {
             return proxy_->getAllProperties().onInterface(interfaceName);
         }
 
         template <typename _Function>
-        PendingAsyncCall GetAllAsync(const std::string& interfaceName, _Function&& callback)
+        PendingAsyncCall GetAllAsync(const InterfaceName& interfaceName, _Function&& callback)
         {
             return proxy_->getAllPropertiesAsync().onInterface(interfaceName).uponReplyInvoke(std::forward<_Function>(callback));
         }
 
-        std::future<std::map<std::string, sdbus::Variant>> GetAllAsync(const std::string& interfaceName, with_future_t)
+        std::future<std::map<PropertyName, sdbus::Variant>> GetAllAsync(const InterfaceName& interfaceName, with_future_t)
         {
             return proxy_->getAllPropertiesAsync().onInterface(interfaceName).getResultAsFuture();
         }
@@ -205,7 +243,7 @@ namespace sdbus {
     // Proxy for object manager
     class ObjectManager_proxy
     {
-        static constexpr const char* INTERFACE_NAME = "org.freedesktop.DBus.ObjectManager";
+        static inline const InterfaceName INTERFACE_NAME{"org.freedesktop.DBus.ObjectManager"};
 
     protected:
         ObjectManager_proxy(sdbus::IProxy& proxy)
@@ -226,7 +264,7 @@ namespace sdbus {
                 ->uponSignal("InterfacesAdded")
                 .onInterface(INTERFACE_NAME)
                 .call([this]( const sdbus::ObjectPath& objectPath
-                            , const std::map<std::string, std::map<std::string, sdbus::Variant>>& interfacesAndProperties )
+                            , const std::map<sdbus::InterfaceName, std::map<PropertyName, sdbus::Variant>>& interfacesAndProperties )
                             {
                                 this->onInterfacesAdded(objectPath, interfacesAndProperties);
                             });
@@ -234,21 +272,21 @@ namespace sdbus {
             proxy_->uponSignal("InterfacesRemoved")
                 .onInterface(INTERFACE_NAME)
                 .call([this]( const sdbus::ObjectPath& objectPath
-                            , const std::vector<std::string>& interfaces )
+                            , const std::vector<sdbus::InterfaceName>& interfaces )
                             {
                                 this->onInterfacesRemoved(objectPath, interfaces);
                             });
         }
 
         virtual void onInterfacesAdded( const sdbus::ObjectPath& objectPath
-                                      , const std::map<std::string, std::map<std::string, sdbus::Variant>>& interfacesAndProperties) = 0;
+                                      , const std::map<sdbus::InterfaceName, std::map<PropertyName, sdbus::Variant>>& interfacesAndProperties) = 0;
         virtual void onInterfacesRemoved( const sdbus::ObjectPath& objectPath
-                                        , const std::vector<std::string>& interfaces) = 0;
+                                        , const std::vector<sdbus::InterfaceName>& interfaces) = 0;
 
     public:
-        std::map<sdbus::ObjectPath, std::map<std::string, std::map<std::string, sdbus::Variant>>> GetManagedObjects()
+        std::map<sdbus::ObjectPath, std::map<sdbus::InterfaceName, std::map<PropertyName, sdbus::Variant>>> GetManagedObjects()
         {
-            std::map<sdbus::ObjectPath, std::map<std::string, std::map<std::string, sdbus::Variant>>> objectsInterfacesAndProperties;
+            std::map<sdbus::ObjectPath, std::map<sdbus::InterfaceName, std::map<PropertyName, sdbus::Variant>>> objectsInterfacesAndProperties;
             proxy_->callMethod("GetManagedObjects").onInterface(INTERFACE_NAME).storeResultsTo(objectsInterfacesAndProperties);
             return objectsInterfacesAndProperties;
         }
@@ -264,7 +302,7 @@ namespace sdbus {
     // Adaptor for properties
     class Properties_adaptor
     {
-        static constexpr const char* INTERFACE_NAME = "org.freedesktop.DBus.Properties";
+        static inline const InterfaceName INTERFACE_NAME{"org.freedesktop.DBus.Properties"};
 
     protected:
         Properties_adaptor(sdbus::IObject& object) : object_(&object)
@@ -283,12 +321,12 @@ namespace sdbus {
         }
 
     public:
-        void emitPropertiesChangedSignal(const std::string& interfaceName, const std::vector<std::string>& properties)
+        void emitPropertiesChangedSignal(const InterfaceName& interfaceName, const std::vector<PropertyName>& properties)
         {
             object_->emitPropertiesChangedSignal(interfaceName, properties);
         }
 
-        void emitPropertiesChangedSignal(const std::string& interfaceName)
+        void emitPropertiesChangedSignal(const InterfaceName& interfaceName)
         {
             object_->emitPropertiesChangedSignal(interfaceName);
         }
@@ -309,7 +347,7 @@ namespace sdbus {
      */
     class ObjectManager_adaptor
     {
-        static constexpr const char* INTERFACE_NAME = "org.freedesktop.DBus.ObjectManager";
+        static inline const InterfaceName INTERFACE_NAME{"org.freedesktop.DBus.ObjectManager"};
 
     protected:
         explicit ObjectManager_adaptor(sdbus::IObject& object) : object_(&object)
@@ -378,7 +416,7 @@ namespace sdbus {
          *
          * See IObject::emitInterfacesAddedSignal().
          */
-        void emitInterfacesAddedSignal(const std::vector<std::string>& interfaces)
+        void emitInterfacesAddedSignal(const std::vector<sdbus::InterfaceName>& interfaces)
         {
             object_->emitInterfacesAddedSignal(interfaces);
         }
@@ -398,7 +436,7 @@ namespace sdbus {
          *
          * See IObject::emitInterfacesRemovedSignal().
          */
-        void emitInterfacesRemovedSignal(const std::vector<std::string>& interfaces)
+        void emitInterfacesRemovedSignal(const std::vector<InterfaceName>& interfaces)
         {
             object_->emitInterfacesRemovedSignal(interfaces);
         }

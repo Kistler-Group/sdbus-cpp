@@ -31,7 +31,7 @@
 
 namespace sdbus { namespace test {
 
-TestProxy::TestProxy(std::string destination, std::string objectPath)
+TestProxy::TestProxy(ServiceName destination, ObjectPath objectPath)
     : ProxyInterfaces(std::move(destination), std::move(objectPath))
 {
     getProxy().uponSignal("signalWithoutRegistration").onInterface(sdbus::test::INTERFACE_NAME).call([this](const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& s){ this->onSignalWithoutRegistration(s); });
@@ -39,14 +39,14 @@ TestProxy::TestProxy(std::string destination, std::string objectPath)
     registerProxy();
 }
 
-TestProxy::TestProxy(std::string destination, std::string objectPath, dont_run_event_loop_thread_t)
+TestProxy::TestProxy(ServiceName destination, ObjectPath objectPath, dont_run_event_loop_thread_t)
     : ProxyInterfaces(std::move(destination), std::move(objectPath), dont_run_event_loop_thread)
 {
     // It doesn't make sense to register any signals here since proxy upon a D-Bus connection with no event loop thread
     // will not receive any incoming messages except replies to synchronous D-Bus calls.
 }
 
-TestProxy::TestProxy(sdbus::IConnection& connection, std::string destination, std::string objectPath)
+TestProxy::TestProxy(sdbus::IConnection& connection, ServiceName destination, ObjectPath objectPath)
     : ProxyInterfaces(connection, std::move(destination), std::move(objectPath))
 {
     getProxy().uponSignal("signalWithoutRegistration").onInterface(sdbus::test::INTERFACE_NAME).call([this](const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& s){ this->onSignalWithoutRegistration(s); });
@@ -62,7 +62,7 @@ TestProxy::~TestProxy()
 void TestProxy::onSimpleSignal()
 {
     m_signalMsg = std::make_unique<sdbus::Message>(getProxy().getCurrentlyProcessedMessage());
-    m_signalMemberName = m_signalMsg->getMemberName();
+    m_signalName = m_signalMsg->getMemberName();
 
     m_gotSimpleSignal = true;
 }
@@ -81,6 +81,7 @@ void TestProxy::onSignalWithVariant(const sdbus::Variant& aVariant)
 
 void TestProxy::onSignalWithoutRegistration(const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& s)
 {
+    // Static cast to std::string is a workaround for gcc 11.4 false positive warning (which later gcc versions nor Clang emit)
     m_signatureFromSignal[std::get<0>(s)] = static_cast<std::string>(std::get<0>(std::get<1>(s)));
     m_gotSignalWithSignature = true;
 }
@@ -91,9 +92,9 @@ void TestProxy::onDoOperationReply(uint32_t returnValue, std::optional<sdbus::Er
         m_DoOperationClientSideAsyncReplyHandler(returnValue, error);
 }
 
-void TestProxy::onPropertiesChanged( const std::string& interfaceName
-                                   , const std::map<std::string, sdbus::Variant>& changedProperties
-                                   , const std::vector<std::string>& invalidatedProperties )
+void TestProxy::onPropertiesChanged( const sdbus::InterfaceName& interfaceName
+                                   , const std::map<PropertyName, sdbus::Variant>& changedProperties
+                                   , const std::vector<PropertyName>& invalidatedProperties )
 {
     if (m_onPropertiesChangedHandler)
         m_onPropertiesChangedHandler(interfaceName, changedProperties, invalidatedProperties);
@@ -133,7 +134,7 @@ std::future<uint32_t> TestProxy::doOperationClientSideAsync(uint32_t param, with
 
 std::future<MethodReply> TestProxy::doOperationClientSideAsyncOnBasicAPILevel(uint32_t param)
 {
-    auto methodCall = getProxy().createMethodCall(sdbus::test::INTERFACE_NAME, "doOperation");
+    auto methodCall = getProxy().createMethodCall(sdbus::test::INTERFACE_NAME, sdbus::MethodName{"doOperation"});
     methodCall << param;
 
     return getProxy().callMethodAsync(methodCall, sdbus::with_future);
@@ -178,8 +179,9 @@ int32_t TestProxy::callNonexistentMethod()
 
 int32_t TestProxy::callMethodOnNonexistentInterface()
 {
+    sdbus::InterfaceName nonexistentInterfaceName{"sdbuscpp.interface.that.does.not.exist"};
     int32_t result;
-    getProxy().callMethod("someMethod").onInterface("sdbuscpp.interface.that.does.not.exist").storeResultsTo(result);
+    getProxy().callMethod("someMethod").onInterface(nonexistentInterfaceName).storeResultsTo(result);
     return result;
 }
 

@@ -41,7 +41,7 @@
 
 namespace sdbus::internal {
 
-Proxy::Proxy(sdbus::internal::IConnection& connection, std::string destination, std::string objectPath)
+Proxy::Proxy(sdbus::internal::IConnection& connection, ServiceName destination, ObjectPath objectPath)
     : connection_(&connection, [](sdbus::internal::IConnection *){ /* Intentionally left empty */ })
     , destination_(std::move(destination))
     , objectPath_(std::move(objectPath))
@@ -54,8 +54,8 @@ Proxy::Proxy(sdbus::internal::IConnection& connection, std::string destination, 
 }
 
 Proxy::Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
-            , std::string destination
-            , std::string objectPath )
+            , ServiceName destination
+            , ObjectPath objectPath )
     : connection_(std::move(connection))
     , destination_(std::move(destination))
     , objectPath_(std::move(objectPath))
@@ -69,8 +69,8 @@ Proxy::Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
 }
 
 Proxy::Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
-            , std::string destination
-            , std::string objectPath
+            , ServiceName destination
+            , ObjectPath objectPath
             , dont_run_event_loop_thread_t )
     : connection_(std::move(connection))
     , destination_(std::move(destination))
@@ -83,7 +83,7 @@ Proxy::Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
     // This proxy is meant to be created, used for simple synchronous D-Bus call(s) and then dismissed.
 }
 
-MethodCall Proxy::createMethodCall(const std::string& interfaceName, const std::string& methodName)
+MethodCall Proxy::createMethodCall(const InterfaceName& interfaceName, const MethodName& methodName)
 {
     return connection_->createMethodCall(destination_, objectPath_, interfaceName, methodName);
 }
@@ -134,8 +134,8 @@ std::future<MethodReply> Proxy::callMethodAsync(const MethodCall& message, uint6
     return future;
 }
 
-void Proxy::registerSignalHandler( const std::string& interfaceName
-                                 , const std::string& signalName
+void Proxy::registerSignalHandler( const InterfaceName& interfaceName
+                                 , const SignalName& signalName
                                  , signal_handler signalHandler )
 {
     auto slot = Proxy::registerSignalHandler(interfaceName, signalName, std::move(signalHandler), return_slot);
@@ -143,8 +143,8 @@ void Proxy::registerSignalHandler( const std::string& interfaceName
     floatingSignalSlots_.push_back(std::move(slot));
 }
 
-Slot Proxy::registerSignalHandler( const std::string& interfaceName
-                                 , const std::string& signalName
+Slot Proxy::registerSignalHandler( const InterfaceName& interfaceName
+                                 , const SignalName& signalName
                                  , signal_handler signalHandler
                                  , return_slot_t )
 {
@@ -175,7 +175,7 @@ sdbus::IConnection& Proxy::getConnection() const
     return *connection_;
 }
 
-const std::string& Proxy::getObjectPath() const
+const ObjectPath& Proxy::getObjectPath() const
 {
     return objectPath_;
 }
@@ -211,7 +211,7 @@ int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userDat
         }
         else
         {
-            Error exception(error->name, error->message);
+            Error exception(Error::Name{error->name}, error->message);
             asyncCallData->callback(std::move(message), std::move(exception));
         }
     }, retError);
@@ -266,8 +266,8 @@ bool PendingAsyncCall::isPending() const
 namespace sdbus {
 
 std::unique_ptr<sdbus::IProxy> createProxy( IConnection& connection
-                                          , std::string destination
-                                          , std::string objectPath )
+                                          , ServiceName destination
+                                          , ObjectPath objectPath )
 {
     auto* sdbusConnection = dynamic_cast<sdbus::internal::IConnection*>(&connection);
     SDBUS_THROW_ERROR_IF(!sdbusConnection, "Connection is not a real sdbus-c++ connection", EINVAL);
@@ -278,8 +278,8 @@ std::unique_ptr<sdbus::IProxy> createProxy( IConnection& connection
 }
 
 std::unique_ptr<sdbus::IProxy> createProxy( std::unique_ptr<IConnection>&& connection
-                                          , std::string destination
-                                          , std::string objectPath )
+                                          , ServiceName destination
+                                          , ObjectPath objectPath )
 {
     auto* sdbusConnection = dynamic_cast<sdbus::internal::IConnection*>(connection.get());
     SDBUS_THROW_ERROR_IF(!sdbusConnection, "Connection is not a real sdbus-c++ connection", EINVAL);
@@ -292,8 +292,8 @@ std::unique_ptr<sdbus::IProxy> createProxy( std::unique_ptr<IConnection>&& conne
 }
 
 std::unique_ptr<sdbus::IProxy> createProxy( std::unique_ptr<IConnection>&& connection
-                                          , std::string destination
-                                          , std::string objectPath
+                                          , ServiceName destination
+                                          , ObjectPath objectPath
                                           , dont_run_event_loop_thread_t )
 {
     auto* sdbusConnection = dynamic_cast<sdbus::internal::IConnection*>(connection.get());
@@ -307,8 +307,8 @@ std::unique_ptr<sdbus::IProxy> createProxy( std::unique_ptr<IConnection>&& conne
                                                    , dont_run_event_loop_thread );
 }
 
-std::unique_ptr<sdbus::IProxy> createProxy( std::string destination
-                                          , std::string objectPath )
+std::unique_ptr<sdbus::IProxy> createProxy( ServiceName destination
+                                          , ObjectPath objectPath )
 {
     auto connection = sdbus::createBusConnection();
 
@@ -320,8 +320,8 @@ std::unique_ptr<sdbus::IProxy> createProxy( std::string destination
                                                    , std::move(objectPath) );
 }
 
-std::unique_ptr<sdbus::IProxy> createProxy( std::string destination
-                                          , std::string objectPath
+std::unique_ptr<sdbus::IProxy> createProxy( ServiceName destination
+                                          , ObjectPath objectPath
                                           , dont_run_event_loop_thread_t )
 {
     auto connection = sdbus::createBusConnection();

@@ -57,8 +57,8 @@ TYPED_TEST(SdbusTestObject, EmitsSimpleSignalSuccesfully)
 
 TYPED_TEST(SdbusTestObject, EmitsSimpleSignalToMultipleProxiesSuccesfully)
 {
-    auto proxy1 = std::make_unique<TestProxy>(*this->s_adaptorConnection, BUS_NAME, OBJECT_PATH);
-    auto proxy2 = std::make_unique<TestProxy>(*this->s_adaptorConnection, BUS_NAME, OBJECT_PATH);
+    auto proxy1 = std::make_unique<TestProxy>(*this->s_adaptorConnection, SERVICE_NAME, OBJECT_PATH);
+    auto proxy2 = std::make_unique<TestProxy>(*this->s_adaptorConnection, SERVICE_NAME, OBJECT_PATH);
 
     this->m_adaptor->emitSimpleSignal();
 
@@ -69,7 +69,7 @@ TYPED_TEST(SdbusTestObject, EmitsSimpleSignalToMultipleProxiesSuccesfully)
 
 TYPED_TEST(SdbusTestObject, ProxyDoesNotReceiveSignalFromOtherBusName)
 {
-    auto otherBusName = BUS_NAME + "2";
+    sdbus::ServiceName otherBusName{SERVICE_NAME + "2"};
     auto connection2 = sdbus::createBusConnection(otherBusName);
     auto adaptor2 = std::make_unique<TestAdaptor>(*connection2, OBJECT_PATH);
 
@@ -110,10 +110,10 @@ TYPED_TEST(SdbusTestObject, EmitsSignalWithVariantSuccesfully)
 
 TYPED_TEST(SdbusTestObject, EmitsSignalWithoutRegistrationSuccesfully)
 {
-    this->m_adaptor->emitSignalWithoutRegistration({"platform", {"av"}});
+    this->m_adaptor->emitSignalWithoutRegistration({"platform", sdbus::Signature{"av"}});
 
     ASSERT_TRUE(waitUntil(this->m_proxy->m_gotSignalWithSignature));
-    ASSERT_THAT(this->m_proxy->m_signatureFromSignal["platform"], Eq("av"));
+    ASSERT_THAT(this->m_proxy->m_signatureFromSignal["platform"], Eq(sdbus::Signature{"av"}));
 }
 
 TYPED_TEST(SdbusTestObject, CanAccessAssociatedSignalMessageInSignalHandler)
@@ -123,7 +123,7 @@ TYPED_TEST(SdbusTestObject, CanAccessAssociatedSignalMessageInSignalHandler)
     waitUntil(this->m_proxy->m_gotSimpleSignal);
 
     ASSERT_THAT(this->m_proxy->m_signalMsg, NotNull());
-    ASSERT_THAT(this->m_proxy->m_signalMemberName, Eq("simpleSignal"));
+    ASSERT_THAT(this->m_proxy->m_signalName, Eq(std::string("simpleSignal")));
 }
 
 TYPED_TEST(SdbusTestObject, UnregistersSignalHandler)
@@ -137,8 +137,8 @@ TYPED_TEST(SdbusTestObject, UnregistersSignalHandler)
 
 TYPED_TEST(SdbusTestObject, UnregistersSignalHandlerForSomeProxies)
 {
-    auto proxy1 = std::make_unique<TestProxy>(*this->s_adaptorConnection, BUS_NAME, OBJECT_PATH);
-    auto proxy2 = std::make_unique<TestProxy>(*this->s_adaptorConnection, BUS_NAME, OBJECT_PATH);
+    auto proxy1 = std::make_unique<TestProxy>(*this->s_adaptorConnection, SERVICE_NAME, OBJECT_PATH);
+    auto proxy2 = std::make_unique<TestProxy>(*this->s_adaptorConnection, SERVICE_NAME, OBJECT_PATH);
 
     ASSERT_NO_THROW(this->m_proxy->unregisterSimpleSignalHandler());
 
