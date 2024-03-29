@@ -1752,6 +1752,13 @@ sdbus-c++ v2 is a major release that comes with a number of breaking API/ABI/beh
 * Change in behavior: In *synchronous* D-Bus calls, the proxy object now keeps the connection instance blocked for the entire duration of the method call. Incoming messages like signals will be queued and processed after the call. Access to the connection from other threads is blocked. To avoid this (in case this hurts you):
   * either use short-lived, light-weight proxies for such synchronous calls,
   * or call the method in an asynchronous way.
+* Strong types were introduced for safer, less error-prone and more expressive API. What previously was `auto proxy = createProxy("org.sdbuscpp.concatenator", "/org/sdbuscpp/concatenator");` is now written like `auto proxy = createProxy(ServiceName{"org.sdbuscpp.concatenator"}, ObjectPath{"/org/sdbuscpp/concatenator"});`. These types are:
+  * `ObjectPath` type for the object path (the type has been around already but now is also used consistently in sdbus-c++ API for object path strings)
+  * `InterfaceName` type for D-Bus interface names
+  * `BusName` (and its aliases `ServiceName` and `ConnectionName`) type for bus/service/connection names
+  * `MemberName` (and its aliases `MethodName`, `SignalName` and `PropertyName`) type for D-Bus method, signal and property names
+  * `Signature` type for the D-Bus signature (the type has been around already but now is also used consistently in sdbus-c++ API for signature strings)
+  * `Error::Name` type for D-Bus error names
 * Signatures of callbacks `async_reply_handler`, `signal_handler`, `message_handler` and `property_set_callback` were modified to take input message objects by value instead of non-const ref to a message. The callback handler assumes ownership of the message. This API is cleaner and more self-explaining.
 * The `PollData` struct has been extended with a new data member: `eventFd`. All hooks with external event loops shall be modified to poll on this `eventFd` in addition to the `fd`.
 * `PollData::timeout_usec` was renamed to `PollData::timeout` and its type has been changed to `std::chrono::microseconds`. This member now holds directly what before had to be obtained through `PollData::getAbsoluteTimeout()` call.
