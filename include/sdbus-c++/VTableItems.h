@@ -27,6 +27,7 @@
 #define SDBUS_CXX_VTABLEITEMS_H_
 
 #include <sdbus-c++/Flags.h>
+#include <sdbus-c++/Types.h>
 #include <sdbus-c++/TypeTraits.h>
 
 #include <string>
@@ -47,9 +48,9 @@ namespace sdbus {
         MethodVTableItem& withNoReply();
 
         MethodName name;
-        std::string inputSignature;
+        Signature inputSignature;
         std::vector<std::string> inputParamNames;
-        std::string outputSignature;
+        Signature outputSignature;
         std::vector<std::string> outputParamNames;
         method_callback callbackHandler;
         Flags flags;
@@ -66,7 +67,7 @@ namespace sdbus {
         SignalVTableItem& markAsDeprecated();
 
         SignalName name;
-        std::string signature;
+        Signature signature;
         std::vector<std::string> paramNames;
         Flags flags;
     };
@@ -83,7 +84,7 @@ namespace sdbus {
         PropertyVTableItem& withUpdateBehavior(Flags::PropertyUpdateBehaviorFlags behavior);
 
         PropertyName name;
-        std::string signature;
+        Signature signature;
         property_get_callback getter;
         property_set_callback setter;
         Flags flags;

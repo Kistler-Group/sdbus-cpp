@@ -241,8 +241,8 @@ void Object::startSdBusVTable(const Flags& interfaceFlags, std::vector<sd_bus_vt
 void Object::writeMethodRecordToSdBusVTable(const VTable::MethodItem& method, std::vector<sd_bus_vtable>& vtable)
 {
     auto vtableItem = createSdBusVTableMethodItem( method.name.c_str()
-                                                 , method.inputArgs.c_str()
-                                                 , method.outputArgs.c_str()
+                                                 , method.inputSignature.c_str()
+                                                 , method.outputSignature.c_str()
                                                  , method.paramNames.c_str()
                                                  , &Object::sdbus_method_callback
                                                  , method.flags.toSdBusMethodFlags() );

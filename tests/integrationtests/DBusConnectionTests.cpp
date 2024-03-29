@@ -51,10 +51,11 @@ TEST(Connection, CanBeDefaultConstructed)
     ASSERT_NO_THROW(auto con = sdbus::createBusConnection());
 }
 
-TEST(SystemBusConnection, CanRequestRegisteredDbusName)
+TEST(Connection, CanRequestName)
 {
-    auto connection = sdbus::createSystemBusConnection();
+    auto connection = sdbus::createBusConnection();
 
+    // In case of system bus connection, requesting may throw as we need to allow that first through a config file in /etc/dbus-1/system.d
     ASSERT_NO_THROW(connection->requestName(SERVICE_NAME))
         << "Perhaps you've forgotten to copy `org.sdbuscpp.integrationtests.conf` file to `/etc/dbus-1/system.d` directory before running the tests?";
 }
@@ -67,7 +68,7 @@ TEST(SystemBusConnection, CannotRequestNonregisteredDbusName)
     ASSERT_THROW(connection->requestName(notSupportedBusName), sdbus::Error);
 }
 
-TEST(Connection, CanReleasedRequestedName)
+TEST(Connection, CanReleaseRequestedName)
 {
     auto connection = sdbus::createBusConnection();
     connection->requestName(SERVICE_NAME);

@@ -82,8 +82,8 @@ namespace sdbus::internal {
             struct MethodItem
             {
                 MethodName name;
-                std::string inputArgs;
-                std::string outputArgs;
+                Signature inputSignature;
+                Signature outputSignature;
                 std::string paramNames;
                 method_callback callback;
                 Flags flags;
@@ -94,7 +94,7 @@ namespace sdbus::internal {
             struct SignalItem
             {
                 SignalName name;
-                std::string signature;
+                Signature signature;
                 std::string paramNames;
                 Flags flags;
             };
@@ -104,7 +104,7 @@ namespace sdbus::internal {
             struct PropertyItem
             {
                 PropertyName name;
-                std::string signature;
+                Signature signature;
                 property_get_callback getCallback;
                 property_set_callback setCallback;
                 Flags flags;

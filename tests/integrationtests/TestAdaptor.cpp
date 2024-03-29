@@ -183,7 +183,7 @@ std::unordered_map<uint64_t, sdbus::Struct<std::map<uint8_t, std::vector<sdbus::
                         }
                     }
                 },
-                "a{t(a{ya(obva{is})}gs)}", // signature
+                sdbus::Signature{"a{t(a{ya(obva{is})}gs)}"}, // signature
                 std::string{}
             }
         }

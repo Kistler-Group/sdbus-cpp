@@ -285,7 +285,6 @@ TEST(ASignature, CanBeMovedLikeAStdString)
     sdbus::Signature oSignature{aSignature};
 
     ASSERT_THAT(sdbus::Signature{std::move(oSignature)}, Eq(sdbus::Signature(std::move(aSignature))));
-    ASSERT_THAT(std::string(oSignature), Eq(aSignature));
 }
 
 TEST(AUnixFd, DuplicatesAndOwnsFdUponStandardConstruction)

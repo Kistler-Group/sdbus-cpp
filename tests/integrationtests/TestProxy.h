@@ -114,7 +114,7 @@ public: // for tests
     std::atomic<bool> m_gotSignalWithVariant{false};
     double m_variantFromSignal;
     std::atomic<bool> m_gotSignalWithSignature{false};
-    std::map<std::string, std::string> m_signatureFromSignal;
+    std::map<std::string, Signature> m_signatureFromSignal;
 
     std::function<void(uint32_t res, std::optional<sdbus::Error> err)> m_DoOperationClientSideAsyncReplyHandler;
     std::function<void(const sdbus::InterfaceName&, const std::map<PropertyName, sdbus::Variant>&, const std::vector<PropertyName>&)> m_onPropertiesChangedHandler;

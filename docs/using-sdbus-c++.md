@@ -310,8 +310,8 @@ int main(int argc, char *argv[])
 
     // Register D-Bus methods and signals on the concatenator object, and exports the object.
     sdbus::InterfaceName interfaceName{"org.sdbuscpp.Concatenator"};
-    concatenator->addVTable( sdbus::MethodVTableItem{"concatenate", "ais", {}, "s", {}, &concatenate, {}}
-                           , sdbus::SignalVTableItem{"concatenated", "s", {}, {}} )
+    concatenator->addVTable( sdbus::MethodVTableItem{"concatenate", sdbus::Signature{"ais"}, {}, sdbus::Signature{"s"}, {}, &concatenate, {}}
+                           , sdbus::SignalVTableItem{"concatenated", sdbus::Signature{"s"}, {}, {}} )
                            .forInterface(interfaceName);
 
     // Run the I/O event loop on the bus connection.
