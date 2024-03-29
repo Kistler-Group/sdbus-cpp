@@ -46,18 +46,17 @@
 #include <queue>
 
 using namespace std::chrono_literals;
-using namespace std::string_literals;
 
-#define SERVICE_1_BUS_NAME "org.sdbuscpp.stresstests.service1"s
-#define SERVICE_2_BUS_NAME "org.sdbuscpp.stresstests.service2"s
-#define CELSIUS_THERMOMETER_OBJECT_PATH "/org/sdbuscpp/stresstests/celsius/thermometer"s
-#define FAHRENHEIT_THERMOMETER_OBJECT_PATH "/org/sdbuscpp/stresstests/fahrenheit/thermometer"s
-#define CONCATENATOR_OBJECT_PATH "/org/sdbuscpp/stresstests/concatenator"s
+const sdbus::ServiceName SERVICE_1_BUS_NAME{"org.sdbuscpp.stresstests.service1"};
+const sdbus::ServiceName SERVICE_2_BUS_NAME{"org.sdbuscpp.stresstests.service2"};
+const sdbus::ObjectPath CELSIUS_THERMOMETER_OBJECT_PATH{"/org/sdbuscpp/stresstests/celsius/thermometer"};
+const sdbus::ObjectPath FAHRENHEIT_THERMOMETER_OBJECT_PATH{"/org/sdbuscpp/stresstests/fahrenheit/thermometer"};
+const sdbus::ObjectPath CONCATENATOR_OBJECT_PATH{"/org/sdbuscpp/stresstests/concatenator"};
 
 class CelsiusThermometerAdaptor final : public sdbus::AdaptorInterfaces<org::sdbuscpp::stresstests::celsius::thermometer_adaptor>
 {
 public:
-    CelsiusThermometerAdaptor(sdbus::IConnection& connection, std::string objectPath)
+    CelsiusThermometerAdaptor(sdbus::IConnection& connection, sdbus::ObjectPath objectPath)
         : AdaptorInterfaces(connection, std::move(objectPath))
     {
         registerAdaptor();
@@ -81,7 +80,7 @@ private:
 class CelsiusThermometerProxy : public sdbus::ProxyInterfaces<org::sdbuscpp::stresstests::celsius::thermometer_proxy>
 {
 public:
-    CelsiusThermometerProxy(sdbus::IConnection& connection, std::string destination, std::string objectPath)
+    CelsiusThermometerProxy(sdbus::IConnection& connection, sdbus::ServiceName destination, sdbus::ObjectPath objectPath)
         : ProxyInterfaces(connection, std::move(destination), std::move(objectPath))
     {
         registerProxy();
@@ -97,7 +96,7 @@ class FahrenheitThermometerAdaptor final : public sdbus::AdaptorInterfaces< org:
                                                                           , org::sdbuscpp::stresstests::fahrenheit::thermometer::factory_adaptor >
 {
 public:
-    FahrenheitThermometerAdaptor(sdbus::IConnection& connection, std::string objectPath, bool isDelegate)
+    FahrenheitThermometerAdaptor(sdbus::IConnection& connection, sdbus::ObjectPath objectPath, bool isDelegate)
         : AdaptorInterfaces(connection, std::move(objectPath))
         , celsiusProxy_(connection, SERVICE_2_BUS_NAME, CELSIUS_THERMOMETER_OBJECT_PATH)
     {
@@ -128,7 +127,7 @@ public:
                         {
                             // Create new delegate object
                             auto& connection = getObject().getConnection();
-                            sdbus::ObjectPath newObjectPath = FAHRENHEIT_THERMOMETER_OBJECT_PATH + "/" + std::to_string(request.objectNr);
+                            sdbus::ObjectPath newObjectPath{FAHRENHEIT_THERMOMETER_OBJECT_PATH + "/" + std::to_string(request.objectNr)};
 
                             // Here we are testing dynamic creation of a D-Bus object in an async way
                             auto adaptor = std::make_unique<FahrenheitThermometerAdaptor>(connection, newObjectPath, true);
@@ -176,7 +175,7 @@ protected:
         objectCounter++;
 
         std::unique_lock<std::mutex> lock(mutex_);
-        requests_.push(WorkItem{objectCounter, std::string{}, std::move(result)});
+        requests_.push(WorkItem{objectCounter, {}, std::move(result)});
         lock.unlock();
         cond_.notify_one();
     }
@@ -191,7 +190,7 @@ protected:
 
 private:
     CelsiusThermometerProxy celsiusProxy_;
-    std::map<std::string, std::unique_ptr<FahrenheitThermometerAdaptor>> children_;
+    std::map<sdbus::ObjectPath, std::unique_ptr<FahrenheitThermometerAdaptor>> children_;
     std::mutex childrenMutex_;
 
     struct WorkItem
@@ -211,7 +210,7 @@ class FahrenheitThermometerProxy : public sdbus::ProxyInterfaces< org::sdbuscpp:
                                                                 , org::sdbuscpp::stresstests::fahrenheit::thermometer::factory_proxy >
 {
 public:
-    FahrenheitThermometerProxy(sdbus::IConnection& connection, std::string destination, std::string objectPath)
+    FahrenheitThermometerProxy(sdbus::IConnection& connection, sdbus::ServiceName destination, sdbus::ObjectPath objectPath)
         : ProxyInterfaces(connection, std::move(destination), std::move(objectPath))
     {
         registerProxy();
@@ -226,7 +225,7 @@ public:
 class ConcatenatorAdaptor final : public sdbus::AdaptorInterfaces<org::sdbuscpp::stresstests::concatenator_adaptor>
 {
 public:
-    ConcatenatorAdaptor(sdbus::IConnection& connection, std::string objectPath)
+    ConcatenatorAdaptor(sdbus::IConnection& connection, sdbus::ObjectPath objectPath)
         : AdaptorInterfaces(connection, std::move(objectPath))
     {
         unsigned int workers = std::thread::hardware_concurrency();
@@ -298,7 +297,7 @@ private:
 class ConcatenatorProxy final : public sdbus::ProxyInterfaces<org::sdbuscpp::stresstests::concatenator_proxy>
 {
 public:
-    ConcatenatorProxy(sdbus::IConnection& connection, std::string destination, std::string objectPath)
+    ConcatenatorProxy(sdbus::IConnection& connection, sdbus::ServiceName destination, sdbus::ObjectPath objectPath)
         : ProxyInterfaces(connection, std::move(destination), std::move(objectPath))
     {
         registerProxy();

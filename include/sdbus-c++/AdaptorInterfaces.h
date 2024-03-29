@@ -102,7 +102,7 @@ namespace sdbus {
          *
          * For more information, consult @ref createObject(sdbus::IConnection&,std::string)
          */
-        AdaptorInterfaces(IConnection& connection, std::string objectPath)
+        AdaptorInterfaces(IConnection& connection, ObjectPath objectPath)
             : ObjectHolder(createObject(connection, std::move(objectPath)))
             , _Interfaces(getObject())...
         {

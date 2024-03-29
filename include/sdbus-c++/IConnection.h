@@ -35,10 +35,14 @@
 #include <optional>
 #include <string>
 
+// Forward declarations
 struct sd_bus;
 struct sd_event;
 namespace sdbus {
-  class Message;
+    class Message;
+    class ObjectPath;
+    class BusName;
+    using ServiceName = BusName;
 }
 
 namespace sdbus {
@@ -61,29 +65,29 @@ namespace sdbus {
         virtual ~IConnection() = default;
 
         /*!
-         * @brief Requests D-Bus name on the connection
+         * @brief Requests a well-known D-Bus service name on a bus
          *
          * @param[in] name Name to request
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void requestName(const std::string& name) = 0;
+        virtual void requestName(const ServiceName& name) = 0;
 
         /*!
-         * @brief Releases D-Bus name on the connection
+         * @brief Releases an acquired well-known D-Bus service name on a bus
          *
          * @param[in] name Name to release
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void releaseName(const std::string& name) = 0;
+        virtual void releaseName(const ServiceName& name) = 0;
 
         /*!
          * @brief Retrieves the unique name of a connection. E.g. ":1.xx"
          *
          * @throws sdbus::Error in case of failure
          */
-        [[nodiscard]] virtual std::string getUniqueName() const = 0;
+        [[nodiscard]] virtual BusName getUniqueName() const = 0;
 
         /*!
          * @brief Enters I/O event loop on this bus connection
@@ -257,7 +261,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void addObjectManager(const std::string& objectPath, floating_slot_t) = 0;
+        virtual void addObjectManager(const ObjectPath& objectPath, floating_slot_t) = 0;
 
         /*!
          * @brief Installs a match rule for messages received on this bus connection
@@ -412,7 +416,7 @@ namespace sdbus {
      *
      * @throws sdbus::Error in case of failure
      */
-    [[nodiscard]] std::unique_ptr<sdbus::IConnection> createBusConnection(const std::string& name);
+    [[nodiscard]] std::unique_ptr<sdbus::IConnection> createBusConnection(const ServiceName& name);
 
     /*!
      * @brief Creates/opens D-Bus system bus connection
@@ -431,7 +435,7 @@ namespace sdbus {
      *
      * @throws sdbus::Error in case of failure
      */
-    [[nodiscard]] std::unique_ptr<sdbus::IConnection> createSystemBusConnection(const std::string& name);
+    [[nodiscard]] std::unique_ptr<sdbus::IConnection> createSystemBusConnection(const ServiceName& name);
 
     /*!
      * @brief Creates/opens D-Bus session bus connection
@@ -450,7 +454,7 @@ namespace sdbus {
      *
      * @throws sdbus::Error in case of failure
      */
-    [[nodiscard]] std::unique_ptr<sdbus::IConnection> createSessionBusConnection(const std::string& name);
+    [[nodiscard]] std::unique_ptr<sdbus::IConnection> createSessionBusConnection(const ServiceName& name);
 
     /*!
      * @brief Creates/opens D-Bus session bus connection at a custom address

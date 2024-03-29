@@ -43,7 +43,7 @@ uint64_t totalDuration = 0;
 class PerftestProxy final : public sdbus::ProxyInterfaces<org::sdbuscpp::perftests_proxy>
 {
 public:
-    PerftestProxy(std::string destination, std::string objectPath)
+    PerftestProxy(sdbus::ServiceName destination, sdbus::ObjectPath objectPath)
         : ProxyInterfaces(std::move(destination), std::move(objectPath))
     {
         registerProxy();
@@ -101,9 +101,9 @@ std::string createRandomString(size_t length)
 //-----------------------------------------
 int main(int /*argc*/, char */*argv*/[])
 {
-    const char* destinationName = "org.sdbuscpp.perftests";
-    const char* objectPath = "/org/sdbuscpp/perftests";
-    PerftestProxy client(destinationName, objectPath);
+    sdbus::ServiceName destination{"org.sdbuscpp.perftests"};
+    sdbus::ObjectPath objectPath{"/org/sdbuscpp/perftests"};
+    PerftestProxy client(std::move(destination), std::move(objectPath));
 
     const unsigned int repetitions{20};
     unsigned int msgCount = 1000;
