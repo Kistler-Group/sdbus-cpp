@@ -171,42 +171,107 @@ namespace sdbus {
     /********************************************//**
      * @class ObjectPath
      *
-     * Representation of object path D-Bus type
+     * Strong type representing the D-Bus object path
      *
      ***********************************************/
     class ObjectPath : public std::string
     {
     public:
-        using std::string::string;
-        ObjectPath() = default; // Fixes gcc 6.3 error (default c-tor is not imported in above using declaration)
-        ObjectPath(const ObjectPath&) = default; // Fixes gcc 8.3 error (deleted copy constructor)
-        ObjectPath(ObjectPath&&) = default; // Enable move - user-declared copy ctor prevents implicit creation
-        ObjectPath& operator = (const ObjectPath&) = default; // Fixes gcc 8.3 error (deleted copy assignment)
-        ObjectPath& operator = (ObjectPath&&) = default; // Enable move - user-declared copy assign prevents implicit creation
-        ObjectPath(std::string path)
-            : std::string(std::move(path))
+        ObjectPath() = default;
+        explicit ObjectPath(std::string value)
+            : std::string(std::move(value))
         {}
+        explicit ObjectPath(const char* value)
+            : std::string(value)
+        {}
+
         using std::string::operator=;
     };
 
     /********************************************//**
+     * @class BusName
+     *
+     * Strong type representing the D-Bus bus/service/connection name
+     *
+     ***********************************************/
+    class BusName : public std::string
+    {
+    public:
+        BusName() = default;
+        explicit BusName(std::string value)
+            : std::string(std::move(value))
+        {}
+        explicit BusName(const char* value)
+            : std::string(value)
+        {}
+
+        using std::string::operator=;
+    };
+
+    using ServiceName = BusName;
+    using ConnectionName = BusName;
+
+    /********************************************//**
+     * @class InterfaceName
+     *
+     * Strong type representing the D-Bus interface name
+     *
+     ***********************************************/
+    class InterfaceName : public std::string
+    {
+    public:
+        InterfaceName() = default;
+        explicit InterfaceName(std::string value)
+            : std::string(std::move(value))
+        {}
+        explicit InterfaceName(const char* value)
+            : std::string(value)
+        {}
+
+        using std::string::operator=;
+    };
+
+    /********************************************//**
+     * @class MemberName
+     *
+     * Strong type representing the D-Bus member name
+     *
+     ***********************************************/
+    class MemberName : public std::string
+    {
+    public:
+        MemberName() = default;
+        explicit MemberName(std::string value)
+                : std::string(std::move(value))
+        {}
+        explicit MemberName(const char* value)
+                : std::string(value)
+        {}
+
+        using std::string::operator=;
+    };
+
+    using MethodName = MemberName;
+    using SignalName = MemberName;
+    using PropertyName = MemberName;
+
+    /********************************************//**
      * @class Signature
      *
-     * Representation of Signature D-Bus type
+     * Strong type representing the D-Bus object path
      *
      ***********************************************/
     class Signature : public std::string
     {
     public:
-        using std::string::string;
-        Signature() = default; // Fixes gcc 6.3 error (default c-tor is not imported in above using declaration)
-        Signature(const Signature&) = default; // Fixes gcc 8.3 error (deleted copy constructor)
-        Signature(Signature&&) = default; // Enable move - user-declared copy ctor prevents implicit creation
-        Signature& operator = (const Signature&) = default; // Fixes gcc 8.3 error (deleted copy assignment)
-        Signature& operator = (Signature&&) = default; // Enable move - user-declared copy assign prevents implicit creation
-        Signature(std::string path)
-            : std::string(std::move(path))
+        Signature() = default;
+        explicit Signature(std::string value)
+            : std::string(std::move(value))
         {}
+        explicit Signature(const char* value)
+            : std::string(value)
+        {}
+
         using std::string::operator=;
     };
 

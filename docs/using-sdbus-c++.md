@@ -184,7 +184,7 @@ The following diagram illustrates the major entities in sdbus-c++.
 
 ![class](sdbus-c++-class-diagram.png)
 
-`IConnection` represents the concept of a D-Bus connection. You can connect to either the system bus or a session bus. Services can assign unique service names to those connections. An I/O event loop should be run on the bus connection.
+`IConnection` represents the concept of a D-Bus connection. You can connect to either the system bus or a session bus. Services can assign well-known service names to those connections. An I/O event loop should be run on the bus connection.
 
 `IObject` represents the concept of an object that exposes its methods, signals and properties. Its responsibilities are:
 
@@ -238,7 +238,7 @@ Let's have an object `/org/sdbuscpp/concatenator` that implements the `org.sdbus
 
 In the following sections, we will elaborate on the ways of implementing such an object on both the server and the client side.
 
-> **Before running Concatenator example in your system:** In order for your service to be allowed to provide a D-Bus API on system bus, a D-Bus security policy file has to be put in place for that service. Otherwise the service will fail to start (you'll get `[org.freedesktop.DBus.Error.AccessDenied] Failed to request bus name (Permission denied)`, for example). To make the Concatenator example work in your system, [look in this section of systemd configuration](systemd-dbus-config.md#dbus-configuration) for how to name the file, where to place it, how to populate it. For further information, consult [dbus-daemon documentation](https://dbus.freedesktop.org/doc/dbus-daemon.1.html), sections *INTEGRATING SYSTEM SERVICES* and *CONFIGURATION FILE*. As an example used for sdbus-c++ integration tests, you may look at the [policy file for sdbus-c++ integration tests](/tests/integrationtests/files/org.sdbuscpp.integrationtests.conf).
+> **Before running Concatenator example in your system:** In order for your service to be allowed to provide a D-Bus API on ** the system bus**, a D-Bus security policy file has to be put in place for that service. Otherwise the service will fail to start (you'll get `[org.freedesktop.DBus.Error.AccessDenied] Failed to request bus name (Permission denied)`, for example). To make the Concatenator example work in your system, [look in this section of systemd configuration](systemd-dbus-config.md#dbus-configuration) for how to name the file, where to place it, how to populate it. For further information, consult [dbus-daemon documentation](https://dbus.freedesktop.org/doc/dbus-daemon.1.html), sections *INTEGRATING SYSTEM SERVICES* and *CONFIGURATION FILE*. As an example used for sdbus-c++ integration tests, you may look at the [policy file for sdbus-c++ integration tests](/tests/integrationtests/files/org.sdbuscpp.integrationtests.conf).
 
 Implementing the Concatenator example using basic sdbus-c++ API layer
 ---------------------------------------------------------------------
@@ -289,28 +289,29 @@ void concatenate(sdbus::MethodCall call)
     reply.send();
 
     // Emit 'concatenated' signal
-    const char* interfaceName = "org.sdbuscpp.Concatenator";
-    auto signal = g_concatenator->createSignal(interfaceName, "concatenated");
+    sdbus::InterfaceName interfaceName{"org.sdbuscpp.Concatenator"};
+    sdbus::SignalName signalName{"concatenated"};
+    auto signal = g_concatenator->createSignal(interfaceName, signalName);
     signal << result;
     g_concatenator->emitSignal(signal);
 }
 
 int main(int argc, char *argv[])
 {
-    // Create D-Bus connection to the system bus and requests name on it.
-    const char* serviceName = "org.sdbuscpp.concatenator";
-    auto connection = sdbus::createSystemBusConnection(serviceName);
+    // Create D-Bus connection to (either the session or system) bus and requests a well-known name on it.
+    sdbus::ServiceName serviceName{"org.sdbuscpp.concatenator"};
+    auto connection = sdbus::createBusConnection(serviceName);
 
     // Create concatenator D-Bus object.
-    const char* objectPath = "/org/sdbuscpp/concatenator";
-    auto concatenator = sdbus::createObject(*connection, objectPath);
+    sdbus::ObjectPath objectPath{"/org/sdbuscpp/concatenator"};
+    auto concatenator = sdbus::createObject(*connection, std::move(objectPath));
 
     g_concatenator = concatenator.get();
 
     // Register D-Bus methods and signals on the concatenator object, and exports the object.
-    const char* interfaceName = "org.sdbuscpp.Concatenator";
-    concatenator->addVTable( sdbus::MethodVTableItem{"concatenate", "ais", {}, "s", {}, &concatenate, {}}
-                           , sdbus::SignalVTableItem{"concatenated", "s", {}, {}} )
+    sdbus::InterfaceName interfaceName{"org.sdbuscpp.Concatenator"};
+    concatenator->addVTable( sdbus::MethodVTableItem{"concatenate", sdbus::Signature{"ais"}, {}, sdbus::Signature{"s"}, {}, &concatenate, {}}
+                           , sdbus::SignalVTableItem{"concatenated", sdbus::Signature{"s"}, {}, {}} )
                            .forInterface(interfaceName);
 
     // Run the I/O event loop on the bus connection.
@@ -349,21 +350,24 @@ int main(int argc, char *argv[])
 {
     // Create proxy object for the concatenator object on the server side. Since here
     // we are creating the proxy instance without passing connection to it, the proxy
-    // will create its own connection automatically, and it will be system bus connection.
-    const char* destinationName = "org.sdbuscpp.concatenator";
-    const char* objectPath = "/org/sdbuscpp/concatenator";
-    auto concatenatorProxy = sdbus::createProxy(destinationName, objectPath);
+    // will create its own connection automatically (to either system bus or session bus,
+    // depending on the context).
+    sdbus::ServiceName destination{"org.sdbuscpp.concatenator"};
+    sdbus::ObjectPath objectPath{"/org/sdbuscpp/concatenator"};
+    auto concatenatorProxy = sdbus::createProxy(std::move(destination), std::move(objectPath));
 
     // Let's subscribe for the 'concatenated' signals
-    const char* interfaceName = "org.sdbuscpp.Concatenator";
-    concatenatorProxy->registerSignalHandler(interfaceName, "concatenated", &onConcatenated);
+    sdbus::InterfaceName interfaceName{"org.sdbuscpp.Concatenator"};
+    sdbus::SignalName signalName{"concatenated"};
+    concatenatorProxy->registerSignalHandler(interfaceName, signalName, &onConcatenated);
 
     std::vector<int> numbers = {1, 2, 3};
     std::string separator = ":";
 
+    MethodName concatenate{"concatenate"};
     // Invoke concatenate on given interface of the object
     {
-        auto method = concatenatorProxy->createMethodCall(interfaceName, "concatenate");
+        auto method = concatenatorProxy->createMethodCall(interfaceName, concatenate);
         method << numbers << separator;
         auto reply = concatenatorProxy->callMethod(method);
         std::string result;
@@ -373,7 +377,7 @@ int main(int argc, char *argv[])
 
 /    // Invoke concatenate again, this time with no numbers and we shall get an error
     {
-        auto method = concatenatorProxy->createMethodCall(interfaceName, "concatenate");
+        auto method = concatenatorProxy->createMethodCall(interfaceName, concatenate);
         method << std::vector<int>() << separator;
         try
         {
@@ -408,11 +412,11 @@ Please note that we can create and destroy D-Bus object proxies dynamically, at 
 There are several factory methods to create a bus connection object in sdbus-c++:
 
 * `createBusConnection()` - opens a connection to the session bus when in a user context, and a connection to the system bus, otherwise
-* `createBusConnection(const std::string& name)` - opens a connection with the given name to the session bus when in a user context, and a connection with the given name to the system bus, otherwise
+* `createBusConnection(const sdbus::ServiceName& name)` - opens a connection to the session bus when in a user context, and a connection with the given name to the system bus, otherwise, and requests the given well-known service name on the bus
 * `createSystemBusConnection()` - opens a connection to the system bus
-* `createSystemBusConnection(const std::string& name)` - opens a connection with the given name to the system bus
+* `createSystemBusConnection(const sdbus::ServiceName& name)` - opens a connection to the system bus, and requests the given well-known service name on the bus
 * `createSessionBusConnection()` - opens a connection to the session bus
-* `createSessionBusConnection(const std::string& name)` - opens a connection with the given name to the session bus
+* `createSessionBusConnection(const sdbus::ServiceName& name)` - opens a connection to the session bus, and requests the given well-known service name on the bus.
 * `createSessionBusConnectionWithAddress(const std::string& address)` - opens a connection to the session bus at a custom address
 * `createRemoteSystemBusConnection(const std::string& host)` - opens a connection to the system bus on a remote host using ssh
 * `createDirectBusConnection(const std::string& address)` - opens direct D-Bus connection at a custom address (see [Using direct (peer-to-peer) D-Bus connections](#using-direct-peer-to-peer-d-bus-connections))
@@ -503,13 +507,13 @@ The code written using this layer expresses in a declarative way *what* it does,
 
 int main(int argc, char *argv[])
 {
-    // Create D-Bus connection to the system bus and requests name on it.
-    const char* serviceName = "org.sdbuscpp.concatenator";
-    auto connection = sdbus::createSystemBusConnection(serviceName);
+    // Create D-Bus connection to the (either system or session) bus and requests a well-known name on it.
+    sdbus::ServiceName serviceName{"org.sdbuscpp.concatenator"};
+    auto connection = sdbus::createBusConnection(serviceName);
 
     // Create concatenator D-Bus object.
-    const char* objectPath = "/org/sdbuscpp/concatenator";
-    auto concatenator = sdbus::createObject(*connection, objectPath);
+    sdbus::ObjectPath objectPath{"/org/sdbuscpp/concatenator"};
+    auto concatenator = sdbus::createObject(*connection, std::move(objectPath));
 
     auto concatenate = [&concatenator](const std::vector<int> numbers, const std::string& separator)
     {
@@ -524,17 +528,15 @@ int main(int argc, char *argv[])
         }
 
         // Emit 'concatenated' signal
-        const char* interfaceName = "org.sdbuscpp.Concatenator";
-        concatenator->emitSignal("concatenated").onInterface(interfaceName).withArguments(result);
+        concatenator->emitSignal("concatenated").onInterface("org.sdbuscpp.Concatenator").withArguments(result);
 
         return result;
     };
 
     // Register D-Bus methods and signals on the concatenator object, and exports the object.
-    const char* interfaceName = "org.sdbuscpp.Concatenator";
     concatenator->addVTable( sdbus::registerMethod("concatenate").implementedAs(std::move(concatenate))
                            , sdbus::registerSignal{"concatenated").withParameters<std::string>() )
-                           .forInterface(interfaceName);
+                           .forInterface("org.sdbuscpp.Concatenator");
 
     // Run the loop on the connection.
     connection->enterEventLoop();
@@ -562,12 +564,12 @@ void onConcatenated(const std::string& concatenatedString)
 int main(int argc, char *argv[])
 {
     // Create proxy object for the concatenator object on the server side
-    const char* destinationName = "org.sdbuscpp.concatenator";
-    const char* objectPath = "/org/sdbuscpp/concatenator";
-    auto concatenatorProxy = sdbus::createProxy(destinationName, objectPath);
+    sdbus::ServiceName destination{"org.sdbuscpp.concatenator"};
+    sdbus::ObjectPath objectPath{"/org/sdbuscpp/concatenator"};
+    auto concatenatorProxy = sdbus::createProxy(std::move(destination), std::move(objectPath));
 
     // Let's subscribe for the 'concatenated' signals
-    const char* interfaceName = "org.sdbuscpp.Concatenator";
+    sdbus::InterfaceName interfaceName{"org.sdbuscpp.Concatenator"};
     concatenatorProxy->uponSignal("concatenated").onInterface(interfaceName).call([](const std::string& str){ onConcatenated(str); });
 
     std::vector<int> numbers = {1, 2, 3};
@@ -712,7 +714,7 @@ namespace sdbuscpp {
 class Concatenator_adaptor
 {
 public:
-    static constexpr const char* INTERFACE_NAME = "org.sdbuscpp.Concatenator";
+    static inline const sdbus::InterfaceName INTERFACE_NAME{"org.sdbuscpp.Concatenator"};
 
 protected:
     Concatenator_adaptor(sdbus::IObject& object)
@@ -771,7 +773,7 @@ namespace sdbuscpp {
 class Concatenator_proxy
 {
 public:
-    static constexpr const char* INTERFACE_NAME = "org.sdbuscpp.Concatenator";
+    static inline const sdbus::InterfaceName INTERFACE_NAME{"org.sdbuscpp.Concatenator"};
 
 protected:
     Concatenator_proxy(sdbus::IProxy& proxy)
@@ -827,7 +829,7 @@ Calling `registerAdaptor()` and `unregisterAdaptor()` was not necessary in previ
 class Concatenator : public sdbus::AdaptorInterfaces<org::sdbuscpp::Concatenator_adaptor /*, more adaptor classes if there are more interfaces*/>
 {
 public:
-    Concatenator(sdbus::IConnection& connection, std::string objectPath)
+    Concatenator(sdbus::IConnection& connection, sdbus::ObjectPath objectPath)
         : AdaptorInterfaces(connection, std::move(objectPath))
     {
         registerAdaptor();
@@ -870,13 +872,13 @@ That's it. We now have an implementation of a D-Bus object implementing `org.sdb
 
 int main(int argc, char *argv[])
 {
-    // Create D-Bus connection to the system bus and requests name on it.
-    const char* serviceName = "org.sdbuscpp.concatenator";
-    auto connection = sdbus::createSystemBusConnection(serviceName);
+    // Create D-Bus connection to (either the system or session) bus and request a well-known name on it.
+    sdbus::ServiceName serviceName{"org.sdbuscpp.concatenator"};
+    auto connection = sdbus::createBusConnection(serviceName);
 
     // Create concatenator D-Bus object.
-    const char* objectPath = "/org/sdbuscpp/concatenator";
-    Concatenator concatenator(*connection, objectPath);
+    sdbus::ObjectPath objectPath{"/org/sdbuscpp/concatenator"};
+    Concatenator concatenator(*connection, std::move(objectPath));
 
     // Run the loop on the connection.
     connection->enterEventLoop();
@@ -906,7 +908,7 @@ Calling `registerProxy()` and `unregisterProxy()` was not necessary in previous 
 class ConcatenatorProxy : public sdbus::ProxyInterfaces<org::sdbuscpp::Concatenator_proxy /*, more proxy classes if there are more interfaces*/>
 {
 public:
-    ConcatenatorProxy(std::string destination, std::string objectPath)
+    ConcatenatorProxy(sdbus::ServiceName destination, sdbus::ObjectPath objectPath)
         : ProxyInterfaces(std::move(destination), std::move(objectPath))
     {
         registerProxy();
@@ -940,9 +942,9 @@ Now let's use this proxy to make remote calls and listen to signals in a real ap
 int main(int argc, char *argv[])
 {
     // Create proxy object for the concatenator object on the server side
-    const char* destinationName = "org.sdbuscpp.concatenator";
-    const char* objectPath = "/org/sdbuscpp/concatenator";
-    ConcatenatorProxy concatenatorProxy(destinationName, objectPath);
+    sdbus::ServiceName destination{"org.sdbuscpp.concatenator"};
+    sdbus::ObjectPath objectPath{"/org/sdbuscpp/concatenator"};
+    ConcatenatorProxy concatenatorProxy(std::move(destination), std::move(objectPath));
 
     std::vector<int> numbers = {1, 2, 3};
     std::string separator = ":";
@@ -1034,8 +1036,9 @@ void concatenate(sdbus::MethodCall call)
         reply.send();
 
         // Emit 'concatenated' signal (creating and emitting signals is thread-safe)
-        const char* interfaceName = "org.sdbuscpp.Concatenator";
-        auto signal = g_concatenator->createSignal(interfaceName, "concatenated");
+        sdbus::InterfaceName interfaceName{"org.sdbuscpp.Concatenator"};
+        sdbus::SignalName signalName{"concatenated"};
+        auto signal = g_concatenator->createSignal(interfaceName, signalName);
         signal << result;
         g_concatenator->emitSignal(signal);
     }).detach();
@@ -1144,7 +1147,7 @@ int main(int argc, char *argv[])
 
     // Invoke concatenate on given interface of the object
     {
-        auto method = concatenatorProxy->createMethodCall(interfaceName, "concatenate");
+        auto method = concatenatorProxy->createMethodCall(interfaceName, concatenate);
         method << numbers << separator;
         concatenatorProxy->callMethod(method, callback);
         // When the reply comes, we shall get "Got concatenate result 1:2:3" on the standard output
@@ -1152,7 +1155,7 @@ int main(int argc, char *argv[])
 
     // Invoke concatenate again, this time with no numbers and we shall get an error
     {
-        auto method = concatenatorProxy->createMethodCall(interfaceName, "concatenate");
+        auto method = concatenatorProxy->createMethodCall(interfaceName, concatenate);
         method << std::vector<int>() << separator;
         concatenatorProxy->callMethod(method, callback);
         // When the reply comes, we shall get concatenation error message on the standard error output
@@ -1174,7 +1177,7 @@ Another option is to use `std::future`-based overload of the `IProxy::callMethod
     ...
     // Invoke concatenate on given interface of the object
     {
-        auto method = concatenatorProxy->createMethodCall(interfaceName, "concatenate");
+        auto method = concatenatorProxy->createMethodCall(interfaceName, concatenate);
         method << numbers << separator;
         auto future = concatenatorProxy->callMethod(method, sdbus::with_future);
         try
@@ -1702,10 +1705,9 @@ int main(int argc, char *argv[])
 
     // We can now use connection objects in a familiar way, e.g. create adaptor and proxy objects on them, and exchange messages.
     // Here, using Concatenator IDL-generated bindings example from chapters above:
-    const char* objectPath = "/org/sdbuscpp/concatenator";
-    Concatenator concatenator(*serverConnection, objectPath);
-    const char* emptyDestinationName = ""; // Destination may be empty in case of direct connections
-    ConcatenatorProxy concatenatorProxy(*clientConnection, emptyDestinationName, objectPath);
+    Concatenator concatenator(*serverConnection, sdbus::ObjectPath{"/org/sdbuscpp/concatenator"});
+    sdbus::ServiceName emptyDestination; // Destination may be empty in case of direct connections
+    ConcatenatorProxy concatenatorProxy(*clientConnection, std::move(emptyDestination), sdbus::ObjectPath{"/org/sdbuscpp/concatenator"});
 
     // Perform call of concatenate D-Bus method
     std::vector<int> numbers = {1, 2, 3};
@@ -1750,6 +1752,13 @@ sdbus-c++ v2 is a major release that comes with a number of breaking API/ABI/beh
 * Change in behavior: In *synchronous* D-Bus calls, the proxy object now keeps the connection instance blocked for the entire duration of the method call. Incoming messages like signals will be queued and processed after the call. Access to the connection from other threads is blocked. To avoid this (in case this hurts you):
   * either use short-lived, light-weight proxies for such synchronous calls,
   * or call the method in an asynchronous way.
+* Strong types were introduced for safer, less error-prone and more expressive API. What previously was `auto proxy = createProxy("org.sdbuscpp.concatenator", "/org/sdbuscpp/concatenator");` is now written like `auto proxy = createProxy(ServiceName{"org.sdbuscpp.concatenator"}, ObjectPath{"/org/sdbuscpp/concatenator"});`. These types are:
+  * `ObjectPath` type for the object path (the type has been around already but now is also used consistently in sdbus-c++ API for object path strings)
+  * `InterfaceName` type for D-Bus interface names
+  * `BusName` (and its aliases `ServiceName` and `ConnectionName`) type for bus/service/connection names
+  * `MemberName` (and its aliases `MethodName`, `SignalName` and `PropertyName`) type for D-Bus method, signal and property names
+  * `Signature` type for the D-Bus signature (the type has been around already but now is also used consistently in sdbus-c++ API for signature strings)
+  * `Error::Name` type for D-Bus error names
 * Signatures of callbacks `async_reply_handler`, `signal_handler`, `message_handler` and `property_set_callback` were modified to take input message objects by value instead of non-const ref to a message. The callback handler assumes ownership of the message. This API is cleaner and more self-explaining.
 * The `PollData` struct has been extended with a new data member: `eventFd`. All hooks with external event loops shall be modified to poll on this `eventFd` in addition to the `fd`.
 * `PollData::timeout_usec` was renamed to `PollData::timeout` and its type has been changed to `std::chrono::microseconds`. This member now holds directly what before had to be obtained through `PollData::getAbsoluteTimeout()` call.

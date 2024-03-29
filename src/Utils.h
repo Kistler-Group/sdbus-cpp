@@ -41,7 +41,7 @@
     SDBUS_THROW_ERROR_IF(!_NAME.empty() && !sd_bus_service_name_is_valid(_NAME.c_str()), "Invalid service name '" + _NAME + "' provided", EINVAL) \
     /**/
 #define SDBUS_CHECK_MEMBER_NAME(_NAME)                                                                                                            \
-    SDBUS_THROW_ERROR_IF(!sd_bus_member_name_is_valid(_NAME.c_str()), "Invalid member name '" + _NAME + "' provided", EINVAL)                     \
+    SDBUS_THROW_ERROR_IF(!sd_bus_member_name_is_valid(_NAME.c_str()), std::string("Invalid member name '") + _NAME.c_str() + "' provided", EINVAL)                     \
     /**/
 #else
 #define SDBUS_CHECK_OBJECT_PATH(_PATH)
@@ -66,12 +66,12 @@ namespace sdbus::internal {
         }
         catch (const std::exception& e)
         {
-            sd_bus_error_set(retError, SDBUSCPP_ERROR_NAME, e.what());
+            sd_bus_error_set(retError, SDBUSCPP_ERROR_NAME.c_str(), e.what());
             return false;
         }
         catch (...)
         {
-            sd_bus_error_set(retError, SDBUSCPP_ERROR_NAME, "Unknown error occurred");
+            sd_bus_error_set(retError, SDBUSCPP_ERROR_NAME.c_str(), "Unknown error occurred");
             return false;
         }
 
