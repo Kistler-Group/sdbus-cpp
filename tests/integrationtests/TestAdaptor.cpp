@@ -31,8 +31,8 @@
 
 namespace sdbus { namespace test {
 
-TestAdaptor::TestAdaptor(sdbus::IConnection& connection, const std::string& path) :
-    AdaptorInterfaces(connection, path)
+TestAdaptor::TestAdaptor(sdbus::IConnection& connection, sdbus::ObjectPath path) :
+    AdaptorInterfaces(connection, std::move(path))
 {
     registerAdaptor();
 }
@@ -123,7 +123,7 @@ uint32_t TestAdaptor::doOperation(const uint32_t& param)
     std::this_thread::sleep_for(std::chrono::milliseconds(param));
 
     m_methodCallMsg = std::make_unique<const Message>(getObject().getCurrentlyProcessedMessage());
-    m_methodCallMemberName = m_methodCallMsg->getMemberName();
+    m_methodName = m_methodCallMsg->getMemberName();
 
     return param;
 }
@@ -131,7 +131,7 @@ uint32_t TestAdaptor::doOperation(const uint32_t& param)
 void TestAdaptor::doOperationAsync(sdbus::Result<uint32_t>&& result, uint32_t param)
 {
     m_methodCallMsg = std::make_unique<const Message>(getObject().getCurrentlyProcessedMessage());
-    m_methodCallMemberName = m_methodCallMsg->getMemberName();
+    m_methodName = m_methodCallMsg->getMemberName();
 
     if (param == 0)
     {
@@ -173,7 +173,7 @@ std::unordered_map<uint64_t, sdbus::Struct<std::map<uint8_t, std::vector<sdbus::
                         23,  // uint8_t
                         {   // vector
                             {   // struct
-                                    "/object/path", // object path
+                                    sdbus::ObjectPath{"/object/path"}, // object path
                                     false,
                                     Variant{3.14},
                                     {   // map
@@ -183,7 +183,7 @@ std::unordered_map<uint64_t, sdbus::Struct<std::map<uint8_t, std::vector<sdbus::
                         }
                     }
                 },
-                "a{t(a{ya(obva{is})}gs)}", // signature
+                sdbus::Signature{"a{t(a{ya(obva{is})}gs)}"}, // signature
                 std::string{}
             }
         }

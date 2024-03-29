@@ -26,6 +26,7 @@
  */
 
 #include "Connection.h"
+#include "sdbus-c++/Types.h"
 #include "unittests/mocks/SdBusMock.h"
 
 #include <gtest/gtest.h>
@@ -207,12 +208,16 @@ TYPED_TEST_SUITE(AConnectionNameRequest, BusTypeTags);
 TYPED_TEST(AConnectionNameRequest, DoesNotThrowOnSuccess)
 {
     EXPECT_CALL(*this->sdBusIntfMock_, sd_bus_request_name(_, _, _)).WillOnce(Return(1));
-    this->con_->requestName("org.sdbuscpp.somename");
+    sdbus::ConnectionName name{"org.sdbuscpp.somename"};
+
+    this->con_->requestName(name);
 }
 
 TYPED_TEST(AConnectionNameRequest, ThrowsOnFail)
 {
+    sdbus::ConnectionName name{"org.sdbuscpp.somename"};
+
     EXPECT_CALL(*this->sdBusIntfMock_, sd_bus_request_name(_, _, _)).WillOnce(Return(-1));
 
-    ASSERT_THROW(this->con_->requestName("org.sdbuscpp.somename"), sdbus::Error);
+    ASSERT_THROW(this->con_->requestName(name), sdbus::Error);
 }

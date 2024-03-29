@@ -30,6 +30,7 @@
 #include "sdbus-c++/IProxy.h"
 
 #include "IConnection.h"
+#include "sdbus-c++/Types.h"
 
 #include <deque>
 #include <memory>
@@ -45,33 +46,33 @@ namespace sdbus::internal {
     {
     public:
         Proxy( sdbus::internal::IConnection& connection
-             , std::string destination
-             , std::string objectPath );
+             , ServiceName destination
+             , ObjectPath objectPath );
         Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
-             , std::string destination
-             , std::string objectPath );
+             , ServiceName destination
+             , ObjectPath objectPath );
         Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
-             , std::string destination
-             , std::string objectPath
+             , ServiceName destination
+             , ObjectPath objectPath
              , dont_run_event_loop_thread_t );
 
-        MethodCall createMethodCall(const std::string& interfaceName, const std::string& methodName) override;
+        MethodCall createMethodCall(const InterfaceName& interfaceName, const MethodName& methodName) override;
         MethodReply callMethod(const MethodCall& message, uint64_t timeout) override;
         PendingAsyncCall callMethodAsync(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout) override;
         std::future<MethodReply> callMethodAsync(const MethodCall& message, with_future_t) override;
         std::future<MethodReply> callMethodAsync(const MethodCall& message, uint64_t timeout, with_future_t) override;
 
-        void registerSignalHandler( const std::string& interfaceName
-                                  , const std::string& signalName
+        void registerSignalHandler( const InterfaceName& interfaceName
+                                  , const SignalName& signalName
                                   , signal_handler signalHandler ) override;
-        Slot registerSignalHandler( const std::string& interfaceName
-                                  , const std::string& signalName
+        Slot registerSignalHandler( const InterfaceName& interfaceName
+                                  , const SignalName& signalName
                                   , signal_handler signalHandler
                                   , return_slot_t ) override;
         void unregister() override;
 
         [[nodiscard]] sdbus::IConnection& getConnection() const override;
-        [[nodiscard]] const std::string& getObjectPath() const override;
+        [[nodiscard]] const ObjectPath& getObjectPath() const override;
         [[nodiscard]] Message getCurrentlyProcessedMessage() const override;
 
     private:
@@ -84,8 +85,8 @@ namespace sdbus::internal {
         std::unique_ptr< sdbus::internal::IConnection
                        , std::function<void(sdbus::internal::IConnection*)>
                        > connection_;
-        std::string destination_;
-        std::string objectPath_;
+        ServiceName destination_;
+        ObjectPath objectPath_;
 
         std::vector<Slot> floatingSignalSlots_;
 

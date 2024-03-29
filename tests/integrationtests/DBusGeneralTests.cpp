@@ -54,12 +54,12 @@ using ADirectConnection = TestFixtureWithDirectConnection;
 TEST(AdaptorAndProxy, CanBeConstructedSuccesfully)
 {
     auto connection = sdbus::createBusConnection();
-    connection->requestName(BUS_NAME);
+    connection->requestName(SERVICE_NAME);
 
     ASSERT_NO_THROW(TestAdaptor adaptor(*connection, OBJECT_PATH));
-    ASSERT_NO_THROW(TestProxy proxy(BUS_NAME, OBJECT_PATH));
+    ASSERT_NO_THROW(TestProxy proxy(SERVICE_NAME, OBJECT_PATH));
 
-    connection->releaseName(BUS_NAME);
+    connection->releaseName(SERVICE_NAME);
 }
 
 TEST(AProxy, SupportsMoveSemantics)
@@ -76,7 +76,7 @@ TEST(AnAdaptor, SupportsMoveSemantics)
 
 TYPED_TEST(AConnection, WillCallCallbackHandlerForIncomingMessageMatchingMatchRule)
 {
-    auto matchRule = "sender='" + BUS_NAME + "',path='" + OBJECT_PATH + "'";
+    auto matchRule = "sender='" + SERVICE_NAME + "',path='" + OBJECT_PATH + "'";
     std::atomic<bool> matchingMessageReceived{false};
     auto slot = this->s_proxyConnection->addMatch(matchRule, [&](sdbus::Message msg)
     {
@@ -91,7 +91,7 @@ TYPED_TEST(AConnection, WillCallCallbackHandlerForIncomingMessageMatchingMatchRu
 
 TYPED_TEST(AConnection, CanInstallMatchRuleAsynchronously)
 {
-    auto matchRule = "sender='" + BUS_NAME + "',path='" + OBJECT_PATH + "'";
+    auto matchRule = "sender='" + SERVICE_NAME + "',path='" + OBJECT_PATH + "'";
     std::atomic<bool> matchingMessageReceived{false};
     std::atomic<bool> matchRuleInstalled{false};
     auto slot = this->s_proxyConnection->addMatchAsync( matchRule
@@ -114,7 +114,7 @@ TYPED_TEST(AConnection, CanInstallMatchRuleAsynchronously)
 
 TYPED_TEST(AConnection, WillUnsubscribeMatchRuleWhenClientDestroysTheAssociatedSlot)
 {
-    auto matchRule = "sender='" + BUS_NAME + "',path='" + OBJECT_PATH + "'";
+    auto matchRule = "sender='" + SERVICE_NAME + "',path='" + OBJECT_PATH + "'";
     std::atomic<bool> matchingMessageReceived{false};
     auto slot = this->s_proxyConnection->addMatch(matchRule, [&](sdbus::Message msg)
     {
@@ -130,7 +130,7 @@ TYPED_TEST(AConnection, WillUnsubscribeMatchRuleWhenClientDestroysTheAssociatedS
 
 TYPED_TEST(AConnection, CanAddFloatingMatchRule)
 {
-    auto matchRule = "sender='" + BUS_NAME + "',path='" + OBJECT_PATH + "'";
+    auto matchRule = "sender='" + SERVICE_NAME + "',path='" + OBJECT_PATH + "'";
     std::atomic<bool> matchingMessageReceived{false};
     auto con = sdbus::createBusConnection();
     con->enterEventLoopAsync();

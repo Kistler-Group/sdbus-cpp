@@ -27,6 +27,7 @@
 #define SDBUS_CXX_VTABLEITEMS_H_
 
 #include <sdbus-c++/Flags.h>
+#include <sdbus-c++/Types.h>
 #include <sdbus-c++/TypeTraits.h>
 
 #include <string>
@@ -46,15 +47,16 @@ namespace sdbus {
         MethodVTableItem& markAsPrivileged();
         MethodVTableItem& withNoReply();
 
-        std::string name;
-        std::string inputSignature;
+        MethodName name;
+        Signature inputSignature;
         std::vector<std::string> inputParamNames;
-        std::string outputSignature;
+        Signature outputSignature;
         std::vector<std::string> outputParamNames;
         method_callback callbackHandler;
         Flags flags;
     };
 
+    MethodVTableItem registerMethod(MethodName methodName);
     MethodVTableItem registerMethod(std::string methodName);
 
     struct SignalVTableItem
@@ -64,12 +66,13 @@ namespace sdbus {
         template <typename... _Args, typename... _String> SignalVTableItem& withParameters(_String... names);
         SignalVTableItem& markAsDeprecated();
 
-        std::string name;
-        std::string signature;
+        SignalName name;
+        Signature signature;
         std::vector<std::string> paramNames;
         Flags flags;
     };
 
+    SignalVTableItem registerSignal(SignalName signalName);
     SignalVTableItem registerSignal(std::string signalName);
 
     struct PropertyVTableItem
@@ -80,13 +83,14 @@ namespace sdbus {
         PropertyVTableItem& markAsPrivileged();
         PropertyVTableItem& withUpdateBehavior(Flags::PropertyUpdateBehaviorFlags behavior);
 
-        std::string name;
-        std::string signature;
+        PropertyName name;
+        Signature signature;
         property_get_callback getter;
         property_set_callback setter;
         Flags flags;
     };
 
+    PropertyVTableItem registerProperty(PropertyName propertyName);
     PropertyVTableItem registerProperty(std::string propertyName);
 
     struct InterfaceFlagsVTableItem

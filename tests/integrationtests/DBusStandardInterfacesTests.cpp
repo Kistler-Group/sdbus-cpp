@@ -142,17 +142,17 @@ TYPED_TEST(SdbusTestObject, GetsAllPropertiesViaPropertiesInterface)
     const auto properties = this->m_proxy->GetAll(INTERFACE_NAME);
 
     ASSERT_THAT(properties, SizeIs(3));
-    EXPECT_THAT(properties.at("state").template get<std::string>(), Eq(DEFAULT_STATE_VALUE));
-    EXPECT_THAT(properties.at("action").template get<uint32_t>(), Eq(DEFAULT_ACTION_VALUE));
-    EXPECT_THAT(properties.at("blocking").template get<bool>(), Eq(DEFAULT_BLOCKING_VALUE));
+    EXPECT_THAT(properties.at(STATE_PROPERTY).template get<std::string>(), Eq(DEFAULT_STATE_VALUE));
+    EXPECT_THAT(properties.at(ACTION_PROPERTY).template get<uint32_t>(), Eq(DEFAULT_ACTION_VALUE));
+    EXPECT_THAT(properties.at(BLOCKING_PROPERTY).template get<bool>(), Eq(DEFAULT_BLOCKING_VALUE));
 }
 
 TYPED_TEST(SdbusTestObject, GetsAllPropertiesAsynchronouslyViaPropertiesInterface)
 {
-    std::promise<std::map<std::string, sdbus::Variant>> promise;
+    std::promise<std::map<sdbus::PropertyName, sdbus::Variant>> promise;
     auto future = promise.get_future();
 
-    this->m_proxy->GetAllAsync(INTERFACE_NAME, [&](std::optional<sdbus::Error> err, std::map<std::string, sdbus::Variant> value)
+    this->m_proxy->GetAllAsync(INTERFACE_NAME, [&](std::optional<sdbus::Error> err, std::map<sdbus::PropertyName, sdbus::Variant> value)
     {
         if (!err)
             promise.set_value(std::move(value));
@@ -162,9 +162,9 @@ TYPED_TEST(SdbusTestObject, GetsAllPropertiesAsynchronouslyViaPropertiesInterfac
     const auto properties = future.get();
 
     ASSERT_THAT(properties, SizeIs(3));
-    EXPECT_THAT(properties.at("state").get<std::string>(), Eq(DEFAULT_STATE_VALUE));
-    EXPECT_THAT(properties.at("action").get<uint32_t>(), Eq(DEFAULT_ACTION_VALUE));
-    EXPECT_THAT(properties.at("blocking").get<bool>(), Eq(DEFAULT_BLOCKING_VALUE));
+    EXPECT_THAT(properties.at(STATE_PROPERTY).get<std::string>(), Eq(DEFAULT_STATE_VALUE));
+    EXPECT_THAT(properties.at(ACTION_PROPERTY).get<uint32_t>(), Eq(DEFAULT_ACTION_VALUE));
+    EXPECT_THAT(properties.at(BLOCKING_PROPERTY).get<bool>(), Eq(DEFAULT_BLOCKING_VALUE));
 }
 
 TYPED_TEST(SdbusTestObject, GetsAllPropertiesAsynchronouslyViaPropertiesInterfaceWithFuture)
@@ -174,27 +174,27 @@ TYPED_TEST(SdbusTestObject, GetsAllPropertiesAsynchronouslyViaPropertiesInterfac
     auto properties = future.get();
 
     ASSERT_THAT(properties, SizeIs(3));
-    EXPECT_THAT(properties.at("state").template get<std::string>(), Eq(DEFAULT_STATE_VALUE));
-    EXPECT_THAT(properties.at("action").template get<uint32_t>(), Eq(DEFAULT_ACTION_VALUE));
-    EXPECT_THAT(properties.at("blocking").template get<bool>(), Eq(DEFAULT_BLOCKING_VALUE));
+    EXPECT_THAT(properties.at(STATE_PROPERTY).template get<std::string>(), Eq(DEFAULT_STATE_VALUE));
+    EXPECT_THAT(properties.at(ACTION_PROPERTY).template get<uint32_t>(), Eq(DEFAULT_ACTION_VALUE));
+    EXPECT_THAT(properties.at(BLOCKING_PROPERTY).template get<bool>(), Eq(DEFAULT_BLOCKING_VALUE));
 }
 
 TYPED_TEST(SdbusTestObject, EmitsPropertyChangedSignalForSelectedProperties)
 {
     std::atomic<bool> signalReceived{false};
-    this->m_proxy->m_onPropertiesChangedHandler = [&signalReceived]( const std::string& interfaceName
-                                                                   , const std::map<std::string, sdbus::Variant>& changedProperties
-                                                                   , const std::vector<std::string>& /*invalidatedProperties*/ )
+    this->m_proxy->m_onPropertiesChangedHandler = [&signalReceived]( const sdbus::InterfaceName& interfaceName
+                                                                   , const std::map<sdbus::PropertyName, sdbus::Variant>& changedProperties
+                                                                   , const std::vector<sdbus::PropertyName>& /*invalidatedProperties*/ )
     {
         EXPECT_THAT(interfaceName, Eq(INTERFACE_NAME));
         EXPECT_THAT(changedProperties, SizeIs(1));
-        EXPECT_THAT(changedProperties.at("blocking").get<bool>(), Eq(!DEFAULT_BLOCKING_VALUE));
+        EXPECT_THAT(changedProperties.at(BLOCKING_PROPERTY).get<bool>(), Eq(!DEFAULT_BLOCKING_VALUE));
         signalReceived = true;
     };
 
     this->m_proxy->blocking(!DEFAULT_BLOCKING_VALUE);
     this->m_proxy->action(DEFAULT_ACTION_VALUE*2);
-    this->m_adaptor->emitPropertiesChangedSignal(INTERFACE_NAME, {"blocking"});
+    this->m_adaptor->emitPropertiesChangedSignal(INTERFACE_NAME, {BLOCKING_PROPERTY});
 
     ASSERT_TRUE(waitUntil(signalReceived));
 }
@@ -202,13 +202,13 @@ TYPED_TEST(SdbusTestObject, EmitsPropertyChangedSignalForSelectedProperties)
 TYPED_TEST(SdbusTestObject, EmitsPropertyChangedSignalForAllProperties)
 {
     std::atomic<bool> signalReceived{false};
-    this->m_proxy->m_onPropertiesChangedHandler = [&signalReceived]( const std::string& interfaceName
-                                                                   , const std::map<std::string, sdbus::Variant>& changedProperties
-                                                                   , const std::vector<std::string>& invalidatedProperties )
+    this->m_proxy->m_onPropertiesChangedHandler = [&signalReceived]( const sdbus::InterfaceName& interfaceName
+                                                                   , const std::map<sdbus::PropertyName, sdbus::Variant>& changedProperties
+                                                                   , const std::vector<sdbus::PropertyName>& invalidatedProperties )
     {
         EXPECT_THAT(interfaceName, Eq(INTERFACE_NAME));
         EXPECT_THAT(changedProperties, SizeIs(1));
-        EXPECT_THAT(changedProperties.at("blocking").get<bool>(), Eq(DEFAULT_BLOCKING_VALUE));
+        EXPECT_THAT(changedProperties.at(BLOCKING_PROPERTY).get<bool>(), Eq(DEFAULT_BLOCKING_VALUE));
         ASSERT_THAT(invalidatedProperties, SizeIs(1));
         EXPECT_THAT(invalidatedProperties[0], Eq("action"));
         signalReceived = true;
@@ -235,17 +235,17 @@ TYPED_TEST(SdbusTestObject, GetsManagedObjectsSuccessfully)
     ASSERT_THAT(objectsInterfacesAndProperties, SizeIs(2));
     EXPECT_THAT(objectsInterfacesAndProperties.at(OBJECT_PATH)
         .at(org::sdbuscpp::integrationtests_adaptor::INTERFACE_NAME)
-        .at("action").template get<uint32_t>(), Eq(DEFAULT_ACTION_VALUE));
+        .at(ACTION_PROPERTY).template get<uint32_t>(), Eq(DEFAULT_ACTION_VALUE));
     EXPECT_THAT(objectsInterfacesAndProperties.at(OBJECT_PATH_2)
         .at(org::sdbuscpp::integrationtests_adaptor::INTERFACE_NAME)
-        .at("action").template get<uint32_t>(), Eq(DEFAULT_ACTION_VALUE));
+        .at(ACTION_PROPERTY).template get<uint32_t>(), Eq(DEFAULT_ACTION_VALUE));
 }
 
 TYPED_TEST(SdbusTestObject, EmitsInterfacesAddedSignalForSelectedObjectInterfaces)
 {
     std::atomic<bool> signalReceived{false};
     this->m_objectManagerProxy->m_onInterfacesAddedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
-                                                                              , const std::map<std::string, std::map<std::string, sdbus::Variant>>& interfacesAndProperties )
+                                                                              , const std::map<sdbus::InterfaceName, std::map<sdbus::PropertyName, sdbus::Variant>>& interfacesAndProperties )
     {
         EXPECT_THAT(objectPath, Eq(OBJECT_PATH));
         EXPECT_THAT(interfacesAndProperties, SizeIs(1));
@@ -253,16 +253,16 @@ TYPED_TEST(SdbusTestObject, EmitsInterfacesAddedSignalForSelectedObjectInterface
 #if LIBSYSTEMD_VERSION<=244
         // Up to sd-bus v244, all properties are added to the list, i.e. `state', `action', and `blocking' in this case.
         EXPECT_THAT(interfacesAndProperties.at(INTERFACE_NAME), SizeIs(3));
-        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count("state"));
-        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count("action"));
-        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count("blocking"));
+        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count(STATE_PROPERTY));
+        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count(ACTION_PROPERTY));
+        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count(BLOCKING_PROPERTY));
 #else
         // Since v245 sd-bus does not add to the InterfacesAdded signal message the values of properties marked only
         // for invalidation on change, which makes the behavior consistent with the PropertiesChangedSignal.
         // So in this specific instance, `action' property is no more added to the list.
         EXPECT_THAT(interfacesAndProperties.at(INTERFACE_NAME), SizeIs(2));
-        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count("state"));
-        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count("blocking"));
+        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count(STATE_PROPERTY));
+        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count(BLOCKING_PROPERTY));
 #endif
         signalReceived = true;
     };
@@ -276,7 +276,7 @@ TYPED_TEST(SdbusTestObject, EmitsInterfacesAddedSignalForAllObjectInterfaces)
 {
     std::atomic<bool> signalReceived{false};
     this->m_objectManagerProxy->m_onInterfacesAddedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
-                                                                              , const std::map<std::string, std::map<std::string, sdbus::Variant>>& interfacesAndProperties )
+                                                                              , const std::map<sdbus::InterfaceName, std::map<sdbus::PropertyName, sdbus::Variant>>& interfacesAndProperties )
     {
         EXPECT_THAT(objectPath, Eq(OBJECT_PATH));
 #if LIBSYSTEMD_VERSION<=250
@@ -289,16 +289,16 @@ TYPED_TEST(SdbusTestObject, EmitsInterfacesAddedSignalForAllObjectInterfaces)
 #if LIBSYSTEMD_VERSION<=244
         // Up to sd-bus v244, all properties are added to the list, i.e. `state', `action', and `blocking' in this case.
         EXPECT_THAT(interfacesAndProperties.at(INTERFACE_NAME), SizeIs(3));
-        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count("state"));
-        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count("action"));
-        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count("blocking"));
+        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count(STATE_PROPERTY));
+        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count(ACTION_PROPERTY));
+        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count(BLOCKING_PROPERTY));
 #else
         // Since v245 sd-bus does not add to the InterfacesAdded signal message the values of properties marked only
         // for invalidation on change, which makes the behavior consistent with the PropertiesChangedSignal.
         // So in this specific instance, `action' property is no more added to the list.
         EXPECT_THAT(interfacesAndProperties.at(INTERFACE_NAME), SizeIs(2));
-        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count("state"));
-        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count("blocking"));
+        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count(STATE_PROPERTY));
+        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count(BLOCKING_PROPERTY));
 #endif
         signalReceived = true;
     };
@@ -312,7 +312,7 @@ TYPED_TEST(SdbusTestObject, EmitsInterfacesRemovedSignalForSelectedObjectInterfa
 {
     std::atomic<bool> signalReceived{false};
     this->m_objectManagerProxy->m_onInterfacesRemovedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
-                                                                                , const std::vector<std::string>& interfaces )
+                                                                                , const std::vector<sdbus::InterfaceName>& interfaces )
     {
         EXPECT_THAT(objectPath, Eq(OBJECT_PATH));
         ASSERT_THAT(interfaces, SizeIs(1));
@@ -329,7 +329,7 @@ TYPED_TEST(SdbusTestObject, EmitsInterfacesRemovedSignalForAllObjectInterfaces)
 {
     std::atomic<bool> signalReceived{false};
     this->m_objectManagerProxy->m_onInterfacesRemovedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
-                                                                                , const std::vector<std::string>& interfaces )
+                                                                                , const std::vector<sdbus::InterfaceName>& interfaces )
     {
         EXPECT_THAT(objectPath, Eq(OBJECT_PATH));
 #if LIBSYSTEMD_VERSION<=250

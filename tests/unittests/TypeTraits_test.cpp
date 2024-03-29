@@ -85,6 +85,9 @@ namespace
     TYPE(double)HAS_DBUS_TYPE_SIGNATURE("d")
     TYPE(const char*)HAS_DBUS_TYPE_SIGNATURE("s")
     TYPE(std::string)HAS_DBUS_TYPE_SIGNATURE("s")
+    TYPE(sdbus::BusName)HAS_DBUS_TYPE_SIGNATURE("s")
+    TYPE(sdbus::InterfaceName)HAS_DBUS_TYPE_SIGNATURE("s")
+    TYPE(sdbus::MemberName)HAS_DBUS_TYPE_SIGNATURE("s")
     TYPE(sdbus::ObjectPath)HAS_DBUS_TYPE_SIGNATURE("o")
     TYPE(sdbus::Signature)HAS_DBUS_TYPE_SIGNATURE("g")
     TYPE(sdbus::Variant)HAS_DBUS_TYPE_SIGNATURE("v")
@@ -135,6 +138,9 @@ namespace
                             , double
                             , const char*
                             , std::string
+                            , sdbus::BusName
+                            , sdbus::InterfaceName
+                            , sdbus::MemberName
                             , sdbus::ObjectPath
                             , sdbus::Signature
                             , sdbus::Variant

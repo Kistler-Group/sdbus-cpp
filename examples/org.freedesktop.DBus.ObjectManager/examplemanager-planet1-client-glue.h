@@ -17,7 +17,7 @@ namespace ExampleManager {
 class Planet1_proxy
 {
 public:
-    static constexpr const char* INTERFACE_NAME = "org.sdbuscpp.ExampleManager.Planet1";
+    static inline const sdbus::InterfaceName INTERFACE_NAME{"org.sdbuscpp.ExampleManager.Planet1"};
 
 protected:
     Planet1_proxy(sdbus::IProxy& proxy)
