@@ -332,8 +332,8 @@ namespace sdbus {
         }
     };
 
-    template<typename ...Elements>
-    struct signature_of<std::variant<Elements...>>: public signature_of<Variant>
+    template <typename... Elements>
+    struct signature_of<std::variant<Elements...>> : signature_of<Variant>
     {};
 
     template <>

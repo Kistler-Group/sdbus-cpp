@@ -43,6 +43,7 @@
 #include <functional>
 #include <sys/types.h>
 #include <algorithm>
+#include <variant>
 
 // Forward declarations
 namespace sdbus {
@@ -88,17 +89,15 @@ namespace sdbus {
         Message& operator<<(const char *item);
         Message& operator<<(const std::string &item);
         Message& operator<<(const Variant &item);
+        template <typename ...Elements>
+        Message& operator<<(const std::variant<Elements...>& value);
         Message& operator<<(const ObjectPath &item);
         Message& operator<<(const Signature &item);
         Message& operator<<(const UnixFd &item);
-
         template <typename _Element, typename _Allocator>
         Message& operator<<(const std::vector<_Element, _Allocator>& items);
         template <typename _Element, std::size_t _Size>
         Message& operator<<(const std::array<_Element, _Size>& items);
-
-        template <typename ...Elements>
-        Message& operator<<(const std::variant<Elements...>& value);
 #if __cplusplus >= 202002L
         template <typename _Element, std::size_t _Extent>
         Message& operator<<(const std::span<_Element, _Extent>& items);
@@ -124,6 +123,8 @@ namespace sdbus {
         Message& operator>>(char*& item);
         Message& operator>>(std::string &item);
         Message& operator>>(Variant &item);
+        template <typename ...Elements>
+        Message& operator>>(std::variant<Elements...>& value);
         Message& operator>>(ObjectPath &item);
         Message& operator>>(Signature &item);
         Message& operator>>(UnixFd &item);
@@ -131,8 +132,6 @@ namespace sdbus {
         Message& operator>>(std::vector<_Element, _Allocator>& items);
         template <typename _Element, std::size_t _Size>
         Message& operator>>(std::array<_Element, _Size>& items);
-        template <typename ...Elements>
-        Message& operator>>(std::variant<Elements...>& value);
 #if __cplusplus >= 202002L
         template <typename _Element, std::size_t _Extent>
         Message& operator>>(std::span<_Element, _Extent>& items);
@@ -311,6 +310,18 @@ namespace sdbus {
         PlainMessage() = default;
     };
 
+    template <typename ...Elements>
+    inline Message& Message::operator<<(const std::variant<Elements...>& value)
+    {
+        std::visit([this](const auto& inner){
+            openVariant(signature_of<decltype(inner)>::str());
+            *this << inner;
+            closeVariant();
+        }, value);
+
+        return *this;
+    }
+
     template <typename _Element, typename _Allocator>
     inline Message& Message::operator<<(const std::vector<_Element, _Allocator>& items)
     {
@@ -323,18 +334,6 @@ namespace sdbus {
     inline Message& Message::operator<<(const std::array<_Element, _Size>& items)
     {
         serializeArray(items);
-
-        return *this;
-    }
-
-    template <typename ...Elements>
-    inline Message& Message::operator<<(const std::variant<Elements...>& value)
-    {
-        std::visit([this](const auto& inner){
-            openVariant(signature_of<decltype(inner)>::str());
-            *this << inner;
-            closeVariant();
-        }, value);
 
         return *this;
     }
@@ -448,6 +447,42 @@ namespace sdbus {
         return *this;
     }
 
+    namespace detail
+    {
+        template <typename Variant>
+        void deserialize_variant(const Message& /*msg*/, const std::string& /*signature*/, const Variant& /*value*/)
+        {
+            SDBUS_THROW_ERROR("Failed to deserialize variant: signature did not match any of the variant types", EINVAL);
+        }
+
+        template <typename Element, typename... Elements, typename Variant>
+        void deserialize_variant(Message& msg, const std::string& signature, Variant& value)
+        {
+            if (signature == signature_of<Element>::str())
+            {
+                Element temp;
+                msg.enterVariant(signature);
+                msg >> temp;
+                msg.exitVariant();
+                value = std::move(temp);
+            }
+            else
+            {
+                deserialize_variant<Elements...>(msg, signature, value);
+            }
+        }
+    }
+
+    template <typename... Elements>
+    inline Message& Message::operator>>(std::variant<Elements...>& value)
+    {
+        std::string type;
+        std::string contentType;
+        peekType(type, contentType);
+        detail::deserialize_variant<Elements...>(*this, contentType, value);
+        return *this;
+    }
+
     template <typename _Element, typename _Allocator>
     inline Message& Message::operator>>(std::vector<_Element, _Allocator>& items)
     {
@@ -461,42 +496,6 @@ namespace sdbus {
     {
         deserializeArray(items);
 
-        return *this;
-    }
-
-    namespace detail
-    {
-        template <typename Variant>
-        void deserializeStdVariant(const Message& /*msg*/, const std::string& /*signature*/, const Variant& /*value*/)
-        {
-            SDBUS_THROW_ERROR("Failed to deserialize variant: signature did not match any of the variant types", EINVAL);
-        }
-
-        template <typename Variant, typename Element, typename ...Elements>
-        void deserializeStdVariant(Message& msg, const std::string& signature, Variant& value)
-        {
-            if (signature == signature_of<Element>::str())
-            {
-                Element temp;
-                msg.enterVariant(signature);
-                msg >> temp;
-                msg.exitVariant();
-                value = std::move(temp);
-            }
-            else
-            {
-                deserializeStdVariant<Variant, Elements...>(msg, signature, value);
-            }
-        }
-    }
-
-    template <typename ...Elements>
-    inline Message& Message::operator>>(std::variant<Elements...>& value)
-    {
-        std::string type;
-        std::string contentType;
-        peekType(type, contentType);
-        detail::deserializeStdVariant<std::variant<Elements...>, Elements...>(*this, contentType, value);
         return *this;
     }
 
