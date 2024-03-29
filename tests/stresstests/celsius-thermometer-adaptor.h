@@ -18,7 +18,7 @@ namespace celsius {
 class thermometer_adaptor
 {
 public:
-    static constexpr const char* INTERFACE_NAME = "org.sdbuscpp.stresstests.celsius.thermometer";
+    static inline const sdbus::InterfaceName INTERFACE_NAME{"org.sdbuscpp.stresstests.celsius.thermometer"};
 
 protected:
     thermometer_adaptor(sdbus::IObject& object)

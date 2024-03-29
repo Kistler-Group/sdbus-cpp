@@ -40,7 +40,7 @@ std::string createRandomString(size_t length);
 class PerftestAdaptor final : public sdbus::AdaptorInterfaces<org::sdbuscpp::perftests_adaptor>
 {
 public:
-    PerftestAdaptor(sdbus::IConnection& connection, std::string objectPath)
+    PerftestAdaptor(sdbus::IConnection& connection, sdbus::ObjectPath objectPath)
         : AdaptorInterfaces(connection, std::move(objectPath))
     {
         registerAdaptor();
@@ -92,11 +92,11 @@ std::string createRandomString(size_t length)
 //-----------------------------------------
 int main(int /*argc*/, char */*argv*/[])
 {
-    const char* serviceName = "org.sdbuscpp.perftests";
+    sdbus::ServiceName serviceName{"org.sdbuscpp.perftests"};
     auto connection = sdbus::createSystemBusConnection(serviceName);
 
-    const char* objectPath = "/org/sdbuscpp/perftests";
-    PerftestAdaptor server(*connection, objectPath);
+    sdbus::ObjectPath objectPath{"/org/sdbuscpp/perftests"};
+    PerftestAdaptor server(*connection, std::move(objectPath));
 
     connection->enterEventLoop();
 }

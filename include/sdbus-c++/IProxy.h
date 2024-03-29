@@ -41,6 +41,7 @@ namespace sdbus {
     class MethodCall;
     class MethodReply;
     class IConnection;
+    class ObjectPath;
     class PendingAsyncCall;
     namespace internal {
         class Proxy;
@@ -81,7 +82,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        [[nodiscard]] virtual MethodCall createMethodCall(const std::string& interfaceName, const std::string& methodName) = 0;
+        [[nodiscard]] virtual MethodCall createMethodCall(const InterfaceName& interfaceName, const MethodName& methodName) = 0;
 
         /*!
          * @brief Calls method on the remote D-Bus object
@@ -211,10 +212,16 @@ namespace sdbus {
          * Example of use:
          * @code
          * int result, a = ..., b = ...;
-         * object_.callMethod("multiply").onInterface(INTERFACE_NAME).withArguments(a, b).storeResultsTo(result);
+         * MethodName multiply{"multiply"};
+         * object_.callMethod(multiply).onInterface(INTERFACE_NAME).withArguments(a, b).storeResultsTo(result);
          * @endcode
          *
          * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] MethodInvoker callMethod(const MethodName& methodName);
+
+        /*!
+         * @copydoc IProxy::callMethod(const MethodName&)
          */
         [[nodiscard]] MethodInvoker callMethod(const std::string& methodName);
 
@@ -232,13 +239,19 @@ namespace sdbus {
          * Example of use:
          * @code
          * int a = ..., b = ...;
-         * object_.callMethodAsync("multiply").onInterface(INTERFACE_NAME).withArguments(a, b).uponReplyInvoke([](int result)
+         * MethodName multiply{"multiply"};
+         * object_.callMethodAsync(multiply).onInterface(INTERFACE_NAME).withArguments(a, b).uponReplyInvoke([](int result)
          * {
          *     std::cout << "Got result of multiplying " << a << " and " << b << ": " << result << std::endl;
          * });
          * @endcode
          *
          * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] AsyncMethodInvoker callMethodAsync(const MethodName& methodName);
+
+        /*!
+         * @copydoc IProxy::callMethodAsync(const MethodName&)
          */
         [[nodiscard]] AsyncMethodInvoker callMethodAsync(const std::string& methodName);
 
@@ -254,8 +267,8 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void registerSignalHandler( const std::string& interfaceName
-                                          , const std::string& signalName
+        virtual void registerSignalHandler( const InterfaceName& interfaceName
+                                          , const SignalName& signalName
                                           , signal_handler signalHandler ) = 0;
 
         /*!
@@ -273,8 +286,8 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        [[nodiscard]] virtual Slot registerSignalHandler( const std::string& interfaceName
-                                                        , const std::string& signalName
+        [[nodiscard]] virtual Slot registerSignalHandler( const InterfaceName& interfaceName
+                                                        , const SignalName& signalName
                                                         , signal_handler signalHandler
                                                         , return_slot_t ) = 0;
 
@@ -294,10 +307,18 @@ namespace sdbus {
          *
          * Example of use:
          * @code
-         * object_.uponSignal("fooSignal").onInterface("com.kistler.foo").call([this](int arg1, double arg2){ this->onFooSignal(arg1, arg2); });
+         * object_.uponSignal("stateChanged").onInterface("com.kistler.foo").call([this](int arg1, double arg2){ this->onStateChanged(arg1, arg2); });
+         * sdbus::InterfaceName foo{"com.kistler.foo"};
+         * sdbus::SignalName levelChanged{"levelChanged"};
+         * object_.uponSignal(levelChanged).onInterface(foo).call([this](uint16_t level){ this->onLevelChanged(level); });
          * @endcode
          *
          * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] SignalSubscriber uponSignal(const SignalName& signalName);
+
+        /*!
+         * @copydoc IProxy::uponSignal(const SignalName&)
          */
         [[nodiscard]] SignalSubscriber uponSignal(const std::string& signalName);
 
@@ -325,9 +346,17 @@ namespace sdbus {
          * Example of use:
          * @code
          * int state = object.getProperty("state").onInterface("com.kistler.foo");
+         * sdbus::InterfaceName foo{"com.kistler.foo"};
+         * sdbus::PropertyName level{"level"};
+         * int level = object.getProperty(level).onInterface(foo);
          * @endcode
          *
          * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] PropertyGetter getProperty(const PropertyName& propertyName);
+
+        /*!
+         * @copydoc IProxy::getProperty(const PropertyName&)
          */
         [[nodiscard]] PropertyGetter getProperty(const std::string& propertyName);
 
@@ -348,6 +377,11 @@ namespace sdbus {
          * @endcode
          *
          * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] AsyncPropertyGetter getPropertyAsync(const PropertyName& propertyName);
+
+        /*!
+         * @copydoc IProxy::getPropertyAsync(const PropertyName&)
          */
         [[nodiscard]] AsyncPropertyGetter getPropertyAsync(const std::string& propertyName);
 
@@ -371,6 +405,11 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
+        [[nodiscard]] PropertySetter setProperty(const PropertyName& propertyName);
+
+        /*!
+         * @copydoc IProxy::setProperty(const PropertyName&)
+         */
         [[nodiscard]] PropertySetter setProperty(const std::string& propertyName);
 
         /*!
@@ -390,6 +429,11 @@ namespace sdbus {
          * @endcode
          *
          * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] AsyncPropertySetter setPropertyAsync(const PropertyName& propertyName);
+
+        /*!
+         * @copydoc IProxy::setPropertyAsync(const PropertyName&)
          */
         [[nodiscard]] AsyncPropertySetter setPropertyAsync(const std::string& propertyName);
 
@@ -420,7 +464,7 @@ namespace sdbus {
          *
          * Example of use:
          * @code
-         * auto callback = [](std::optional<sdbus::Error> err, const std::map<std::string, Variant>>& properties){ ... };
+         * auto callback = [](std::optional<sdbus::Error> err, const std::map<PropertyName, Variant>>& properties){ ... };
          * auto props = object.getAllPropertiesAsync().onInterface("com.kistler.foo").uponReplyInvoke(std::move(callback));
          * @endcode
          *
@@ -438,7 +482,7 @@ namespace sdbus {
         /*!
          * @brief Returns object path of the underlying DBus object
          */
-        [[nodiscard]] virtual const std::string& getObjectPath() const = 0;
+        [[nodiscard]] virtual const ObjectPath& getObjectPath() const = 0;
 
         /*!
          * @brief Provides access to the currently processed D-Bus message
@@ -525,39 +569,88 @@ namespace sdbus {
         return callMethodAsync(message, microsecs.count(), with_future);
     }
 
-    inline MethodInvoker IProxy::callMethod(const std::string& methodName)
+    inline MethodInvoker IProxy::callMethod(const MethodName& methodName)
     {
         return MethodInvoker(*this, methodName);
     }
 
-    inline AsyncMethodInvoker IProxy::callMethodAsync(const std::string& methodName)
+    inline MethodInvoker IProxy::callMethod(const std::string& methodName)
+    {
+        // Down-cast through static cast for performance reasons (no extra copy and object construction needed)
+        static_assert(sizeof(methodName) == sizeof(MethodName));
+        return callMethod(static_cast<const MethodName&>(methodName));
+    }
+
+    inline AsyncMethodInvoker IProxy::callMethodAsync(const MethodName& methodName)
     {
         return AsyncMethodInvoker(*this, methodName);
     }
 
-    inline SignalSubscriber IProxy::uponSignal(const std::string& signalName)
+    inline AsyncMethodInvoker IProxy::callMethodAsync(const std::string& methodName)
+    {
+        // Down-cast through static cast for performance reasons (no extra copy and object construction needed)
+        static_assert(sizeof(methodName) == sizeof(MethodName));
+        return callMethodAsync(static_cast<const MethodName&>(methodName));
+    }
+
+    inline SignalSubscriber IProxy::uponSignal(const SignalName& signalName)
     {
         return SignalSubscriber(*this, signalName);
     }
 
-    inline PropertyGetter IProxy::getProperty(const std::string& propertyName)
+    inline SignalSubscriber IProxy::uponSignal(const std::string& signalName)
+    {
+        // Down-cast through static cast for performance reasons (no extra copy and object construction needed)
+        static_assert(sizeof(signalName) == sizeof(SignalName));
+        return uponSignal(static_cast<const SignalName&>(signalName));
+    }
+
+    inline PropertyGetter IProxy::getProperty(const PropertyName& propertyName)
     {
         return PropertyGetter(*this, propertyName);
     }
 
-    inline AsyncPropertyGetter IProxy::getPropertyAsync(const std::string& propertyName)
+    inline PropertyGetter IProxy::getProperty(const std::string& propertyName)
+    {
+        // Down-cast through static cast for performance reasons (no extra copy and object construction needed)
+        static_assert(sizeof(propertyName) == sizeof(PropertyName));
+        return getProperty(static_cast<const PropertyName&>(propertyName));
+    }
+
+    inline AsyncPropertyGetter IProxy::getPropertyAsync(const PropertyName& propertyName)
     {
         return AsyncPropertyGetter(*this, propertyName);
     }
 
-    inline PropertySetter IProxy::setProperty(const std::string& propertyName)
+    inline AsyncPropertyGetter IProxy::getPropertyAsync(const std::string& propertyName)
+    {
+        // Down-cast through static cast for performance reasons (no extra copy and object construction needed)
+        static_assert(sizeof(propertyName) == sizeof(PropertyName));
+        return getPropertyAsync(static_cast<const PropertyName&>(propertyName));
+    }
+
+    inline PropertySetter IProxy::setProperty(const PropertyName& propertyName)
     {
         return PropertySetter(*this, propertyName);
     }
 
-    inline AsyncPropertySetter IProxy::setPropertyAsync(const std::string& propertyName)
+    inline PropertySetter IProxy::setProperty(const std::string& propertyName)
+    {
+        // Down-cast through static cast for performance reasons (no extra copy and object construction needed)
+        static_assert(sizeof(propertyName) == sizeof(PropertyName));
+        return setProperty(static_cast<const PropertyName&>(propertyName));
+    }
+
+    inline AsyncPropertySetter IProxy::setPropertyAsync(const PropertyName& propertyName)
     {
         return AsyncPropertySetter(*this, propertyName);
+    }
+
+    inline AsyncPropertySetter IProxy::setPropertyAsync(const std::string& propertyName)
+    {
+        // Down-cast through static cast for performance reasons (no extra copy and object construction needed)
+        static_assert(sizeof(propertyName) == sizeof(PropertyName));
+        return setPropertyAsync(static_cast<const PropertyName&>(propertyName));
     }
 
     inline AllPropertiesGetter IProxy::getAllProperties()
@@ -593,8 +686,8 @@ namespace sdbus {
      * @endcode
      */
     [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( sdbus::IConnection& connection
-                                                            , std::string destination
-                                                            , std::string objectPath );
+                                                            , ServiceName destination
+                                                            , ObjectPath objectPath );
 
     /*!
      * @brief Creates a proxy object for a specific remote D-Bus object
@@ -619,8 +712,8 @@ namespace sdbus {
      * @endcode
      */
     [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( std::unique_ptr<sdbus::IConnection>&& connection
-                                                            , std::string destination
-                                                            , std::string objectPath );
+                                                            , ServiceName destination
+                                                            , ObjectPath objectPath );
 
     /*!
      * @brief Creates a proxy object for a specific remote D-Bus object
@@ -646,8 +739,8 @@ namespace sdbus {
      * @endcode
      */
     [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( std::unique_ptr<sdbus::IConnection>&& connection
-                                                            , std::string destination
-                                                            , std::string objectPath
+                                                            , ServiceName destination
+                                                            , ObjectPath objectPath
                                                             , dont_run_event_loop_thread_t );
 
     /*!
@@ -667,8 +760,8 @@ namespace sdbus {
      * auto proxy = sdbus::createProxy("com.kistler.foo", "/com/kistler/foo");
      * @endcode
      */
-    [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( std::string destination
-                                                            , std::string objectPath );
+    [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( ServiceName destination
+                                                            , ObjectPath objectPath );
 
     /*!
      * @brief Creates a proxy object for a specific remote D-Bus object
@@ -688,8 +781,8 @@ namespace sdbus {
      * auto proxy = sdbus::createProxy("com.kistler.foo", "/com/kistler/foo", sdbus::dont_run_event_loop_thread );
      * @endcode
      */
-    [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( std::string destination
-                                                            , std::string objectPath
+    [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( ServiceName destination
+                                                            , ObjectPath objectPath
                                                             , dont_run_event_loop_thread_t );
 
 }
