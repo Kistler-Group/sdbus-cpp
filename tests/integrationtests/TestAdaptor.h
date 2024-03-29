@@ -40,7 +40,7 @@ namespace sdbus { namespace test {
 class ObjectManagerTestAdaptor final : public sdbus::AdaptorInterfaces< sdbus::ObjectManager_adaptor >
 {
 public:
-    ObjectManagerTestAdaptor(sdbus::IConnection& connection, std::string path) :
+    ObjectManagerTestAdaptor(sdbus::IConnection& connection, sdbus::ObjectPath path) :
         AdaptorInterfaces(connection, std::move(path))
     {
         registerAdaptor();
@@ -57,7 +57,7 @@ class TestAdaptor final : public sdbus::AdaptorInterfaces< org::sdbuscpp::integr
                                                          , sdbus::ManagedObject_adaptor >
 {
 public:
-    TestAdaptor(sdbus::IConnection& connection, const std::string& path);
+    TestAdaptor(sdbus::IConnection& connection, sdbus::ObjectPath path);
     ~TestAdaptor();
 
 protected:
@@ -105,7 +105,7 @@ public: // for tests
     mutable std::atomic<bool> m_wasThrowErrorCalled{false};
 
     std::unique_ptr<const Message> m_methodCallMsg;
-    std::string m_methodCallMemberName;
+    MethodName m_methodName;
     std::unique_ptr<const Message> m_propertySetMsg;
     std::string m_propertySetSender;
 };
@@ -115,7 +115,9 @@ class DummyTestAdaptor final : public sdbus::AdaptorInterfaces< org::sdbuscpp::i
                                                               , sdbus::ManagedObject_adaptor >
 {
 public:
-    DummyTestAdaptor(sdbus::IConnection& connection, const std::string& path) : AdaptorInterfaces(connection, path) {}
+    DummyTestAdaptor(sdbus::IConnection& connection, sdbus::ObjectPath path)
+        : AdaptorInterfaces(connection, std::move(path))
+    {}
 
 protected:
     void noArgNoReturn() override {}

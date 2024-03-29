@@ -270,7 +270,7 @@ TEST(AMessage, CanCarryDBusArrayOfNontrivialTypesGivenAsStdVector)
 {
     auto msg = sdbus::createPlainMessage();
 
-    const std::vector<sdbus::Signature> dataWritten{"s", "u", "b"};
+    const std::vector dataWritten{sdbus::Signature{"s"}, sdbus::Signature{"u"}, sdbus::Signature{"b"}};
 
     msg << dataWritten;
     msg.seal();
@@ -300,7 +300,7 @@ TEST(AMessage, CanCarryDBusArrayOfNontrivialTypesGivenAsStdArray)
 {
     auto msg = sdbus::createPlainMessage();
 
-    const std::array<sdbus::Signature, 3> dataWritten{"s", "u", "b"};
+    const std::array dataWritten{sdbus::Signature{"s"}, sdbus::Signature{"u"}, sdbus::Signature{"b"}};
 
     msg << dataWritten;
     msg.seal();
@@ -333,7 +333,7 @@ TEST(AMessage, CanCarryDBusArrayOfNontrivialTypesGivenAsStdSpan)
 {
     auto msg = sdbus::createPlainMessage();
 
-    const std::array<sdbus::Signature, 3> sourceArray{"s", "u", "b"};
+    const std::array sourceArray{sdbus::Signature{"s"}, sdbus::Signature{"u"}, sdbus::Signature{"b"}};
     const std::span dataWritten{sourceArray};
 
     msg << dataWritten;
@@ -433,7 +433,7 @@ TEST(AMessage, CanCarryAComplexType)
                             >
                         >;
 
-    ComplexType dataWritten = { {1, {{{5, {{"/some/object", true, 45, {{6, "hello"}, {7, "world"}}}}}}, "av", 3.14}}};
+    ComplexType dataWritten = { {1, {{{5, {{sdbus::ObjectPath{"/some/object"}, true, 45, {{6, "hello"}, {7, "world"}}}}}}, sdbus::Signature{"av"}, 3.14}}};
 
     msg << dataWritten;
     msg.seal();

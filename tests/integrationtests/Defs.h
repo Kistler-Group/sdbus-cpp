@@ -34,12 +34,15 @@
 
 namespace sdbus { namespace test {
 
-const std::string INTERFACE_NAME{"org.sdbuscpp.integrationtests"};
-const std::string BUS_NAME = INTERFACE_NAME;
-const std::string EMPTY_DESTINATION;
-const std::string MANAGER_PATH {"/org/sdbuscpp/integrationtests"};
-const std::string OBJECT_PATH  {"/org/sdbuscpp/integrationtests/ObjectA1"};
-const std::string OBJECT_PATH_2{"/org/sdbuscpp/integrationtests/ObjectB1"};
+const InterfaceName INTERFACE_NAME{"org.sdbuscpp.integrationtests"};
+const ServiceName SERVICE_NAME{"org.sdbuscpp.integrationtests"};
+const ServiceName EMPTY_DESTINATION;
+const ObjectPath MANAGER_PATH {"/org/sdbuscpp/integrationtests"};
+const ObjectPath OBJECT_PATH  {"/org/sdbuscpp/integrationtests/ObjectA1"};
+const ObjectPath OBJECT_PATH_2{"/org/sdbuscpp/integrationtests/ObjectB1"};
+const PropertyName STATE_PROPERTY{"state"};
+const PropertyName ACTION_PROPERTY{"action"};
+const PropertyName BLOCKING_PROPERTY{"blocking"};
 const std::string DIRECT_CONNECTION_SOCKET_PATH{std::filesystem::temp_directory_path() / "sdbus-cpp-direct-connection-test"};
 
 constexpr const uint8_t UINT8_VALUE{1};
@@ -49,8 +52,8 @@ constexpr const int32_t INT32_VALUE{-42};
 constexpr const int32_t INT64_VALUE{-1024};
 
 const std::string STRING_VALUE{"sdbus-c++-testing"};
-const sdbus::Signature SIGNATURE_VALUE{"a{is}"};
-const sdbus::ObjectPath OBJECT_PATH_VALUE{"/"};
+const Signature SIGNATURE_VALUE{"a{is}"};
+const ObjectPath OBJECT_PATH_VALUE{"/"};
 const int UNIX_FD_VALUE = 0;
 
 const std::string DEFAULT_STATE_VALUE{"default-state-value"};
