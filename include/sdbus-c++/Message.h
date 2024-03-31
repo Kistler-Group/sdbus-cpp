@@ -449,27 +449,18 @@ namespace sdbus {
 
     namespace detail
     {
-        template <typename Variant>
-        void deserialize_variant(const Message& /*msg*/, const std::string& /*signature*/, const Variant& /*value*/)
+        template <typename _Element, typename... _Elements>
+        bool deserialize_variant(Message& msg, std::variant<_Elements...>& value, const std::string& signature)
         {
-            SDBUS_THROW_ERROR("Failed to deserialize variant: signature did not match any of the variant types", EINVAL);
-        }
+            if (signature != signature_of<_Element>::str())
+                return false;
 
-        template <typename Element, typename... Elements, typename Variant>
-        void deserialize_variant(Message& msg, const std::string& signature, Variant& value)
-        {
-            if (signature == signature_of<Element>::str())
-            {
-                Element temp;
-                msg.enterVariant(signature);
-                msg >> temp;
-                msg.exitVariant();
-                value = std::move(temp);
-            }
-            else
-            {
-                deserialize_variant<Elements...>(msg, signature, value);
-            }
+            _Element temp;
+            msg.enterVariant(signature);
+            msg >> temp;
+            msg.exitVariant();
+            value = std::move(temp);
+            return true;
         }
     }
 
@@ -479,7 +470,8 @@ namespace sdbus {
         std::string type;
         std::string contentType;
         peekType(type, contentType);
-        detail::deserialize_variant<Elements...>(*this, contentType, value);
+        bool result = (detail::deserialize_variant<Elements>(*this, value, contentType) || ...);
+        SDBUS_THROW_ERROR_IF(!result, "Failed to deserialize variant: signature did not match any of the variant types", EINVAL);
         return *this;
     }
 
