@@ -31,6 +31,7 @@
 #include <string>
 #include <vector>
 #include <array>
+#include <variant>
 #if __cplusplus >= 202002L
 #include <span>
 #endif
@@ -330,6 +331,10 @@ namespace sdbus {
             return "v";
         }
     };
+
+    template <typename... Elements>
+    struct signature_of<std::variant<Elements...>> : signature_of<Variant>
+    {};
 
     template <>
     struct signature_of<ObjectPath>

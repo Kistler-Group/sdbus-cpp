@@ -1516,7 +1516,7 @@ sdbus-c++ provides many default, pre-defined C++ type representations for D-Bus 
 | string-like, basic  | 103         | g          | SIGNATURE          | `sdbus::Signature`                |
 | container           | 97          | a          | ARRAY              | `std::vector<T>`, `std::array<T>`, `std::span<T>` - if used as an array followed by a single complete type `T` <br /> `std::map<T1, T2>`, `std::unordered_map<T1, T2>` - if used as an array of dict entries |
 | container           | 114,40,41   | r()        | STRUCT             | `sdbus::Struct<T1, T2, ...>` variadic class template                               |
-| container           | 118         | v          | VARIANT            | `sdbus::Variant`                  |
+| container           | 118         | v          | VARIANT            | `sdbus::Variant`, `std::variant<T1, ...>` |
 | container           | 101,123,125 | e{}        | DICT_ENTRY         | -                               |
 | fixed, basic        | 104         | h          | UNIX_FD            | `sdbus::UnixFd`                   |
 | reserved            | 109         | m          | (reserved)         | -                               |
