@@ -72,6 +72,14 @@ TEST(AVariant, CanBeConstructedFromAComplexValue)
     ASSERT_NO_THROW(sdbus::Variant{value});
 }
 
+TEST(AVariant, CanBeConstructedFromAnStdVariant)
+{
+    using VariantType = std::variant<std::string, uint64_t, std::vector<sdbus::Struct<std::string, double>>>;
+    VariantType value{ std::vector<sdbus::Struct<std::string, double>>{{"hello"s, ANY_DOUBLE}, {"world"s, ANY_DOUBLE}} };
+
+    ASSERT_NO_THROW(sdbus::Variant{value});
+}
+
 TEST(AVariant, CanBeCopied)
 {
     auto value = "hello"s;
@@ -128,6 +136,16 @@ TEST(AVariant, ReturnsTrueWhenAskedIfItContainsTheTypeItReallyContains)
     sdbus::Variant variant(value);
 
     ASSERT_TRUE(variant.containsValueOfType<ComplexType>());
+}
+
+TEST(AVariant, CanBeConvertedIntoAnStdVariant)
+{
+    using VariantType = std::variant<std::string, uint64_t, std::vector<sdbus::Struct<std::string, double>>>;
+    VariantType value{ std::vector<sdbus::Struct<std::string, double>>{{"hello"s, ANY_DOUBLE}, {"world"s, ANY_DOUBLE}} };
+
+    sdbus::Variant variant(value);
+
+    ASSERT_EQ(value, VariantType { variant });
 }
 
 TEST(ASimpleVariant, ReturnsFalseWhenAskedIfItContainsTypeItDoesntReallyContain)

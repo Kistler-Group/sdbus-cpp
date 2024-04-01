@@ -65,6 +65,14 @@ namespace sdbus {
             msg_.seal();
         }
 
+        template <typename... _Elements>
+        explicit Variant(const std::variant<_Elements...>& value)
+            : Variant()
+        {
+            msg_ << value;
+            msg_.seal();
+        }
+
         template <typename _ValueType>
         _ValueType get() const
         {
@@ -81,6 +89,15 @@ namespace sdbus {
         operator _ValueType() const
         {
             return get<_ValueType>();
+        }
+
+        template <typename... _Elements>
+        explicit operator std::variant<_Elements...>() const
+        {
+            std::variant<_Elements...> result;
+            msg_.rewind(false);
+            msg_ >> result;
+            return result;
         }
 
         template <typename _Type>
