@@ -332,8 +332,14 @@ namespace sdbus {
         }
     };
 
+    template <typename T>
+    using signature_valid = std::bool_constant<signature_of<T>::is_valid>;
+
+    template <typename... T>
+    using signatures_valid = std::conjunction<signature_valid<T>...>;
+
     template <typename... Elements>
-    struct signature_of<std::variant<Elements...>> : signature_of<Variant>
+    struct signature_of<std::variant<Elements...>, std::enable_if_t<signatures_valid<Elements...>::value>> : signature_of<Variant>
     {};
 
     template <>
