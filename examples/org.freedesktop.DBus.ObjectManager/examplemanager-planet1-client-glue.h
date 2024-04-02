@@ -47,7 +47,7 @@ public:
 public:
     std::string Name()
     {
-        return proxy_->getProperty("Name").onInterface(INTERFACE_NAME);
+        return proxy_->getProperty("Name").onInterface(INTERFACE_NAME).get<std::string>();
     }
 
 private:

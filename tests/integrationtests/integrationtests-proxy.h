@@ -191,7 +191,7 @@ public:
 public:
     uint32_t action()
     {
-        return proxy_->getProperty("action").onInterface(INTERFACE_NAME);
+        return proxy_->getProperty("action").onInterface(INTERFACE_NAME).get<uint32_t>();
     }
 
     void action(const uint32_t& value)
@@ -201,7 +201,7 @@ public:
 
     bool blocking()
     {
-        return proxy_->getProperty("blocking").onInterface(INTERFACE_NAME);
+        return proxy_->getProperty("blocking").onInterface(INTERFACE_NAME).get<bool>();
     }
 
     void blocking(const bool& value)
@@ -211,7 +211,7 @@ public:
 
     std::string state()
     {
-        return proxy_->getProperty("state").onInterface(INTERFACE_NAME);
+        return proxy_->getProperty("state").onInterface(INTERFACE_NAME).get<std::string>();
     }
 
 private:
