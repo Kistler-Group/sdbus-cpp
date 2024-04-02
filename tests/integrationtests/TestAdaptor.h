@@ -66,7 +66,7 @@ protected:
     double multiply(const int64_t& a, const double& b) override;
     void multiplyWithNoReply(const int64_t& a, const double& b) override;
     std::vector<int16_t> getInts16FromStruct(const sdbus::Struct<uint8_t, int16_t, double, std::string, std::vector<int16_t>>& arg0) override;
-    sdbus::Variant processVariant(const sdbus::Variant& variant) override;
+    sdbus::Variant processVariant(const std::variant<int32_t, double, std::string>& variant) override;
     std::map<int32_t, sdbus::Variant> getMapOfVariants(const std::vector<int32_t>& x, const sdbus::Struct<sdbus::Variant, sdbus::Variant>& y) override;
     sdbus::Struct<std::string, sdbus::Struct<std::map<int32_t, int32_t>>> getStructInStruct() override;
     int32_t sumStructItems(const sdbus::Struct<uint8_t, uint16_t>& arg0, const sdbus::Struct<int32_t, int64_t>& arg1) override;
@@ -123,7 +123,7 @@ protected:
     double multiply(const int64_t&, const double&) override { return {}; }
     void multiplyWithNoReply(const int64_t&, const double&) override {}
     std::vector<int16_t> getInts16FromStruct(const sdbus::Struct<uint8_t, int16_t, double, std::string, std::vector<int16_t>>&) override { return {}; }
-    sdbus::Variant processVariant(const sdbus::Variant&) override { return {}; }
+    sdbus::Variant processVariant(const std::variant<int32_t, double, std::string>&) override { return {}; }
     std::map<int32_t, sdbus::Variant> getMapOfVariants(const std::vector<int32_t>&, const sdbus::Struct<sdbus::Variant, sdbus::Variant>&) override { return {}; }
     sdbus::Struct<std::string, sdbus::Struct<std::map<int32_t, int32_t>>> getStructInStruct() override { return {}; }
     int32_t sumStructItems(const sdbus::Struct<uint8_t, uint16_t>&, const sdbus::Struct<int32_t, int64_t>&) override { return {}; }

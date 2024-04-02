@@ -84,6 +84,13 @@ public:
         return result;
     }
 
+    std::variant<int32_t, double, std::string> processVariant(const std::variant<int32_t, double, std::string>& variant)
+    {
+        std::variant<int32_t, double, std::string> result;
+        proxy_->callMethod("processVariant").onInterface(INTERFACE_NAME).withArguments(variant).storeResultsTo(result);
+        return result;
+    }
+
     std::map<int32_t, sdbus::Variant> getMapOfVariants(const std::vector<int32_t>& x, const sdbus::Struct<sdbus::Variant, sdbus::Variant>& y)
     {
         std::map<int32_t, sdbus::Variant> result;
