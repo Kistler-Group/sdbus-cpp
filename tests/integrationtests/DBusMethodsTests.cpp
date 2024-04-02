@@ -98,6 +98,13 @@ TEST_F(SdbusTestObject, CallsMethodWithVariantSuccesfully)
     ASSERT_THAT(variantRes.get<int32_t>(), Eq(static_cast<int32_t>(DOUBLE_VALUE)));
 }
 
+TEST_F(SdbusTestObject, CallsMethodWithStdVariantSuccesfully)
+{
+    std::variant<int32_t, double, std::string> v{DOUBLE_VALUE};
+    auto variantRes = m_proxy->processVariant(v);
+    ASSERT_THAT(std::get<int32_t>(variantRes), Eq(static_cast<int32_t>(DOUBLE_VALUE)));
+}
+
 TEST_F(SdbusTestObject, CallsMethodWithStructVariantsAndGetMapSuccesfully)
 {
     std::vector<int32_t> x{-2, 0, 2};

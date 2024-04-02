@@ -98,6 +98,9 @@ namespace sdbus {
     struct dont_expect_reply_t { explicit dont_expect_reply_t() = default; };
     inline constexpr dont_expect_reply_t dont_expect_reply{};
 
+    // Helper for static assert
+    template <class... _T> constexpr bool always_false = false;
+
     // Template specializations for getting D-Bus signatures from C++ types
     template <typename _T, typename _Enable = void>
     struct signature_of
@@ -107,9 +110,9 @@ namespace sdbus {
 
         static const std::string str()
         {
-            // sizeof(_T) < 0 is here to make compiler not being able to figure out
-            // the assertion expression before the template instantiation takes place.
-            static_assert(sizeof(_T) < 0, "Unknown DBus type");
+            // See using-sdbus-c++.md, section "Extending sdbus-c++ type system",
+            // on how to teach sdbus-c++ about your custom types
+            static_assert(always_false<_T>, "Unsupported DBus type (template specializations are needed for your custom types)");
             return "";
         }
     };

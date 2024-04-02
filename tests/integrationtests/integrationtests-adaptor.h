@@ -29,7 +29,7 @@ protected:
         object_->registerMethod("multiply").onInterface(INTERFACE_NAME).withInputParamNames("a", "b").withOutputParamNames("result").implementedAs([this](const int64_t& a, const double& b){ return this->multiply(a, b); });
         object_->registerMethod("multiplyWithNoReply").onInterface(INTERFACE_NAME).withInputParamNames("a", "b").implementedAs([this](const int64_t& a, const double& b){ return this->multiplyWithNoReply(a, b); }).markAsDeprecated().withNoReply();
         object_->registerMethod("getInts16FromStruct").onInterface(INTERFACE_NAME).withInputParamNames("arg0").withOutputParamNames("arg0").implementedAs([this](const sdbus::Struct<uint8_t, int16_t, double, std::string, std::vector<int16_t>>& arg0){ return this->getInts16FromStruct(arg0); });
-        object_->registerMethod("processVariant").onInterface(INTERFACE_NAME).withInputParamNames("variant").withOutputParamNames("result").implementedAs([this](const sdbus::Variant& variant){ return this->processVariant(variant); });
+        object_->registerMethod("processVariant").onInterface(INTERFACE_NAME).withInputParamNames("variant").withOutputParamNames("result").implementedAs([this](const std::variant<int32_t, double, std::string>& variant){ return this->processVariant(variant); });
         object_->registerMethod("getMapOfVariants").onInterface(INTERFACE_NAME).withInputParamNames("x", "y").withOutputParamNames("aMapOfVariants").implementedAs([this](const std::vector<int32_t>& x, const sdbus::Struct<sdbus::Variant, sdbus::Variant>& y){ return this->getMapOfVariants(x, y); });
         object_->registerMethod("getStructInStruct").onInterface(INTERFACE_NAME).withOutputParamNames("aMapOfVariants").implementedAs([this](){ return this->getStructInStruct(); });
         object_->registerMethod("sumStructItems").onInterface(INTERFACE_NAME).withInputParamNames("arg0", "arg1").withOutputParamNames("arg0").implementedAs([this](const sdbus::Struct<uint8_t, uint16_t>& arg0, const sdbus::Struct<int32_t, int64_t>& arg1){ return this->sumStructItems(arg0, arg1); });
@@ -82,7 +82,7 @@ private:
     virtual double multiply(const int64_t& a, const double& b) = 0;
     virtual void multiplyWithNoReply(const int64_t& a, const double& b) = 0;
     virtual std::vector<int16_t> getInts16FromStruct(const sdbus::Struct<uint8_t, int16_t, double, std::string, std::vector<int16_t>>& arg0) = 0;
-    virtual sdbus::Variant processVariant(const sdbus::Variant& variant) = 0;
+    virtual sdbus::Variant processVariant(const std::variant<int32_t, double, std::string>& variant) = 0;
     virtual std::map<int32_t, sdbus::Variant> getMapOfVariants(const std::vector<int32_t>& x, const sdbus::Struct<sdbus::Variant, sdbus::Variant>& y) = 0;
     virtual sdbus::Struct<std::string, sdbus::Struct<std::map<int32_t, int32_t>>> getStructInStruct() = 0;
     virtual int32_t sumStructItems(const sdbus::Struct<uint8_t, uint16_t>& arg0, const sdbus::Struct<int32_t, int64_t>& arg1) = 0;
