@@ -1765,6 +1765,7 @@ sdbus-c++ v2 is a major release that comes with a number of breaking API/ABI/beh
 * `PollData::getRelativeTimeout()` return type was changed to `std::chrono::microseconds`.
 * `IConnection::processPendingRequest()` was renamed to `IConnection::processPendingEvent()`.
 * `Variant` constructor is now explicit.
+* `Variant`'s conversion operator to the underlying type is now explicit.
 * `IProxy::getCurrentlyProcessedMessage()` now returns `Message` by value instead of a raw pointer to it. The caller assumes ownership of the message.
 * Object D-Bus API registration is now done through `IObject::addVTable()` method. The vtable gets active immediately. No `finishRegistration()` call is needed anymore. vtables can be added and removed dynamically at run time. In addition to API simplification this brings consistency with sd-bus API and increases flexibility.
 * Subscription to signals has been simplified. The subscription is active right after the `registerSignalHandler`/`uponSignal()` call. No need for the final call to `finishRegistration()`.
