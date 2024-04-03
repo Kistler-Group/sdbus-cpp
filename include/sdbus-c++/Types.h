@@ -87,7 +87,7 @@ namespace sdbus {
 
         // Only allow conversion operator for true D-Bus type representations in C++
         template <typename _ValueType, typename = std::enable_if_t<signature_of<_ValueType>::is_valid>>
-        operator _ValueType() const
+        explicit operator _ValueType() const
         {
             return get<_ValueType>();
         }
