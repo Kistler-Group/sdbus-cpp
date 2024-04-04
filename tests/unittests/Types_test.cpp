@@ -72,6 +72,19 @@ TEST(AVariant, CanBeConstructedFromAComplexValue)
     ASSERT_NO_THROW(sdbus::Variant{value});
 }
 
+TEST(AVariant, CanBeConstructedFromAnStdVariant)
+{
+    using ComplexType = std::vector<sdbus::Struct<std::string, double>>;
+    using StdVariantType = std::variant<std::string, uint64_t, ComplexType>;
+    ComplexType value{{"hello"s, ANY_DOUBLE}, {"world"s, ANY_DOUBLE}};
+    StdVariantType stdVariant{value};
+
+    sdbus::Variant sdbusVariant{stdVariant};
+
+    ASSERT_TRUE(sdbusVariant.containsValueOfType<ComplexType>());
+    ASSERT_THAT(sdbusVariant.get<ComplexType>(), Eq(value));
+}
+
 TEST(AVariant, CanBeCopied)
 {
     auto value = "hello"s;
@@ -128,6 +141,30 @@ TEST(AVariant, ReturnsTrueWhenAskedIfItContainsTheTypeItReallyContains)
     sdbus::Variant variant(value);
 
     ASSERT_TRUE(variant.containsValueOfType<ComplexType>());
+}
+
+TEST(AVariant, CanBeConvertedIntoAnStdVariant)
+{
+    using ComplexType = std::vector<sdbus::Struct<std::string, double>>;
+    using StdVariantType = std::variant<std::string, uint64_t, ComplexType>;
+    ComplexType value{{"hello"s, ANY_DOUBLE}, {"world"s, ANY_DOUBLE}};
+    sdbus::Variant sdbusVariant{value};
+    StdVariantType stdVariant{sdbusVariant};
+
+    ASSERT_TRUE(std::holds_alternative<ComplexType>(stdVariant));
+    ASSERT_THAT(std::get<ComplexType>(stdVariant), Eq(value));
+}
+
+TEST(AVariant, IsImplicitlyInterchangeableWithStdVariant)
+{
+    using ComplexType = std::vector<sdbus::Struct<std::string, double>>;
+    using StdVariantType = std::variant<std::string, uint64_t, ComplexType>;
+    ComplexType value{{"hello"s, ANY_DOUBLE}, {"world"s, ANY_DOUBLE}};
+    StdVariantType stdVariant{value};
+
+    auto stdVariantCopy = [](const sdbus::Variant &v) -> StdVariantType { return v; }(stdVariant);
+
+    ASSERT_THAT(stdVariantCopy, Eq(stdVariant));
 }
 
 TEST(ASimpleVariant, ReturnsFalseWhenAskedIfItContainsTypeItDoesntReallyContain)
