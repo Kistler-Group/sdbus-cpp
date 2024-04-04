@@ -66,7 +66,7 @@ namespace sdbus {
         }
 
         template <typename... _Elements>
-        explicit Variant(const std::variant<_Elements...>& value)
+        Variant(const std::variant<_Elements...>& value)
             : Variant()
         {
             msg_ << value;
@@ -92,7 +92,7 @@ namespace sdbus {
         }
 
         template <typename... _Elements>
-        explicit operator std::variant<_Elements...>() const
+        operator std::variant<_Elements...>() const
         {
             std::variant<_Elements...> result;
             msg_.rewind(false);
