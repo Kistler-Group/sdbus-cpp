@@ -35,6 +35,7 @@
 #include "ScopeGuard.h"
 
 #include <cassert>
+#include <cstring>
 #include SDBUS_HEADER
 
 namespace sdbus {
@@ -193,6 +194,17 @@ Message& Message::operator<<(const std::string& item)
 {
     auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_STRING, item.c_str());
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a string value", -r);
+
+    return *this;
+}
+
+Message& Message::operator<<(std::string_view item)
+{
+    char* destPtr{};
+    auto r = sd_bus_message_append_string_space((sd_bus_message*)msg_, item.length(), &destPtr);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a string_view value", -r);
+
+    std::memcpy(destPtr, item.data(), item.length());
 
     return *this;
 }
