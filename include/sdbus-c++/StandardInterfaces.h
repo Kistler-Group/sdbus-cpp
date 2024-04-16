@@ -150,8 +150,7 @@ namespace sdbus {
             return proxy_->getProperty(propertyName).onInterface(interfaceName);
         }
 
-        // TODO: Refactor from std::string to std::string_view before release/v2.0 !!!
-        sdbus::Variant Get(const InterfaceName& interfaceName, const std::string& propertyName)
+        sdbus::Variant Get(const InterfaceName& interfaceName, std::string_view propertyName)
         {
             return proxy_->getProperty(propertyName).onInterface(interfaceName);
         }

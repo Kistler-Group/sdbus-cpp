@@ -404,13 +404,13 @@ namespace sdbus {
     /*** PropertyGetter ***/
     /*** -------------- ***/
 
-    inline PropertyGetter::PropertyGetter(IProxy& proxy, const PropertyName& propertyName)
+    inline PropertyGetter::PropertyGetter(IProxy& proxy, std::string_view propertyName)
         : proxy_(proxy)
-        , propertyName_(propertyName)
+        , propertyName_(std::move(propertyName))
     {
     }
 
-    inline Variant PropertyGetter::onInterface(const InterfaceName& interfaceName)
+    inline Variant PropertyGetter::onInterface(std::string_view interfaceName)
     {
         Variant var;
         proxy_.callMethod("Get")
@@ -420,35 +420,21 @@ namespace sdbus {
         return var;
     }
 
-    inline Variant PropertyGetter::onInterface(const std::string& interfaceName)
-    {
-        // Down-cast through static cast for performance reasons (no extra copy and object construction needed)
-        static_assert(sizeof(interfaceName) == sizeof(InterfaceName));
-        return onInterface(static_cast<const InterfaceName&>(interfaceName));
-    }
-
     /*** ------------------- ***/
     /*** AsyncPropertyGetter ***/
     /*** ------------------- ***/
 
-    inline AsyncPropertyGetter::AsyncPropertyGetter(IProxy& proxy, const PropertyName& propertyName)
-            : proxy_(proxy)
-            , propertyName_(propertyName)
+    inline AsyncPropertyGetter::AsyncPropertyGetter(IProxy& proxy, std::string_view propertyName)
+        : proxy_(proxy)
+        , propertyName_(std::move(propertyName))
     {
     }
 
-    inline AsyncPropertyGetter& AsyncPropertyGetter::onInterface(const InterfaceName& interfaceName)
+    inline AsyncPropertyGetter& AsyncPropertyGetter::onInterface(std::string_view interfaceName)
     {
-        interfaceName_ = &interfaceName;
+        interfaceName_ = std::move(interfaceName);
 
         return *this;
-    }
-
-    inline AsyncPropertyGetter& AsyncPropertyGetter::onInterface(const std::string& interfaceName)
-    {
-        // Down-cast through static cast for performance reasons (no extra copy and object construction needed)
-        static_assert(sizeof(interfaceName) == sizeof(InterfaceName));
-        return onInterface(static_cast<const InterfaceName&>(interfaceName));
     }
 
     template <typename _Function>
@@ -456,21 +442,21 @@ namespace sdbus {
     {
         static_assert(std::is_invocable_r_v<void, _Function, std::optional<Error>, Variant>, "Property get callback function must accept std::optional<Error> and property value as Variant");
 
-        assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
+        assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
 
         return proxy_.callMethodAsync("Get")
                      .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
-                     .withArguments(*interfaceName_, propertyName_)
+                     .withArguments(interfaceName_, propertyName_)
                      .uponReplyInvoke(std::forward<_Function>(callback));
     }
 
     inline std::future<Variant> AsyncPropertyGetter::getResultAsFuture()
     {
-        assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
+        assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
 
         return proxy_.callMethodAsync("Get")
                      .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
-                     .withArguments(*interfaceName_, propertyName_)
+                     .withArguments(interfaceName_, propertyName_)
                      .getResultAsFuture<Variant>();
     }
 
@@ -478,24 +464,17 @@ namespace sdbus {
     /*** PropertySetter ***/
     /*** -------------- ***/
 
-    inline PropertySetter::PropertySetter(IProxy& proxy, const PropertyName& propertyName)
+    inline PropertySetter::PropertySetter(IProxy& proxy, std::string_view propertyName)
         : proxy_(proxy)
-        , propertyName_(propertyName)
+        , propertyName_(std::move(propertyName))
     {
     }
 
-    inline PropertySetter& PropertySetter::onInterface(const InterfaceName& interfaceName)
+    inline PropertySetter& PropertySetter::onInterface(std::string_view interfaceName)
     {
-        interfaceName_ = &interfaceName;
+        interfaceName_ = std::move(interfaceName);
 
         return *this;
-    }
-
-    inline PropertySetter& PropertySetter::onInterface(const std::string& interfaceName)
-    {
-        // Down-cast through static cast for performance reasons (no extra copy and object construction needed)
-        static_assert(sizeof(interfaceName) == sizeof(InterfaceName));
-        return onInterface(static_cast<const InterfaceName&>(interfaceName));
     }
 
     template <typename _Value>
@@ -512,45 +491,38 @@ namespace sdbus {
 
     inline void PropertySetter::toValue(const Variant& value)
     {
-        assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
+        assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
 
         proxy_.callMethod("Set")
               .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
-              .withArguments(*interfaceName_, propertyName_, value);
+              .withArguments(interfaceName_, propertyName_, value);
     }
 
     inline void PropertySetter::toValue(const Variant& value, dont_expect_reply_t)
     {
-        assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
+        assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
 
         proxy_.callMethod("Set")
-                .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
-                .withArguments(*interfaceName_, propertyName_, value)
-                .dontExpectReply();
+              .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
+              .withArguments(interfaceName_, propertyName_, value)
+              .dontExpectReply();
     }
 
     /*** ------------------- ***/
     /*** AsyncPropertySetter ***/
     /*** ------------------- ***/
 
-    inline AsyncPropertySetter::AsyncPropertySetter(IProxy& proxy, const PropertyName& propertyName)
-            : proxy_(proxy)
-            , propertyName_(propertyName)
+    inline AsyncPropertySetter::AsyncPropertySetter(IProxy& proxy, std::string_view propertyName)
+        : proxy_(proxy)
+        , propertyName_(propertyName)
     {
     }
 
-    inline AsyncPropertySetter& AsyncPropertySetter::onInterface(const InterfaceName& interfaceName)
+    inline AsyncPropertySetter& AsyncPropertySetter::onInterface(std::string_view interfaceName)
     {
-        interfaceName_ = &interfaceName;
+        interfaceName_ = std::move(interfaceName);
 
         return *this;
-    }
-
-    inline AsyncPropertySetter& AsyncPropertySetter::onInterface(const std::string& interfaceName)
-    {
-        // Down-cast through static cast for performance reasons (no extra copy and object construction needed)
-        static_assert(sizeof(interfaceName) == sizeof(InterfaceName));
-        return onInterface(static_cast<const InterfaceName&>(interfaceName));
     }
 
     template <typename _Value>
@@ -571,21 +543,21 @@ namespace sdbus {
     {
         static_assert(std::is_invocable_r_v<void, _Function, std::optional<Error>>, "Property set callback function must accept std::optional<Error> only");
 
-        assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
+        assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
 
         return proxy_.callMethodAsync("Set")
                      .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
-                     .withArguments(*interfaceName_, propertyName_, std::move(value_))
+                     .withArguments(interfaceName_, propertyName_, std::move(value_))
                      .uponReplyInvoke(std::forward<_Function>(callback));
     }
 
     inline std::future<void> AsyncPropertySetter::getResultAsFuture()
     {
-        assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
+        assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
 
         return proxy_.callMethodAsync("Set")
                      .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
-                     .withArguments(*interfaceName_, propertyName_, std::move(value_))
+                     .withArguments(interfaceName_, propertyName_, std::move(value_))
                      .getResultAsFuture<>();
     }
 
@@ -594,25 +566,18 @@ namespace sdbus {
     /*** ------------------- ***/
 
     inline AllPropertiesGetter::AllPropertiesGetter(IProxy& proxy)
-            : proxy_(proxy)
+        : proxy_(proxy)
     {
     }
 
-    inline std::map<PropertyName, Variant> AllPropertiesGetter::onInterface(const InterfaceName& interfaceName)
+    inline std::map<PropertyName, Variant> AllPropertiesGetter::onInterface(std::string_view interfaceName)
     {
         std::map<PropertyName, Variant> props;
         proxy_.callMethod("GetAll")
-                .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
-                .withArguments(interfaceName)
-                .storeResultsTo(props);
+              .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
+              .withArguments(std::move(interfaceName))
+              .storeResultsTo(props);
         return props;
-    }
-
-    inline std::map<PropertyName, Variant> AllPropertiesGetter::onInterface(const std::string& interfaceName)
-    {
-        // Down-cast through static cast for performance reasons (no extra copy and object construction needed)
-        static_assert(sizeof(interfaceName) == sizeof(InterfaceName));
-        return onInterface(static_cast<const InterfaceName&>(interfaceName));
     }
 
     /*** ------------------------ ***/
@@ -624,18 +589,11 @@ namespace sdbus {
     {
     }
 
-    inline AsyncAllPropertiesGetter& AsyncAllPropertiesGetter::onInterface(const InterfaceName& interfaceName)
+    inline AsyncAllPropertiesGetter& AsyncAllPropertiesGetter::onInterface(std::string_view interfaceName)
     {
-        interfaceName_ = &interfaceName;
+        interfaceName_ = std::move(interfaceName);
 
         return *this;
-    }
-
-    inline AsyncAllPropertiesGetter& AsyncAllPropertiesGetter::onInterface(const std::string& interfaceName)
-    {
-        // Down-cast through static cast for performance reasons (no extra copy and object construction needed)
-        static_assert(sizeof(interfaceName) == sizeof(InterfaceName));
-        return onInterface(static_cast<const InterfaceName&>(interfaceName));
     }
 
     template <typename _Function>
@@ -644,21 +602,21 @@ namespace sdbus {
         static_assert( std::is_invocable_r_v<void, _Function, std::optional<Error>, std::map<PropertyName, Variant>>
                      , "All properties get callback function must accept std::optional<Error> and a map of property names to their values" );
 
-        assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
+        assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
 
         return proxy_.callMethodAsync("GetAll")
                      .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
-                     .withArguments(*interfaceName_)
+                     .withArguments(interfaceName_)
                      .uponReplyInvoke(std::forward<_Function>(callback));
     }
 
     inline std::future<std::map<PropertyName, Variant>> AsyncAllPropertiesGetter::getResultAsFuture()
     {
-        assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
+        assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
 
         return proxy_.callMethodAsync("GetAll")
                      .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
-                     .withArguments(*interfaceName_)
+                     .withArguments(interfaceName_)
                      .getResultAsFuture<std::map<PropertyName, Variant>>();
     }
 
