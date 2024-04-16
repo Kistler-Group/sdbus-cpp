@@ -77,9 +77,16 @@ namespace sdbus::internal {
                                                          , const ObjectPath& objectPath
                                                          , const InterfaceName& interfaceName
                                                          , const MethodName& methodName ) const = 0;
+        [[nodiscard]] virtual MethodCall createMethodCall( const char* destination
+                                                         , const char* objectPath
+                                                         , const char* interfaceName
+                                                         , const char* methodName ) const = 0;
         [[nodiscard]] virtual Signal createSignal( const ObjectPath& objectPath
                                                  , const InterfaceName& interfaceName
                                                  , const SignalName& signalName ) const = 0;
+        [[nodiscard]] virtual Signal createSignal( const char* objectPath
+                                                 , const char* interfaceName
+                                                 , const char* signalName ) const = 0;
 
         virtual MethodReply callMethod(const MethodCall& message, uint64_t timeout) = 0;
         virtual void callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout, floating_slot_t) = 0;
@@ -87,6 +94,9 @@ namespace sdbus::internal {
 
         virtual void emitPropertiesChangedSignal( const ObjectPath& objectPath
                                                 , const InterfaceName& interfaceName
+                                                , const std::vector<PropertyName>& propNames ) = 0;
+        virtual void emitPropertiesChangedSignal( const char* objectPath
+                                                , const char* interfaceName
                                                 , const std::vector<PropertyName>& propNames ) = 0;
         virtual void emitInterfacesAddedSignal(const ObjectPath& objectPath) = 0;
         virtual void emitInterfacesAddedSignal( const ObjectPath& objectPath
@@ -98,10 +108,10 @@ namespace sdbus::internal {
         using sdbus::IConnection::addObjectManager;
         [[nodiscard]] virtual Slot addObjectManager(const ObjectPath& objectPath, return_slot_t) = 0;
 
-        [[nodiscard]] virtual Slot registerSignalHandler( const ServiceName& sender
-                                                        , const ObjectPath& objectPath
-                                                        , const InterfaceName& interfaceName
-                                                        , const SignalName& signalName
+        [[nodiscard]] virtual Slot registerSignalHandler( const char* sender
+                                                        , const char* objectPath
+                                                        , const char* interfaceName
+                                                        , const char* signalName
                                                         , sd_bus_message_handler_t callback
                                                         , void* userData ) = 0;
     };

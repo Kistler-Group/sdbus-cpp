@@ -17,7 +17,7 @@ namespace stresstests {
 class concatenator_adaptor
 {
 public:
-    static inline const sdbus::InterfaceName INTERFACE_NAME{"org.sdbuscpp.stresstests.concatenator"};
+    static constexpr const char* INTERFACE_NAME = "org.sdbuscpp.stresstests.concatenator";
 
 protected:
     concatenator_adaptor(sdbus::IObject& object)

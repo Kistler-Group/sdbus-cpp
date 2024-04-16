@@ -47,12 +47,12 @@ public:
         , m_population(population)
     {
         registerAdaptor();
-        emitInterfacesAddedSignal({org::sdbuscpp::ExampleManager::Planet1_adaptor::INTERFACE_NAME});
+        emitInterfacesAddedSignal({sdbus::InterfaceName{org::sdbuscpp::ExampleManager::Planet1_adaptor::INTERFACE_NAME}});
     }
 
     ~PlanetAdaptor()
     {
-        emitInterfacesRemovedSignal({org::sdbuscpp::ExampleManager::Planet1_adaptor::INTERFACE_NAME});
+        emitInterfacesRemovedSignal({sdbus::InterfaceName{org::sdbuscpp::ExampleManager::Planet1_adaptor::INTERFACE_NAME}});
         unregisterAdaptor();
     }
 

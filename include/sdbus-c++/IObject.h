@@ -225,25 +225,14 @@ namespace sdbus {
         [[nodiscard]] SignalEmitter emitSignal(const SignalName& signalName);
 
         /*!
-         * @brief Emits signal on D-Bus
-         *
-         * @param[in] signalName Name of the signal
-         * @return A helper object for convenient emission of signals
-         *
-         * This is a high-level, convenience way of emitting D-Bus signals that abstracts
-         * from the D-Bus message concept. Signal arguments are automatically serialized
-         * in a message and D-Bus signatures automatically deduced from the provided native arguments.
-         *
-         * Example of use:
-         * @code
-         * int arg1 = ...;
-         * double arg2 = ...;
-         * object_.emitSignal("fooSignal").onInterface("com.kistler.foo").withArguments(arg1, arg2);
-         * @endcode
-         *
-         * @throws sdbus::Error in case of failure
+         * @copydoc IObject::emitSignal(const SignalName&)
          */
         [[nodiscard]] SignalEmitter emitSignal(const std::string& signalName);
+
+        /*!
+         * @copydoc IObject::emitSignal(const SignalName&)
+         */
+        [[nodiscard]] SignalEmitter emitSignal(const char* signalName);
 
         /*!
          * @brief Emits PropertyChanged signal for specified properties under a given interface of this object path
@@ -256,6 +245,11 @@ namespace sdbus {
         virtual void emitPropertiesChangedSignal(const InterfaceName& interfaceName, const std::vector<PropertyName>& propNames) = 0;
 
         /*!
+         * @copydoc IObject::emitPropertiesChangedSignal(const InterfaceName&,const std::vector<PropertyName>&)
+         */
+        virtual void emitPropertiesChangedSignal(const char* interfaceName, const std::vector<PropertyName>& propNames) = 0;
+
+        /*!
          * @brief Emits PropertyChanged signal for all properties on a given interface of this object path
          *
          * @param[in] interfaceName Name of an interface
@@ -263,6 +257,11 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         virtual void emitPropertiesChangedSignal(const InterfaceName& interfaceName) = 0;
+
+        /*!
+         * @copydoc IObject::emitPropertiesChangedSignal(const InterfaceName&)
+         */
+        virtual void emitPropertiesChangedSignal(const char* interfaceName) = 0;
 
         /*!
          * @brief Emits InterfacesAdded signal on this object path
@@ -361,6 +360,11 @@ namespace sdbus {
          * @return Currently processed D-Bus message
          */
         [[nodiscard]] virtual Message getCurrentlyProcessedMessage() const = 0;
+
+    protected:
+        friend SignalEmitter;
+
+        [[nodiscard]] virtual Signal createSignal(const char* interfaceName, const char* signalName) = 0;
     };
 
     // Out-of-line member definitions
@@ -372,9 +376,12 @@ namespace sdbus {
 
     inline SignalEmitter IObject::emitSignal(const std::string& signalName)
     {
-        // Down-cast through static cast for performance reasons (no extra copy and object construction needed)
-        static_assert(sizeof(signalName) == sizeof(SignalName));
-        return emitSignal(static_cast<const SignalName&>(signalName));
+        return SignalEmitter(*this, signalName.c_str());
+    }
+
+    inline SignalEmitter IObject::emitSignal(const char* signalName)
+    {
+        return SignalEmitter(*this, signalName);
     }
 
     template <typename... VTableItems, typename>

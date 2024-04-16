@@ -234,10 +234,10 @@ TYPED_TEST(SdbusTestObject, GetsManagedObjectsSuccessfully)
 
     ASSERT_THAT(objectsInterfacesAndProperties, SizeIs(2));
     EXPECT_THAT(objectsInterfacesAndProperties.at(OBJECT_PATH)
-        .at(org::sdbuscpp::integrationtests_adaptor::INTERFACE_NAME)
+        .at(sdbus::InterfaceName{org::sdbuscpp::integrationtests_adaptor::INTERFACE_NAME})
         .at(ACTION_PROPERTY).template get<uint32_t>(), Eq(DEFAULT_ACTION_VALUE));
     EXPECT_THAT(objectsInterfacesAndProperties.at(OBJECT_PATH_2)
-        .at(org::sdbuscpp::integrationtests_adaptor::INTERFACE_NAME)
+        .at(sdbus::InterfaceName{org::sdbuscpp::integrationtests_adaptor::INTERFACE_NAME})
         .at(ACTION_PROPERTY).template get<uint32_t>(), Eq(DEFAULT_ACTION_VALUE));
 }
 

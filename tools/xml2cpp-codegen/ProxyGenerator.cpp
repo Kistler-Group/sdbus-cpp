@@ -81,7 +81,7 @@ std::string ProxyGenerator::processInterface(Node& interface) const
     body << "class " << className << endl
             << "{" << endl
             << "public:" << endl
-            << tab << "static inline const sdbus::InterfaceName INTERFACE_NAME{\"" << ifaceName << "\"};" << endl << endl
+            << tab << "static constexpr const char* INTERFACE_NAME = \"" << ifaceName << "\";" << endl << endl
             << "protected:" << endl
             << tab << className << "(sdbus::IProxy& proxy)" << endl
             << tab << tab << ": proxy_(&proxy)" << endl

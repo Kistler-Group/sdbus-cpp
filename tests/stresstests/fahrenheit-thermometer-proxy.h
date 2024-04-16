@@ -18,7 +18,7 @@ namespace fahrenheit {
 class thermometer_proxy
 {
 public:
-    static inline const sdbus::InterfaceName INTERFACE_NAME{"org.sdbuscpp.stresstests.fahrenheit.thermometer"};
+    static constexpr const char* INTERFACE_NAME = "org.sdbuscpp.stresstests.fahrenheit.thermometer";
 
 protected:
     thermometer_proxy(sdbus::IProxy& proxy)
@@ -60,7 +60,7 @@ namespace thermometer {
 class factory_proxy
 {
 public:
-    static inline const sdbus::InterfaceName INTERFACE_NAME{"org.sdbuscpp.stresstests.fahrenheit.thermometer.factory"};
+    static constexpr const char* INTERFACE_NAME = "org.sdbuscpp.stresstests.fahrenheit.thermometer.factory";
 
 protected:
     factory_proxy(sdbus::IProxy& proxy)

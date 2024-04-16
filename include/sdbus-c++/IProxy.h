@@ -227,6 +227,11 @@ namespace sdbus {
         [[nodiscard]] MethodInvoker callMethod(const std::string& methodName);
 
         /*!
+         * @copydoc IProxy::callMethod(const MethodName&)
+         */
+        [[nodiscard]] MethodInvoker callMethod(const char* methodName);
+
+        /*!
          * @brief Calls method on the D-Bus object asynchronously
          *
          * @param[in] methodName Name of the method
@@ -255,6 +260,11 @@ namespace sdbus {
          * @copydoc IProxy::callMethodAsync(const MethodName&)
          */
         [[nodiscard]] AsyncMethodInvoker callMethodAsync(const std::string& methodName);
+
+        /*!
+         * @copydoc IProxy::callMethodAsync(const MethodName&)
+         */
+        [[nodiscard]] AsyncMethodInvoker callMethodAsync(const char* methodName);
 
         /*!
          * @brief Registers a handler for the desired signal emitted by the D-Bus object
@@ -324,6 +334,11 @@ namespace sdbus {
         [[nodiscard]] SignalSubscriber uponSignal(const std::string& signalName);
 
         /*!
+         * @copydoc IProxy::uponSignal(const SignalName&)
+         */
+        [[nodiscard]] SignalSubscriber uponSignal(const char* signalName);
+
+        /*!
          * @brief Unregisters proxy's signal handlers and stops receiving replies to pending async calls
          *
          * Unregistration is done automatically also in proxy's destructor. This method makes
@@ -384,7 +399,7 @@ namespace sdbus {
         /*!
          * @copydoc IProxy::getPropertyAsync(const PropertyName&)
          */
-        [[nodiscard]] AsyncPropertyGetter getPropertyAsync(const std::string& propertyName);
+        [[nodiscard]] AsyncPropertyGetter getPropertyAsync(std::string_view propertyName);
 
         /*!
          * @brief Sets value of a property of the D-Bus object
@@ -411,7 +426,7 @@ namespace sdbus {
         /*!
          * @copydoc IProxy::setProperty(const PropertyName&)
          */
-        [[nodiscard]] PropertySetter setProperty(const std::string& propertyName);
+        [[nodiscard]] PropertySetter setProperty(std::string_view propertyName);
 
         /*!
          * @brief Sets value of a property of the D-Bus object asynchronously
@@ -436,7 +451,7 @@ namespace sdbus {
         /*!
          * @copydoc IProxy::setPropertyAsync(const PropertyName&)
          */
-        [[nodiscard]] AsyncPropertySetter setPropertyAsync(const std::string& propertyName);
+        [[nodiscard]] AsyncPropertySetter setPropertyAsync(std::string_view propertyName);
 
         /*!
          * @brief Gets values of all properties of the D-Bus object
@@ -499,6 +514,20 @@ namespace sdbus {
          * @return Currently processed D-Bus message
          */
         [[nodiscard]] virtual Message getCurrentlyProcessedMessage() const = 0;
+
+    protected:
+        friend MethodInvoker;
+        friend AsyncMethodInvoker;
+        friend SignalSubscriber;
+
+        [[nodiscard]] virtual MethodCall createMethodCall(const char* interfaceName, const char* methodName) = 0;
+        virtual void registerSignalHandler( const char* interfaceName
+                                          , const char* signalName
+                                          , signal_handler signalHandler ) = 0;
+        [[nodiscard]] virtual Slot registerSignalHandler( const char* interfaceName
+                                                        , const char* signalName
+                                                        , signal_handler signalHandler
+                                                        , return_slot_t ) = 0;
     };
 
     /********************************************//**
@@ -577,9 +606,12 @@ namespace sdbus {
 
     inline MethodInvoker IProxy::callMethod(const std::string& methodName)
     {
-        // Down-cast through static cast for performance reasons (no extra copy and object construction needed)
-        static_assert(sizeof(methodName) == sizeof(MethodName));
-        return callMethod(static_cast<const MethodName&>(methodName));
+        return MethodInvoker(*this, methodName.c_str());
+    }
+
+    inline MethodInvoker IProxy::callMethod(const char* methodName)
+    {
+        return MethodInvoker(*this, methodName);
     }
 
     inline AsyncMethodInvoker IProxy::callMethodAsync(const MethodName& methodName)
@@ -589,9 +621,12 @@ namespace sdbus {
 
     inline AsyncMethodInvoker IProxy::callMethodAsync(const std::string& methodName)
     {
-        // Down-cast through static cast for performance reasons (no extra copy and object construction needed)
-        static_assert(sizeof(methodName) == sizeof(MethodName));
-        return callMethodAsync(static_cast<const MethodName&>(methodName));
+        return AsyncMethodInvoker(*this, methodName.c_str());
+    }
+
+    inline AsyncMethodInvoker IProxy::callMethodAsync(const char* methodName)
+    {
+        return AsyncMethodInvoker(*this, methodName);
     }
 
     inline SignalSubscriber IProxy::uponSignal(const SignalName& signalName)
@@ -601,9 +636,12 @@ namespace sdbus {
 
     inline SignalSubscriber IProxy::uponSignal(const std::string& signalName)
     {
-        // Down-cast through static cast for performance reasons (no extra copy and object construction needed)
-        static_assert(sizeof(signalName) == sizeof(SignalName));
-        return uponSignal(static_cast<const SignalName&>(signalName));
+        return SignalSubscriber(*this, signalName.c_str());
+    }
+
+    inline SignalSubscriber IProxy::uponSignal(const char* signalName)
+    {
+        return SignalSubscriber(*this, signalName);
     }
 
     inline PropertyGetter IProxy::getProperty(const PropertyName& propertyName)
@@ -613,7 +651,7 @@ namespace sdbus {
 
     inline PropertyGetter IProxy::getProperty(std::string_view propertyName)
     {
-        return PropertyGetter(*this, propertyName);
+        return PropertyGetter(*this, std::move(propertyName));
     }
 
     inline AsyncPropertyGetter IProxy::getPropertyAsync(const PropertyName& propertyName)
@@ -621,11 +659,9 @@ namespace sdbus {
         return AsyncPropertyGetter(*this, propertyName);
     }
 
-    inline AsyncPropertyGetter IProxy::getPropertyAsync(const std::string& propertyName)
+    inline AsyncPropertyGetter IProxy::getPropertyAsync(std::string_view propertyName)
     {
-        // Down-cast through static cast for performance reasons (no extra copy and object construction needed)
-        static_assert(sizeof(propertyName) == sizeof(PropertyName));
-        return getPropertyAsync(static_cast<const PropertyName&>(propertyName));
+        return AsyncPropertyGetter(*this, std::move(propertyName));
     }
 
     inline PropertySetter IProxy::setProperty(const PropertyName& propertyName)
@@ -633,11 +669,9 @@ namespace sdbus {
         return PropertySetter(*this, propertyName);
     }
 
-    inline PropertySetter IProxy::setProperty(const std::string& propertyName)
+    inline PropertySetter IProxy::setProperty(std::string_view propertyName)
     {
-        // Down-cast through static cast for performance reasons (no extra copy and object construction needed)
-        static_assert(sizeof(propertyName) == sizeof(PropertyName));
-        return setProperty(static_cast<const PropertyName&>(propertyName));
+        return PropertySetter(*this, std::move(propertyName));
     }
 
     inline AsyncPropertySetter IProxy::setPropertyAsync(const PropertyName& propertyName)
@@ -645,11 +679,9 @@ namespace sdbus {
         return AsyncPropertySetter(*this, propertyName);
     }
 
-    inline AsyncPropertySetter IProxy::setPropertyAsync(const std::string& propertyName)
+    inline AsyncPropertySetter IProxy::setPropertyAsync(std::string_view propertyName)
     {
-        // Down-cast through static cast for performance reasons (no extra copy and object construction needed)
-        static_assert(sizeof(propertyName) == sizeof(PropertyName));
-        return setPropertyAsync(static_cast<const PropertyName&>(propertyName));
+        return AsyncPropertySetter(*this, std::move(propertyName));
     }
 
     inline AllPropertiesGetter IProxy::getAllProperties()
