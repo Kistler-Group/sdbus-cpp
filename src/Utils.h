@@ -31,17 +31,17 @@
 #include SDBUS_HEADER
 
 #if LIBSYSTEMD_VERSION>=246
-#define SDBUS_CHECK_OBJECT_PATH(_PATH)                                                                                                            \
-    SDBUS_THROW_ERROR_IF(!sd_bus_object_path_is_valid(_PATH.c_str()), "Invalid object path '" + _PATH + "' provided", EINVAL)                     \
+#define SDBUS_CHECK_OBJECT_PATH(_PATH)                                                                                                          \
+    SDBUS_THROW_ERROR_IF(!sd_bus_object_path_is_valid(_PATH), std::string("Invalid object path '") + _PATH + "' provided", EINVAL)              \
     /**/
-#define SDBUS_CHECK_INTERFACE_NAME(_NAME)                                                                                                         \
-    SDBUS_THROW_ERROR_IF(!sd_bus_interface_name_is_valid(_NAME.c_str()), "Invalid interface name '" + _NAME + "' provided", EINVAL)               \
+#define SDBUS_CHECK_INTERFACE_NAME(_NAME)                                                                                                       \
+    SDBUS_THROW_ERROR_IF(!sd_bus_interface_name_is_valid(_NAME), std::string("Invalid interface name '") + _NAME + "' provided", EINVAL)        \
     /**/
-#define SDBUS_CHECK_SERVICE_NAME(_NAME)                                                                                                           \
-    SDBUS_THROW_ERROR_IF(!_NAME.empty() && !sd_bus_service_name_is_valid(_NAME.c_str()), "Invalid service name '" + _NAME + "' provided", EINVAL) \
+#define SDBUS_CHECK_SERVICE_NAME(_NAME)                                                                                                         \
+    SDBUS_THROW_ERROR_IF(*_NAME && !sd_bus_service_name_is_valid(_NAME), std::string("Invalid service name '") + _NAME + "' provided", EINVAL)  \
     /**/
-#define SDBUS_CHECK_MEMBER_NAME(_NAME)                                                                                                            \
-    SDBUS_THROW_ERROR_IF(!sd_bus_member_name_is_valid(_NAME.c_str()), std::string("Invalid member name '") + _NAME.c_str() + "' provided", EINVAL)                     \
+#define SDBUS_CHECK_MEMBER_NAME(_NAME)                                                                                                          \
+    SDBUS_THROW_ERROR_IF(!sd_bus_member_name_is_valid(_NAME), std::string("Invalid member name '") + _NAME + "' provided", EINVAL)              \
     /**/
 #else
 #define SDBUS_CHECK_OBJECT_PATH(_PATH)

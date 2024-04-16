@@ -64,7 +64,7 @@ private:
         std::cout << std::endl;
 
         // Parse and print some more info
-        auto planetInterface = interfacesAndProperties.find(org::sdbuscpp::ExampleManager::Planet1_proxy::INTERFACE_NAME);
+        auto planetInterface = interfacesAndProperties.find(sdbus::InterfaceName{org::sdbuscpp::ExampleManager::Planet1_proxy::INTERFACE_NAME});
         if (planetInterface == interfacesAndProperties.end()) {
             return;
         }

@@ -111,7 +111,7 @@ Connection::~Connection()
 
 void Connection::requestName(const ServiceName& name)
 {
-    SDBUS_CHECK_SERVICE_NAME(name);
+    SDBUS_CHECK_SERVICE_NAME(name.c_str());
 
     auto r = sdbus_->sd_bus_request_name(bus_.get(), name.c_str(), 0);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to request bus name", -r);
@@ -492,14 +492,22 @@ MethodCall Connection::createMethodCall( const ServiceName& destination
                                        , const InterfaceName& interfaceName
                                        , const MethodName& methodName ) const
 {
+    return Connection::createMethodCall(destination.c_str(), objectPath.c_str(), interfaceName.c_str(), methodName.c_str());
+}
+
+MethodCall Connection::createMethodCall( const char* destination
+                                       , const char* objectPath
+                                       , const char* interfaceName
+                                       , const char* methodName ) const
+{
     sd_bus_message *sdbusMsg{};
 
     auto r = sdbus_->sd_bus_message_new_method_call( bus_.get()
                                                    , &sdbusMsg
-                                                   , destination.empty() ? nullptr : destination.c_str()
-                                                   , objectPath.c_str()
-                                                   , interfaceName.c_str()
-                                                   , methodName.c_str() );
+                                                   , !*destination ? nullptr : destination
+                                                   , objectPath
+                                                   , interfaceName
+                                                   , methodName);
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create method call", -r);
 
@@ -510,13 +518,16 @@ Signal Connection::createSignal( const ObjectPath& objectPath
                                , const InterfaceName& interfaceName
                                , const SignalName& signalName ) const
 {
+    return Connection::createSignal(objectPath.c_str(), interfaceName.c_str(), signalName.c_str());
+}
+
+Signal Connection::createSignal( const char* objectPath
+                               , const char* interfaceName
+                               , const char* signalName ) const
+{
     sd_bus_message *sdbusMsg{};
 
-    auto r = sdbus_->sd_bus_message_new_signal( bus_.get()
-                                              , &sdbusMsg
-                                              , objectPath.c_str()
-                                              , interfaceName.c_str()
-                                              , signalName.c_str() );
+    auto r = sdbus_->sd_bus_message_new_signal(bus_.get(), &sdbusMsg, objectPath, interfaceName, signalName);
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create signal", -r);
 
@@ -567,11 +578,18 @@ void Connection::emitPropertiesChangedSignal( const ObjectPath& objectPath
                                             , const InterfaceName& interfaceName
                                             , const std::vector<PropertyName>& propNames )
 {
+    Connection::emitPropertiesChangedSignal(objectPath.c_str(), interfaceName.c_str(), propNames);
+}
+
+void Connection::emitPropertiesChangedSignal( const char* objectPath
+                                            , const char* interfaceName
+                                            , const std::vector<PropertyName>& propNames )
+{
     auto names = to_strv(propNames);
 
     auto r = sdbus_->sd_bus_emit_properties_changed_strv( bus_.get()
-                                                        , objectPath.c_str()
-                                                        , interfaceName.c_str()
+                                                        , objectPath
+                                                        , interfaceName
                                                         , propNames.empty() ? nullptr : &names[0] );
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit PropertiesChanged signal", -r);
@@ -615,10 +633,10 @@ void Connection::emitInterfacesRemovedSignal( const ObjectPath& objectPath
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit InterfacesRemoved signal", -r);
 }
 
-Slot Connection::registerSignalHandler( const ServiceName& sender
-                                      , const ObjectPath& objectPath
-                                      , const InterfaceName& interfaceName
-                                      , const SignalName& signalName
+Slot Connection::registerSignalHandler( const char* sender
+                                      , const char* objectPath
+                                      , const char* interfaceName
+                                      , const char* signalName
                                       , sd_bus_message_handler_t callback
                                       , void* userData )
 {
@@ -626,10 +644,10 @@ Slot Connection::registerSignalHandler( const ServiceName& sender
 
     auto r = sdbus_->sd_bus_match_signal( bus_.get()
                                         , &slot
-                                        , !sender.empty() ? sender.c_str() : nullptr
-                                        , !objectPath.empty() ? objectPath.c_str() : nullptr
-                                        , !interfaceName.empty() ? interfaceName.c_str() : nullptr
-                                        , !signalName.empty() ? signalName.c_str() : nullptr
+                                        , !*sender ? nullptr : sender
+                                        , !*objectPath ? nullptr : objectPath
+                                        , !*interfaceName ? nullptr : interfaceName
+                                        , !*signalName ? nullptr : signalName
                                         , callback
                                         , userData );
 

@@ -46,7 +46,7 @@ namespace sdbus::internal {
 Object::Object(sdbus::internal::IConnection& connection, ObjectPath objectPath)
     : connection_(connection), objectPath_(std::move(objectPath))
 {
-    SDBUS_CHECK_OBJECT_PATH(objectPath_);
+    SDBUS_CHECK_OBJECT_PATH(objectPath_.c_str());
 }
 
 void Object::addVTable(InterfaceName interfaceName, std::vector<VTableItem> vtable)
@@ -58,7 +58,7 @@ void Object::addVTable(InterfaceName interfaceName, std::vector<VTableItem> vtab
 
 Slot Object::addVTable(InterfaceName interfaceName, std::vector<VTableItem> vtable, return_slot_t)
 {
-    SDBUS_CHECK_INTERFACE_NAME(interfaceName);
+    SDBUS_CHECK_INTERFACE_NAME(interfaceName.c_str());
 
     // 1st pass -- create vtable structure for internal sdbus-c++ purposes
     auto internalVTable = std::make_unique<VTable>(createInternalVTable(std::move(interfaceName), std::move(vtable)));
@@ -84,6 +84,11 @@ sdbus::Signal Object::createSignal(const InterfaceName& interfaceName, const Sig
     return connection_.createSignal(objectPath_, interfaceName, signalName);
 }
 
+sdbus::Signal Object::createSignal(const char* interfaceName, const char* signalName)
+{
+    return connection_.createSignal(objectPath_.c_str(), interfaceName, signalName);
+}
+
 void Object::emitSignal(const sdbus::Signal& message)
 {
     SDBUS_THROW_ERROR_IF(!message.isValid(), "Invalid signal message provided", EINVAL);
@@ -96,7 +101,17 @@ void Object::emitPropertiesChangedSignal(const InterfaceName& interfaceName, con
     connection_.emitPropertiesChangedSignal(objectPath_, interfaceName, propNames);
 }
 
+void Object::emitPropertiesChangedSignal(const char* interfaceName, const std::vector<PropertyName>& propNames)
+{
+    connection_.emitPropertiesChangedSignal(objectPath_.c_str(), interfaceName, propNames);
+}
+
 void Object::emitPropertiesChangedSignal(const InterfaceName& interfaceName)
+{
+    Object::emitPropertiesChangedSignal(interfaceName, {});
+}
+
+void Object::emitPropertiesChangedSignal(const char* interfaceName)
 {
     Object::emitPropertiesChangedSignal(interfaceName, {});
 }
@@ -183,7 +198,7 @@ void Object::writeInterfaceFlagsToVTable(InterfaceFlagsVTableItem flags, VTable&
 
 void Object::writeMethodRecordToVTable(MethodVTableItem method, VTable& vtable)
 {
-    SDBUS_CHECK_MEMBER_NAME(method.name);
+    SDBUS_CHECK_MEMBER_NAME(method.name.c_str());
     SDBUS_THROW_ERROR_IF(!method.callbackHandler, "Invalid method callback provided", EINVAL);
 
     vtable.methods.push_back({ std::move(method.name)
@@ -196,7 +211,7 @@ void Object::writeMethodRecordToVTable(MethodVTableItem method, VTable& vtable)
 
 void Object::writeSignalRecordToVTable(SignalVTableItem signal, VTable& vtable)
 {
-    SDBUS_CHECK_MEMBER_NAME(signal.name);
+    SDBUS_CHECK_MEMBER_NAME(signal.name.c_str());
 
     vtable.signals.push_back({ std::move(signal.name)
                              , std::move(signal.signature)
@@ -206,7 +221,7 @@ void Object::writeSignalRecordToVTable(SignalVTableItem signal, VTable& vtable)
 
 void Object::writePropertyRecordToVTable(PropertyVTableItem property, VTable& vtable)
 {
-    SDBUS_CHECK_MEMBER_NAME(property.name);
+    SDBUS_CHECK_MEMBER_NAME(property.name.c_str());
     SDBUS_THROW_ERROR_IF(!property.getter && !property.setter, "Invalid property callbacks provided", EINVAL);
 
     vtable.properties.push_back({ std::move(property.name)

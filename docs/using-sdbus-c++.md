@@ -714,7 +714,7 @@ namespace sdbuscpp {
 class Concatenator_adaptor
 {
 public:
-    static inline const sdbus::InterfaceName INTERFACE_NAME{"org.sdbuscpp.Concatenator"};
+    static constexpr const char* INTERFACE_NAME = "org.sdbuscpp.Concatenator";
 
 protected:
     Concatenator_adaptor(sdbus::IObject& object)
@@ -773,7 +773,7 @@ namespace sdbuscpp {
 class Concatenator_proxy
 {
 public:
-    static inline const sdbus::InterfaceName INTERFACE_NAME{"org.sdbuscpp.Concatenator"};
+    static constexpr const char* INTERFACE_NAME = "org.sdbuscpp.Concatenator";
 
 protected:
     Concatenator_proxy(sdbus::IProxy& proxy)

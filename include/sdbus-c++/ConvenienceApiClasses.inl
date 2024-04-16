@@ -78,6 +78,11 @@ namespace sdbus {
     /*** ------------- ***/
 
     inline SignalEmitter::SignalEmitter(IObject& object, const SignalName& signalName)
+        : SignalEmitter(object, signalName.c_str())
+    {
+    }
+
+    inline SignalEmitter::SignalEmitter(IObject& object, const char* signalName)
         : object_(object)
         , signalName_(signalName)
         , exceptions_(std::uncaught_exceptions())
@@ -104,16 +109,19 @@ namespace sdbus {
 
     inline SignalEmitter& SignalEmitter::onInterface(const InterfaceName& interfaceName)
     {
-        signal_ = object_.createSignal(interfaceName, signalName_);
-
-        return *this;
+        return onInterface(interfaceName.c_str());
     }
 
     inline SignalEmitter& SignalEmitter::onInterface(const std::string& interfaceName)
     {
-        // Down-cast through static cast for performance reasons (no extra copy and object construction needed)
-        static_assert(sizeof(interfaceName) == sizeof(InterfaceName));
-        return onInterface(static_cast<const InterfaceName&>(interfaceName));
+        return onInterface(interfaceName.c_str());
+    }
+
+    inline SignalEmitter& SignalEmitter::onInterface(const char* interfaceName)
+    {
+        signal_ = object_.createSignal(interfaceName, signalName_);
+
+        return *this;
     }
 
     template <typename... _Args>
@@ -129,6 +137,11 @@ namespace sdbus {
     /*** ------------- ***/
 
     inline MethodInvoker::MethodInvoker(IProxy& proxy, const MethodName& methodName)
+        : MethodInvoker(proxy, methodName.c_str())
+    {
+    }
+
+    inline MethodInvoker::MethodInvoker(IProxy& proxy, const char* methodName)
         : proxy_(proxy)
         , methodName_(methodName)
         , exceptions_(std::uncaught_exceptions())
@@ -156,16 +169,19 @@ namespace sdbus {
 
     inline MethodInvoker& MethodInvoker::onInterface(const InterfaceName& interfaceName)
     {
-        method_ = proxy_.createMethodCall(interfaceName, methodName_);
-
-        return *this;
+        return onInterface(interfaceName.c_str());
     }
 
     inline MethodInvoker& MethodInvoker::onInterface(const std::string& interfaceName)
     {
-        // Down-cast through static cast for performance reasons (no extra copy and object construction needed)
-        static_assert(sizeof(interfaceName) == sizeof(InterfaceName));
-        return onInterface(static_cast<const InterfaceName&>(interfaceName));
+        return onInterface(interfaceName.c_str());
+    }
+
+    inline MethodInvoker& MethodInvoker::onInterface(const char* interfaceName)
+    {
+        method_ = proxy_.createMethodCall(interfaceName, methodName_);
+
+        return *this;
     }
 
     inline MethodInvoker& MethodInvoker::withTimeout(uint64_t usec)
@@ -215,6 +231,11 @@ namespace sdbus {
     /*** ------------------ ***/
 
     inline AsyncMethodInvoker::AsyncMethodInvoker(IProxy& proxy, const MethodName& methodName)
+        : AsyncMethodInvoker(proxy, methodName.c_str())
+    {
+    }
+
+    inline AsyncMethodInvoker::AsyncMethodInvoker(IProxy& proxy, const char* methodName)
         : proxy_(proxy)
         , methodName_(methodName)
     {
@@ -222,16 +243,19 @@ namespace sdbus {
 
     inline AsyncMethodInvoker& AsyncMethodInvoker::onInterface(const InterfaceName& interfaceName)
     {
-        method_ = proxy_.createMethodCall(interfaceName, methodName_);
-
-        return *this;
+        return onInterface(interfaceName.c_str());
     }
 
     inline AsyncMethodInvoker& AsyncMethodInvoker::onInterface(const std::string& interfaceName)
     {
-        // Down-cast through static cast for performance reasons (no extra copy and object construction needed)
-        static_assert(sizeof(interfaceName) == sizeof(InterfaceName));
-        return onInterface(static_cast<const InterfaceName&>(interfaceName));
+        return onInterface(interfaceName.c_str());
+    }
+
+    inline AsyncMethodInvoker& AsyncMethodInvoker::onInterface(const char* interfaceName)
+    {
+        method_ = proxy_.createMethodCall(interfaceName, methodName_);
+
+        return *this;
     }
 
     inline AsyncMethodInvoker& AsyncMethodInvoker::withTimeout(uint64_t usec)
@@ -320,17 +344,27 @@ namespace sdbus {
     /*** ---------------- ***/
 
     inline SignalSubscriber::SignalSubscriber(IProxy& proxy, const SignalName& signalName)
+        : SignalSubscriber(proxy, signalName.c_str())
+    {
+    }
+
+    inline SignalSubscriber::SignalSubscriber(IProxy& proxy, const char* signalName)
         : proxy_(proxy)
         , signalName_(signalName)
     {
     }
 
-    inline SignalSubscriber& SignalSubscriber::onInterface(std::string interfaceName)
+    inline SignalSubscriber& SignalSubscriber::onInterface(const InterfaceName& interfaceName)
     {
-        return onInterface(InterfaceName{std::move(interfaceName)});
+        return onInterface(interfaceName.c_str());
     }
 
-    inline SignalSubscriber& SignalSubscriber::onInterface(InterfaceName interfaceName)
+    inline SignalSubscriber& SignalSubscriber::onInterface(const std::string& interfaceName)
+    {
+        return onInterface(interfaceName.c_str());
+    }
+
+    inline SignalSubscriber& SignalSubscriber::onInterface(const char* interfaceName)
     {
         interfaceName_ = std::move(interfaceName);
 
@@ -340,7 +374,7 @@ namespace sdbus {
     template <typename _Function>
     inline void SignalSubscriber::call(_Function&& callback)
     {
-        assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
+        assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
 
         proxy_.registerSignalHandler( interfaceName_
                                     , signalName_
@@ -350,7 +384,7 @@ namespace sdbus {
     template <typename _Function>
     [[nodiscard]] inline Slot SignalSubscriber::call(_Function&& callback, return_slot_t)
     {
-        assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
+        assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
 
         return proxy_.registerSignalHandler( interfaceName_
                                            , signalName_
