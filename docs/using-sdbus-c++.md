@@ -56,7 +56,7 @@ PKG_CHECK_MODULES(SDBUSCPP, [sdbus-c++ >= 0.6],,
 )
 ```
 
-> **_Note_:** sdbus-c++ library uses a number of modern C++17 features. Please make certain you have a recent compiler (gcc >= 7, clang >= 6).
+> **_Note_:** sdbus-c++ library uses a number of modern C++17 (and, conditionally, C++20) features. Please make sure you have a recent compiler (best gcc >= 10, clang >= 11).
 
 If you intend to use xml-to-c++ generator tool (explained later) in your project to generate interface headers from XML, you can integrate that too with CMake or `pkg-config`:
 
@@ -1568,7 +1568,7 @@ We need two things to do that:
 * implement `sdbus::Message` insertion (serialization) and extraction (deserialization) operators, so sdbus-c++ knows how to serialize/deserialize our custom type,
 * specialize `sdbus::signature_of` template for our custom type, so sdbus-c++ knows the mapping to D-Bus type and other necessary information about our type.
 
-Say, we would like to represent D-Bus arrays as `std::list`s in our application. Since sdbus-c++ comes with pre-defined support for `std::vector`s, `std::array`s and `std::span`s as D-Bus array representations, we have to provide an extension. To implement message serialization and deserialization functions for `std::list`, we can simply copy the sdbus-c++ implementation of these functions for `std::vector`, and simply adjust for `std::list`. Then we provide `signature_of` specialization, again written on terms of one specialized for `std::vector`:
+Say, we would like to represent D-Bus arrays as `std::list`s in our application. Since sdbus-c++ comes with pre-defined support for `std::vector`s, `std::array`s and `std::span`s as D-Bus array representations, we have to provide an extension. To implement message serialization and deserialization functions for `std::list`, we can simply copy the sdbus-c++ implementation of these functions for `std::vector`, and simply adjust for `std::list`. Then we provide `signature_of` specialization, again written in terms of one specialized for `std::vector`:
 
 ```c++
 #include <list>
@@ -1580,7 +1580,7 @@ namespace sdbus {
 template <typename _ElementType>
 sdbus::Message& operator<<(sdbus::Message& msg, const std::list<_ElementType>& items)
 {
-    msg.openContainer(sdbus::signature_of<_ElementType>::str());
+    msg.openContainer<_ElementType>();
 
     for (const auto& item : items)
         msg << item;
@@ -1594,7 +1594,7 @@ sdbus::Message& operator<<(sdbus::Message& msg, const std::list<_ElementType>& i
 template <typename _ElementType>
 sdbus::Message& operator>>(sdbus::Message& msg, std::list<_ElementType>& items)
 {
-    if(!msg.enterContainer(sdbus::signature_of<_ElementType>::str()))
+    if(!msg.enterContainer<_ElementType>())
         return msg;
 
     while (true)
@@ -1615,15 +1615,17 @@ sdbus::Message& operator>>(sdbus::Message& msg, std::list<_ElementType>& items)
 
 } // namespace sdbus
 
-// Implementing type traits for std::list, and since we map it to D-Bus array,
-// we can re-use std::vector type traits because it's the same stuff.
+// Implementing type traits for std::list -- we re-use by inheriting
+// from type traits already provided by sdbus-c++ for D-Bus arrays
 template <typename _Element, typename _Allocator>
 struct sdbus::signature_of<std::list<_Element, _Allocator>>
-        : sdbus::signature_of<std::vector<_Element, _Allocator>>
+    : sdbus::signature_of<std::vector<_Element>>
 {};
 ```
 
 Then we can simply use `std::list`s, serialize/deserialize them in a D-Bus message, in D-Bus method calls or return values... and they will be simply transmitted as D-Bus arrays.
+
+Similarly, say we have our own `lockfree_map` which we would like to use natively with sdbus-c++ as a C++ type for D-Bus dictionary -- we can copy or build on top of `std::map` specializations.
 
 As another example, say we have our custom type `my::Struct` which we'd like to use as a D-Bus structure representation (sdbus-c++ provides `sdbus::Struct` type for that, but we don't want to use it because using our custom type directly is more convenient). Again, we have to provide type traits and message serialization/deserialization functions for our custom type. We build our functions and specializations on top of `sdbus::Struct`, so we don't have to copy and write a lot of boiler-plate. Serialization/deserialization functions can be placed in the same namespace as our custom type, and will be found thanks to the ADR lookup. The `signature_of` specialization must always be in either `sdbus` namespace or in a global namespace:
 
@@ -1778,6 +1780,7 @@ sdbus-c++ v2 is a major release that comes with a number of breaking API/ABI/beh
 * `createDefaultBusConnection()` has been renamed to `createBusConnection()`.
 * Change in behavior: `Proxy`s now by default call `createBusConnection()` to get a connection when the connection is not provided explicitly by the caller, so they connect to either the session bus or the system bus depending on the context (as opposed to always to the system bus like before).
 * Callbacks taking `const sdbus::Error* error` were changed to take `std::optional<sdbus::Error>`, which better expresses the intent and meaning.
+* D-Bus signatures when using high-level API are now assembled at compile time. There are breaking changes inside `signature_of` type traits and `Message` serialization/deserialization methods. This only interests you if you extend sdbus-c++ type system with your own types. See the updated tutorial on extending sdbus-c++ type system. 
 * Types and methods marked deprecated in sdbus-c++ v1 were removed completely.
 * CMake options got `SDBUSCPP_` prefix for better usability and minimal risk of conflicts in downstream CMake projects. `SDBUSCPP_INSTALL` CMake option was added.
 * CMake components got `sdbus-c++-` prefix.
