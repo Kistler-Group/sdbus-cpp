@@ -36,6 +36,7 @@
 #include "Utils.h"
 
 #include <cassert>
+#include <cstring>
 #include SDBUS_HEADER
 #include <utility>
 
@@ -46,8 +47,8 @@ Proxy::Proxy(sdbus::internal::IConnection& connection, ServiceName destination, 
     , destination_(std::move(destination))
     , objectPath_(std::move(objectPath))
 {
-    SDBUS_CHECK_SERVICE_NAME(destination_);
-    SDBUS_CHECK_OBJECT_PATH(objectPath_);
+    SDBUS_CHECK_SERVICE_NAME(destination_.c_str());
+    SDBUS_CHECK_OBJECT_PATH(objectPath_.c_str());
 
     // The connection is not ours only, it is owned and managed by the user and we just reference
     // it here, so we expect the client to manage the event loop upon this connection themselves.
@@ -60,8 +61,8 @@ Proxy::Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
     , destination_(std::move(destination))
     , objectPath_(std::move(objectPath))
 {
-    SDBUS_CHECK_SERVICE_NAME(destination_);
-    SDBUS_CHECK_OBJECT_PATH(objectPath_);
+    SDBUS_CHECK_SERVICE_NAME(destination_.c_str());
+    SDBUS_CHECK_OBJECT_PATH(objectPath_.c_str());
 
     // The connection is ours only, i.e. it's us who has to manage the event loop upon this connection,
     // in order that we get and process signals, async call replies, and other messages from D-Bus.
@@ -76,8 +77,8 @@ Proxy::Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
     , destination_(std::move(destination))
     , objectPath_(std::move(objectPath))
 {
-    SDBUS_CHECK_SERVICE_NAME(destination_);
-    SDBUS_CHECK_OBJECT_PATH(objectPath_);
+    SDBUS_CHECK_SERVICE_NAME(destination_.c_str());
+    SDBUS_CHECK_OBJECT_PATH(objectPath_.c_str());
 
     // Even though the connection is ours only, we don't start an event loop thread.
     // This proxy is meant to be created, used for simple synchronous D-Bus call(s) and then dismissed.
@@ -86,6 +87,11 @@ Proxy::Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
 MethodCall Proxy::createMethodCall(const InterfaceName& interfaceName, const MethodName& methodName)
 {
     return connection_->createMethodCall(destination_, objectPath_, interfaceName, methodName);
+}
+
+MethodCall Proxy::createMethodCall(const char* interfaceName, const char* methodName)
+{
+    return connection_->createMethodCall(destination_.c_str(), objectPath_.c_str(), interfaceName, methodName);
 }
 
 MethodReply Proxy::callMethod(const MethodCall& message, uint64_t timeout)
@@ -138,6 +144,13 @@ void Proxy::registerSignalHandler( const InterfaceName& interfaceName
                                  , const SignalName& signalName
                                  , signal_handler signalHandler )
 {
+    Proxy::registerSignalHandler(interfaceName.c_str(), signalName.c_str(), std::move(signalHandler));
+}
+
+void Proxy::registerSignalHandler( const char* interfaceName
+                                 , const char* signalName
+                                 , signal_handler signalHandler )
+{
     auto slot = Proxy::registerSignalHandler(interfaceName, signalName, std::move(signalHandler), return_slot);
 
     floatingSignalSlots_.push_back(std::move(slot));
@@ -148,14 +161,22 @@ Slot Proxy::registerSignalHandler( const InterfaceName& interfaceName
                                  , signal_handler signalHandler
                                  , return_slot_t )
 {
+    return Proxy::registerSignalHandler(interfaceName.c_str(), signalName.c_str(), std::move(signalHandler), return_slot);
+}
+
+Slot Proxy::registerSignalHandler( const char* interfaceName
+                                 , const char* signalName
+                                 , signal_handler signalHandler
+                                 , return_slot_t )
+{
     SDBUS_CHECK_INTERFACE_NAME(interfaceName);
     SDBUS_CHECK_MEMBER_NAME(signalName);
     SDBUS_THROW_ERROR_IF(!signalHandler, "Invalid signal handler provided", EINVAL);
 
     auto signalInfo = std::make_unique<SignalInfo>(SignalInfo{std::move(signalHandler), *this, {}});
 
-    signalInfo->slot = connection_->registerSignalHandler( destination_
-                                                         , objectPath_
+    signalInfo->slot = connection_->registerSignalHandler( destination_.c_str()
+                                                         , objectPath_.c_str()
                                                          , interfaceName
                                                          , signalName
                                                          , &Proxy::sdbus_signal_handler

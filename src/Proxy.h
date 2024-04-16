@@ -57,6 +57,7 @@ namespace sdbus::internal {
              , dont_run_event_loop_thread_t );
 
         MethodCall createMethodCall(const InterfaceName& interfaceName, const MethodName& methodName) override;
+        MethodCall createMethodCall(const char* interfaceName, const char* methodName) override;
         MethodReply callMethod(const MethodCall& message, uint64_t timeout) override;
         PendingAsyncCall callMethodAsync(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout) override;
         std::future<MethodReply> callMethodAsync(const MethodCall& message, with_future_t) override;
@@ -65,8 +66,15 @@ namespace sdbus::internal {
         void registerSignalHandler( const InterfaceName& interfaceName
                                   , const SignalName& signalName
                                   , signal_handler signalHandler ) override;
+        void registerSignalHandler( const char* interfaceName
+                                  , const char* signalName
+                                  , signal_handler signalHandler ) override;
         Slot registerSignalHandler( const InterfaceName& interfaceName
                                   , const SignalName& signalName
+                                  , signal_handler signalHandler
+                                  , return_slot_t ) override;
+        Slot registerSignalHandler( const char* interfaceName
+                                  , const char* signalName
                                   , signal_handler signalHandler
                                   , return_slot_t ) override;
         void unregister() override;

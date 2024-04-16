@@ -16,7 +16,7 @@ namespace sdbuscpp {
 class integrationtests_proxy
 {
 public:
-    static inline const sdbus::InterfaceName INTERFACE_NAME{"org.sdbuscpp.integrationtests"};
+    static constexpr const char* INTERFACE_NAME = "org.sdbuscpp.integrationtests";
 
 protected:
     integrationtests_proxy(sdbus::IProxy& proxy)

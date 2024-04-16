@@ -130,9 +130,16 @@ namespace sdbus::internal {
                                                  , const ObjectPath& objectPath
                                                  , const InterfaceName& interfaceName
                                                  , const MethodName& methodName ) const override;
+        [[nodiscard]] MethodCall createMethodCall( const char* destination
+                                                 , const char* objectPath
+                                                 , const char* interfaceName
+                                                 , const char* methodName ) const override;
         [[nodiscard]] Signal createSignal( const ObjectPath& objectPath
                                          , const InterfaceName& interfaceName
                                          , const SignalName& signalName ) const override;
+        [[nodiscard]] Signal createSignal( const char* objectPath
+                                         , const char* interfaceName
+                                         , const char* signalName ) const override;
 
         MethodReply callMethod(const MethodCall& message, uint64_t timeout) override;
         void callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout, floating_slot_t) override;
@@ -141,6 +148,9 @@ namespace sdbus::internal {
         void emitPropertiesChangedSignal( const ObjectPath& objectPath
                                         , const InterfaceName& interfaceName
                                         , const std::vector<PropertyName>& propNames ) override;
+        void emitPropertiesChangedSignal( const char* objectPath
+                                        , const char* interfaceName
+                                        , const std::vector<PropertyName>& propNames ) override;
         void emitInterfacesAddedSignal(const ObjectPath& objectPath) override;
         void emitInterfacesAddedSignal( const ObjectPath& objectPath
                                       , const std::vector<InterfaceName>& interfaces ) override;
@@ -148,10 +158,10 @@ namespace sdbus::internal {
         void emitInterfacesRemovedSignal( const ObjectPath& objectPath
                                         , const std::vector<InterfaceName>& interfaces ) override;
 
-        Slot registerSignalHandler( const ServiceName& sender
-                                  , const ObjectPath& objectPath
-                                  , const InterfaceName& interfaceName
-                                  , const SignalName& signalName
+        Slot registerSignalHandler( const char* sender
+                                  , const char* objectPath
+                                  , const char* interfaceName
+                                  , const char* signalName
                                   , sd_bus_message_handler_t callback
                                   , void* userData ) override;
 
