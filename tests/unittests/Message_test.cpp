@@ -119,7 +119,7 @@ namespace my {
 
 template <>
 struct sdbus::signature_of<my::Struct>
-        : sdbus::signature_of<sdbus::Struct<int, std::string, std::list<double>>>
+    : sdbus::signature_of<sdbus::Struct<int, std::string, std::list<double>>>
 {};
 
 /*-------------------------------------*/
@@ -199,6 +199,21 @@ TEST(AMessage, CanCarryASimpleInteger)
     msg.seal();
 
     int dataRead;
+    msg >> dataRead;
+
+    ASSERT_THAT(dataRead, Eq(dataWritten));
+}
+
+TEST(AMessage, CanCarryAStringAsAStringView)
+{
+    auto msg = sdbus::createPlainMessage();
+
+    const std::string_view dataWritten = "Hello";
+
+    msg << dataWritten;
+    msg.seal();
+
+    std::string dataRead;
     msg >> dataRead;
 
     ASSERT_THAT(dataRead, Eq(dataWritten));

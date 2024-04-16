@@ -100,6 +100,7 @@ namespace sdbus {
         Message& operator<<(double item);
         Message& operator<<(const char *item);
         Message& operator<<(const std::string &item);
+        Message& operator<<(std::string_view item);
         Message& operator<<(const Variant &item);
         template <typename ...Elements>
         Message& operator<<(const std::variant<Elements...>& value);

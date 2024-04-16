@@ -85,6 +85,7 @@ namespace
     TYPE(double)HAS_DBUS_TYPE_SIGNATURE("d")
     TYPE(const char*)HAS_DBUS_TYPE_SIGNATURE("s")
     TYPE(std::string)HAS_DBUS_TYPE_SIGNATURE("s")
+    TYPE(std::string_view)HAS_DBUS_TYPE_SIGNATURE("s")
     TYPE(sdbus::BusName)HAS_DBUS_TYPE_SIGNATURE("s")
     TYPE(sdbus::InterfaceName)HAS_DBUS_TYPE_SIGNATURE("s")
     TYPE(sdbus::MemberName)HAS_DBUS_TYPE_SIGNATURE("s")
@@ -122,10 +123,11 @@ namespace
                                 >,
                                 sdbus::Signature,
                                 sdbus::UnixFd,
-                                const char*
+                                const char*,
+                                std::string_view
                             >
                         >;
-    TYPE(ComplexType)HAS_DBUS_TYPE_SIGNATURE("a{t(a{ya(oanbva{is})}ghs)}")
+    TYPE(ComplexType)HAS_DBUS_TYPE_SIGNATURE("a{t(a{ya(oanbva{is})}ghss)}")
 
     typedef ::testing::Types< bool
                             , uint8_t
@@ -138,6 +140,7 @@ namespace
                             , double
                             , const char*
                             , std::string
+                            , std::string_view
                             , sdbus::BusName
                             , sdbus::InterfaceName
                             , sdbus::MemberName

@@ -41,6 +41,7 @@
 #  endif
 #endif
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <type_traits>
 #include <unordered_map>
@@ -230,6 +231,10 @@ namespace sdbus {
         static constexpr bool is_valid = true;
         static constexpr bool is_trivial_dbus_type = false;
     };
+
+    template <>
+    struct signature_of<std::string_view> : signature_of<std::string>
+    {};
 
     template <>
     struct signature_of<char*> : signature_of<std::string>
