@@ -35,6 +35,7 @@
 #include <future>
 #include <memory>
 #include <string>
+#include <string_view>
 
 // Forward declarations
 namespace sdbus {
@@ -358,7 +359,7 @@ namespace sdbus {
         /*!
          * @copydoc IProxy::getProperty(const PropertyName&)
          */
-        [[nodiscard]] PropertyGetter getProperty(const std::string& propertyName);
+        [[nodiscard]] PropertyGetter getProperty(std::string_view propertyName);
 
         /*!
          * @brief Gets value of a property of the D-Bus object asynchronously
@@ -610,11 +611,9 @@ namespace sdbus {
         return PropertyGetter(*this, propertyName);
     }
 
-    inline PropertyGetter IProxy::getProperty(const std::string& propertyName)
+    inline PropertyGetter IProxy::getProperty(std::string_view propertyName)
     {
-        // Down-cast through static cast for performance reasons (no extra copy and object construction needed)
-        static_assert(sizeof(propertyName) == sizeof(PropertyName));
-        return getProperty(static_cast<const PropertyName&>(propertyName));
+        return PropertyGetter(*this, propertyName);
     }
 
     inline AsyncPropertyGetter IProxy::getPropertyAsync(const PropertyName& propertyName)

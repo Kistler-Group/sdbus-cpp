@@ -37,6 +37,7 @@
 #include <future>
 #include <map>
 #include <string>
+#include <string_view>
 #include <vector>
 
 // Forward declarations
@@ -133,8 +134,8 @@ namespace sdbus {
     {
     public:
         SignalSubscriber(IProxy& proxy, const SignalName& signalName);
-        SignalSubscriber& onInterface(InterfaceName interfaceName);
-        SignalSubscriber& onInterface(std::string interfaceName);
+        SignalSubscriber& onInterface(InterfaceName interfaceName); // TODO: This could be const char*
+        SignalSubscriber& onInterface(std::string interfaceName); // TODO: This could be const char*
         template <typename _Function> void call(_Function&& callback);
         template <typename _Function> [[nodiscard]] Slot call(_Function&& callback, return_slot_t);
 
@@ -150,24 +151,22 @@ namespace sdbus {
     class PropertyGetter
     {
     public:
-        PropertyGetter(IProxy& proxy, const PropertyName& propertyName);
-        Variant onInterface(const InterfaceName& interfaceName);
-        Variant onInterface(const std::string& interfaceName);
+        PropertyGetter(IProxy& proxy, std::string_view propertyName);
+        Variant onInterface(std::string_view interfaceName);
 
     private:
         static inline const InterfaceName DBUS_PROPERTIES_INTERFACE_NAME{"org.freedesktop.DBus.Properties"};
 
     private:
         IProxy& proxy_;
-        const PropertyName& propertyName_;
+        std::string_view propertyName_;
     };
 
     class AsyncPropertyGetter
     {
     public:
-        AsyncPropertyGetter(IProxy& proxy, const PropertyName& propertyName);
-        AsyncPropertyGetter& onInterface(const InterfaceName& interfaceName);
-        AsyncPropertyGetter& onInterface(const std::string& interfaceName);
+        AsyncPropertyGetter(IProxy& proxy, std::string_view propertyName);
+        AsyncPropertyGetter& onInterface(std::string_view interfaceName);
         template <typename _Function> PendingAsyncCall uponReplyInvoke(_Function&& callback);
         std::future<Variant> getResultAsFuture();
 
@@ -176,16 +175,15 @@ namespace sdbus {
 
     private:
         IProxy& proxy_;
-        const PropertyName& propertyName_;
-        const InterfaceName* interfaceName_{};
+        std::string_view propertyName_;
+        std::string_view interfaceName_;
     };
 
     class PropertySetter
     {
     public:
-        PropertySetter(IProxy& proxy, const PropertyName& propertyName);
-        PropertySetter& onInterface(const InterfaceName& interfaceName);
-        PropertySetter& onInterface(const std::string& interfaceName);
+        PropertySetter(IProxy& proxy, std::string_view propertyName);
+        PropertySetter& onInterface(std::string_view interfaceName);
         template <typename _Value> void toValue(const _Value& value);
         template <typename _Value> void toValue(const _Value& value, dont_expect_reply_t);
         void toValue(const Variant& value);
@@ -196,16 +194,15 @@ namespace sdbus {
 
     private:
         IProxy& proxy_;
-        const PropertyName& propertyName_;
-        const InterfaceName* interfaceName_{};
+        std::string_view propertyName_;
+        std::string_view interfaceName_;
     };
 
     class AsyncPropertySetter
     {
     public:
-        AsyncPropertySetter(IProxy& proxy, const PropertyName& propertyName);
-        AsyncPropertySetter& onInterface(const InterfaceName& interfaceName);
-        AsyncPropertySetter& onInterface(const std::string& interfaceName);
+        AsyncPropertySetter(IProxy& proxy, std::string_view propertyName);
+        AsyncPropertySetter& onInterface(std::string_view interfaceName);
         template <typename _Value> AsyncPropertySetter& toValue(_Value&& value);
         AsyncPropertySetter& toValue(Variant value);
         template <typename _Function> PendingAsyncCall uponReplyInvoke(_Function&& callback);
@@ -216,8 +213,8 @@ namespace sdbus {
 
     private:
         IProxy& proxy_;
-        const PropertyName& propertyName_;
-        const InterfaceName* interfaceName_{};
+        std::string_view propertyName_;
+        std::string_view interfaceName_;
         Variant value_;
     };
 
@@ -225,8 +222,7 @@ namespace sdbus {
     {
     public:
         AllPropertiesGetter(IProxy& proxy);
-        std::map<PropertyName, Variant> onInterface(const InterfaceName& interfaceName);
-        std::map<PropertyName, Variant> onInterface(const std::string& interfaceName);
+        std::map<PropertyName, Variant> onInterface(std::string_view interfaceName);
 
     private:
         static inline const InterfaceName DBUS_PROPERTIES_INTERFACE_NAME{"org.freedesktop.DBus.Properties"};
@@ -239,17 +235,16 @@ namespace sdbus {
     {
     public:
         AsyncAllPropertiesGetter(IProxy& proxy);
-        AsyncAllPropertiesGetter& onInterface(const InterfaceName& interfaceName);
-        AsyncAllPropertiesGetter& onInterface(const std::string& interfaceName);
+        AsyncAllPropertiesGetter& onInterface(std::string_view interfaceName);
         template <typename _Function> PendingAsyncCall uponReplyInvoke(_Function&& callback);
         std::future<std::map<PropertyName, Variant>> getResultAsFuture();
 
     private:
-        static inline const InterfaceName DBUS_PROPERTIES_INTERFACE_NAME{"org.freedesktop.DBus.Properties"};
+        static inline const InterfaceName DBUS_PROPERTIES_INTERFACE_NAME{"org.freedesktop.DBus.Properties"}; // TODO: Couldn't this be const char*?
 
     private:
         IProxy& proxy_;
-        const InterfaceName* interfaceName_{};
+        std::string_view interfaceName_;
     };
 
 } // namespace sdbus
