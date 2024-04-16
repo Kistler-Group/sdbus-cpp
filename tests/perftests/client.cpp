@@ -1,5 +1,6 @@
 /**
- * (C) 2019 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
+ * (C) 2016 - 2024 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
  * @file client.cpp
  *
