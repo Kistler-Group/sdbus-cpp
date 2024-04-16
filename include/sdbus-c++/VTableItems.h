@@ -1,5 +1,5 @@
 /**
- * (C) 2023 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
+ * (C) 2016 - 2024 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
  * @file VTableItems.h
  *
