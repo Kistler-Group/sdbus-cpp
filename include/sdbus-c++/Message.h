@@ -161,22 +161,38 @@ namespace sdbus {
         template <typename... _ValueTypes>
         Message& operator>>(std::tuple<_ValueTypes...>& item);
 
-        Message& openContainer(const std::string& signature);
+        template <typename _ElementType>
+        Message& openContainer();
+        Message& openContainer(const char* signature);
         Message& closeContainer();
-        Message& openDictEntry(const std::string& signature);
+        template <typename _KeyType, typename _ValueType>
+        Message& openDictEntry();
+        Message& openDictEntry(const char* signature);
         Message& closeDictEntry();
-        Message& openVariant(const std::string& signature);
+        template <typename _ValueType>
+        Message& openVariant();
+        Message& openVariant(const char* signature);
         Message& closeVariant();
-        Message& openStruct(const std::string& signature);
+        template <typename... _ValueTypes>
+        Message& openStruct();
+        Message& openStruct(const char* signature);
         Message& closeStruct();
 
-        Message& enterContainer(const std::string& signature);
+        template <typename _ElementType>
+        Message& enterContainer();
+        Message& enterContainer(const char* signature);
         Message& exitContainer();
-        Message& enterDictEntry(const std::string& signature);
+        template <typename _KeyType, typename _ValueType>
+        Message& enterDictEntry();
+        Message& enterDictEntry(const char* signature);
         Message& exitDictEntry();
-        Message& enterVariant(const std::string& signature);
+        template <typename _ValueType>
+        Message& enterVariant();
+        Message& enterVariant(const char* signature);
         Message& exitVariant();
-        Message& enterStruct(const std::string& signature);
+        template <typename... _ValueTypes>
+        Message& enterStruct();
+        Message& enterStruct(const char* signature);
         Message& exitStruct();
 
         Message& appendArray(char type, const void *ptr, size_t size);
@@ -320,8 +336,9 @@ namespace sdbus {
     template <typename ...Elements>
     inline Message& Message::operator<<(const std::variant<Elements...>& value)
     {
-        std::visit([this](const auto& inner){
-            openVariant(signature_of<decltype(inner)>::str());
+        std::visit([this](const auto& inner)
+        {
+            openVariant<decltype(inner)>();
             *this << inner;
             closeVariant();
         }, value);
@@ -370,11 +387,12 @@ namespace sdbus {
         // otherwise use step-by-step serialization of individual elements.
         if constexpr (signature_of<ElementType>::is_trivial_dbus_type && !std::is_same_v<ElementType, bool>)
         {
-            appendArray(*signature_of<ElementType>::str().c_str(), items.data(), items.size() * sizeof(ElementType));
+            constexpr auto signature = as_null_terminated(signature_of_v<ElementType>);
+            appendArray(*signature.data(), items.data(), items.size() * sizeof(ElementType));
         }
         else
         {
-            openContainer(signature_of<ElementType>::str());
+            openContainer<ElementType>();
 
             for (const auto& item : items)
                 *this << item;
@@ -403,16 +421,13 @@ namespace sdbus {
     inline void Message::serializeDictionary(const _Dictionary& items)
     {
         using KeyType = typename _Dictionary::key_type;
-        using ValueType = typename _Dictionary::mapped_type;
+        using MappedType = typename _Dictionary::mapped_type;
 
-        const std::string dictEntrySignature = signature_of<KeyType>::str() + signature_of<ValueType>::str();
-        const std::string arraySignature = "{" + dictEntrySignature + "}";
-
-        openContainer(arraySignature);
+        openContainer<DictEntry<KeyType, MappedType>>();
 
         for (const auto& item : items)
         {
-            openDictEntry(dictEntrySignature);
+            openDictEntry<KeyType, MappedType>();
             *this << item.first;
             *this << item.second;
             closeDictEntry();
@@ -441,12 +456,7 @@ namespace sdbus {
     template <typename... _ValueTypes>
     inline Message& Message::operator<<(const Struct<_ValueTypes...>& item)
     {
-        auto structSignature = signature_of<Struct<_ValueTypes...>>::str();
-        assert(structSignature.size() > 2);
-        // Remove opening and closing parenthesis from the struct signature to get contents signature
-        auto structContentSignature = structSignature.substr(1, structSignature.size() - 2);
-
-        openStruct(structContentSignature);
+        openStruct<_ValueTypes...>();
         detail::serialize_tuple(*this, item, std::index_sequence_for<_ValueTypes...>{});
         closeStruct();
 
@@ -465,11 +475,13 @@ namespace sdbus {
         template <typename _Element, typename... _Elements>
         bool deserialize_variant(Message& msg, std::variant<_Elements...>& value, const std::string& signature)
         {
-            if (signature != signature_of<_Element>::str())
+            constexpr auto elemSignature = sdbus::signature_of_v<_Element>;
+            // TODO: Try to optimize
+            if (signature != std::string(elemSignature.begin(), elemSignature.end()))
                 return false;
 
             _Element temp;
-            msg.enterVariant(signature);
+            msg.enterVariant(signature.c_str());
             msg >> temp;
             msg.exitVariant();
             value = std::move(temp);
@@ -482,6 +494,7 @@ namespace sdbus {
     {
         std::string type;
         std::string contentType;
+        // TODO: Refactor ppekType prior to release/v2.0 to return pair of const char* or string_view...
         peekType(type, contentType);
         bool result = (detail::deserialize_variant<Elements>(*this, value, contentType) || ...);
         SDBUS_THROW_ERROR_IF(!result, "Failed to deserialize variant: signature did not match any of the variant types", EINVAL);
@@ -548,7 +561,8 @@ namespace sdbus {
         size_t arraySize{};
         const ElementType* arrayPtr{};
 
-        readArray(*signature_of<ElementType>::str().c_str(), (const void**)&arrayPtr, &arraySize);
+        constexpr auto signature = as_null_terminated(sdbus::signature_of_v<ElementType>);
+        readArray(*signature.data(), (const void**)&arrayPtr, &arraySize);
 
         size_t elementsInMsg = arraySize / sizeof(ElementType);
         bool notEnoughSpace = items.size() < elementsInMsg;
@@ -563,7 +577,8 @@ namespace sdbus {
         size_t arraySize{};
         const _Element* arrayPtr{};
 
-        readArray(*signature_of<_Element>::str().c_str(), (const void**)&arrayPtr, &arraySize);
+        constexpr auto signature = as_null_terminated(sdbus::signature_of_v<_Element>);
+        readArray(*signature.data(), (const void**)&arrayPtr, &arraySize);
 
         items.insert(items.end(), arrayPtr, arrayPtr + (arraySize / sizeof(_Element)));
     }
@@ -573,7 +588,7 @@ namespace sdbus {
     {
         using ElementType = typename _Array::value_type;
 
-        if(!enterContainer(signature_of<ElementType>::str()))
+        if(!enterContainer<ElementType>())
             return;
 
         for (auto& elem : items)
@@ -590,7 +605,7 @@ namespace sdbus {
     template <typename _Element, typename _Allocator>
     void Message::deserializeArraySlow(std::vector<_Element, _Allocator>& items)
     {
-        if(!enterContainer(signature_of<_Element>::str()))
+        if(!enterContainer<_Element>())
             return;
 
         while (true)
@@ -627,21 +642,18 @@ namespace sdbus {
     inline void Message::deserializeDictionary(_Dictionary& items)
     {
         using KeyType = typename _Dictionary::key_type;
-        using ValueType = typename _Dictionary::mapped_type;
+        using MappedType = typename _Dictionary::mapped_type;
 
-        const std::string dictEntrySignature = signature_of<KeyType>::str() + signature_of<ValueType>::str();
-        const std::string arraySignature = "{" + dictEntrySignature + "}";
-
-        if (!enterContainer(arraySignature))
+        if (!enterContainer<DictEntry<KeyType, MappedType>>())
             return;
 
         while (true)
         {
-            if (!enterDictEntry(dictEntrySignature))
+            if (!enterDictEntry<KeyType, MappedType>())
                 break;
 
             KeyType key;
-            ValueType value;
+            MappedType value;
             *this >> key >> value;
 
             items.emplace(std::move(key), std::move(value));
@@ -674,11 +686,7 @@ namespace sdbus {
     template <typename... _ValueTypes>
     inline Message& Message::operator>>(Struct<_ValueTypes...>& item)
     {
-        auto structSignature = signature_of<Struct<_ValueTypes...>>::str();
-        // Remove opening and closing parenthesis from the struct signature to get contents signature
-        auto structContentSignature = structSignature.substr(1, structSignature.size()-2);
-
-        if (!enterStruct(structContentSignature))
+        if (!enterStruct<_ValueTypes...>())
             return *this;
 
         detail::deserialize_tuple(*this, item, std::index_sequence_for<_ValueTypes...>{});
@@ -693,6 +701,62 @@ namespace sdbus {
     {
         detail::deserialize_tuple(*this, item, std::index_sequence_for<_ValueTypes...>{});
         return *this;
+    }
+
+    template <typename _ElementType>
+    inline Message& Message::openContainer()
+    {
+        constexpr auto signature = as_null_terminated(signature_of_v<_ElementType>);
+        return openContainer(signature.data());
+    }
+
+    template <typename _KeyType, typename _ValueType>
+    inline Message& Message::openDictEntry()
+    {
+        constexpr auto signature = as_null_terminated(signature_of_v<std::tuple<_KeyType, _ValueType>>);
+        return openDictEntry(signature.data());
+    }
+
+    template <typename _ValueType>
+    inline Message& Message::openVariant()
+    {
+        constexpr auto signature = as_null_terminated(signature_of_v<_ValueType>);
+        return openVariant(signature.data());
+    }
+
+    template <typename... _ValueTypes>
+    inline Message& Message::openStruct()
+    {
+        constexpr auto signature = as_null_terminated(signature_of_v<std::tuple<_ValueTypes...>>);
+        return openStruct(signature.data());
+    }
+
+    template <typename _ElementType>
+    inline Message& Message::enterContainer()
+    {
+        constexpr auto signature = as_null_terminated(signature_of_v<_ElementType>);
+        return enterContainer(signature.data());
+    }
+
+    template <typename _KeyType, typename _ValueType>
+    inline Message& Message::enterDictEntry()
+    {
+        constexpr auto signature = as_null_terminated(signature_of_v<std::tuple<_KeyType, _ValueType>>);
+        return enterDictEntry(signature.data());
+    }
+
+    template <typename _ValueType>
+    inline Message& Message::enterVariant()
+    {
+        constexpr auto signature = as_null_terminated(signature_of_v<_ValueType>);
+        return enterVariant(signature.data());
+    }
+
+    template <typename... _ValueTypes>
+    inline Message& Message::enterStruct()
+    {
+        constexpr auto signature = as_null_terminated(signature_of_v<std::tuple<_ValueTypes...>>);
+        return enterStruct(signature.data());
     }
 
 }

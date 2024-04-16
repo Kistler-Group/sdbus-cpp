@@ -15,9 +15,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, ubuntu-22.04]
-        compiler: [g++, clang]
+        compiler: [g++]
         build: [shared-libsystemd]
         include:
+          - os: ubuntu-22.04
+            compiler: clang
+            build: shared-libsystemd
           - os: ubuntu-22.04
             compiler: g++
             build: embedded-static-libsystemd
@@ -94,7 +97,7 @@ jobs:
         cd build
         cpack -G DEB
     - name: 'Upload Artifact'
-      if: matrix.build == 'shared-libsystemd' && matrix.os == 'ubuntu-20.04' && matrix.compiler == 'g++'
+      if: matrix.build == 'shared-libsystemd' && matrix.os == 'ubuntu-22.04' && matrix.compiler == 'g++'
       uses: actions/upload-artifact@v3
       with:
         name: "debian-packages-${{ matrix.os }}-${{ matrix.compiler }}"

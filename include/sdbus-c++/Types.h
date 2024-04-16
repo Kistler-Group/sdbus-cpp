@@ -57,10 +57,9 @@ namespace sdbus {
         Variant();
 
         template <typename _ValueType>
-        explicit Variant(const _ValueType& value)
-            : Variant()
+        explicit Variant(const _ValueType& value) : Variant()
         {
-            msg_.openVariant(signature_of<_ValueType>::str());
+            msg_.openVariant<_ValueType>();
             msg_ << value;
             msg_.closeVariant();
             msg_.seal();
@@ -79,7 +78,8 @@ namespace sdbus {
         {
             _ValueType val;
             msg_.rewind(false);
-            msg_.enterVariant(signature_of<_ValueType>::str());
+
+            msg_.enterVariant<_ValueType>();
             msg_ >> val;
             msg_.exitVariant();
             return val;
@@ -104,7 +104,8 @@ namespace sdbus {
         template <typename _Type>
         bool containsValueOfType() const
         {
-            return signature_of<_Type>::str() == peekValueType();
+            constexpr auto signature = as_null_terminated(signature_of_v<_Type>);
+            return signature.data() == peekValueType();
         }
 
         bool isEmpty() const;
@@ -134,15 +135,12 @@ namespace sdbus {
     public:
         using std::tuple<_ValueTypes...>::tuple;
 
-        // Disable constructor if an older then 7.1.0 version of GCC is used
-#if !((defined(__GNUC__) || defined(__GNUG__)) && !defined(__clang__) && !(__GNUC__ > 7 || (__GNUC__ == 7 && (__GNUC_MINOR__ > 1 || (__GNUC_MINOR__ == 1 && __GNUC_PATCHLEVEL__ > 0)))))
         Struct() = default;
 
         explicit Struct(const std::tuple<_ValueTypes...>& t)
             : std::tuple<_ValueTypes...>(t)
         {
         }
-#endif
 
         template <std::size_t _I>
         auto& get()
@@ -373,6 +371,16 @@ namespace sdbus {
 
         int fd_ = -1;
     };
+
+    /********************************************//**
+     * @typedef DictEntry
+     *
+     * DictEntry is implemented as std::pair, a standard
+     * value_type in STL(-like) associative containers.
+     *
+     ***********************************************/
+    template<typename _T1, typename _T2>
+    using DictEntry = std::pair<_T1, _T2>;
 
 }
 

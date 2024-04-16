@@ -42,8 +42,8 @@ namespace sdbus {
     template <typename _Function>
     MethodVTableItem& MethodVTableItem::implementedAs(_Function&& callback)
     {
-        inputSignature = signature_of_function_input_arguments<_Function>::str();
-        outputSignature = signature_of_function_output_arguments<_Function>::str();
+        inputSignature = signature_of_function_input_arguments_v<_Function>;
+        outputSignature = signature_of_function_output_arguments_v<_Function>;
         callbackHandler = [callback = std::forward<_Function>(callback)](MethodCall call)
         {
             // Create a tuple of callback input arguments' types, which will be used
@@ -142,7 +142,7 @@ namespace sdbus {
     template <typename... _Args>
     inline SignalVTableItem& SignalVTableItem::withParameters()
     {
-        signature = signature_of_function_input_arguments<void(_Args...)>::str();
+        signature = signature_of_function_input_arguments_v<void(_Args...)>;
 
         return *this;
     }
@@ -192,7 +192,7 @@ namespace sdbus {
         static_assert(!std::is_void<function_result_t<_Function>>::value, "Property getter function must return property value");
 
         if (signature.empty())
-            signature = signature_of_function_output_arguments<_Function>::str();
+            signature = signature_of_function_output_arguments_v<_Function>;
 
         getter = [callback = std::forward<_Function>(callback)](PropertyGetReply& reply)
         {
@@ -210,7 +210,7 @@ namespace sdbus {
         static_assert(std::is_void<function_result_t<_Function>>::value, "Property setter function must not return any value");
 
         if (signature.empty())
-            signature = signature_of_function_input_arguments<_Function>::str();
+            signature = signature_of_function_input_arguments_v<_Function>;
 
         setter = [callback = std::forward<_Function>(callback)](PropertySetCall call)
         {

@@ -51,7 +51,7 @@ namespace sdbus {
     template <typename _ElementType>
     sdbus::Message& operator<<(sdbus::Message& msg, const std::list<_ElementType>& items)
     {
-        msg.openContainer(sdbus::signature_of<_ElementType>::str());
+        msg.openContainer<_ElementType>();
 
         for (const auto& item : items)
             msg << item;
@@ -64,7 +64,7 @@ namespace sdbus {
     template <typename _ElementType>
     sdbus::Message& operator>>(sdbus::Message& msg, std::list<_ElementType>& items)
     {
-        if(!msg.enterContainer(sdbus::signature_of<_ElementType>::str()))
+        if(!msg.enterContainer<_ElementType>())
             return msg;
 
         while (true)
