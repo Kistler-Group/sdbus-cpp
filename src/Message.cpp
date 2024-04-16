@@ -429,10 +429,9 @@ Message& Message::operator>>(UnixFd &item)
     return *this;
 }
 
-
-Message& Message::openContainer(const std::string& signature)
+Message& Message::openContainer(const char* signature)
 {
-    auto r = sd_bus_message_open_container((sd_bus_message*)msg_, SD_BUS_TYPE_ARRAY, signature.c_str());
+    auto r = sd_bus_message_open_container((sd_bus_message*)msg_, SD_BUS_TYPE_ARRAY, signature);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to open a container", -r);
 
     return *this;
@@ -446,9 +445,9 @@ Message& Message::closeContainer()
     return *this;
 }
 
-Message& Message::openDictEntry(const std::string& signature)
+Message& Message::openDictEntry(const char* signature)
 {
-    auto r = sd_bus_message_open_container((sd_bus_message*)msg_, SD_BUS_TYPE_DICT_ENTRY, signature.c_str());
+    auto r = sd_bus_message_open_container((sd_bus_message*)msg_, SD_BUS_TYPE_DICT_ENTRY, signature);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to open a dictionary entry", -r);
 
     return *this;
@@ -462,9 +461,9 @@ Message& Message::closeDictEntry()
     return *this;
 }
 
-Message& Message::openVariant(const std::string& signature)
+Message& Message::openVariant(const char* signature)
 {
-    auto r = sd_bus_message_open_container((sd_bus_message*)msg_, SD_BUS_TYPE_VARIANT, signature.c_str());
+    auto r = sd_bus_message_open_container((sd_bus_message*)msg_, SD_BUS_TYPE_VARIANT, signature);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to open a variant", -r);
 
     return *this;
@@ -478,9 +477,9 @@ Message& Message::closeVariant()
     return *this;
 }
 
-Message& Message::openStruct(const std::string& signature)
+Message& Message::openStruct(const char* signature)
 {
-    auto r = sd_bus_message_open_container((sd_bus_message*)msg_, SD_BUS_TYPE_STRUCT, signature.c_str());
+    auto r = sd_bus_message_open_container((sd_bus_message*)msg_, SD_BUS_TYPE_STRUCT, signature);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to open a struct", -r);
 
     return *this;
@@ -494,10 +493,9 @@ Message& Message::closeStruct()
     return *this;
 }
 
-
-Message& Message::enterContainer(const std::string& signature)
+Message& Message::enterContainer(const char* signature)
 {
-    auto r = sd_bus_message_enter_container((sd_bus_message*)msg_, SD_BUS_TYPE_ARRAY, signature.c_str());
+    auto r = sd_bus_message_enter_container((sd_bus_message*)msg_, SD_BUS_TYPE_ARRAY, signature);
     if (r == 0)
         ok_ = false;
 
@@ -514,9 +512,9 @@ Message& Message::exitContainer()
     return *this;
 }
 
-Message& Message::enterDictEntry(const std::string& signature)
+Message& Message::enterDictEntry(const char* signature)
 {
-    auto r = sd_bus_message_enter_container((sd_bus_message*)msg_, SD_BUS_TYPE_DICT_ENTRY, signature.c_str());
+    auto r = sd_bus_message_enter_container((sd_bus_message*)msg_, SD_BUS_TYPE_DICT_ENTRY, signature);
     if (r == 0)
         ok_ = false;
 
@@ -533,9 +531,9 @@ Message& Message::exitDictEntry()
     return *this;
 }
 
-Message& Message::enterVariant(const std::string& signature)
+Message& Message::enterVariant(const char* signature)
 {
-    auto r = sd_bus_message_enter_container((sd_bus_message*)msg_, SD_BUS_TYPE_VARIANT, signature.c_str());
+    auto r = sd_bus_message_enter_container((sd_bus_message*)msg_, SD_BUS_TYPE_VARIANT, signature);
     if (r == 0)
         ok_ = false;
 
@@ -552,9 +550,9 @@ Message& Message::exitVariant()
     return *this;
 }
 
-Message& Message::enterStruct(const std::string& signature)
+Message& Message::enterStruct(const char* signature)
 {
-    auto r = sd_bus_message_enter_container((sd_bus_message*)msg_, SD_BUS_TYPE_STRUCT, signature.c_str());
+    auto r = sd_bus_message_enter_container((sd_bus_message*)msg_, SD_BUS_TYPE_STRUCT, signature);
     if (r == 0)
         ok_ = false;
 
