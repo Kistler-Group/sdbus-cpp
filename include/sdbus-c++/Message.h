@@ -34,6 +34,7 @@
 #include <array>
 #include <cassert>
 #include <cstdint>
+#include <cstring>
 #include <functional>
 #include <map>
 #ifdef __has_include
@@ -52,14 +53,10 @@
 namespace sdbus {
     class Variant;
     class ObjectPath;
-    class InterfaceName;
-    class MemberName;
     class Signature;
     template <typename... _ValueTypes> class Struct;
     class UnixFd;
     class MethodReply;
-    class BusName;
-    using ConnectionName = BusName;
     namespace internal {
         class ISdBus;
     }
@@ -202,12 +199,13 @@ namespace sdbus {
         explicit operator bool() const;
         void clearFlags();
 
-        InterfaceName getInterfaceName() const;
-        MemberName getMemberName() const;
-        ConnectionName getSender() const;
-        ObjectPath getPath() const;
-        ConnectionName getDestination() const;
-        void peekType(std::string& type, std::string& contents) const;
+        const char* getInterfaceName() const;
+        const char* getMemberName() const;
+        const char* getSender() const;
+        const char* getPath() const;
+        const char* getDestination() const;
+        // TODO: short docs in whole Message API
+        std::pair<char, const char*> peekType() const;
         bool isValid() const;
         bool isEmpty() const;
         bool isAtEnd(bool complete) const;
@@ -302,7 +300,8 @@ namespace sdbus {
 
     public:
         Signal() = default;
-        void setDestination(const ConnectionName& destination);
+        void setDestination(const std::string& destination);
+        void setDestination(const char* destination);
         void send() const;
     };
 
@@ -474,15 +473,14 @@ namespace sdbus {
     namespace detail
     {
         template <typename _Element, typename... _Elements>
-        bool deserialize_variant(Message& msg, std::variant<_Elements...>& value, const std::string& signature)
+        bool deserialize_variant(Message& msg, std::variant<_Elements...>& value, const char* signature)
         {
-            constexpr auto elemSignature = sdbus::signature_of_v<_Element>;
-            // TODO: Try to optimize
-            if (signature != std::string(elemSignature.begin(), elemSignature.end()))
+            constexpr auto elemSignature = as_null_terminated(sdbus::signature_of_v<_Element>);
+            if (std::strcmp(signature, elemSignature.data()) != 0)
                 return false;
 
             _Element temp;
-            msg.enterVariant(signature.c_str());
+            msg.enterVariant(signature);
             msg >> temp;
             msg.exitVariant();
             value = std::move(temp);
@@ -493,11 +491,8 @@ namespace sdbus {
     template <typename... Elements>
     inline Message& Message::operator>>(std::variant<Elements...>& value)
     {
-        std::string type;
-        std::string contentType;
-        // TODO: Refactor ppekType prior to release/v2.0 to return pair of const char* or string_view...
-        peekType(type, contentType);
-        bool result = (detail::deserialize_variant<Elements>(*this, value, contentType) || ...);
+        auto [type, contents] = peekType();
+        bool result = (detail::deserialize_variant<Elements>(*this, value, contents) || ...);
         SDBUS_THROW_ERROR_IF(!result, "Failed to deserialize variant: signature did not match any of the variant types", EINVAL);
         return *this;
     }

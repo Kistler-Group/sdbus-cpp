@@ -612,44 +612,38 @@ void Message::rewind(bool complete)
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to rewind the message", -r);
 }
 
-InterfaceName Message::getInterfaceName() const
+const char* Message::getInterfaceName() const
 {
-    const auto* interface = sd_bus_message_get_interface((sd_bus_message*)msg_);
-    return interface != nullptr ? InterfaceName{interface} : InterfaceName{};
+    return sd_bus_message_get_interface((sd_bus_message*)msg_);
 }
 
-MemberName Message::getMemberName() const
+const char* Message::getMemberName() const
 {
-    const auto* member = sd_bus_message_get_member((sd_bus_message*)msg_);
-    return member != nullptr ? MemberName{member} : MemberName{};
+    return sd_bus_message_get_member((sd_bus_message*)msg_);
 }
 
-ConnectionName Message::getSender() const
+const char* Message::getSender() const
 {
-    const auto* sender = sd_bus_message_get_sender((sd_bus_message*)msg_);
-    return ConnectionName{sender};
+    return sd_bus_message_get_sender((sd_bus_message*)msg_);
 }
 
-ObjectPath Message::getPath() const
+const char* Message::getPath() const
 {
-    const auto* path = sd_bus_message_get_path((sd_bus_message*)msg_);
-    return path != nullptr ? ObjectPath{path} : ObjectPath{};
+    return sd_bus_message_get_path((sd_bus_message*)msg_);
 }
 
-ConnectionName Message::getDestination() const
+const char* Message::getDestination() const
 {
-    const auto* destination = sd_bus_message_get_destination((sd_bus_message*)msg_);
-    return destination != nullptr ? ConnectionName{destination} : ConnectionName{};
+    return sd_bus_message_get_destination((sd_bus_message*)msg_);
 }
 
-void Message::peekType(std::string& type, std::string& contents) const
+std::pair<char, const char*> Message::peekType() const
 {
-    char typeSig;
-    const char* contentsSig;
-    auto r = sd_bus_message_peek_type((sd_bus_message*)msg_, &typeSig, &contentsSig);
+    char typeSignature{};
+    const char* contentsSignature{};
+    auto r = sd_bus_message_peek_type((sd_bus_message*)msg_, &typeSignature, &contentsSignature);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to peek message type", -r);
-    type = typeSig;
-    contents = contentsSig ? contentsSig : "";
+    return {typeSignature, contentsSignature};
 }
 
 bool Message::isValid() const
@@ -877,9 +871,14 @@ void Signal::send() const
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit signal", -r);
 }
 
-void Signal::setDestination(const ConnectionName& destination)
+void Signal::setDestination(const std::string& destination)
 {
-    auto r = sdbus_->sd_bus_message_set_destination((sd_bus_message*)msg_, destination.c_str());
+    return setDestination(destination.c_str());
+}
+
+void Signal::setDestination(const char* destination)
+{
+    auto r = sdbus_->sd_bus_message_set_destination((sd_bus_message*)msg_, destination);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to set signal destination", -r);
 }
 

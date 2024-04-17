@@ -32,8 +32,10 @@
 #include <list>
 
 using ::testing::Eq;
+using ::testing::StrEq;
 using ::testing::Gt;
 using ::testing::DoubleEq;
+using ::testing::IsNull;
 using namespace std::string_literals;
 
 namespace
@@ -465,11 +467,10 @@ TEST(AMessage, CanPeekASimpleType)
     msg << 123;
     msg.seal();
 
-    std::string type;
-    std::string contents;
-    msg.peekType(type, contents);
-    ASSERT_THAT(type, "i");
-    ASSERT_THAT(contents, "");
+    auto [type, contents] = msg.peekType();
+
+    ASSERT_THAT(type, Eq('i'));
+    ASSERT_THAT(contents, IsNull());
 }
 
 TEST(AMessage, CanPeekContainerContents)
@@ -478,11 +479,10 @@ TEST(AMessage, CanPeekContainerContents)
     msg << std::map<int, std::string>{{1, "one"}, {2, "two"}};
     msg.seal();
 
-    std::string type;
-    std::string contents;
-    msg.peekType(type, contents);
-    ASSERT_THAT(type, "a");
-    ASSERT_THAT(contents, "{is}");
+    auto [type, contents] = msg.peekType();
+
+    ASSERT_THAT(type, Eq('a'));
+    ASSERT_THAT(contents, StrEq("{is}"));
 }
 
 TEST(AMessage, CanCarryDBusArrayGivenAsCustomType)
