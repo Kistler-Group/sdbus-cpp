@@ -30,6 +30,7 @@
 #include <sdbus-c++/Message.h>
 #include <sdbus-c++/TypeTraits.h>
 
+#include <cstring>
 #include <memory>
 #include <string>
 #include <tuple>
@@ -105,14 +106,14 @@ namespace sdbus {
         bool containsValueOfType() const
         {
             constexpr auto signature = as_null_terminated(signature_of_v<_Type>);
-            return signature.data() == peekValueType();
+            return std::strcmp(signature.data(), peekValueType()) == 0;
         }
 
         bool isEmpty() const;
 
         void serializeTo(Message& msg) const;
         void deserializeFrom(Message& msg);
-        std::string peekValueType() const;
+        const char* peekValueType() const;
 
     private:
         mutable PlainMessage msg_{};

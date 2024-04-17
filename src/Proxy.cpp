@@ -113,7 +113,6 @@ PendingAsyncCall Proxy::callMethodAsync(const MethodCall& message, async_reply_h
 
     pendingAsyncCalls_.addCall(std::move(callData));
 
-    // TODO: Instead of PendingAsyncCall consider using Slot implementation for simplicity and consistency
     return {weakData};
 }
 

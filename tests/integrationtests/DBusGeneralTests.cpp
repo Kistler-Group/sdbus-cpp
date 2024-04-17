@@ -44,6 +44,7 @@ using ::testing::ElementsAre;
 using ::testing::Eq;
 using namespace std::chrono_literals;
 using namespace sdbus::test;
+using namespace std::string_view_literals;
 
 using ADirectConnection = TestFixtureWithDirectConnection;
 
@@ -157,7 +158,7 @@ TYPED_TEST(AConnection, WillNotPassToMatchCallbackMessagesThatDoNotMatchTheRule)
     std::atomic<size_t> numberOfMatchingMessages{};
     auto slot = this->s_proxyConnection->addMatch(matchRule, [&](sdbus::Message msg)
     {
-        if(msg.getMemberName() == "simpleSignal")
+        if(msg.getMemberName() == "simpleSignal"sv)
             numberOfMatchingMessages++;
     });
     auto adaptor2 = std::make_unique<TestAdaptor>(*this->s_adaptorConnection, OBJECT_PATH_2);
