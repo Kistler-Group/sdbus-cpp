@@ -1780,6 +1780,8 @@ sdbus-c++ v2 is a major release that comes with a number of breaking API/ABI/beh
 * `createDefaultBusConnection()` has been renamed to `createBusConnection()`.
 * Change in behavior: `Proxy`s now by default call `createBusConnection()` to get a connection when the connection is not provided explicitly by the caller, so they connect to either the session bus or the system bus depending on the context (as opposed to always to the system bus like before).
 * Callbacks taking `const sdbus::Error* error` were changed to take `std::optional<sdbus::Error>`, which better expresses the intent and meaning.
+* `getInterfaceName()`, `getMemberName()`, `getSender()`, `getPath()` and `getDestination()` methods of `Message` class now return `const char*` instead of `std::string`, for efficiency reasons.
+* `peekType()` method of `Message` class now returns a pair of `char` (type signature) and `const char*` (contents signature), for expressiveness and efficiency reasons.
 * D-Bus signatures when using high-level API are now assembled at compile time. There are breaking changes inside `signature_of` type traits and `Message` serialization/deserialization methods. This only interests you if you extend sdbus-c++ type system with your own types. See the updated tutorial on extending sdbus-c++ type system. 
 * Types and methods marked deprecated in sdbus-c++ v1 were removed completely.
 * CMake options got `SDBUSCPP_` prefix for better usability and minimal risk of conflicts in downstream CMake projects. `SDBUSCPP_INSTALL` CMake option was added.

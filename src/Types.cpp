@@ -55,12 +55,10 @@ void Variant::deserializeFrom(Message& msg)
     msg_.seal();
 }
 
-std::string Variant::peekValueType() const
+const char* Variant::peekValueType() const
 {
     msg_.rewind(false);
-    std::string type;
-    std::string contents;
-    msg_.peekType(type, contents);
+    auto [type, contents] = msg_.peekType();
     return contents;
 }
 
