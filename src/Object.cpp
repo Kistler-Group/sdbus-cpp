@@ -300,8 +300,6 @@ const Object::VTable::MethodItem* Object::findMethod(const VTable& vtable, std::
         return methodItem.name < methodName;
     });
 
-    (void)it;
-
     return it != vtable.methods.end() && it->name == methodName ? &*it : nullptr;
 }
 
@@ -311,8 +309,6 @@ const Object::VTable::PropertyItem* Object::findProperty(const VTable& vtable, s
     {
         return propertyItem.name < propertyName;
     });
-
-    (void)it;
 
     return it != vtable.properties.end() && it->name == propertyName ? &*it : nullptr;
 }
@@ -333,7 +329,7 @@ int Object::sdbus_method_callback(sd_bus_message *sdbusMessage, void *userData, 
 
     auto message = Message::Factory::create<MethodCall>(sdbusMessage, &vtable->object->connection_.getSdBusInterface());
 
-    const auto* methodItem = findMethod(*vtable, message.getMemberName()); // TODO: optimize the situation around getMemberName()
+    const auto* methodItem = findMethod(*vtable, message.getMemberName());
     assert(methodItem != nullptr);
     assert(methodItem->callback);
 
