@@ -131,6 +131,7 @@ namespace sdbus {
         AsyncMethodInvoker& withTimeout(const std::chrono::duration<_Rep, _Period>& timeout);
         template <typename... _Args> AsyncMethodInvoker& withArguments(_Args&&... args);
         template <typename _Function> PendingAsyncCall uponReplyInvoke(_Function&& callback);
+        template <typename _Function> [[nodiscard]] Slot uponReplyInvoke(_Function&& callback, return_slot_t);
         // Returned future will be std::future<void> for no (void) D-Bus method return value
         //                      or std::future<T> for single D-Bus method return value
         //                      or std::future<std::tuple<...>> for multiple method return values
@@ -140,6 +141,7 @@ namespace sdbus {
         friend IProxy;
         AsyncMethodInvoker(IProxy& proxy, const MethodName& methodName);
         AsyncMethodInvoker(IProxy& proxy, const char* methodName);
+        template <typename _Function> async_reply_handler makeAsyncReplyHandler(_Function&& callback);
 
     private:
         IProxy& proxy_;
@@ -190,6 +192,7 @@ namespace sdbus {
     public:
         AsyncPropertyGetter& onInterface(std::string_view interfaceName);
         template <typename _Function> PendingAsyncCall uponReplyInvoke(_Function&& callback);
+        template <typename _Function> [[nodiscard]] Slot uponReplyInvoke(_Function&& callback, return_slot_t);
         std::future<Variant> getResultAsFuture();
 
     private:
@@ -232,6 +235,7 @@ namespace sdbus {
         template <typename _Value> AsyncPropertySetter& toValue(_Value&& value);
         AsyncPropertySetter& toValue(Variant value);
         template <typename _Function> PendingAsyncCall uponReplyInvoke(_Function&& callback);
+        template <typename _Function> [[nodiscard]] Slot uponReplyInvoke(_Function&& callback, return_slot_t);
         std::future<void> getResultAsFuture();
 
     private:
@@ -267,6 +271,7 @@ namespace sdbus {
     public:
         AsyncAllPropertiesGetter& onInterface(std::string_view interfaceName);
         template <typename _Function> PendingAsyncCall uponReplyInvoke(_Function&& callback);
+        template <typename _Function> [[nodiscard]] Slot uponReplyInvoke(_Function&& callback, return_slot_t);
         std::future<std::map<PropertyName, Variant>> getResultAsFuture();
 
     private:

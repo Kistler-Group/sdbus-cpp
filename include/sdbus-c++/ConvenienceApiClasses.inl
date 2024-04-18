@@ -287,7 +287,24 @@ namespace sdbus {
     {
         assert(method_.isValid()); // onInterface() must be placed/called prior to this function
 
-        auto asyncReplyHandler = [callback = std::forward<_Function>(callback)](MethodReply reply, std::optional<Error> error)
+        return proxy_.callMethodAsync(method_, makeAsyncReplyHandler(std::forward<_Function>(callback)), timeout_);
+    }
+
+    template <typename _Function>
+    [[nodiscard]] Slot AsyncMethodInvoker::uponReplyInvoke(_Function&& callback, return_slot_t)
+    {
+        assert(method_.isValid()); // onInterface() must be placed/called prior to this function
+
+        return proxy_.callMethodAsync( method_
+                                     , makeAsyncReplyHandler(std::forward<_Function>(callback))
+                                     , timeout_
+                                     , return_slot );
+    }
+
+    template <typename _Function>
+    inline async_reply_handler AsyncMethodInvoker::makeAsyncReplyHandler(_Function&& callback)
+    {
+        return [callback = std::forward<_Function>(callback)](MethodReply reply, std::optional<Error> error)
         {
             // Create a tuple of callback input arguments' types, which will be used
             // as a storage for the argument values deserialized from the message.
@@ -312,8 +329,6 @@ namespace sdbus {
             // Invoke callback with input arguments from the tuple.
             sdbus::apply(callback, std::move(error), args);
         };
-
-        return proxy_.callMethodAsync(method_, std::move(asyncReplyHandler), timeout_);
     }
 
     template <typename... _Args>
@@ -474,7 +489,8 @@ namespace sdbus {
     template <typename _Function>
     PendingAsyncCall AsyncPropertyGetter::uponReplyInvoke(_Function&& callback)
     {
-        static_assert(std::is_invocable_r_v<void, _Function, std::optional<Error>, Variant>, "Property get callback function must accept std::optional<Error> and property value as Variant");
+        static_assert( std::is_invocable_r_v<void, _Function, std::optional<Error>, Variant>
+                     , "Property get callback function must accept std::optional<Error> and property value as Variant" );
 
         assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
 
@@ -482,6 +498,20 @@ namespace sdbus {
                      .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
                      .withArguments(interfaceName_, propertyName_)
                      .uponReplyInvoke(std::forward<_Function>(callback));
+    }
+
+    template <typename _Function>
+    [[nodiscard]] Slot AsyncPropertyGetter::uponReplyInvoke(_Function&& callback, return_slot_t)
+    {
+        static_assert( std::is_invocable_r_v<void, _Function, std::optional<Error>, Variant>
+                     , "Property get callback function must accept std::optional<Error> and property value as Variant" );
+
+        assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
+
+        return proxy_.callMethodAsync("Get")
+                     .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
+                     .withArguments(interfaceName_, propertyName_)
+                     .uponReplyInvoke(std::forward<_Function>(callback), return_slot);
     }
 
     inline std::future<Variant> AsyncPropertyGetter::getResultAsFuture()
@@ -575,7 +605,8 @@ namespace sdbus {
     template <typename _Function>
     PendingAsyncCall AsyncPropertySetter::uponReplyInvoke(_Function&& callback)
     {
-        static_assert(std::is_invocable_r_v<void, _Function, std::optional<Error>>, "Property set callback function must accept std::optional<Error> only");
+        static_assert( std::is_invocable_r_v<void, _Function, std::optional<Error>>
+                     , "Property set callback function must accept std::optional<Error> only" );
 
         assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
 
@@ -583,6 +614,20 @@ namespace sdbus {
                      .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
                      .withArguments(interfaceName_, propertyName_, std::move(value_))
                      .uponReplyInvoke(std::forward<_Function>(callback));
+    }
+
+    template <typename _Function>
+    [[nodiscard]] Slot AsyncPropertySetter::uponReplyInvoke(_Function&& callback, return_slot_t)
+    {
+        static_assert( std::is_invocable_r_v<void, _Function, std::optional<Error>>
+                     , "Property set callback function must accept std::optional<Error> only" );
+
+        assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
+
+        return proxy_.callMethodAsync("Set")
+                     .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
+                     .withArguments(interfaceName_, propertyName_, std::move(value_))
+                     .uponReplyInvoke(std::forward<_Function>(callback), return_slot);
     }
 
     inline std::future<void> AsyncPropertySetter::getResultAsFuture()
@@ -642,6 +687,20 @@ namespace sdbus {
                      .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
                      .withArguments(interfaceName_)
                      .uponReplyInvoke(std::forward<_Function>(callback));
+    }
+
+    template <typename _Function>
+    [[nodiscard]] Slot AsyncAllPropertiesGetter::uponReplyInvoke(_Function&& callback, return_slot_t)
+    {
+        static_assert( std::is_invocable_r_v<void, _Function, std::optional<Error>, std::map<PropertyName, Variant>>
+                     , "All properties get callback function must accept std::optional<Error> and a map of property names to their values" );
+
+        assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
+
+        return proxy_.callMethodAsync("GetAll")
+                     .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
+                     .withArguments(interfaceName_)
+                     .uponReplyInvoke(std::forward<_Function>(callback), return_slot);
     }
 
     inline std::future<std::map<PropertyName, Variant>> AsyncAllPropertiesGetter::getResultAsFuture()

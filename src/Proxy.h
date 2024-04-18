@@ -58,8 +58,19 @@ namespace sdbus::internal {
 
         MethodCall createMethodCall(const InterfaceName& interfaceName, const MethodName& methodName) override;
         MethodCall createMethodCall(const char* interfaceName, const char* methodName) override;
+        MethodReply callMethod(const MethodCall& message) override;
         MethodReply callMethod(const MethodCall& message, uint64_t timeout) override;
-        PendingAsyncCall callMethodAsync(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout) override;
+        PendingAsyncCall callMethodAsync(const MethodCall& message, async_reply_handler asyncReplyCallback) override;
+        Slot callMethodAsync( const MethodCall& message
+                            , async_reply_handler asyncReplyCallback
+                            , return_slot_t ) override;
+        PendingAsyncCall callMethodAsync( const MethodCall& message
+                                        , async_reply_handler asyncReplyCallback
+                                        , uint64_t timeout ) override;
+        Slot callMethodAsync( const MethodCall& message
+                            , async_reply_handler asyncReplyCallback
+                            , uint64_t timeout
+                            , return_slot_t ) override;
         std::future<MethodReply> callMethodAsync(const MethodCall& message, with_future_t) override;
         std::future<MethodReply> callMethodAsync(const MethodCall& message, uint64_t timeout, with_future_t) override;
 
@@ -105,67 +116,30 @@ namespace sdbus::internal {
             Slot slot;
         };
 
-        // We need to keep track of pending async calls. When the proxy is being destructed, we must
-        // remove all slots of these pending calls, otherwise in case when the connection outlives
-        // the proxy, we might get async reply handlers invoked for pending async calls after the proxy
-        // has been destroyed, which is a free ticket into the realm of undefined behavior.
-        class AsyncCalls
+        struct AsyncCallInfo
+        {
+            async_reply_handler callback;
+            Proxy& proxy;
+            Slot slot{};
+            bool finished{false};
+            bool floating;
+        };
+
+        // Container keeping track of pending async calls
+        class FloatingAsyncCallSlots
         {
         public:
-            struct CallData
-            {
-                Proxy& proxy;
-                async_reply_handler callback;
-                Slot slot{};
-                bool finished{false};
-            };
-
-            ~AsyncCalls()
-            {
-                clear();
-            }
-
-            void addCall(std::shared_ptr<CallData> asyncCallData)
-            {
-                std::lock_guard lock(mutex_);
-                if (!asyncCallData->finished) // The call may have finished in the meantime
-                    calls_.emplace_back(std::move(asyncCallData));
-            }
-
-            void removeCall(CallData* data)
-            {
-                std::unique_lock lock(mutex_);
-                data->finished = true;
-                if (auto it = std::find_if(calls_.begin(), calls_.end(), [data](auto const& entry){ return entry.get() == data; }); it != calls_.end())
-                {
-                    auto callData = std::move(*it);
-                    calls_.erase(it);
-                    lock.unlock();
-
-                    // Releasing call slot pointer acquires global sd-bus mutex. We have to perform the release
-                    // out of the `mutex_' critical section here, because if the `removeCall` is called by some
-                    // thread and at the same time Proxy's async reply handler (which already holds global sd-bus
-                    // mutex) is in progress in a different thread, we get double-mutex deadlock.
-                }
-            }
-
-            void clear()
-            {
-                std::unique_lock lock(mutex_);
-                auto asyncCallSlots = std::move(calls_);
-                calls_ = {};
-                lock.unlock();
-
-                // Releasing call slot pointer acquires global sd-bus mutex. We have to perform the release
-                // out of the `mutex_' critical section here, because if the `clear` is called by some thread
-                // and at the same time Proxy's async reply handler (which already holds global sd-bus
-                // mutex) is in progress in a different thread, we get double-mutex deadlock.
-            }
+            ~FloatingAsyncCallSlots();
+            void push_back(std::shared_ptr<AsyncCallInfo> asyncCallInfo);
+            void erase(AsyncCallInfo* info);
+            void clear();
 
         private:
             std::mutex mutex_;
-            std::deque<std::shared_ptr<CallData>> calls_;
-        } pendingAsyncCalls_;
+            std::deque<std::shared_ptr<AsyncCallInfo>> slots_;
+        };
+
+        FloatingAsyncCallSlots floatingAsyncCallSlots_;
     };
 
 }
