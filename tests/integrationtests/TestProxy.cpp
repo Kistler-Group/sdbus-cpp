@@ -124,6 +124,17 @@ sdbus::PendingAsyncCall TestProxy::doOperationClientSideAsync(uint32_t param)
                                       });
 }
 
+Slot TestProxy::doOperationClientSideAsync(uint32_t param, sdbus::return_slot_t)
+{
+    return getProxy().callMethodAsync("doOperation")
+                     .onInterface(sdbus::test::INTERFACE_NAME)
+                     .withArguments(param)
+                     .uponReplyInvoke([this](std::optional<sdbus::Error> error, uint32_t returnValue)
+                                      {
+                                          this->onDoOperationReply(returnValue, std::move(error));
+                                      }, sdbus::return_slot);
+}
+
 std::future<uint32_t> TestProxy::doOperationClientSideAsync(uint32_t param, with_future_t)
 {
     return getProxy().callMethodAsync("doOperation")

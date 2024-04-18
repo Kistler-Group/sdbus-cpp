@@ -1231,6 +1231,10 @@ int main(int argc, char *argv[])
 
 Empty `error` parameter means that no D-Bus error occurred while making the call, and subsequent arguments are valid D-Bus method return values. However, `error` parameter containing a value means that an error occurred during the call (and subsequent arguments are simply default-constructed), and the underlying `Error` instance provides us with the error name and message.
 
+> **_Tip_:** The function returns the `sdbus::PendingAsyncCall` object, a non-owning, observing handle to the async call. It can be used to query whether the call is still in progress, and to cancel the call.
+
+> **_Tip_:** There is also the `.uponReplyInvoke(callback, sdbus::return_slot);` variant with the `return_slot` tag, which returns `Slot` object, an owning RAII handle to the async call. This makes the client an owner of the pending async call. Letting go of the handle means cancelling the call.
+
 Another option is to finish the async call statement with `getResultAsFuture()`, which is a template function which takes the list of types returned by the D-Bus method (empty list in case of `void`-returning method) which returns a `std::future` object, which will later, when the reply arrives, be set to contain the return value(s). Or if the call returns an error, `sdbus::Error` will be thrown by `std::future::get()`.
 
 The future object will contain void for a void-returning D-Bus method, a single type for a single value returning D-Bus method, and a `std::tuple` to hold multiple return values of a D-Bus method.
