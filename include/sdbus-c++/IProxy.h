@@ -89,7 +89,6 @@ namespace sdbus {
          * @brief Calls method on the remote D-Bus object
          *
          * @param[in] message Message representing a method call
-         * @param[in] timeout Timeout for dbus call in microseconds
          * @return A method reply message
          *
          * The call does not block if the method call has dont-expect-reply flag set. In that case,
@@ -108,11 +107,44 @@ namespace sdbus {
          * its own bus connection. So-called light-weight proxies (ones created with `dont_run_event_loop_thread`
          * tag are designed for exactly that purpose.
          *
+         * The default D-Bus method call timeout is used. See IConnection::getMethodCallTimeout().
+         *
          * Note: To avoid messing with messages, use API on a higher level of abstraction defined below.
          *
          * @throws sdbus::Error in case of failure (also in case the remote function returned an error)
          */
-        virtual MethodReply callMethod(const MethodCall& message, uint64_t timeout = 0) = 0;
+        virtual MethodReply callMethod(const MethodCall& message) = 0;
+
+        /*!
+         * @brief Calls method on the remote D-Bus object
+         *
+         * @param[in] message Message representing a method call
+         * @param[in] timeout Method call timeout (in microseconds)
+         * @return A method reply message
+         *
+         * The call does not block if the method call has dont-expect-reply flag set. In that case,
+         * the call returns immediately and the return value is an empty, invalid method reply.
+         *
+         * The call blocks otherwise, waiting for the remote peer to send back a reply or an error,
+         * or until the call times out.
+         *
+         * While blocking, other concurrent operations (in other threads) on the underlying bus
+         * connection are stalled until the call returns. This is not an issue in vast majority of
+         * (simple, single-threaded) applications. In asynchronous, multi-threaded designs involving
+         * shared bus connections, this may be an issue. It is advised to instead use an asynchronous
+         * callMethod() function overload, which does not block the bus connection, or do the synchronous
+         * call from another Proxy instance created just before the call and then destroyed (which is
+         * anyway quite a typical approach in D-Bus implementations). Such proxy instance must have
+         * its own bus connection. So-called light-weight proxies (ones created with `dont_run_event_loop_thread`
+         * tag are designed for exactly that purpose.
+         *
+         * If timeout is zero, the default D-Bus method call timeout is used. See IConnection::getMethodCallTimeout().
+         *
+         * Note: To avoid messing with messages, use API on a higher level of abstraction defined below.
+         *
+         * @throws sdbus::Error in case of failure (also in case the remote function returned an error)
+         */
+        virtual MethodReply callMethod(const MethodCall& message, uint64_t timeout) = 0;
 
         /*!
          * @copydoc IProxy::callMethod(const MethodCall&,uint64_t)
@@ -125,8 +157,7 @@ namespace sdbus {
          *
          * @param[in] message Message representing an async method call
          * @param[in] asyncReplyCallback Handler for the async reply
-         * @param[in] timeout Timeout for dbus call in microseconds
-         * @return Cookie for the the pending asynchronous call
+         * @return Observing handle for the the pending asynchronous call
          *
          * This is a callback-based way of asynchronously calling a remote D-Bus method.
          *
@@ -134,13 +165,95 @@ namespace sdbus {
          * the provided async reply handler will get invoked from the context of the bus
          * connection I/O event loop thread.
          *
+         * An non-owning, observing async call handle is returned that can be used to query call status or cancel the call.
+         *
+         * The default D-Bus method call timeout is used. See IConnection::getMethodCallTimeout().
+         *
+         * Note: To avoid messing with messages, use API on a higher level of abstraction defined below.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual PendingAsyncCall callMethodAsync(const MethodCall& message, async_reply_handler asyncReplyCallback) = 0;
+
+        /*!
+         * @brief Calls method on the D-Bus object asynchronously
+         *
+         * @param[in] message Message representing an async method call
+         * @param[in] asyncReplyCallback Handler for the async reply
+         * @return RAII-style slot handle representing the ownership of the async call
+         *
+         * This is a callback-based way of asynchronously calling a remote D-Bus method.
+         *
+         * The call itself is non-blocking. It doesn't wait for the reply. Once the reply arrives,
+         * the provided async reply handler will get invoked from the context of the bus
+         * connection I/O event loop thread.
+         *
+         * A slot (an owning handle) is returned for the async call. Lifetime of the call is bound to the lifetime of the slot.
+         * The slot can be used to cancel the method call at a later time by simply destroying it.
+         *
+         * The default D-Bus method call timeout is used. See IConnection::getMethodCallTimeout().
+         *
+         * Note: To avoid messing with messages, use API on a higher level of abstraction defined below.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] virtual Slot callMethodAsync( const MethodCall& message
+                                                  , async_reply_handler asyncReplyCallback
+                                                  , return_slot_t ) = 0;
+
+        /*!
+         * @brief Calls method on the D-Bus object asynchronously, with custom timeout
+         *
+         * @param[in] message Message representing an async method call
+         * @param[in] asyncReplyCallback Handler for the async reply
+         * @param[in] timeout Method call timeout (in microseconds)
+         * @return Observing handle for the the pending asynchronous call
+         *
+         * This is a callback-based way of asynchronously calling a remote D-Bus method.
+         *
+         * The call itself is non-blocking. It doesn't wait for the reply. Once the reply arrives,
+         * the provided async reply handler will get invoked from the context of the bus
+         * connection I/O event loop thread.
+         *
+         * An non-owning, observing async call handle is returned that can be used to query call status or cancel the call.
+         *
+         * If timeout is zero, the default D-Bus method call timeout is used. See IConnection::getMethodCallTimeout().
+         *
          * Note: To avoid messing with messages, use API on a higher level of abstraction defined below.
          *
          * @throws sdbus::Error in case of failure
          */
         virtual PendingAsyncCall callMethodAsync( const MethodCall& message
                                                 , async_reply_handler asyncReplyCallback
-                                                , uint64_t timeout = 0 ) = 0;
+                                                , uint64_t timeout ) = 0;
+
+        /*!
+         * @brief Calls method on the D-Bus object asynchronously, with custom timeout
+         *
+         * @param[in] message Message representing an async method call
+         * @param[in] asyncReplyCallback Handler for the async reply
+         * @param[in] timeout Method call timeout (in microseconds)
+         * @return RAII-style slot handle representing the ownership of the async call
+         *
+         * This is a callback-based way of asynchronously calling a remote D-Bus method.
+         *
+         * The call itself is non-blocking. It doesn't wait for the reply. Once the reply arrives,
+         * the provided async reply handler will get invoked from the context of the bus
+         * connection I/O event loop thread.
+         *
+         * A slot (an owning handle) is returned for the async call. Lifetime of the call is bound to the lifetime of the slot.
+         * The slot can be used to cancel the method call at a later time by simply destroying it.
+         *
+         * If timeout is zero, the default D-Bus method call timeout is used. See IConnection::getMethodCallTimeout().
+         *
+         * Note: To avoid messing with messages, use API on a higher level of abstraction defined below.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] virtual Slot callMethodAsync( const MethodCall& message
+                                                  , async_reply_handler asyncReplyCallback
+                                                  , uint64_t timeout
+                                                  , return_slot_t ) = 0;
 
         /*!
          * @copydoc IProxy::callMethod(const MethodCall&,async_reply_handler,uint64_t)
@@ -149,6 +262,15 @@ namespace sdbus {
         PendingAsyncCall callMethodAsync( const MethodCall& message
                                         , async_reply_handler asyncReplyCallback
                                         , const std::chrono::duration<_Rep, _Period>& timeout );
+
+        /*!
+         * @copydoc IProxy::callMethod(const MethodCall&,async_reply_handler,uint64_t,return_slot_t)
+         */
+        template <typename _Rep, typename _Period>
+        [[nodiscard]] Slot callMethodAsync( const MethodCall& message
+                                          , async_reply_handler asyncReplyCallback
+                                          , const std::chrono::duration<_Rep, _Period>& timeout
+                                          , return_slot_t );
 
         /*!
          * @brief Calls method on the D-Bus object asynchronously
@@ -162,6 +284,8 @@ namespace sdbus {
          * The call itself is non-blocking. It doesn't wait for the reply. Once the reply arrives,
          * the provided future object will be set to contain the reply (or sdbus::Error
          * in case the remote method threw an exception).
+         *
+         * The default D-Bus method call timeout is used. See IConnection::getMethodCallTimeout().
          *
          * Note: To avoid messing with messages, use higher-level API defined below.
          *
@@ -182,6 +306,8 @@ namespace sdbus {
          * The call itself is non-blocking. It doesn't wait for the reply. Once the reply arrives,
          * the provided future object will be set to contain the reply (or sdbus::Error
          * in case the remote method threw an exception, or the call timed out).
+         *
+         * If timeout is zero, the default D-Bus method call timeout is used. See IConnection::getMethodCallTimeout().
          *
          * Note: To avoid messing with messages, use higher-level API defined below.
          *
@@ -273,8 +399,12 @@ namespace sdbus {
          * @param[in] signalName Name of the signal
          * @param[in] signalHandler Callback that implements the body of the signal handler
          *
-         * A signal can be subscribed to and unsubscribed from at any time during proxy
-         * lifetime. The subscription is active immediately after the call.
+         * A signal can be subscribed to at any time during proxy lifetime. The subscription
+         * is active immediately after the call, and stays active for the entire lifetime
+         * of the Proxy object.
+         *
+         * To be able to unsubscribe from the signal at a later time, use the registerSignalHandler()
+         * overload with request_slot tag.
          *
          * @throws sdbus::Error in case of failure
          */
@@ -292,8 +422,9 @@ namespace sdbus {
          * @return RAII-style slot handle representing the ownership of the subscription
          *
          * A signal can be subscribed to and unsubscribed from at any time during proxy
-         * lifetime. The subscription is active immediately after the call. The subscription
-         * is unregistered when the client destroys the returned slot object.
+         * lifetime. The subscription is active immediately after the call. The lifetime
+         * of the subscription is bound to the lifetime of the slot object. The subscription
+         * is unregistered by letting go of the slot object.
          *
          * @throws sdbus::Error in case of failure
          */
@@ -566,10 +697,10 @@ namespace sdbus {
 
     private:
         friend internal::Proxy;
-        PendingAsyncCall(std::weak_ptr<void> callData);
+        PendingAsyncCall(std::weak_ptr<void> callInfo);
 
     private:
-        std::weak_ptr<void> callData_;
+        std::weak_ptr<void> callInfo_;
     };
 
     // Out-of-line member definitions
@@ -588,6 +719,16 @@ namespace sdbus {
     {
         auto microsecs = std::chrono::duration_cast<std::chrono::microseconds>(timeout);
         return callMethodAsync(message, std::move(asyncReplyCallback), microsecs.count());
+    }
+
+    template <typename _Rep, typename _Period>
+    inline Slot IProxy::callMethodAsync( const MethodCall& message
+                                       , async_reply_handler asyncReplyCallback
+                                       , const std::chrono::duration<_Rep, _Period>& timeout
+                                       , return_slot_t )
+    {
+        auto microsecs = std::chrono::duration_cast<std::chrono::microseconds>(timeout);
+        return callMethodAsync(message, std::move(asyncReplyCallback), microsecs.count(), return_slot);
     }
 
     template <typename _Rep, typename _Period>

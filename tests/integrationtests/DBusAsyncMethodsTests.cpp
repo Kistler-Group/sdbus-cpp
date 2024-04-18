@@ -198,6 +198,20 @@ TYPED_TEST(AsyncSdbusTestObject, CancelsPendingAsyncCallOnClientSide)
     ASSERT_THAT(future.wait_for(300ms), Eq(std::future_status::timeout));
 }
 
+TYPED_TEST(AsyncSdbusTestObject, CancelsPendingAsyncCallOnClientSideByDestroyingOwningSlot)
+{
+    std::promise<uint32_t> promise;
+    auto future = promise.get_future();
+    this->m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t /*res*/, std::optional<sdbus::Error> /*err*/){ promise.set_value(1); });
+
+    {
+        auto slot = this->m_proxy->doOperationClientSideAsync(100, sdbus::return_slot);
+        // Now the slot is destroyed, cancelling the async call
+    }
+
+    ASSERT_THAT(future.wait_for(300ms), Eq(std::future_status::timeout));
+}
+
 TYPED_TEST(AsyncSdbusTestObject, AnswersThatAsyncCallIsNotPendingAfterItHasBeenCancelled)
 {
     std::promise<uint32_t> promise;
