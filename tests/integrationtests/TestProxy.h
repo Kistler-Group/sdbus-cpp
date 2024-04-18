@@ -96,6 +96,7 @@ public:
     void installDoOperationClientSideAsyncReplyHandler(std::function<void(uint32_t res, std::optional<sdbus::Error> err)> handler);
     uint32_t doOperationWithTimeout(const std::chrono::microseconds &timeout, uint32_t param);
     sdbus::PendingAsyncCall doOperationClientSideAsync(uint32_t param);
+    [[nodiscard]] sdbus::Slot doOperationClientSideAsync(uint32_t param, sdbus::return_slot_t);
     std::future<uint32_t> doOperationClientSideAsync(uint32_t param, with_future_t);
     std::future<MethodReply> doOperationClientSideAsyncOnBasicAPILevel(uint32_t param);
     std::future<void> doErroneousOperationClientSideAsync(with_future_t);
