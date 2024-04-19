@@ -20,22 +20,22 @@ public:
 
 protected:
     integrationtests_proxy(sdbus::IProxy& proxy)
-        : proxy_(&proxy)
+        : m_proxy(proxy)
     {
     }
 
     integrationtests_proxy(const integrationtests_proxy&) = delete;
     integrationtests_proxy& operator=(const integrationtests_proxy&) = delete;
-    integrationtests_proxy(integrationtests_proxy&&) = default;
-    integrationtests_proxy& operator=(integrationtests_proxy&&) = default;
+    integrationtests_proxy(integrationtests_proxy&&) = delete;
+    integrationtests_proxy& operator=(integrationtests_proxy&&) = delete;
 
     ~integrationtests_proxy() = default;
 
     void registerProxy()
     {
-        simpleSignalSlot_ = proxy_->uponSignal("simpleSignal").onInterface(INTERFACE_NAME).call([this](){ this->onSimpleSignal(); }, sdbus::return_slot);
-        proxy_->uponSignal("signalWithMap").onInterface(INTERFACE_NAME).call([this](const std::map<int32_t, std::string>& aMap){ this->onSignalWithMap(aMap); });
-        proxy_->uponSignal("signalWithVariant").onInterface(INTERFACE_NAME).call([this](const sdbus::Variant& aVariant){ this->onSignalWithVariant(aVariant); });
+        simpleSignalSlot_ = m_proxy.uponSignal("simpleSignal").onInterface(INTERFACE_NAME).call([this](){ this->onSimpleSignal(); }, sdbus::return_slot);
+        m_proxy.uponSignal("signalWithMap").onInterface(INTERFACE_NAME).call([this](const std::map<int32_t, std::string>& aMap){ this->onSignalWithMap(aMap); });
+        m_proxy.uponSignal("signalWithVariant").onInterface(INTERFACE_NAME).call([this](const sdbus::Variant& aVariant){ this->onSignalWithVariant(aVariant); });
     }
 
     virtual void onSimpleSignal() = 0;
@@ -45,144 +45,144 @@ protected:
 public:
     void noArgNoReturn()
     {
-        proxy_->callMethod("noArgNoReturn").onInterface(INTERFACE_NAME);
+        m_proxy.callMethod("noArgNoReturn").onInterface(INTERFACE_NAME);
     }
 
     int32_t getInt()
     {
         int32_t result;
-        proxy_->callMethod("getInt").onInterface(INTERFACE_NAME).storeResultsTo(result);
+        m_proxy.callMethod("getInt").onInterface(INTERFACE_NAME).storeResultsTo(result);
         return result;
     }
 
     std::tuple<uint32_t, std::string> getTuple()
     {
         std::tuple<uint32_t, std::string> result;
-        proxy_->callMethod("getTuple").onInterface(INTERFACE_NAME).storeResultsTo(result);
+        m_proxy.callMethod("getTuple").onInterface(INTERFACE_NAME).storeResultsTo(result);
         return result;
     }
 
     double multiply(const int64_t& a, const double& b)
     {
         double result;
-        proxy_->callMethod("multiply").onInterface(INTERFACE_NAME).withArguments(a, b).storeResultsTo(result);
+        m_proxy.callMethod("multiply").onInterface(INTERFACE_NAME).withArguments(a, b).storeResultsTo(result);
         return result;
     }
 
     void multiplyWithNoReply(const int64_t& a, const double& b)
     {
-        proxy_->callMethod("multiplyWithNoReply").onInterface(INTERFACE_NAME).withArguments(a, b).dontExpectReply();
+        m_proxy.callMethod("multiplyWithNoReply").onInterface(INTERFACE_NAME).withArguments(a, b).dontExpectReply();
     }
 
     std::vector<int16_t> getInts16FromStruct(const sdbus::Struct<uint8_t, int16_t, double, std::string, std::vector<int16_t>>& arg0)
     {
         std::vector<int16_t> result;
-        proxy_->callMethod("getInts16FromStruct").onInterface(INTERFACE_NAME).withArguments(arg0).storeResultsTo(result);
+        m_proxy.callMethod("getInts16FromStruct").onInterface(INTERFACE_NAME).withArguments(arg0).storeResultsTo(result);
         return result;
     }
 
     sdbus::Variant processVariant(const sdbus::Variant& variant)
     {
         sdbus::Variant result;
-        proxy_->callMethod("processVariant").onInterface(INTERFACE_NAME).withArguments(variant).storeResultsTo(result);
+        m_proxy.callMethod("processVariant").onInterface(INTERFACE_NAME).withArguments(variant).storeResultsTo(result);
         return result;
     }
 
     std::variant<int32_t, double, std::string> processVariant(const std::variant<int32_t, double, std::string>& variant)
     {
         std::variant<int32_t, double, std::string> result;
-        proxy_->callMethod("processVariant").onInterface(INTERFACE_NAME).withArguments(variant).storeResultsTo(result);
+        m_proxy.callMethod("processVariant").onInterface(INTERFACE_NAME).withArguments(variant).storeResultsTo(result);
         return result;
     }
 
     std::map<int32_t, sdbus::Variant> getMapOfVariants(const std::vector<int32_t>& x, const sdbus::Struct<sdbus::Variant, sdbus::Variant>& y)
     {
         std::map<int32_t, sdbus::Variant> result;
-        proxy_->callMethod("getMapOfVariants").onInterface(INTERFACE_NAME).withArguments(x, y).storeResultsTo(result);
+        m_proxy.callMethod("getMapOfVariants").onInterface(INTERFACE_NAME).withArguments(x, y).storeResultsTo(result);
         return result;
     }
 
     sdbus::Struct<std::string, sdbus::Struct<std::map<int32_t, int32_t>>> getStructInStruct()
     {
         sdbus::Struct<std::string, sdbus::Struct<std::map<int32_t, int32_t>>> result;
-        proxy_->callMethod("getStructInStruct").onInterface(INTERFACE_NAME).storeResultsTo(result);
+        m_proxy.callMethod("getStructInStruct").onInterface(INTERFACE_NAME).storeResultsTo(result);
         return result;
     }
 
     int32_t sumStructItems(const sdbus::Struct<uint8_t, uint16_t>& arg0, const sdbus::Struct<int32_t, int64_t>& arg1)
     {
         int32_t result;
-        proxy_->callMethod("sumStructItems").onInterface(INTERFACE_NAME).withArguments(arg0, arg1).storeResultsTo(result);
+        m_proxy.callMethod("sumStructItems").onInterface(INTERFACE_NAME).withArguments(arg0, arg1).storeResultsTo(result);
         return result;
     }
 
     uint32_t sumArrayItems(const std::vector<uint16_t>& arg0, const std::array<uint64_t, 3>& arg1)
     {
         uint32_t result;
-        proxy_->callMethod("sumArrayItems").onInterface(INTERFACE_NAME).withArguments(arg0, arg1).storeResultsTo(result);
+        m_proxy.callMethod("sumArrayItems").onInterface(INTERFACE_NAME).withArguments(arg0, arg1).storeResultsTo(result);
         return result;
     }
 
     uint32_t doOperation(const uint32_t& arg0)
     {
         uint32_t result;
-        proxy_->callMethod("doOperation").onInterface(INTERFACE_NAME).withArguments(arg0).storeResultsTo(result);
+        m_proxy.callMethod("doOperation").onInterface(INTERFACE_NAME).withArguments(arg0).storeResultsTo(result);
         return result;
     }
 
     uint32_t doOperationAsync(const uint32_t& arg0)
     {
         uint32_t result;
-        proxy_->callMethod("doOperationAsync").onInterface(INTERFACE_NAME).withArguments(arg0).storeResultsTo(result);
+        m_proxy.callMethod("doOperationAsync").onInterface(INTERFACE_NAME).withArguments(arg0).storeResultsTo(result);
         return result;
     }
 
     sdbus::Signature getSignature()
     {
         sdbus::Signature result;
-        proxy_->callMethod("getSignature").onInterface(INTERFACE_NAME).storeResultsTo(result);
+        m_proxy.callMethod("getSignature").onInterface(INTERFACE_NAME).storeResultsTo(result);
         return result;
     }
 
     sdbus::ObjectPath getObjPath()
     {
         sdbus::ObjectPath result;
-        proxy_->callMethod("getObjPath").onInterface(INTERFACE_NAME).storeResultsTo(result);
+        m_proxy.callMethod("getObjPath").onInterface(INTERFACE_NAME).storeResultsTo(result);
         return result;
     }
 
     sdbus::UnixFd getUnixFd()
     {
         sdbus::UnixFd result;
-        proxy_->callMethod("getUnixFd").onInterface(INTERFACE_NAME).storeResultsTo(result);
+        m_proxy.callMethod("getUnixFd").onInterface(INTERFACE_NAME).storeResultsTo(result);
         return result;
     }
 
     std::map<uint64_t, sdbus::Struct<std::map<uint8_t, std::vector<sdbus::Struct<sdbus::ObjectPath, bool, sdbus::Variant, std::unordered_map<int32_t, std::string>>>>, sdbus::Signature, std::string>> getComplex()
     {
         std::map<uint64_t, sdbus::Struct<std::map<uint8_t, std::vector<sdbus::Struct<sdbus::ObjectPath, bool, sdbus::Variant, std::unordered_map<int32_t, std::string>>>>, sdbus::Signature, std::string>> result;
-        proxy_->callMethod("getComplex").onInterface(INTERFACE_NAME).storeResultsTo(result);
+        m_proxy.callMethod("getComplex").onInterface(INTERFACE_NAME).storeResultsTo(result);
         return result;
     }
 
     void throwError()
     {
-        proxy_->callMethod("throwError").onInterface(INTERFACE_NAME);
+        m_proxy.callMethod("throwError").onInterface(INTERFACE_NAME);
     }
 
     void throwErrorWithNoReply()
     {
-        proxy_->callMethod("throwErrorWithNoReply").onInterface(INTERFACE_NAME).dontExpectReply();
+        m_proxy.callMethod("throwErrorWithNoReply").onInterface(INTERFACE_NAME).dontExpectReply();
     }
 
     void doPrivilegedStuff()
     {
-        proxy_->callMethod("doPrivilegedStuff").onInterface(INTERFACE_NAME);
+        m_proxy.callMethod("doPrivilegedStuff").onInterface(INTERFACE_NAME);
     }
 
     void emitTwoSimpleSignals()
     {
-        proxy_->callMethod("emitTwoSimpleSignals").onInterface(INTERFACE_NAME);
+        m_proxy.callMethod("emitTwoSimpleSignals").onInterface(INTERFACE_NAME);
     }
 
     void unregisterSimpleSignalHandler()
@@ -192,37 +192,37 @@ public:
 
     void reRegisterSimpleSignalHandler()
     {
-        simpleSignalSlot_ = proxy_->uponSignal("simpleSignal").onInterface(INTERFACE_NAME).call([this](){ this->onSimpleSignal(); }, sdbus::return_slot);
+        simpleSignalSlot_ = m_proxy.uponSignal("simpleSignal").onInterface(INTERFACE_NAME).call([this](){ this->onSimpleSignal(); }, sdbus::return_slot);
     }
 
 public:
     uint32_t action()
     {
-        return proxy_->getProperty("action").onInterface(INTERFACE_NAME).get<uint32_t>();
+        return m_proxy.getProperty("action").onInterface(INTERFACE_NAME).get<uint32_t>();
     }
 
     void action(const uint32_t& value)
     {
-        proxy_->setProperty("action").onInterface(INTERFACE_NAME).toValue(value);
+        m_proxy.setProperty("action").onInterface(INTERFACE_NAME).toValue(value);
     }
 
     bool blocking()
     {
-        return proxy_->getProperty("blocking").onInterface(INTERFACE_NAME).get<bool>();
+        return m_proxy.getProperty("blocking").onInterface(INTERFACE_NAME).get<bool>();
     }
 
     void blocking(const bool& value)
     {
-        proxy_->setProperty("blocking").onInterface(INTERFACE_NAME).toValue(value);
+        m_proxy.setProperty("blocking").onInterface(INTERFACE_NAME).toValue(value);
     }
 
     std::string state()
     {
-        return proxy_->getProperty("state").onInterface(INTERFACE_NAME).get<std::string>();
+        return m_proxy.getProperty("state").onInterface(INTERFACE_NAME).get<std::string>();
     }
 
 private:
-    sdbus::IProxy* proxy_;
+    sdbus::IProxy& m_proxy;
     sdbus::Slot simpleSignalSlot_;
 };
 

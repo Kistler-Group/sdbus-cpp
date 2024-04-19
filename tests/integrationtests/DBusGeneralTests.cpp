@@ -63,16 +63,16 @@ TEST(AdaptorAndProxy, CanBeConstructedSuccesfully)
     connection->releaseName(SERVICE_NAME);
 }
 
-TEST(AProxy, SupportsMoveSemantics)
+TEST(AProxy, DoesNotSupportMoveSemantics)
 {
-    static_assert(std::is_move_constructible_v<DummyTestProxy>);
-    static_assert(std::is_move_assignable_v<DummyTestProxy>);
+    static_assert(!std::is_move_constructible_v<DummyTestProxy>);
+    static_assert(!std::is_move_assignable_v<DummyTestProxy>);
 }
 
-TEST(AnAdaptor, SupportsMoveSemantics)
+TEST(AnAdaptor, DoesNotSupportMoveSemantics)
 {
-    static_assert(std::is_move_constructible_v<DummyTestAdaptor>);
-    static_assert(std::is_move_assignable_v<DummyTestAdaptor>);
+    static_assert(!std::is_move_constructible_v<DummyTestAdaptor>);
+    static_assert(!std::is_move_assignable_v<DummyTestAdaptor>);
 }
 
 TYPED_TEST(AConnection, WillCallCallbackHandlerForIncomingMessageMatchingMatchRule)
