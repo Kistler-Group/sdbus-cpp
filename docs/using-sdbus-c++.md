@@ -694,7 +694,7 @@ After running this through the code generator, we get the generated code that is
 
 For each interface in the XML IDL file the generator creates one class that represents it. The class is de facto an interface which shall be implemented by the class inheriting it. The class' constructor takes care of registering all methods, signals and properties. For each D-Bus method there is a pure virtual member function. These pure virtual functions must be implemented in the child class. For each signal, there is a public function member that emits this signal.
 
-Generated adaptor classes support move semantics. They are moveable but not copyable.
+Generated adaptor classes are not copyable and not moveable by design. One can create them on the heap and manage them in e.g. a `std::unique_ptr` if move semantics is needed (for example, when they are stored in a container).
 
 ```cpp
 /*
@@ -718,30 +718,30 @@ public:
 
 protected:
     Concatenator_adaptor(sdbus::IObject& object)
-        : object_(&object)
+        : m_object(object)
     {
-        object_->registerMethod("concatenate").onInterface(INTERFACE_NAME).withInputParamNames("numbers", "separator").withOutputParamNames("concatenatedString").implementedAs([this](const std::vector<int32_t>& numbers, const std::string& separator){ return this->concatenate(numbers, separator); });
-        object_->registerSignal("concatenated").onInterface(INTERFACE_NAME).withParameters<std::string>("concatenatedString");
+        m_object.registerMethod("concatenate").onInterface(INTERFACE_NAME).withInputParamNames("numbers", "separator").withOutputParamNames("concatenatedString").implementedAs([this](const std::vector<int32_t>& numbers, const std::string& separator){ return this->concatenate(numbers, separator); });
+        m_object.registerSignal("concatenated").onInterface(INTERFACE_NAME).withParameters<std::string>("concatenatedString");
     }
 
     Concatenator_adaptor(const Concatenator_adaptor&) = delete;
     Concatenator_adaptor& operator=(const Concatenator_adaptor&) = delete;
-    Concatenator_adaptor(Concatenator_adaptor&&) = default;
-    Concatenator_adaptor& operator=(Concatenator_adaptor&&) = default;
+    Concatenator_adaptor(Concatenator_adaptor&&) = delete;
+    Concatenator_adaptor& operator=(Concatenator_adaptor&&) = delete;
 
     ~Concatenator_adaptor() = default;
 
 public:
     void emitConcatenated(const std::string& concatenatedString)
     {
-        object_->emitSignal("concatenated").onInterface(INTERFACE_NAME).withArguments(concatenatedString);
+        m_object.emitSignal("concatenated").onInterface(INTERFACE_NAME).withArguments(concatenatedString);
     }
 
 private:
     virtual std::string concatenate(const std::vector<int32_t>& numbers, const std::string& separator) = 0;
 
 private:
-    sdbus::IObject* object_;
+    sdbus::IObject& m_object;
 };
 
 }} // namespaces
@@ -753,7 +753,7 @@ private:
 
 Analogously to the adaptor classes described above, there is one proxy class generated for one interface in the XML IDL file. The class is de facto a proxy to the concrete single interface of a remote object. For each D-Bus signal there is a pure virtual member function whose body must be provided in a child class. For each method, there is a public function member that calls the method remotely.
 
-Generated proxy classes support move semantics. They are moveable but not copyable.
+Generated proxy classes are not copyable and not moveable by design. One can create them on the heap and manage them in e.g. a `std::unique_ptr` if move semantics is needed (for example, when they are stored in a container). 
 
 ```cpp
 /*
@@ -777,15 +777,15 @@ public:
 
 protected:
     Concatenator_proxy(sdbus::IProxy& proxy)
-        : proxy_(&proxy)
+        : m_proxy(proxy)
     {
-        proxy_->uponSignal("concatenated").onInterface(INTERFACE_NAME).call([this](const std::string& concatenatedString){ this->onConcatenated(concatenatedString); });
+        m_proxy.uponSignal("concatenated").onInterface(INTERFACE_NAME).call([this](const std::string& concatenatedString){ this->onConcatenated(concatenatedString); });
     }
 
     Concatenator_proxy(const Concatenator_proxy&) = delete;
     Concatenator_proxy& operator=(const Concatenator_proxy&) = delete;
-    Concatenator_proxy(Concatenator_proxy&&) = default;
-    Concatenator_proxy& operator=(Concatenator_proxy&&) = default;
+    Concatenator_proxy(Concatenator_proxy&&) = delete;
+    Concatenator_proxy& operator=(Concatenator_proxy&&) = delete;
 
     ~Concatenator_proxy() = default;
 
@@ -795,12 +795,12 @@ public:
     std::string concatenate(const std::vector<int32_t>& numbers, const std::string& separator)
     {
         std::string result;
-        proxy_->callMethod("concatenate").onInterface(INTERFACE_NAME).withArguments(numbers, separator).storeResultsTo(result);
+        m_proxy.callMethod("concatenate").onInterface(INTERFACE_NAME).withArguments(numbers, separator).storeResultsTo(result);
         return result;
     }
 
 private:
-    sdbus::IProxy* proxy_;
+    sdbus::IProxy& m_proxy;
 };
 
 }} // namespaces
@@ -1405,9 +1405,9 @@ class PropertyProvider_adaptor
 
 public:
     PropertyProvider_adaptor(sdbus::IObject& object)
-        : object_(&object)
+        : m_object(object)
     {
-        object_->registerProperty("status").onInterface(INTERFACE_NAME).withGetter([this](){ return this->status(); }).withSetter([this](const uint32_t& value){ this->status(value); });
+        m_object.registerProperty("status").onInterface(INTERFACE_NAME).withGetter([this](){ return this->status(); }).withSetter([this](const uint32_t& value){ this->status(value); });
     }
 
     ~PropertyProvider_adaptor() = default;
@@ -1434,13 +1434,13 @@ public:
     // getting the property value
     uint32_t status()
     {
-        return object_->getProperty("status").onInterface(INTERFACE_NAME);
+        return m_object.getProperty("status").onInterface(INTERFACE_NAME);
     }
 
     // setting the property value
     void status(const uint32_t& value)
     {
-        object_->setProperty("status").onInterface(INTERFACE_NAME).toValue(value);
+        m_object.setProperty("status").onInterface(INTERFACE_NAME).toValue(value);
     }
 
     /*...*/
@@ -1487,13 +1487,13 @@ public:
     // getting the property value
     sdbus::PendingAsyncCall status()
     {
-        return object_->getPropertyAsync("status").onInterface(INTERFACE_NAME).uponReplyInvoke([this](std::optional<sdbus::Error> error, const sdbus::Variant& value){ this->onStatusPropertyGetReply(value.get<uint32_t>(), std::move(error)); });
+        return m_object.getPropertyAsync("status").onInterface(INTERFACE_NAME).uponReplyInvoke([this](std::optional<sdbus::Error> error, const sdbus::Variant& value){ this->onStatusPropertyGetReply(value.get<uint32_t>(), std::move(error)); });
     }
 
     // setting the property value
     void status(const uint32_t& value)
     {
-        object_->setProperty("status").onInterface(INTERFACE_NAME).toValue(value);
+        m_object.setProperty("status").onInterface(INTERFACE_NAME).toValue(value);
     }
 
     /*...*/
@@ -1786,7 +1786,8 @@ sdbus-c++ v2 is a major release that comes with a number of breaking API/ABI/beh
 * Callbacks taking `const sdbus::Error* error` were changed to take `std::optional<sdbus::Error>`, which better expresses the intent and meaning.
 * `getInterfaceName()`, `getMemberName()`, `getSender()`, `getPath()` and `getDestination()` methods of `Message` class now return `const char*` instead of `std::string`, for efficiency reasons.
 * `peekType()` method of `Message` class now returns a pair of `char` (type signature) and `const char*` (contents signature), for expressiveness and efficiency reasons.
-* D-Bus signatures when using high-level API are now assembled at compile time. There are breaking changes inside `signature_of` type traits and `Message` serialization/deserialization methods. This only interests you if you extend sdbus-c++ type system with your own types. See the updated tutorial on extending sdbus-c++ type system. 
+* D-Bus signatures when using high-level API are now assembled at compile time. There are breaking changes inside `signature_of` type traits and `Message` serialization/deserialization methods. This only interests you if you extend sdbus-c++ type system with your own types. See the updated tutorial on extending sdbus-c++ type system.
+* Generated adaptor and proxy classes are not moveable anymore.
 * Types and methods marked deprecated in sdbus-c++ v1 were removed completely.
 * CMake options got `SDBUSCPP_` prefix for better usability and minimal risk of conflicts in downstream CMake projects. `SDBUSCPP_INSTALL` CMake option was added.
 * CMake components got `sdbus-c++-` prefix.

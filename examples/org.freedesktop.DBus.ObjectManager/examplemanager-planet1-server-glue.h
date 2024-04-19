@@ -21,20 +21,20 @@ public:
 
 protected:
     Planet1_adaptor(sdbus::IObject& object)
-        : object_(&object)
+        : m_object(object)
     {
     }
 
     Planet1_adaptor(const Planet1_adaptor&) = delete;
     Planet1_adaptor& operator=(const Planet1_adaptor&) = delete;
-    Planet1_adaptor(Planet1_adaptor&&) = default;
-    Planet1_adaptor& operator=(Planet1_adaptor&&) = default;
+    Planet1_adaptor(Planet1_adaptor&&) = delete;
+    Planet1_adaptor& operator=(Planet1_adaptor&&) = delete;
 
     ~Planet1_adaptor() = default;
 
     void registerAdaptor()
     {
-        object_->addVTable( sdbus::registerMethod("GetPopulation").withOutputParamNames("population").implementedAs([this](){ return this->GetPopulation(); })
+        m_object.addVTable( sdbus::registerMethod("GetPopulation").withOutputParamNames("population").implementedAs([this](){ return this->GetPopulation(); })
                           , sdbus::registerProperty("Name").withGetter([this](){ return this->Name(); })
                           ).forInterface(INTERFACE_NAME);
     }
@@ -46,7 +46,7 @@ private:
     virtual std::string Name() = 0;
 
 private:
-    sdbus::IObject* object_;
+    sdbus::IObject& m_object;
 };
 
 }}} // namespaces
