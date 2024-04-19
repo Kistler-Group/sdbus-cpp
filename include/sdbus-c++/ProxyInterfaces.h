@@ -207,8 +207,8 @@ namespace sdbus {
 
         ProxyInterfaces(const ProxyInterfaces&) = delete;
         ProxyInterfaces& operator=(const ProxyInterfaces&) = delete;
-        ProxyInterfaces(ProxyInterfaces&&) = default;
-        ProxyInterfaces& operator=(ProxyInterfaces&&) = default;
+        ProxyInterfaces(ProxyInterfaces&&) = delete;
+        ProxyInterfaces& operator=(ProxyInterfaces&&) = delete;
         ~ProxyInterfaces() = default;
     };
 

@@ -85,15 +85,15 @@ std::string AdaptorGenerator::processInterface(Node& interface) const
             << tab << "static constexpr const char* INTERFACE_NAME = \"" << ifaceName << "\";" << endl << endl
             << "protected:" << endl
             << tab << className << "(sdbus::IObject& object)" << endl
-            << tab << tab << ": object_(&object)" << endl
+            << tab << tab << ": m_object(object)" << endl
             << tab << "{" << endl
             << tab << "}" << endl << endl;
 
     // Rule of Five
     body << tab << className << "(const " << className << "&) = delete;" << endl;
     body << tab << className << "& operator=(const " << className << "&) = delete;" << endl;
-    body << tab << className << "(" << className << "&&) = default;" << endl;
-    body << tab << className << "& operator=(" << className << "&&) = default;" << endl << endl;
+    body << tab << className << "(" << className << "&&) = delete;" << endl;
+    body << tab << className << "& operator=(" << className << "&&) = delete;" << endl << endl;
 
     body << tab << "~" << className << "() = default;" << endl << endl;
 
@@ -160,7 +160,7 @@ std::string AdaptorGenerator::processInterface(Node& interface) const
     }
 
     body << "private:" << endl
-            << tab << "sdbus::IObject* object_;" << endl
+            << tab << "sdbus::IObject& m_object;" << endl
             << "};" << endl << endl
             << std::string(namespacesCount, '}') << " // namespaces" << endl << endl;
 
@@ -303,7 +303,7 @@ std::tuple<std::vector<std::string>, std::string> AdaptorGenerator::processSigna
 
         signalMethodSS << tab << "void emit" << nameWithCapFirstLetter << "(" << argTypeStr << ")" << endl
                 << tab << "{" << endl
-                << tab << tab << "object_->emitSignal(\"" << name << "\")"
+                << tab << tab << "m_object.emitSignal(\"" << name << "\")"
                         ".onInterface(INTERFACE_NAME)";
 
         if (!argStr.empty())
@@ -402,11 +402,11 @@ std::string AdaptorGenerator::createVTableRegistration(const std::string& annota
     std::ostringstream registrationSS;
     if (allRegistrations.size() == 1)
     {
-        registrationSS << tab << tab << "object_->addVTable(" << allRegistrations[0] << ").forInterface(INTERFACE_NAME);";
+        registrationSS << tab << tab << "m_object.addVTable(" << allRegistrations[0] << ").forInterface(INTERFACE_NAME);";
     }
     else
     {
-        registrationSS     << tab << tab << "object_->addVTable( " << allRegistrations[0] << endl;
+        registrationSS     << tab << tab << "m_object.addVTable( " << allRegistrations[0] << endl;
         for (size_t i = 1; i < allRegistrations.size(); ++i)
             registrationSS << tab << tab << "                  , " << allRegistrations[i] << endl;
         registrationSS     << tab << tab << "                  ).forInterface(INTERFACE_NAME);";

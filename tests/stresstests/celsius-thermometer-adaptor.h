@@ -22,27 +22,27 @@ public:
 
 protected:
     thermometer_adaptor(sdbus::IObject& object)
-        : object_(&object)
+        : m_object(object)
     {
     }
 
     thermometer_adaptor(const thermometer_adaptor&) = delete;
     thermometer_adaptor& operator=(const thermometer_adaptor&) = delete;
-    thermometer_adaptor(thermometer_adaptor&&) = default;
-    thermometer_adaptor& operator=(thermometer_adaptor&&) = default;
+    thermometer_adaptor(thermometer_adaptor&&) = delete;
+    thermometer_adaptor& operator=(thermometer_adaptor&&) = delete;
 
     ~thermometer_adaptor() = default;
 
     void registerAdaptor()
     {
-        object_->addVTable(sdbus::registerMethod("getCurrentTemperature").withOutputParamNames("result").implementedAs([this](){ return this->getCurrentTemperature(); })).forInterface(INTERFACE_NAME);
+        m_object.addVTable(sdbus::registerMethod("getCurrentTemperature").withOutputParamNames("result").implementedAs([this](){ return this->getCurrentTemperature(); })).forInterface(INTERFACE_NAME);
     }
 
 private:
     virtual uint32_t getCurrentTemperature() = 0;
 
 private:
-    sdbus::IObject* object_;
+    sdbus::IObject& m_object;
 };
 
 }}}} // namespaces

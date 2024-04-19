@@ -22,27 +22,27 @@ public:
 
 protected:
     thermometer_adaptor(sdbus::IObject& object)
-        : object_(&object)
+        : m_object(object)
     {
     }
 
     thermometer_adaptor(const thermometer_adaptor&) = delete;
     thermometer_adaptor& operator=(const thermometer_adaptor&) = delete;
-    thermometer_adaptor(thermometer_adaptor&&) = default;
-    thermometer_adaptor& operator=(thermometer_adaptor&&) = default;
+    thermometer_adaptor(thermometer_adaptor&&) = delete;
+    thermometer_adaptor& operator=(thermometer_adaptor&&) = delete;
 
     ~thermometer_adaptor() = default;
 
     void registerAdaptor()
     {
-        object_->addVTable(sdbus::registerMethod("getCurrentTemperature").withOutputParamNames("result").implementedAs([this](){ return this->getCurrentTemperature(); })).forInterface(INTERFACE_NAME);
+        m_object.addVTable(sdbus::registerMethod("getCurrentTemperature").withOutputParamNames("result").implementedAs([this](){ return this->getCurrentTemperature(); })).forInterface(INTERFACE_NAME);
     }
 
 private:
     virtual uint32_t getCurrentTemperature() = 0;
 
 private:
-    sdbus::IObject* object_;
+    sdbus::IObject& m_object;
 };
 
 }}}} // namespaces
@@ -60,20 +60,20 @@ public:
 
 protected:
     factory_adaptor(sdbus::IObject& object)
-        : object_(&object)
+        : m_object(object)
     {
     }
 
     factory_adaptor(const factory_adaptor&) = delete;
     factory_adaptor& operator=(const factory_adaptor&) = delete;
-    factory_adaptor(factory_adaptor&&) = default;
-    factory_adaptor& operator=(factory_adaptor&&) = default;
+    factory_adaptor(factory_adaptor&&) = delete;
+    factory_adaptor& operator=(factory_adaptor&&) = delete;
 
     ~factory_adaptor() = default;
 
     void registerAdaptor()
     {
-        object_->addVTable( sdbus::registerMethod("createDelegateObject").withOutputParamNames("delegate").implementedAs([this](sdbus::Result<sdbus::ObjectPath>&& result){ this->createDelegateObject(std::move(result)); })
+        m_object.addVTable( sdbus::registerMethod("createDelegateObject").withOutputParamNames("delegate").implementedAs([this](sdbus::Result<sdbus::ObjectPath>&& result){ this->createDelegateObject(std::move(result)); })
                           , sdbus::registerMethod("destroyDelegateObject").withInputParamNames("delegate").implementedAs([this](sdbus::Result<>&& result, sdbus::ObjectPath delegate){ this->destroyDelegateObject(std::move(result), std::move(delegate)); }).withNoReply()
                           ).forInterface(INTERFACE_NAME);
     }
@@ -83,7 +83,7 @@ private:
     virtual void destroyDelegateObject(sdbus::Result<>&& result, sdbus::ObjectPath delegate) = 0;
 
 private:
-    sdbus::IObject* object_;
+    sdbus::IObject& m_object;
 };
 
 }}}}} // namespaces

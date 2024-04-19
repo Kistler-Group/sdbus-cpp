@@ -20,20 +20,20 @@ public:
 
 protected:
     integrationtests_adaptor(sdbus::IObject& object)
-        : object_(&object)
+        : m_object(object)
     {
     }
 
     integrationtests_adaptor(const integrationtests_adaptor&) = delete;
     integrationtests_adaptor& operator=(const integrationtests_adaptor&) = delete;
-    integrationtests_adaptor(integrationtests_adaptor&&) = default;
-    integrationtests_adaptor& operator=(integrationtests_adaptor&&) = default;
+    integrationtests_adaptor(integrationtests_adaptor&&) = delete;
+    integrationtests_adaptor& operator=(integrationtests_adaptor&&) = delete;
 
     ~integrationtests_adaptor() = default;
 
     void registerAdaptor()
     {
-        object_->addVTable( sdbus::setInterfaceFlags().markAsDeprecated().withPropertyUpdateBehavior(sdbus::Flags::EMITS_NO_SIGNAL)
+        m_object.addVTable( sdbus::setInterfaceFlags().markAsDeprecated().withPropertyUpdateBehavior(sdbus::Flags::EMITS_NO_SIGNAL)
                           , sdbus::registerMethod("noArgNoReturn").implementedAs([this](){ return this->noArgNoReturn(); })
                           , sdbus::registerMethod("getInt").withOutputParamNames("anInt").implementedAs([this](){ return this->getInt(); })
                           , sdbus::registerMethod("getTuple").withOutputParamNames("arg0", "arg1").implementedAs([this](){ return this->getTuple(); })
@@ -67,17 +67,17 @@ protected:
 public:
     void emitSimpleSignal()
     {
-        object_->emitSignal("simpleSignal").onInterface(INTERFACE_NAME);
+        m_object.emitSignal("simpleSignal").onInterface(INTERFACE_NAME);
     }
 
     void emitSignalWithMap(const std::map<int32_t, std::string>& aMap)
     {
-        object_->emitSignal("signalWithMap").onInterface(INTERFACE_NAME).withArguments(aMap);
+        m_object.emitSignal("signalWithMap").onInterface(INTERFACE_NAME).withArguments(aMap);
     }
 
     void emitSignalWithVariant(const sdbus::Variant& aVariant)
     {
-        object_->emitSignal("signalWithVariant").onInterface(INTERFACE_NAME).withArguments(aVariant);
+        m_object.emitSignal("signalWithVariant").onInterface(INTERFACE_NAME).withArguments(aVariant);
     }
 
 private:
@@ -111,7 +111,7 @@ private:
     virtual std::string state() = 0;
 
 private:
-    sdbus::IObject* object_;
+    sdbus::IObject& m_object;
 };
 
 }} // namespaces
