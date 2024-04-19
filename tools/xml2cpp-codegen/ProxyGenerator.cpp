@@ -84,15 +84,15 @@ std::string ProxyGenerator::processInterface(Node& interface) const
             << tab << "static constexpr const char* INTERFACE_NAME = \"" << ifaceName << "\";" << endl << endl
             << "protected:" << endl
             << tab << className << "(sdbus::IProxy& proxy)" << endl
-            << tab << tab << ": proxy_(&proxy)" << endl
+            << tab << tab << ": m_proxy(proxy)" << endl
             << tab << "{" << endl
             << tab << "}" << endl << endl;
 
     // Rule of Five
     body << tab << className << "(const " << className << "&) = delete;" << endl;
     body << tab << className << "& operator=(const " << className << "&) = delete;" << endl;
-    body << tab << className << "(" << className << "&&) = default;" << endl;
-    body << tab << className << "& operator=(" << className << "&&) = default;" << endl << endl;
+    body << tab << className << "(" << className << "&&) = delete;" << endl;
+    body << tab << className << "& operator=(" << className << "&&) = delete;" << endl << endl;
 
     body << tab << "~" << className << "() = default;" << endl << endl;
 
@@ -136,7 +136,7 @@ std::string ProxyGenerator::processInterface(Node& interface) const
     }
 
     body << "private:" << endl
-            << tab << "sdbus::IProxy* proxy_;" << endl
+            << tab << "sdbus::IProxy& m_proxy;" << endl
             << "};" << endl << endl
             << std::string(namespacesCount, '}') << " // namespaces" << endl << endl;
 
@@ -226,7 +226,7 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes&
         }
 
         definitionSS << tab << tab << (async && !dontExpectReply ? "return " : "")
-                     << "proxy_->callMethod" << (async ? "Async" : "") << "(\"" << name << "\").onInterface(INTERFACE_NAME)";
+                     << "m_proxy.callMethod" << (async ? "Async" : "") << "(\"" << name << "\").onInterface(INTERFACE_NAME)";
 
         if (!timeoutValue.empty())
         {
@@ -289,8 +289,8 @@ std::tuple<std::string, std::string> ProxyGenerator::processSignals(const Nodes&
         std::string argStr, argTypeStr;
         std::tie(argStr, argTypeStr, std::ignore, std::ignore) = argsToNamesAndTypes(args);
 
-        registrationSS << tab << tab << "proxy_"
-                "->uponSignal(\"" << name << "\")"
+        registrationSS << tab << tab << "m_proxy"
+                ".uponSignal(\"" << name << "\")"
                 ".onInterface(INTERFACE_NAME)"
                 ".call([this](" << argTypeStr << ")"
                 "{ this->on" << nameBigFirst << "(" << argStr << "); });" << endl;
@@ -346,9 +346,13 @@ std::tuple<std::string, std::string> ProxyGenerator::processProperties(const Nod
 
             propertySS << tab << realRetType << " " << propertyNameSafe << "()" << endl
                     << tab << "{" << endl;
-            propertySS << tab << tab << "return proxy_->getProperty" << (asyncGet ? "Async" : "") << "(\"" << propertyName << "\")"
+            propertySS << tab << tab << "return m_proxy.getProperty" << (asyncGet ? "Async" : "") << "(\"" << propertyName << "\")"
                             ".onInterface(INTERFACE_NAME)";
-            if (asyncGet)
+            if (!asyncGet)
+            {
+                propertySS << ".get<" << realRetType << ">()";
+            }
+            else
             {
                 auto nameBigFirst = propertyName;
                 nameBigFirst[0] = islower(nameBigFirst[0]) ? nameBigFirst[0] + 'A' - 'a' : nameBigFirst[0];
@@ -375,7 +379,7 @@ std::tuple<std::string, std::string> ProxyGenerator::processProperties(const Nod
 
             propertySS << tab << realRetType << " " << propertyNameSafe << "(" << propertyTypeArg << ")" << endl
                        << tab << "{" << endl;
-            propertySS << tab << tab << (asyncSet ? "return " : "") << "proxy_->setProperty" << (asyncSet ? "Async" : "")
+            propertySS << tab << tab << (asyncSet ? "return " : "") << "m_proxy.setProperty" << (asyncSet ? "Async" : "")
                        << "(\"" << propertyName << "\")"
                             ".onInterface(INTERFACE_NAME)"
                             ".toValue(" << propertyArg << ")";

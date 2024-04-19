@@ -142,8 +142,8 @@ namespace sdbus {
 
         AdaptorInterfaces(const AdaptorInterfaces&) = delete;
         AdaptorInterfaces& operator=(const AdaptorInterfaces&) = delete;
-        AdaptorInterfaces(AdaptorInterfaces&&) = default;
-        AdaptorInterfaces& operator=(AdaptorInterfaces&&) = default;
+        AdaptorInterfaces(AdaptorInterfaces&&) = delete;
+        AdaptorInterfaces& operator=(AdaptorInterfaces&&) = delete;
         ~AdaptorInterfaces() = default;
     };
 
