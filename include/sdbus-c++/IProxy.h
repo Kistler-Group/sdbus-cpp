@@ -67,9 +67,290 @@ namespace sdbus {
      ***********************************************/
     class IProxy
     {
-    public:
+    public: // High-level, convenience API
         virtual ~IProxy() = default;
 
+        /*!
+         * @brief Calls method on the D-Bus object
+         *
+         * @param[in] methodName Name of the method
+         * @return A helper object for convenient invocation of the method
+         *
+         * This is a high-level, convenience way of calling D-Bus methods that abstracts
+         * from the D-Bus message concept. Method arguments/return value are automatically (de)serialized
+         * in a message and D-Bus signatures automatically deduced from the provided native arguments
+         * and return values.
+         *
+         * Example of use:
+         * @code
+         * int result, a = ..., b = ...;
+         * MethodName multiply{"multiply"};
+         * object_.callMethod(multiply).onInterface(INTERFACE_NAME).withArguments(a, b).storeResultsTo(result);
+         * @endcode
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] MethodInvoker callMethod(const MethodName& methodName);
+
+        /*!
+         * @copydoc IProxy::callMethod(const MethodName&)
+         */
+        [[nodiscard]] MethodInvoker callMethod(const std::string& methodName);
+
+        /*!
+         * @copydoc IProxy::callMethod(const MethodName&)
+         */
+        [[nodiscard]] MethodInvoker callMethod(const char* methodName);
+
+        /*!
+         * @brief Calls method on the D-Bus object asynchronously
+         *
+         * @param[in] methodName Name of the method
+         * @return A helper object for convenient asynchronous invocation of the method
+         *
+         * This is a high-level, convenience way of calling D-Bus methods that abstracts
+         * from the D-Bus message concept. Method arguments/return value are automatically (de)serialized
+         * in a message and D-Bus signatures automatically deduced from the provided native arguments
+         * and return values.
+         *
+         * Example of use:
+         * @code
+         * int a = ..., b = ...;
+         * MethodName multiply{"multiply"};
+         * object_.callMethodAsync(multiply).onInterface(INTERFACE_NAME).withArguments(a, b).uponReplyInvoke([](int result)
+         * {
+         *     std::cout << "Got result of multiplying " << a << " and " << b << ": " << result << std::endl;
+         * });
+         * @endcode
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] AsyncMethodInvoker callMethodAsync(const MethodName& methodName);
+
+        /*!
+         * @copydoc IProxy::callMethodAsync(const MethodName&)
+         */
+        [[nodiscard]] AsyncMethodInvoker callMethodAsync(const std::string& methodName);
+
+        /*!
+         * @copydoc IProxy::callMethodAsync(const MethodName&)
+         */
+        [[nodiscard]] AsyncMethodInvoker callMethodAsync(const char* methodName);
+
+        /*!
+         * @brief Registers signal handler for a given signal of the D-Bus object
+         *
+         * @param[in] signalName Name of the signal
+         * @return A helper object for convenient registration of the signal handler
+         *
+         * This is a high-level, convenience way of registering to D-Bus signals that abstracts
+         * from the D-Bus message concept. Signal arguments are automatically serialized
+         * in a message and D-Bus signatures automatically deduced from the parameters
+         * of the provided native signal callback.
+         *
+         * A signal can be subscribed to and unsubscribed from at any time during proxy
+         * lifetime. The subscription is active immediately after the call.
+         *
+         * Example of use:
+         * @code
+         * object_.uponSignal("stateChanged").onInterface("com.kistler.foo").call([this](int arg1, double arg2){ this->onStateChanged(arg1, arg2); });
+         * sdbus::InterfaceName foo{"com.kistler.foo"};
+         * sdbus::SignalName levelChanged{"levelChanged"};
+         * object_.uponSignal(levelChanged).onInterface(foo).call([this](uint16_t level){ this->onLevelChanged(level); });
+         * @endcode
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] SignalSubscriber uponSignal(const SignalName& signalName);
+
+        /*!
+         * @copydoc IProxy::uponSignal(const SignalName&)
+         */
+        [[nodiscard]] SignalSubscriber uponSignal(const std::string& signalName);
+
+        /*!
+         * @copydoc IProxy::uponSignal(const SignalName&)
+         */
+        [[nodiscard]] SignalSubscriber uponSignal(const char* signalName);
+
+        /*!
+         * @brief Gets value of a property of the D-Bus object
+         *
+         * @param[in] propertyName Name of the property
+         * @return A helper object for convenient getting of property value
+         *
+         * This is a high-level, convenience way of reading D-Bus property values that abstracts
+         * from the D-Bus message concept. sdbus::Variant is returned which shall then be converted
+         * to the real property type (implicit conversion is supported).
+         *
+         * Example of use:
+         * @code
+         * int state = object.getProperty("state").onInterface("com.kistler.foo");
+         * sdbus::InterfaceName foo{"com.kistler.foo"};
+         * sdbus::PropertyName level{"level"};
+         * int level = object.getProperty(level).onInterface(foo);
+         * @endcode
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] PropertyGetter getProperty(const PropertyName& propertyName);
+
+        /*!
+         * @copydoc IProxy::getProperty(const PropertyName&)
+         */
+        [[nodiscard]] PropertyGetter getProperty(std::string_view propertyName);
+
+        /*!
+         * @brief Gets value of a property of the D-Bus object asynchronously
+         *
+         * @param[in] propertyName Name of the property
+         * @return A helper object for convenient asynchronous getting of property value
+         *
+         * This is a high-level, convenience way of reading D-Bus property values that abstracts
+         * from the D-Bus message concept.
+         *
+         * Example of use:
+         * @code
+         * std::future<sdbus::Variant> state = object.getPropertyAsync("state").onInterface("com.kistler.foo").getResultAsFuture();
+         * auto callback = [](std::optional<sdbus::Error> err, const sdbus::Variant& value){ ... };
+         * object.getPropertyAsync("state").onInterface("com.kistler.foo").uponReplyInvoke(std::move(callback));
+         * @endcode
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] AsyncPropertyGetter getPropertyAsync(const PropertyName& propertyName);
+
+        /*!
+         * @copydoc IProxy::getPropertyAsync(const PropertyName&)
+         */
+        [[nodiscard]] AsyncPropertyGetter getPropertyAsync(std::string_view propertyName);
+
+        /*!
+         * @brief Sets value of a property of the D-Bus object
+         *
+         * @param[in] propertyName Name of the property
+         * @return A helper object for convenient setting of property value
+         *
+         * This is a high-level, convenience way of writing D-Bus property values that abstracts
+         * from the D-Bus message concept.
+         * Setting property value with NoReply flag is also supported.
+         *
+         * Example of use:
+         * @code
+         * int state = ...;
+         * object_.setProperty("state").onInterface("com.kistler.foo").toValue(state);
+         * // Or we can just send the set message call without waiting for the reply
+         * object_.setProperty("state").onInterface("com.kistler.foo").toValue(state, dont_expect_reply);
+         * @endcode
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] PropertySetter setProperty(const PropertyName& propertyName);
+
+        /*!
+         * @copydoc IProxy::setProperty(const PropertyName&)
+         */
+        [[nodiscard]] PropertySetter setProperty(std::string_view propertyName);
+
+        /*!
+         * @brief Sets value of a property of the D-Bus object asynchronously
+         *
+         * @param[in] propertyName Name of the property
+         * @return A helper object for convenient asynchronous setting of property value
+         *
+         * This is a high-level, convenience way of writing D-Bus property values that abstracts
+         * from the D-Bus message concept.
+         *
+         * Example of use:
+         * @code
+         * int state = ...;
+         * // We can wait until the set operation finishes by waiting on the future
+         * std::future<void> res = object_.setPropertyAsync("state").onInterface("com.kistler.foo").toValue(state).getResultAsFuture();
+         * @endcode
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] AsyncPropertySetter setPropertyAsync(const PropertyName& propertyName);
+
+        /*!
+         * @copydoc IProxy::setPropertyAsync(const PropertyName&)
+         */
+        [[nodiscard]] AsyncPropertySetter setPropertyAsync(std::string_view propertyName);
+
+        /*!
+         * @brief Gets values of all properties of the D-Bus object
+         *
+         * @return A helper object for convenient getting of properties' values
+         *
+         * This is a high-level, convenience way of reading D-Bus properties' values that abstracts
+         * from the D-Bus message concept.
+         *
+         * Example of use:
+         * @code
+         * auto props = object.getAllProperties().onInterface("com.kistler.foo");
+         * @endcode
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] AllPropertiesGetter getAllProperties();
+
+        /*!
+         * @brief Gets values of all properties of the D-Bus object asynchronously
+         *
+         * @return A helper object for convenient asynchronous getting of properties' values
+         *
+         * This is a high-level, convenience way of reading D-Bus properties' values that abstracts
+         * from the D-Bus message concept.
+         *
+         * Example of use:
+         * @code
+         * auto callback = [](std::optional<sdbus::Error> err, const std::map<PropertyName, Variant>>& properties){ ... };
+         * auto props = object.getAllPropertiesAsync().onInterface("com.kistler.foo").uponReplyInvoke(std::move(callback));
+         * @endcode
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] AsyncAllPropertiesGetter getAllPropertiesAsync();
+
+        /*!
+         * @brief Provides D-Bus connection used by the proxy
+         *
+         * @return Reference to the D-Bus connection
+         */
+        [[nodiscard]] virtual sdbus::IConnection& getConnection() const = 0;
+
+        /*!
+         * @brief Returns object path of the underlying DBus object
+         */
+        [[nodiscard]] virtual const ObjectPath& getObjectPath() const = 0;
+
+        /*!
+         * @brief Provides access to the currently processed D-Bus message
+         *
+         * This method provides access to the currently processed incoming D-Bus message.
+         * "Currently processed" means that the registered callback handler(s) for that message
+         * are being invoked. This method is meant to be called from within a callback handler
+         * (e.g. from a D-Bus signal handler, or async method reply handler, etc.). In such a case it is
+         * guaranteed to return a valid D-Bus message instance for which the handler is called.
+         * If called from other contexts/threads, it may return a valid or invalid message, depending
+         * on whether a message was processed or not at the time of the call.
+         *
+         * @return Currently processed D-Bus message
+         */
+        [[nodiscard]] virtual Message getCurrentlyProcessedMessage() const = 0;
+
+        /*!
+         * @brief Unregisters proxy's signal handlers and stops receiving replies to pending async calls
+         *
+         * Unregistration is done automatically also in proxy's destructor. This method makes
+         * sense if, in the process of proxy removal, we need to make sure that callbacks
+         * are unregistered explicitly before the final destruction of the proxy instance.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual void unregister() = 0;
+
+    public: // Lower-level, message-based API
         /*!
          * @brief Creates a method call message
          *
@@ -326,73 +607,6 @@ namespace sdbus {
                                                 , with_future_t );
 
         /*!
-         * @brief Calls method on the D-Bus object
-         *
-         * @param[in] methodName Name of the method
-         * @return A helper object for convenient invocation of the method
-         *
-         * This is a high-level, convenience way of calling D-Bus methods that abstracts
-         * from the D-Bus message concept. Method arguments/return value are automatically (de)serialized
-         * in a message and D-Bus signatures automatically deduced from the provided native arguments
-         * and return values.
-         *
-         * Example of use:
-         * @code
-         * int result, a = ..., b = ...;
-         * MethodName multiply{"multiply"};
-         * object_.callMethod(multiply).onInterface(INTERFACE_NAME).withArguments(a, b).storeResultsTo(result);
-         * @endcode
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        [[nodiscard]] MethodInvoker callMethod(const MethodName& methodName);
-
-        /*!
-         * @copydoc IProxy::callMethod(const MethodName&)
-         */
-        [[nodiscard]] MethodInvoker callMethod(const std::string& methodName);
-
-        /*!
-         * @copydoc IProxy::callMethod(const MethodName&)
-         */
-        [[nodiscard]] MethodInvoker callMethod(const char* methodName);
-
-        /*!
-         * @brief Calls method on the D-Bus object asynchronously
-         *
-         * @param[in] methodName Name of the method
-         * @return A helper object for convenient asynchronous invocation of the method
-         *
-         * This is a high-level, convenience way of calling D-Bus methods that abstracts
-         * from the D-Bus message concept. Method arguments/return value are automatically (de)serialized
-         * in a message and D-Bus signatures automatically deduced from the provided native arguments
-         * and return values.
-         *
-         * Example of use:
-         * @code
-         * int a = ..., b = ...;
-         * MethodName multiply{"multiply"};
-         * object_.callMethodAsync(multiply).onInterface(INTERFACE_NAME).withArguments(a, b).uponReplyInvoke([](int result)
-         * {
-         *     std::cout << "Got result of multiplying " << a << " and " << b << ": " << result << std::endl;
-         * });
-         * @endcode
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        [[nodiscard]] AsyncMethodInvoker callMethodAsync(const MethodName& methodName);
-
-        /*!
-         * @copydoc IProxy::callMethodAsync(const MethodName&)
-         */
-        [[nodiscard]] AsyncMethodInvoker callMethodAsync(const std::string& methodName);
-
-        /*!
-         * @copydoc IProxy::callMethodAsync(const MethodName&)
-         */
-        [[nodiscard]] AsyncMethodInvoker callMethodAsync(const char* methodName);
-
-        /*!
          * @brief Registers a handler for the desired signal emitted by the D-Bus object
          *
          * @param[in] interfaceName Name of an interface that the signal belongs to
@@ -433,220 +647,7 @@ namespace sdbus {
                                                         , signal_handler signalHandler
                                                         , return_slot_t ) = 0;
 
-        /*!
-         * @brief Registers signal handler for a given signal of the D-Bus object
-         *
-         * @param[in] signalName Name of the signal
-         * @return A helper object for convenient registration of the signal handler
-         *
-         * This is a high-level, convenience way of registering to D-Bus signals that abstracts
-         * from the D-Bus message concept. Signal arguments are automatically serialized
-         * in a message and D-Bus signatures automatically deduced from the parameters
-         * of the provided native signal callback.
-         *
-         * A signal can be subscribed to and unsubscribed from at any time during proxy
-         * lifetime. The subscription is active immediately after the call.
-         *
-         * Example of use:
-         * @code
-         * object_.uponSignal("stateChanged").onInterface("com.kistler.foo").call([this](int arg1, double arg2){ this->onStateChanged(arg1, arg2); });
-         * sdbus::InterfaceName foo{"com.kistler.foo"};
-         * sdbus::SignalName levelChanged{"levelChanged"};
-         * object_.uponSignal(levelChanged).onInterface(foo).call([this](uint16_t level){ this->onLevelChanged(level); });
-         * @endcode
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        [[nodiscard]] SignalSubscriber uponSignal(const SignalName& signalName);
-
-        /*!
-         * @copydoc IProxy::uponSignal(const SignalName&)
-         */
-        [[nodiscard]] SignalSubscriber uponSignal(const std::string& signalName);
-
-        /*!
-         * @copydoc IProxy::uponSignal(const SignalName&)
-         */
-        [[nodiscard]] SignalSubscriber uponSignal(const char* signalName);
-
-        /*!
-         * @brief Unregisters proxy's signal handlers and stops receiving replies to pending async calls
-         *
-         * Unregistration is done automatically also in proxy's destructor. This method makes
-         * sense if, in the process of proxy removal, we need to make sure that callbacks
-         * are unregistered explicitly before the final destruction of the proxy instance.
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        virtual void unregister() = 0;
-
-        /*!
-         * @brief Gets value of a property of the D-Bus object
-         *
-         * @param[in] propertyName Name of the property
-         * @return A helper object for convenient getting of property value
-         *
-         * This is a high-level, convenience way of reading D-Bus property values that abstracts
-         * from the D-Bus message concept. sdbus::Variant is returned which shall then be converted
-         * to the real property type (implicit conversion is supported).
-         *
-         * Example of use:
-         * @code
-         * int state = object.getProperty("state").onInterface("com.kistler.foo");
-         * sdbus::InterfaceName foo{"com.kistler.foo"};
-         * sdbus::PropertyName level{"level"};
-         * int level = object.getProperty(level).onInterface(foo);
-         * @endcode
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        [[nodiscard]] PropertyGetter getProperty(const PropertyName& propertyName);
-
-        /*!
-         * @copydoc IProxy::getProperty(const PropertyName&)
-         */
-        [[nodiscard]] PropertyGetter getProperty(std::string_view propertyName);
-
-        /*!
-         * @brief Gets value of a property of the D-Bus object asynchronously
-         *
-         * @param[in] propertyName Name of the property
-         * @return A helper object for convenient asynchronous getting of property value
-         *
-         * This is a high-level, convenience way of reading D-Bus property values that abstracts
-         * from the D-Bus message concept.
-         *
-         * Example of use:
-         * @code
-         * std::future<sdbus::Variant> state = object.getPropertyAsync("state").onInterface("com.kistler.foo").getResultAsFuture();
-         * auto callback = [](std::optional<sdbus::Error> err, const sdbus::Variant& value){ ... };
-         * object.getPropertyAsync("state").onInterface("com.kistler.foo").uponReplyInvoke(std::move(callback));
-         * @endcode
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        [[nodiscard]] AsyncPropertyGetter getPropertyAsync(const PropertyName& propertyName);
-
-        /*!
-         * @copydoc IProxy::getPropertyAsync(const PropertyName&)
-         */
-        [[nodiscard]] AsyncPropertyGetter getPropertyAsync(std::string_view propertyName);
-
-        /*!
-         * @brief Sets value of a property of the D-Bus object
-         *
-         * @param[in] propertyName Name of the property
-         * @return A helper object for convenient setting of property value
-         *
-         * This is a high-level, convenience way of writing D-Bus property values that abstracts
-         * from the D-Bus message concept.
-         * Setting property value with NoReply flag is also supported.
-         *
-         * Example of use:
-         * @code
-         * int state = ...;
-         * object_.setProperty("state").onInterface("com.kistler.foo").toValue(state);
-         * // Or we can just send the set message call without waiting for the reply
-         * object_.setProperty("state").onInterface("com.kistler.foo").toValue(state, dont_expect_reply);
-         * @endcode
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        [[nodiscard]] PropertySetter setProperty(const PropertyName& propertyName);
-
-        /*!
-         * @copydoc IProxy::setProperty(const PropertyName&)
-         */
-        [[nodiscard]] PropertySetter setProperty(std::string_view propertyName);
-
-        /*!
-         * @brief Sets value of a property of the D-Bus object asynchronously
-         *
-         * @param[in] propertyName Name of the property
-         * @return A helper object for convenient asynchronous setting of property value
-         *
-         * This is a high-level, convenience way of writing D-Bus property values that abstracts
-         * from the D-Bus message concept.
-         *
-         * Example of use:
-         * @code
-         * int state = ...;
-         * // We can wait until the set operation finishes by waiting on the future
-         * std::future<void> res = object_.setPropertyAsync("state").onInterface("com.kistler.foo").toValue(state).getResultAsFuture();
-         * @endcode
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        [[nodiscard]] AsyncPropertySetter setPropertyAsync(const PropertyName& propertyName);
-
-        /*!
-         * @copydoc IProxy::setPropertyAsync(const PropertyName&)
-         */
-        [[nodiscard]] AsyncPropertySetter setPropertyAsync(std::string_view propertyName);
-
-        /*!
-         * @brief Gets values of all properties of the D-Bus object
-         *
-         * @return A helper object for convenient getting of properties' values
-         *
-         * This is a high-level, convenience way of reading D-Bus properties' values that abstracts
-         * from the D-Bus message concept.
-         *
-         * Example of use:
-         * @code
-         * auto props = object.getAllProperties().onInterface("com.kistler.foo");
-         * @endcode
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        [[nodiscard]] AllPropertiesGetter getAllProperties();
-
-        /*!
-         * @brief Gets values of all properties of the D-Bus object asynchronously
-         *
-         * @return A helper object for convenient asynchronous getting of properties' values
-         *
-         * This is a high-level, convenience way of reading D-Bus properties' values that abstracts
-         * from the D-Bus message concept.
-         *
-         * Example of use:
-         * @code
-         * auto callback = [](std::optional<sdbus::Error> err, const std::map<PropertyName, Variant>>& properties){ ... };
-         * auto props = object.getAllPropertiesAsync().onInterface("com.kistler.foo").uponReplyInvoke(std::move(callback));
-         * @endcode
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        [[nodiscard]] AsyncAllPropertiesGetter getAllPropertiesAsync();
-
-        /*!
-         * @brief Provides D-Bus connection used by the proxy
-         *
-         * @return Reference to the D-Bus connection
-         */
-        [[nodiscard]] virtual sdbus::IConnection& getConnection() const = 0;
-
-        /*!
-         * @brief Returns object path of the underlying DBus object
-         */
-        [[nodiscard]] virtual const ObjectPath& getObjectPath() const = 0;
-
-        /*!
-         * @brief Provides access to the currently processed D-Bus message
-         *
-         * This method provides access to the currently processed incoming D-Bus message.
-         * "Currently processed" means that the registered callback handler(s) for that message
-         * are being invoked. This method is meant to be called from within a callback handler
-         * (e.g. from a D-Bus signal handler, or async method reply handler, etc.). In such a case it is
-         * guaranteed to return a valid D-Bus message instance for which the handler is called.
-         * If called from other contexts/threads, it may return a valid or invalid message, depending
-         * on whether a message was processed or not at the time of the call.
-         *
-         * @return Currently processed D-Bus message
-         */
-        [[nodiscard]] virtual Message getCurrentlyProcessedMessage() const = 0;
-
-    protected:
+    protected: // Internal API for efficiency reasons used by high-level API helper classes
         friend MethodInvoker;
         friend AsyncMethodInvoker;
         friend SignalSubscriber;

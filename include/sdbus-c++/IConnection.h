@@ -65,31 +65,6 @@ namespace sdbus {
         virtual ~IConnection() = default;
 
         /*!
-         * @brief Requests a well-known D-Bus service name on a bus
-         *
-         * @param[in] name Name to request
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        virtual void requestName(const ServiceName& name) = 0;
-
-        /*!
-         * @brief Releases an acquired well-known D-Bus service name on a bus
-         *
-         * @param[in] name Name to release
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        virtual void releaseName(const ServiceName& name) = 0;
-
-        /*!
-         * @brief Retrieves the unique name of a connection. E.g. ":1.xx"
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        [[nodiscard]] virtual BusName getUniqueName() const = 0;
-
-        /*!
          * @brief Enters I/O event loop on this bus connection
          *
          * The incoming D-Bus messages are processed in the loop. The method
@@ -341,6 +316,31 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         virtual void addMatchAsync(const std::string& match, message_handler callback, message_handler installCallback, floating_slot_t) = 0;
+
+        /*!
+         * @brief Retrieves the unique name of a connection. E.g. ":1.xx"
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] virtual BusName getUniqueName() const = 0;
+
+        /*!
+         * @brief Requests a well-known D-Bus service name on a bus
+         *
+         * @param[in] name Name to request
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual void requestName(const ServiceName& name) = 0;
+
+        /*!
+         * @brief Releases an acquired well-known D-Bus service name on a bus
+         *
+         * @param[in] name Name to release
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual void releaseName(const ServiceName& name) = 0;
 
         /*!
          * @struct PollData
