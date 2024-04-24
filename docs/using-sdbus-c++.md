@@ -1798,6 +1798,8 @@ sdbus-c++ v2 is a major release that comes with a number of breaking API/ABI/beh
 * `createDefaultBusConnection()` has been renamed to `createBusConnection()`.
 * `IObject::removeObjectManager()` and `IObject::hasObjectManager()` were removed. Clients should now use the slot-returning `IObject::addObjectManager()` to control the `ObjectManager` interface lifetime.
 * `floating_slot_t` tag was removed from `IConnection::addObjectManager()`, the function is now by default floating-slot-based.
+* Slot-returning `IConnection::addMatch()` has gotten the `return_slot_t` tag parameter, while `floating_slot_t` was removed from the floating slot-based overload of the method.
+* Slot-returning `IConnection::addMatchAsync()` has gotten the `return_slot_t` tag parameter, while `floating_slot_t` was removed from the floating slot-based overload of the method.
 * Change in behavior: `Proxy`s now by default call `createBusConnection()` to get a connection when the connection is not provided explicitly by the caller, so they connect to either the session bus or the system bus depending on the context (as opposed to always to the system bus like before).
 * Callbacks taking `const sdbus::Error* error` were changed to take `std::optional<sdbus::Error>`, which better expresses the intent and meaning.
 * `getInterfaceName()`, `getMemberName()`, `getSender()`, `getPath()` and `getDestination()` methods of `Message` class now return `const char*` instead of `std::string`, for efficiency reasons.
@@ -1808,7 +1810,7 @@ sdbus-c++ v2 is a major release that comes with a number of breaking API/ABI/beh
 * CMake options got `SDBUSCPP_` prefix for better usability and minimal risk of conflicts in downstream CMake projects. `SDBUSCPP_INSTALL` CMake option was added.
 * CMake components got `sdbus-c++-` prefix.
 
-Some of these changes required correspoding adaptations in the sdbus-c++ codegen. Hence, your **C++ bindings (if any) must be re-generated** with the new sdbus-c++-xml2cpp v2 in order to use them with sdbus-c++ v2 API.
+An important note: **C++ bindings generated from XML files must be re-generated** with the new `sdbus-c++-xml2cpp` when migrating to sdbus-c++ v2.0.
 
 Conclusion
 ----------

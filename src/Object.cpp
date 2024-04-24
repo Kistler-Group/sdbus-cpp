@@ -67,7 +67,11 @@ Slot Object::addVTable(InterfaceName interfaceName, std::vector<VTableItem> vtab
     internalVTable->sdbusVTable = createInternalSdBusVTable(*internalVTable);
 
     // 3rd step -- register the vtable with sd-bus
-    internalVTable->slot = connection_.addObjectVTable(objectPath_, internalVTable->interfaceName, &internalVTable->sdbusVTable[0], internalVTable.get());
+    internalVTable->slot = connection_.addObjectVTable( objectPath_
+                                                      , internalVTable->interfaceName
+                                                      , &internalVTable->sdbusVTable[0]
+                                                      , internalVTable.get()
+                                                      , return_slot );
 
     // Return vtable wrapped in a Slot object
     return {internalVTable.release(), [](void *ptr){ delete static_cast<VTable*>(ptr); }};

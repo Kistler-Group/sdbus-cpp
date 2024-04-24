@@ -225,7 +225,12 @@ uint64_t Connection::getMethodCallTimeout() const
     return timeout;
 }
 
-Slot Connection::addMatch(const std::string& match, message_handler callback)
+void Connection::addMatch(const std::string& match, message_handler callback)
+{
+    floatingMatchRules_.push_back(addMatch(match, std::move(callback), return_slot));
+}
+
+Slot Connection::addMatch(const std::string& match, message_handler callback, return_slot_t)
 {
     SDBUS_THROW_ERROR_IF(!callback, "Invalid match callback handler provided", EINVAL);
 
@@ -240,12 +245,15 @@ Slot Connection::addMatch(const std::string& match, message_handler callback)
     return {matchInfo.release(), [](void *ptr){ delete static_cast<MatchInfo*>(ptr); }};
 }
 
-void Connection::addMatch(const std::string& match, message_handler callback, floating_slot_t)
+void Connection::addMatchAsync(const std::string& match, message_handler callback, message_handler installCallback)
 {
-    floatingMatchRules_.push_back(addMatch(match, std::move(callback)));
+    floatingMatchRules_.push_back(addMatchAsync(match, std::move(callback), std::move(installCallback), return_slot));
 }
 
-Slot Connection::addMatchAsync(const std::string& match, message_handler callback, message_handler installCallback)
+Slot Connection::addMatchAsync( const std::string& match
+                              , message_handler callback
+                              , message_handler installCallback
+                              , return_slot_t )
 {
     SDBUS_THROW_ERROR_IF(!callback, "Invalid match callback handler provided", EINVAL);
 
@@ -264,11 +272,6 @@ Slot Connection::addMatchAsync(const std::string& match, message_handler callbac
     matchInfo->slot = {slot, [this](void *slot){ sdbus_->sd_bus_slot_unref((sd_bus_slot*)slot); }};
 
     return {matchInfo.release(), [](void *ptr){ delete static_cast<MatchInfo*>(ptr); }};
-}
-
-void Connection::addMatchAsync(const std::string& match, message_handler callback, message_handler installCallback, floating_slot_t)
-{
-    floatingMatchRules_.push_back(addMatchAsync(match, std::move(callback), std::move(installCallback)));
 }
 
 void Connection::attachSdEventLoop(sd_event *event, int priority)
@@ -460,7 +463,8 @@ void Connection::deleteSdEventSource(sd_event_source *s)
 Slot Connection::addObjectVTable( const ObjectPath& objectPath
                                 , const InterfaceName& interfaceName
                                 , const sd_bus_vtable* vtable
-                                , void* userData )
+                                , void* userData
+                                , return_slot_t )
 {
     sd_bus_slot *slot{};
 
@@ -546,24 +550,11 @@ MethodReply Connection::callMethod(const MethodCall& message, uint64_t timeout)
     return reply;
 }
 
-void Connection::callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout, floating_slot_t)
+Slot Connection::callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout, return_slot_t)
 {
     // TODO: Think of ways of optimizing these three locking/unlocking of sdbus mutex (merge into one call?)
     auto timeoutBefore = getEventLoopPollData().timeout;
-    message.send(callback, userData, timeout, floating_slot);
-    auto timeoutAfter = getEventLoopPollData().timeout;
-
-    // An event loop may wait in poll with timeout `t1', while in another thread an async call is made with
-    // timeout `t2'. If `t2' < `t1', then we have to wake up the event loop thread to update its poll timeout.
-    if (timeoutAfter < timeoutBefore)
-        notifyEventLoopToWakeUpFromPoll();
-}
-
-Slot Connection::callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout)
-{
-    // TODO: Think of ways of optimizing these three locking/unlocking of sdbus mutex (merge into one call?)
-    auto timeoutBefore = getEventLoopPollData().timeout;
-    auto slot = message.send(callback, userData, timeout);
+    auto slot = message.send(callback, userData, timeout, return_slot);
     auto timeoutAfter = getEventLoopPollData().timeout;
 
     // An event loop may wait in poll with timeout `t1', while in another thread an async call is made with
@@ -638,7 +629,8 @@ Slot Connection::registerSignalHandler( const char* sender
                                       , const char* interfaceName
                                       , const char* signalName
                                       , sd_bus_message_handler_t callback
-                                      , void* userData )
+                                      , void* userData
+                                      , return_slot_t )
 {
     sd_bus_slot *slot{};
 

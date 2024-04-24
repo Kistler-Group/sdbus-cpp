@@ -108,10 +108,13 @@ namespace sdbus::internal {
         void setMethodCallTimeout(uint64_t timeout) override;
         [[nodiscard]] uint64_t getMethodCallTimeout() const override;
 
-        [[nodiscard]] Slot addMatch(const std::string& match, message_handler callback) override;
-        void addMatch(const std::string& match, message_handler callback, floating_slot_t) override;
-        [[nodiscard]] Slot addMatchAsync(const std::string& match, message_handler callback, message_handler installCallback) override;
-        void addMatchAsync(const std::string& match, message_handler callback, message_handler installCallback, floating_slot_t) override;
+        void addMatch(const std::string& match, message_handler callback) override;
+        [[nodiscard]] Slot addMatch(const std::string& match, message_handler callback, return_slot_t) override;
+        void addMatchAsync(const std::string& match, message_handler callback, message_handler installCallback) override;
+        [[nodiscard]] Slot addMatchAsync( const std::string& match
+                                        , message_handler callback
+                                        , message_handler installCallback
+                                        , return_slot_t ) override;
 
         void attachSdEventLoop(sd_event *event, int priority) override;
         void detachSdEventLoop() override;
@@ -123,7 +126,8 @@ namespace sdbus::internal {
         Slot addObjectVTable( const ObjectPath& objectPath
                             , const InterfaceName& interfaceName
                             , const sd_bus_vtable* vtable
-                            , void* userData ) override;
+                            , void* userData
+                            , return_slot_t ) override;
 
         [[nodiscard]] PlainMessage createPlainMessage() const override;
         [[nodiscard]] MethodCall createMethodCall( const ServiceName& destination
@@ -142,8 +146,7 @@ namespace sdbus::internal {
                                          , const char* signalName ) const override;
 
         MethodReply callMethod(const MethodCall& message, uint64_t timeout) override;
-        void callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout, floating_slot_t) override;
-        Slot callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout) override;
+        Slot callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout, return_slot_t) override;
 
         void emitPropertiesChangedSignal( const ObjectPath& objectPath
                                         , const InterfaceName& interfaceName
@@ -163,7 +166,8 @@ namespace sdbus::internal {
                                   , const char* interfaceName
                                   , const char* signalName
                                   , sd_bus_message_handler_t callback
-                                  , void* userData ) override;
+                                  , void* userData
+                                  , return_slot_t ) override;
 
     private:
         using BusFactory = std::function<int(sd_bus**)>;
