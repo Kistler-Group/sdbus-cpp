@@ -720,8 +720,6 @@ protected:
     Concatenator_adaptor(sdbus::IObject& object)
         : m_object(object)
     {
-        m_object.registerMethod("concatenate").onInterface(INTERFACE_NAME).withInputParamNames("numbers", "separator").withOutputParamNames("concatenatedString").implementedAs([this](const std::vector<int32_t>& numbers, const std::string& separator){ return this->concatenate(numbers, separator); });
-        m_object.registerSignal("concatenated").onInterface(INTERFACE_NAME).withParameters<std::string>("concatenatedString");
     }
 
     Concatenator_adaptor(const Concatenator_adaptor&) = delete;
@@ -730,6 +728,13 @@ protected:
     Concatenator_adaptor& operator=(Concatenator_adaptor&&) = delete;
 
     ~Concatenator_adaptor() = default;
+
+    void registerAdaptor()
+    {
+        m_object.addVTable( sdbus::registerMethod("concatenate").withInputParamNames("numbers", "separator").withOutputParamNames("concatenatedString").implementedAs([this](const std::vector<int32_t>& numbers, const std::string& separator){ return this->concatenate(numbers, separator); })
+                          , sdbus::registerSignal("concatenated").withParameters<std::string>("concatenatedString")
+                          ).forInterface(INTERFACE_NAME);
+    }
 
 public:
     void emitConcatenated(const std::string& concatenatedString)
@@ -779,7 +784,6 @@ protected:
     Concatenator_proxy(sdbus::IProxy& proxy)
         : m_proxy(proxy)
     {
-        m_proxy.uponSignal("concatenated").onInterface(INTERFACE_NAME).call([this](const std::string& concatenatedString){ this->onConcatenated(concatenatedString); });
     }
 
     Concatenator_proxy(const Concatenator_proxy&) = delete;
@@ -788,6 +792,11 @@ protected:
     Concatenator_proxy& operator=(Concatenator_proxy&&) = delete;
 
     ~Concatenator_proxy() = default;
+
+    void registerProxy()
+    {
+        m_proxy.uponSignal("concatenated").onInterface(INTERFACE_NAME).call([this](const std::string& concatenatedString){ this->onConcatenated(concatenatedString); });
+    }
 
     virtual void onConcatenated(const std::string& concatenatedString) = 0;
 
@@ -1407,10 +1416,15 @@ public:
     PropertyProvider_adaptor(sdbus::IObject& object)
         : m_object(object)
     {
-        m_object.registerProperty("status").onInterface(INTERFACE_NAME).withGetter([this](){ return this->status(); }).withSetter([this](const uint32_t& value){ this->status(value); });
     }
 
-    ~PropertyProvider_adaptor() = default;
+    /*...*/
+
+    void registerAdaptor()
+    {
+        m_object.addVTable( sdbus::registerProperty("status").withGetter([this](){ return this->status(); }).withSetter([this](const uint32_t& value){ this->status(value); })
+                          ).forInterface(INTERFACE_NAME);
+    }
 
 private:
     // property getter
@@ -1434,7 +1448,7 @@ public:
     // getting the property value
     uint32_t status()
     {
-        return m_object.getProperty("status").onInterface(INTERFACE_NAME);
+        return m_object.getProperty("status").onInterface(INTERFACE_NAME).get<uint32_t>();
     }
 
     // setting the property value
