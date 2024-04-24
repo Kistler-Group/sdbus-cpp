@@ -1796,6 +1796,8 @@ sdbus-c++ v2 is a major release that comes with a number of breaking API/ABI/beh
 * `AdaptorInterfaces::getObjectPath()` was removed. It can be replaced with `AdaptorInterfaces::getObject().getObjectPath()`.
 * `createConnection()` has been removed. To create a connection to the system bus use `createSystemConnection()` instead.
 * `createDefaultBusConnection()` has been renamed to `createBusConnection()`.
+* `IObject::removeObjectManager()` and `IObject::hasObjectManager()` were removed. Clients should now use the slot-returning `IObject::addObjectManager()` to control the `ObjectManager` interface lifetime.
+* `floating_slot_t` tag was removed from `IConnection::addObjectManager()`, the function is now by default floating-slot-based.
 * Change in behavior: `Proxy`s now by default call `createBusConnection()` to get a connection when the connection is not provided explicitly by the caller, so they connect to either the session bus or the system bus depending on the context (as opposed to always to the system bus like before).
 * Callbacks taking `const sdbus::Error* error` were changed to take `std::optional<sdbus::Error>`, which better expresses the intent and meaning.
 * `getInterfaceName()`, `getMemberName()`, `getSender()`, `getPath()` and `getDestination()` methods of `Message` class now return `const char*` instead of `std::string`, for efficiency reasons.

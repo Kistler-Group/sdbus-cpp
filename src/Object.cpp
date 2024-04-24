@@ -76,7 +76,7 @@ Slot Object::addVTable(InterfaceName interfaceName, std::vector<VTableItem> vtab
 void Object::unregister()
 {
     vtables_.clear();
-    removeObjectManager();
+    objectManagerSlot_.reset();
 }
 
 sdbus::Signal Object::createSignal(const InterfaceName& interfaceName, const SignalName& signalName)
@@ -141,14 +141,9 @@ void Object::addObjectManager()
     objectManagerSlot_ = connection_.addObjectManager(objectPath_, return_slot);
 }
 
-void Object::removeObjectManager()
+Slot Object::addObjectManager(return_slot_t)
 {
-    objectManagerSlot_.reset();
-}
-
-bool Object::hasObjectManager() const
-{
-    return objectManagerSlot_ != nullptr;
+    return connection_.addObjectManager(objectPath_, return_slot);
 }
 
 sdbus::IConnection& Object::getConnection() const

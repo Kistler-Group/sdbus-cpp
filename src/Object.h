@@ -66,8 +66,7 @@ namespace sdbus::internal {
         void emitInterfacesRemovedSignal(const std::vector<InterfaceName>& interfaces) override;
 
         void addObjectManager() override;
-        void removeObjectManager() override;
-        [[nodiscard]] bool hasObjectManager() const override;
+        [[nodiscard]] Slot addObjectManager(return_slot_t) override;
 
         [[nodiscard]] sdbus::IConnection& getConnection() const override;
         [[nodiscard]] const ObjectPath& getObjectPath() const override;
