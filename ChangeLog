@@ -248,3 +248,9 @@ v1.5.0
 - Add INSTALL_TESTS CMake option
 - Minor UnixFd cleanups
 - Additional little fixes and updates in code, build system, CI, and documentation
+
+v1.6.0
+- Add support for enums in D-Bus serialization and signatures
+- Add support for std::variant as an alternative C++ type for D-Bus Variant
+- Add support for implicit conversions between std::variant and sdbus::Variant
+- Fix missing includes
