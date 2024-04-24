@@ -266,8 +266,7 @@ namespace sdbus {
         MethodCall() = default;
 
         MethodReply send(uint64_t timeout) const;
-        void send(void* callback, void* userData, uint64_t timeout, floating_slot_t) const;
-        [[nodiscard]] Slot send(void* callback, void* userData, uint64_t timeout) const;
+        [[nodiscard]] Slot send(void* callback, void* userData, uint64_t timeout, return_slot_t) const;
 
         MethodReply createReply() const;
         MethodReply createErrorReply(const sdbus::Error& error) const;

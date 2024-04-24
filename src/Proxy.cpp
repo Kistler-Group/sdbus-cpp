@@ -124,7 +124,11 @@ PendingAsyncCall Proxy::callMethodAsync(const MethodCall& message, async_reply_h
                                                                       , .proxy = *this
                                                                       , .floating = false });
 
-    asyncCallInfo->slot = connection_->callMethod(message, (void*)&Proxy::sdbus_async_reply_handler, asyncCallInfo.get(), timeout);
+    asyncCallInfo->slot = connection_->callMethod( message
+                                                 , (void*)&Proxy::sdbus_async_reply_handler
+                                                 , asyncCallInfo.get()
+                                                 , timeout
+                                                 , return_slot );
 
     auto asyncCallInfoWeakPtr = std::weak_ptr{asyncCallInfo};
 
@@ -141,7 +145,11 @@ Slot Proxy::callMethodAsync(const MethodCall& message, async_reply_handler async
                                                                       , .proxy = *this
                                                                       , .floating = true });
 
-    asyncCallInfo->slot = connection_->callMethod(message, (void*)&Proxy::sdbus_async_reply_handler, asyncCallInfo.get(), timeout);
+    asyncCallInfo->slot = connection_->callMethod( message
+                                                 , (void*)&Proxy::sdbus_async_reply_handler
+                                                 , asyncCallInfo.get()
+                                                 , timeout
+                                                 , return_slot );
 
     return {asyncCallInfo.release(), [](void *ptr){ delete static_cast<AsyncCallInfo*>(ptr); }};
 }
@@ -209,7 +217,8 @@ Slot Proxy::registerSignalHandler( const char* interfaceName
                                                          , interfaceName
                                                          , signalName
                                                          , &Proxy::sdbus_signal_handler
-                                                         , signalInfo.get() );
+                                                         , signalInfo.get()
+                                                         , return_slot );
 
     return {signalInfo.release(), [](void *ptr){ delete static_cast<SignalInfo*>(ptr); }};
 }

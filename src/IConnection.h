@@ -70,7 +70,8 @@ namespace sdbus::internal {
         [[nodiscard]] virtual Slot addObjectVTable( const ObjectPath& objectPath
                                                   , const InterfaceName& interfaceName
                                                   , const sd_bus_vtable* vtable
-                                                  , void* userData ) = 0;
+                                                  , void* userData
+                                                  , return_slot_t ) = 0;
 
         [[nodiscard]] virtual PlainMessage createPlainMessage() const = 0;
         [[nodiscard]] virtual MethodCall createMethodCall( const ServiceName& destination
@@ -89,8 +90,11 @@ namespace sdbus::internal {
                                                  , const char* signalName ) const = 0;
 
         virtual MethodReply callMethod(const MethodCall& message, uint64_t timeout) = 0;
-        virtual void callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout, floating_slot_t) = 0;
-        [[nodiscard]] virtual Slot callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout) = 0;
+        [[nodiscard]] virtual Slot callMethod( const MethodCall& message
+                                             , void* callback
+                                             , void* userData
+                                             , uint64_t timeout
+                                             , return_slot_t ) = 0;
 
         virtual void emitPropertiesChangedSignal( const ObjectPath& objectPath
                                                 , const InterfaceName& interfaceName
@@ -110,7 +114,8 @@ namespace sdbus::internal {
                                                         , const char* interfaceName
                                                         , const char* signalName
                                                         , sd_bus_message_handler_t callback
-                                                        , void* userData ) = 0;
+                                                        , void* userData
+                                                        , return_slot_t ) = 0;
     };
 
     [[nodiscard]] std::unique_ptr<sdbus::internal::IConnection> createPseudoConnection();

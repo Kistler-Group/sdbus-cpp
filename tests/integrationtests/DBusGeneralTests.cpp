@@ -83,7 +83,7 @@ TYPED_TEST(AConnection, WillCallCallbackHandlerForIncomingMessageMatchingMatchRu
     {
         if(msg.getPath() == OBJECT_PATH)
             matchingMessageReceived = true;
-    });
+    }, sdbus::return_slot);
 
     this->m_adaptor->emitSimpleSignal();
 
@@ -104,7 +104,8 @@ TYPED_TEST(AConnection, CanInstallMatchRuleAsynchronously)
                                                       , [&](sdbus::Message /*msg*/)
                                                         {
                                                             matchRuleInstalled = true;
-                                                        } );
+                                                        }
+                                                      , sdbus::return_slot );
 
     EXPECT_TRUE(waitUntil(matchRuleInstalled));
 
@@ -121,7 +122,7 @@ TYPED_TEST(AConnection, WillUnsubscribeMatchRuleWhenClientDestroysTheAssociatedS
     {
         if(msg.getPath() == OBJECT_PATH)
             matchingMessageReceived = true;
-    });
+    }, sdbus::return_slot);
     slot.reset();
 
     this->m_adaptor->emitSimpleSignal();
@@ -140,7 +141,7 @@ TYPED_TEST(AConnection, CanAddFloatingMatchRule)
         if(msg.getPath() == OBJECT_PATH)
             matchingMessageReceived = true;
     };
-    con->addMatch(matchRule, std::move(callback), sdbus::floating_slot);
+    con->addMatch(matchRule, std::move(callback));
     this->m_adaptor->emitSimpleSignal();
     [[maybe_unused]] auto gotMessage = waitUntil(matchingMessageReceived, 2s);
     assert(gotMessage);
@@ -160,7 +161,7 @@ TYPED_TEST(AConnection, WillNotPassToMatchCallbackMessagesThatDoNotMatchTheRule)
     {
         if(msg.getMemberName() == "simpleSignal"sv)
             numberOfMatchingMessages++;
-    });
+    }, sdbus::return_slot);
     auto adaptor2 = std::make_unique<TestAdaptor>(*this->s_adaptorConnection, OBJECT_PATH_2);
 
     this->m_adaptor->emitSignalWithMap({});

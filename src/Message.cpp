@@ -821,13 +821,7 @@ MethodReply MethodCall::sendWithNoReply() const
     return Factory::create<MethodReply>(); // No reply
 }
 
-void MethodCall::send(void* callback, void* userData, uint64_t timeout, floating_slot_t) const
-{
-    auto r = sdbus_->sd_bus_call_async(nullptr, nullptr, (sd_bus_message*)msg_, (sd_bus_message_handler_t)callback, userData, timeout);
-    SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method", -r);
-}
-
-Slot MethodCall::send(void* callback, void* userData, uint64_t timeout) const
+Slot MethodCall::send(void* callback, void* userData, uint64_t timeout, return_slot_t) const
 {
     sd_bus_slot* slot;
 
