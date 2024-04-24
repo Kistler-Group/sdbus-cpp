@@ -256,16 +256,38 @@ v1.6.0
 - Fix missing includes
 
 v2.0.0
-- A number of breaking changes in API/ABI/behavior and in the generated bindings. Consult the sdbus-c++ tutorial, section "Migrating to sdbus-c++ v2", for detailed info on changes and migration.
-- Systemd of at least v238 is required to compile sdbus-c++
-- A proper fix for timeout handling
-- Fix for external event loops in which the event loop thread ID was not correctly initialized (now fixed and simplified by not needing the thread ID anymore)
-- Introduce native integration for sd-event
-- Add method to get currently processed message also to `IConnection`
-- Add Slot-returning overloads of `callMethodAsync()` functions
-- Add Slot-returning overload of `addObjectManager` to the `IObject`
-- Add Slot-returning overload of `addObjectManager` to the `IConnection`
-- `[[nodiscard]]` attribute has been added to relevant API methods.
+- A new major version with revamped API, bringing numerous new features, simplifications, fixes and breaking changes improving not only API consistency, safety and expressiveness, but also performance
+- Add section 'Migrating to sdbus-c++ v2' to the 'Using sdbus-c++' document providing the complete list of breaking API/ABI/behavior changes and migration notes
+- Switch to C++20 standard (but the API is backwards-compatible with C++17, skipping C++20 features in such a case)
+- Add strong types to public API
+- Add support for string_view as a D-Bus type representation
+- Enable compile-time D-Bus signature generation
+- Redesign Object vtable registration API
+- Improve Proxy signal subscription API
+- Refactor object manager API for consistency
+- Introduce native sd-event integration
+- Let callbacks take message objects by value
+- Simplify async D-Bus connection handling
+- Simplify async call state flag
+- Make Variant constructor explicit
+- Use optional for passing potential call errors
+- Rename and re-organize CMake options
+- Rename connection creation methods
+- Have all async function names finish with *Async for consistency
+- Implement more flexible searching for sd-bus libs
 - Add new `SDBUSCPP_SDBUS_LIB` CMake configuration variable determining which sd-bus library shall be picked
-- Switch to C++20 standard (but C++20 is not required, and the used C++20 features are conditionally compiled)
-- Other simplifications, improvements and fixes springing out from the above refactoring
+- Make Variant conversion operator explicit
+- Use sd-bus API to get the current message
+- Use sd_bus_match_signal() for signal registration
+- Provide also const char* overloads for convenience functions
+- Disable move in generated adaptor and proxy classes
+- Improve and make more efficient some Message API
+- Add Slot-returning overloads of async method calls
+- Remove floating_slot_t tag and use return_slot_t instead
+- Add [[nodiscard]] to many relevant API functions
+- Add proper fix for timeout handling
+- Fix for external event loops in which the event loop thread ID was not correctly initialized (now fixed and simplified by not needing the thread ID anymore)
+- Remove deprecated stuff
+- Add `SDBUSCPP_` prefix to CMake configuration variables to avoid conflicts with downstream projects
+- Require systemd of at least v238
+- Many other fixes and updates in code, tests, build system, CI, and documentation
