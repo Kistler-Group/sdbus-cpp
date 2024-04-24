@@ -102,7 +102,7 @@ namespace sdbus::internal {
         bool processPendingEvent() override;
         Message getCurrentlyProcessedMessage() const override;
 
-        void addObjectManager(const ObjectPath& objectPath, floating_slot_t) override;
+        void addObjectManager(const ObjectPath& objectPath) override;
         Slot addObjectManager(const ObjectPath& objectPath, return_slot_t) override;
 
         void setMethodCallTimeout(uint64_t timeout) override;

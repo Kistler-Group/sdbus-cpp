@@ -223,6 +223,7 @@ namespace sdbus {
 
         /*!
          * @brief Adds an ObjectManager at the specified D-Bus object path
+         * @param[in] objectPath Object path at which the ObjectManager interface shall be installed
          *
          * Creates an ObjectManager interface at the specified object path on
          * the connection. This is a convenient way to interrogate a connection
@@ -231,12 +232,29 @@ namespace sdbus {
          * This call creates a floating registration. The ObjectManager will
          * be there for the object path until the connection is destroyed.
          *
-         * Another, recommended way to add object managers is directly through
-         * IObject API.
+         * Another, recommended way to add object managers is directly through IObject API.
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void addObjectManager(const ObjectPath& objectPath, floating_slot_t) = 0;
+        virtual void addObjectManager(const ObjectPath& objectPath) = 0;
+
+        /*!
+         * @brief Adds an ObjectManager at the specified D-Bus object path
+         * @param[in] objectPath Object path at which the ObjectManager interface shall be installed
+         * @return Slot handle owning the registration
+         *
+         * Creates an ObjectManager interface at the specified object path on
+         * the connection. This is a convenient way to interrogate a connection
+         * to see what objects it has.
+         *
+         * This call returns an owning slot. The lifetime of the ObjectManager
+         * interface is bound to the lifetime of the returned slot instance.
+         *
+         * Another, recommended way to add object managers is directly through IObject API.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] virtual Slot addObjectManager(const ObjectPath& objectPath, return_slot_t) = 0;
 
         /*!
          * @brief Installs a match rule for messages received on this bus connection
