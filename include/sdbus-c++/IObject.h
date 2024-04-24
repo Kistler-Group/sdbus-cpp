@@ -247,22 +247,28 @@ namespace sdbus {
          * the connection. This is a convenient way to interrogate a connection
          * to see what objects it has.
          *
+         * This call creates a so-called floating registration. This means that
+         * the ObjectManager interface stays there for the lifetime of the object.
+         *
          * @throws sdbus::Error in case of failure
          */
         virtual void addObjectManager() = 0;
 
         /*!
-         * @brief Removes an ObjectManager interface from the path of this D-Bus object
+         * @brief Adds an ObjectManager interface at the path of this D-Bus object
+         *
+         * @return Slot handle owning the registration
+         *
+         * Creates an ObjectManager interface at the specified object path on
+         * the connection. This is a convenient way to interrogate a connection
+         * to see what objects it has.
+         *
+         * The lifetime of the ObjectManager interface is bound to the lifetime
+         * of the returned slot instance.
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void removeObjectManager() = 0;
-
-        /*!
-         * @brief Tests whether ObjectManager interface is added at the path of this D-Bus object
-         * @return True if ObjectManager interface is there, false otherwise
-         */
-        [[nodiscard]] virtual bool hasObjectManager() const = 0;
+        [[nodiscard]] virtual Slot addObjectManager(return_slot_t) = 0;
 
         /*!
          * @brief Provides D-Bus connection used by the object
