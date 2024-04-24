@@ -34,9 +34,9 @@ $ sudo cmake --build . --target install
 
   Option for including sdbus-c++ documentation files and tutorials. Default value: `ON`. With this option turned on, you may also enable/disable the following option:
 
-    * `BUILD_DOXYGEN_DOC` [boolean]
+    * `SDBUSCPP_BUILD_DOXYGEN_DOCS` [boolean]
 
-      Option for building Doxygen documentation of sdbus-c++ API. If enabled, the documentation must still be built explicitly through `cmake --build . --target doc`. Default value: `OFF`. Use `-DBUILD_DOXYGEN_DOC=OFF` to disable searching for Doxygen and building Doxygen documentation of sdbus-c++ API.
+      Option for building Doxygen documentation of sdbus-c++ API. If enabled, the documentation must still be built explicitly through `cmake --build . --target doc`. Default value: `OFF`. Use `-DSDBUSCPP_BUILD_DOXYGEN_DOCS=OFF` to disable searching for Doxygen and building Doxygen documentation of sdbus-c++ API.
 
 * `SDBUSCPP_BUILD_TESTS` [boolean]
 

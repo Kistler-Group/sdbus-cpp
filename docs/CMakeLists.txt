@@ -2,7 +2,7 @@
 
 find_package(Doxygen)
 
-if(BUILD_DOXYGEN_DOC)
+if(SDBUSCPP_BUILD_DOXYGEN_DOCS)
     if(DOXYGEN_FOUND)
         configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
 
@@ -27,7 +27,7 @@ if(SDBUSCPP_INSTALL)
                   using-sdbus-c++.md
             DESTINATION ${CMAKE_INSTALL_DOCDIR} COMPONENT sdbus-c++-doc)
 
-    if (BUILD_DOXYGEN_DOC AND DOXYGEN_FOUND)
+    if (SDBUSCPP_BUILD_DOXYGEN_DOCS AND DOXYGEN_FOUND)
         install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/html DESTINATION ${CMAKE_INSTALL_DOCDIR} OPTIONAL COMPONENT sdbus-c++-doc)
     endif()
 endif()
