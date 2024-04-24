@@ -105,9 +105,6 @@ namespace sdbus::internal {
         virtual void emitInterfacesRemovedSignal( const ObjectPath& objectPath
                                                 , const std::vector<InterfaceName>& interfaces ) = 0;
 
-        using sdbus::IConnection::addObjectManager;
-        [[nodiscard]] virtual Slot addObjectManager(const ObjectPath& objectPath, return_slot_t) = 0;
-
         [[nodiscard]] virtual Slot registerSignalHandler( const char* sender
                                                         , const char* objectPath
                                                         , const char* interfaceName

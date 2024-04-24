@@ -189,7 +189,7 @@ ISdBus& Connection::getSdBusInterface()
     return *sdbus_.get();
 }
 
-void Connection::addObjectManager(const ObjectPath& objectPath, floating_slot_t)
+void Connection::addObjectManager(const ObjectPath& objectPath)
 {
     auto r = sdbus_->sd_bus_add_object_manager(bus_.get(), nullptr, objectPath.c_str());
 
