@@ -61,80 +61,33 @@ namespace sdbus {
      ***********************************************/
     class IObject
     {
-    public:
+    public: // High-level, convenience API
         virtual ~IObject() = default;
 
         /*!
          * @brief Adds a declaration of methods, properties and signals of the object at a given interface
          *
-         * @param[in] interfaceName Name of an interface the the vtable is registered for
-         * @param[in] items Individual instances of VTable item structures
+         * @param[in] vtable Individual instances of VTable item structures stored in a vector
+         * @return VTableAdder high-level helper class
          *
          * This method is used to declare attributes for the object under the given interface.
-         * Parameter `items' represents a vtable definition that may contain method declarations
+         * Parameter `vtable' represents a vtable definition that may contain method declarations
          * (using MethodVTableItem struct), property declarations (using PropertyVTableItem
          * struct), signal declarations (using SignalVTableItem struct), or global interface
          * flags (using InterfaceFlagsVTableItem struct).
          *
          * An interface can have any number of vtables attached to it.
          *
-         * Consult manual pages for underlying `sd_bus_add_object_vtable` function for more information.
+         * Consult manual pages for the underlying `sd_bus_add_object_vtable` function for more information.
          *
-         * The method can be called at any time during object's lifetime. For each vtable an internal
-         * match slot is created and its lifetime is tied to the lifetime of the Object instance.
+         * The method can be called at any time during object's lifetime.
          *
-         * The function provides strong exception guarantee. The state of the object remains
-         * unmodified in face of an exception.
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        template < typename... VTableItems
-                 , typename = std::enable_if_t<(is_one_of_variants_types<VTableItem, std::decay_t<VTableItems>> && ...)> >
-        void addVTable(InterfaceName interfaceName, VTableItems&&... items);
-
-        /*!
-         * @brief Adds a declaration of methods, properties and signals of the object at a given interface
-         *
-         * @param[in] interfaceName Name of an interface the the vtable is registered for
-         * @param[in] vtable A list of individual descriptions in the form of VTable item instances
-         *
-         * This method is used to declare attributes for the object under the given interface.
-         * The `vtable' parameter may contain method declarations (using MethodVTableItem struct),
-         * property declarations (using PropertyVTableItem struct), signal declarations (using
-         * SignalVTableItem struct), or global interface flags (using InterfaceFlagsVTableItem struct).
-         *
-         * An interface can have any number of vtables attached to it.
-         *
-         * Consult manual pages for underlying `sd_bus_add_object_vtable` function for more information.
-         *
-         * The method can be called at any time during object's lifetime. For each vtable an internal
-         * match slot is created and its lifetime is tied to the lifetime of the Object instance.
-         *
-         * The function provides strong exception guarantee. The state of the object remains
-         * unmodified in face of an exception.
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        virtual void addVTable(InterfaceName interfaceName, std::vector<VTableItem> vtable) = 0;
-
-        /*!
-         * @brief Adds a declaration of methods, properties and signals of the object at a given interface
-         *
-         * @param[in] interfaceName Name of an interface the the vtable is registered for
-         * @param[in] vtable A list of individual descriptions in the form of VTable item instances
-         *
-         * This method is used to declare attributes for the object under the given interface.
-         * The `vtable' parameter may contain method declarations (using MethodVTableItem struct),
-         * property declarations (using PropertyVTableItem struct), signal declarations (using
-         * SignalVTableItem struct), or global interface flags (using InterfaceFlagsVTableItem struct).
-         *
-         * An interface can have any number of vtables attached to it.
-         *
-         * Consult manual pages for underlying `sd_bus_add_object_vtable` function for more information.
-         *
-         * The method can be called at any time during object's lifetime. For each vtable an internal
-         * match slot is created and is returned to the caller. The returned slot should be destroyed
-         * when the vtable is not needed anymore. This allows for "dynamic" object API where vtables
+         * When called like `addVTable(vtable).forInterface(interface)`, then an internal registration
+         * slot is created for that vtable and its lifetime is tied to the lifetime of the Object instance.
+         * When called like `addVTable(items...).forInterface(interface, sdbus::return_slot)`, then an internal
+         * registration slot is created for the vtable and is returned to the caller. Keeping the slot means
+         * keep the registration "alive". Destroying the slot means that the vtable is not needed anymore,
+         * and the vtable gets removed from the object. This allows for "dynamic" object API where vtables
          * can be added or removed by the user at runtime.
          *
          * The function provides strong exception guarantee. The state of the object remains
@@ -142,65 +95,42 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        [[nodiscard]] virtual Slot addVTable(InterfaceName interfaceName, std::vector<VTableItem> vtable, return_slot_t) = 0;
+        [[nodiscard]] VTableAdder addVTable(std::vector<VTableItem> vtable);
 
         /*!
-         * @brief A little more convenient overload of addVTable() above
+         * @brief Adds a declaration of methods, properties and signals of the object at a given interface
          *
-         * This version allows method chaining for a little safer and more readable VTable registration.
+         * @param[in] items Individual instances of VTable item structures
+         * @return VTableAdder high-level helper class
          *
-         * See addVTable() overloads above for detailed documentation.
+         * This method is used to declare attributes for the object under the given interface.
+         * Parameter pack contains vtable definition that may contain method declarations
+         * (using MethodVTableItem struct), property declarations (using PropertyVTableItem
+         * struct), signal declarations (using SignalVTableItem struct), or global interface
+         * flags (using InterfaceFlagsVTableItem struct).
+         *
+         * An interface can have any number of vtables attached to it.
+         *
+         * Consult manual pages for the underlying `sd_bus_add_object_vtable` function for more information.
+         *
+         * The method can be called at any time during object's lifetime.
+         *
+         * When called like `addVTable(items...).forInterface(interface)`, then an internal registration
+         * slot is created for that vtable and its lifetime is tied to the lifetime of the Object instance.
+         * When called like `addVTable(items...).forInterface(interface, sdbus::return_slot)`, then an internal
+         * registration slot is created for the vtable and is returned to the caller. Keeping the slot means
+         * keep the registration "alive". Destroying the slot means that the vtable is not needed anymore,
+         * and the vtable gets removed from the object. This allows for "dynamic" object API where vtables
+         * can be added or removed by the user at runtime.
+         *
+         * The function provides strong exception guarantee. The state of the object remains
+         * unmodified in face of an exception.
+         *
+         * @throws sdbus::Error in case of failure
          */
         template < typename... VTableItems
                  , typename = std::enable_if_t<(is_one_of_variants_types<VTableItem, std::decay_t<VTableItems>> && ...)> >
         [[nodiscard]] VTableAdder addVTable(VTableItems&&... items);
-
-        /*!
-         * @brief A little more convenient overload of addVTable() above
-         *
-         * This version allows method chaining for a little safer and more readable VTable registration.
-         *
-         * See addVTable() overloads above for detailed documentation.
-         */
-        [[nodiscard]] VTableAdder addVTable(std::vector<VTableItem> vtable);
-
-        /*!
-         * @brief Unregisters object's API and removes object from the bus
-         *
-         * This method unregisters the object, its interfaces, methods, signals and properties
-         * from the bus. Unregistration is done automatically also in object's destructor. This
-         * method makes sense if, in the process of object removal, we need to make sure that
-         * callbacks are unregistered explicitly before the final destruction of the object instance.
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        virtual void unregister() = 0;
-
-        /*!
-         * @brief Creates a signal message
-         *
-         * @param[in] interfaceName Name of an interface that the signal belongs under
-         * @param[in] signalName Name of the signal
-         * @return A signal message
-         *
-         * Serialize signal arguments into the returned message and emit the signal by passing
-         * the message with serialized arguments to the @c emitSignal function.
-         * Alternatively, use higher-level API @c emitSignal(const std::string& signalName) defined below.
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        [[nodiscard]] virtual Signal createSignal(const InterfaceName& interfaceName, const SignalName& signalName) = 0;
-
-        /*!
-         * @brief Emits signal for this object path
-         *
-         * @param[in] message Signal message to be sent out
-         *
-         * Note: To avoid messing with messages, use higher-level API defined below.
-         *
-         * @throws sdbus::Error in case of failure
-         */
-        virtual void emitSignal(const sdbus::Signal& message) = 0;
 
         /*!
          * @brief Emits signal on D-Bus
@@ -361,7 +291,126 @@ namespace sdbus {
          */
         [[nodiscard]] virtual Message getCurrentlyProcessedMessage() const = 0;
 
-    protected:
+        /*!
+         * @brief Unregisters object's API and removes object from the bus
+         *
+         * This method unregisters the object, its interfaces, methods, signals and properties
+         * from the bus. Unregistration is done automatically also in object's destructor. This
+         * method makes sense if, in the process of object removal, we need to make sure that
+         * callbacks are unregistered explicitly before the final destruction of the object instance.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual void unregister() = 0;
+
+    public: // Lower-level, message-based API
+        /*!
+         * @brief Adds a declaration of methods, properties and signals of the object at a given interface
+         *
+         * @param[in] interfaceName Name of an interface the the vtable is registered for
+         * @param[in] items Individual instances of VTable item structures
+         *
+         * This method is used to declare attributes for the object under the given interface.
+         * Parameter `items' represents a vtable definition that may contain method declarations
+         * (using MethodVTableItem struct), property declarations (using PropertyVTableItem
+         * struct), signal declarations (using SignalVTableItem struct), or global interface
+         * flags (using InterfaceFlagsVTableItem struct).
+         *
+         * An interface can have any number of vtables attached to it.
+         *
+         * Consult manual pages for the underlying `sd_bus_add_object_vtable` function for more information.
+         *
+         * The method can be called at any time during object's lifetime. For each vtable an internal
+         * registration slot is created and its lifetime is tied to the lifetime of the Object instance.
+         *
+         * The function provides strong exception guarantee. The state of the object remains
+         * unmodified in face of an exception.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        template < typename... VTableItems
+                 , typename = std::enable_if_t<(is_one_of_variants_types<VTableItem, std::decay_t<VTableItems>> && ...)> >
+        void addVTable(InterfaceName interfaceName, VTableItems&&... items);
+
+        /*!
+         * @brief Adds a declaration of methods, properties and signals of the object at a given interface
+         *
+         * @param[in] interfaceName Name of an interface the the vtable is registered for
+         * @param[in] vtable A list of individual descriptions in the form of VTable item instances
+         *
+         * This method is used to declare attributes for the object under the given interface.
+         * The `vtable' parameter may contain method declarations (using MethodVTableItem struct),
+         * property declarations (using PropertyVTableItem struct), signal declarations (using
+         * SignalVTableItem struct), or global interface flags (using InterfaceFlagsVTableItem struct).
+         *
+         * An interface can have any number of vtables attached to it.
+         *
+         * Consult manual pages for the underlying `sd_bus_add_object_vtable` function for more information.
+         *
+         * The method can be called at any time during object's lifetime. For each vtable an internal
+         * registration slot is created and its lifetime is tied to the lifetime of the Object instance.
+         *
+         * The function provides strong exception guarantee. The state of the object remains
+         * unmodified in face of an exception.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual void addVTable(InterfaceName interfaceName, std::vector<VTableItem> vtable) = 0;
+
+        /*!
+         * @brief Adds a declaration of methods, properties and signals of the object at a given interface
+         *
+         * @param[in] interfaceName Name of an interface the the vtable is registered for
+         * @param[in] vtable A list of individual descriptions in the form of VTable item instances
+         *
+         * This method is used to declare attributes for the object under the given interface.
+         * The `vtable' parameter may contain method declarations (using MethodVTableItem struct),
+         * property declarations (using PropertyVTableItem struct), signal declarations (using
+         * SignalVTableItem struct), or global interface flags (using InterfaceFlagsVTableItem struct).
+         *
+         * An interface can have any number of vtables attached to it.
+         *
+         * Consult manual pages for the underlying `sd_bus_add_object_vtable` function for more information.
+         *
+         * The method can be called at any time during object's lifetime. For each vtable an internal
+         * registration slot is created and is returned to the caller. The returned slot should be destroyed
+         * when the vtable is not needed anymore. This allows for "dynamic" object API where vtables
+         * can be added or removed by the user at runtime.
+         *
+         * The function provides strong exception guarantee. The state of the object remains
+         * unmodified in face of an exception.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] virtual Slot addVTable(InterfaceName interfaceName, std::vector<VTableItem> vtable, return_slot_t) = 0;
+
+        /*!
+         * @brief Creates a signal message
+         *
+         * @param[in] interfaceName Name of an interface that the signal belongs under
+         * @param[in] signalName Name of the signal
+         * @return A signal message
+         *
+         * Serialize signal arguments into the returned message and emit the signal by passing
+         * the message with serialized arguments to the @c emitSignal function.
+         * Alternatively, use higher-level API @c emitSignal(const std::string& signalName) defined below.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] virtual Signal createSignal(const InterfaceName& interfaceName, const SignalName& signalName) = 0;
+
+        /*!
+         * @brief Emits signal for this object path
+         *
+         * @param[in] message Signal message to be sent out
+         *
+         * Note: To avoid messing with messages, use higher-level API defined below.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        virtual void emitSignal(const sdbus::Signal& message) = 0;
+
+    protected: // Internal API for efficiency reasons used by high-level API helper classes
         friend SignalEmitter;
 
         [[nodiscard]] virtual Signal createSignal(const char* interfaceName, const char* signalName) = 0;
