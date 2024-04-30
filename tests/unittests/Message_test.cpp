@@ -89,40 +89,21 @@ namespace sdbus {
 
 template <typename _Element, typename _Allocator>
 struct sdbus::signature_of<std::list<_Element, _Allocator>>
-        : sdbus::signature_of<std::vector<_Element, _Allocator>>
+    : sdbus::signature_of<std::vector<_Element, _Allocator>>
 {};
 
 namespace my {
-
     struct Struct
     {
         int i;
         std::string s;
         std::list<double> l;
+
+        friend bool operator==(const Struct& lhs, const Struct& rhs) = default;
     };
-
-    bool operator==(const Struct& lhs, const Struct& rhs)
-    {
-        return lhs.i == rhs.i && lhs.s == rhs.s && lhs.l == rhs.l;
-    }
-
-    sdbus::Message& operator<<(sdbus::Message& msg, const Struct& items)
-    {
-        return msg << sdbus::Struct{std::forward_as_tuple(items.i, items.s, items.l)};
-    }
-
-    sdbus::Message& operator>>(sdbus::Message& msg, Struct& items)
-    {
-        sdbus::Struct s{std::forward_as_tuple(items.i, items.s, items.l)};
-        return msg >> s;
-    }
-
 }
 
-template <>
-struct sdbus::signature_of<my::Struct>
-    : sdbus::signature_of<sdbus::Struct<int, std::string, std::list<double>>>
-{};
+SDBUSCPP_REGISTER_STRUCT(my::Struct, i, s, l);
 
 /*-------------------------------------*/
 /* --          TEST CASES           -- */

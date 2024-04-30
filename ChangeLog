@@ -291,3 +291,7 @@ v2.0.0
 - Add `SDBUSCPP_` prefix to CMake configuration variables to avoid conflicts with downstream projects
 - Require systemd of at least v238
 - Many other fixes and updates in code, tests, build system, CI, and documentation
+
+v2.x.y
+- Add SDBUSCPP_REGISTER_STRUCT macro to conveniently teach sdbus-c++ about user-defined structs
+- Fix partially renamed BUILD_DOXYGEN_DOC CMake option

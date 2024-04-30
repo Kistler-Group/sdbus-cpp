@@ -14,19 +14,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04]
-        compiler: [g++]
-        build: [shared-libsystemd]
+        os: [ubuntu-22.04]
+        compiler: [g++, clang]
+        build: [shared-libsystemd, embedded-static-libsystemd]
         include:
-          - os: ubuntu-22.04
-            compiler: clang
+          - os: ubuntu-20.04
+            compiler: gcc
             build: shared-libsystemd
-          - os: ubuntu-22.04
-            compiler: g++
-            build: embedded-static-libsystemd
-          - os: ubuntu-22.04
-            compiler: clang
-            build: embedded-static-libsystemd
     steps:
     - uses: actions/checkout@v3
     - name: install-libsystemd-toolchain
@@ -65,18 +59,18 @@ jobs:
 #        cmake --build . -j4
 #        sudo cmake --build . --target install
     - name: configure-debug
-      if: matrix.build == 'shared-libsystemd' && matrix.os == 'ubuntu-20.04'
-      run: |
-        mkdir build
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_CXX_FLAGS="-O0 -g -W -Wextra -Wall -Wnon-virtual-dtor -Werror $SDBUSCPP_EXTRA_CXX_FLAGS" -DCMAKE_VERBOSE_MAKEFILE=ON -DSDBUSCPP_INSTALL=ON -DSDBUSCPP_BUILD_TESTS=ON -DSDBUSCPP_BUILD_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON -DSDBUSCPP_BUILD_CODEGEN=ON ..
-    - name: configure-release
       if: matrix.build == 'shared-libsystemd' && matrix.os == 'ubuntu-22.04'
       run: |
         mkdir build
         cd build
-        cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_CXX_FLAGS="-O3 -DNDEBUG -W -Wextra -Wall -Wnon-virtual-dtor -Werror $SDBUSCPP_EXTRA_CXX_FLAGS" -DCMAKE_VERBOSE_MAKEFILE=ON -DSDBUSCPP_INSTALL=ON -DSDBUSCPP_BUILD_TESTS=ON -DSDBUSCPP_BUILD_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON -DSDBUSCPP_BUILD_CODEGEN=ON -DSDBUSCPP_GOOGLETEST_VERSION=1.14.0 ..
-    - name: configure-with-embedded-libsystemd
+        cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_CXX_FLAGS="-O0 -g -W -Wextra -Wall -Wnon-virtual-dtor -Werror $SDBUSCPP_EXTRA_CXX_FLAGS" -DCMAKE_VERBOSE_MAKEFILE=ON -DSDBUSCPP_INSTALL=ON -DSDBUSCPP_BUILD_TESTS=ON -DSDBUSCPP_BUILD_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON -DSDBUSCPP_BUILD_CODEGEN=ON -DSDBUSCPP_GOOGLETEST_VERSION=1.14.0 ..
+    - name: configure-debug-no-tests
+      if: matrix.os == 'ubuntu-20.04'
+      run: |
+        mkdir build
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_CXX_FLAGS="-O0 -g -W -Wextra -Wall -Wnon-virtual-dtor -Werror $SDBUSCPP_EXTRA_CXX_FLAGS" -DCMAKE_VERBOSE_MAKEFILE=ON -DSDBUSCPP_INSTALL=ON -DSDBUSCPP_BUILD_TESTS=OFF -DSDBUSCPP_BUILD_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON -DSDBUSCPP_BUILD_CODEGEN=ON ..
+    - name: configure-release-with-embedded-libsystemd
       if: matrix.build == 'embedded-static-libsystemd'
       run: |
         mkdir build
