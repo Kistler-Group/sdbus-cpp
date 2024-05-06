@@ -385,14 +385,122 @@ namespace sdbus {
 
 }
 
+// Making sdbus::Struct implement the tuple-protocol, i.e. be a tuple-like type
 template <size_t _I, typename... _ValueTypes>
 struct std::tuple_element<_I, sdbus::Struct<_ValueTypes...>>
     : std::tuple_element<_I, std::tuple<_ValueTypes...>>
 {};
-
 template <typename... _ValueTypes>
 struct std::tuple_size<sdbus::Struct<_ValueTypes...>>
     : std::tuple_size<std::tuple<_ValueTypes...>>
 {};
+
+/********************************************//**
+ * @name SDBUSCPP_REGISTER_STRUCT
+ *
+ * A convenient way to extend sdbus-c++ type system with user-defined structs.
+ *
+ * The macro teaches sdbus-c++ to recognize the user-defined struct
+ * as a valid C++ representation of a D-Bus Struct type, and enables
+ * clients to use their struct conveniently instead of the (too
+ * generic and less expressive) `sdbus::Struct<...>` in sdbus-c++ API.
+ *
+ * The first argument is the struct type name and the remaining arguments
+ * are names of struct members. Members must be of types supported by
+ * sdbus-c++ (or of user-defined types that sdbus-c++ was taught to support).
+ * Members can be other structs (nesting is supported).
+ * The macro must be placed in the global namespace.
+ *
+ * For example, given the user-defined struct `ABC`:
+ *
+ * namespace foo {
+ *     struct ABC
+ *     {
+ *         int number;
+ *         std::string name;
+ *         std::vector<double> data;
+ *     };
+ * }
+ *
+ * one can teach sdbus-c++ about the contents of this struct simply with:
+ *
+ * SDBUSCPP_REGISTER_STRUCT(foo::ABC, number, name, data);
+ *
+ * The macro effectively generates the `sdbus::Message` serialization
+ * and deserialization operators and the `sdbus::signature_of`
+ * specialization for `foo::ABC`.
+ *
+ * Up to 16 struct members are supported by the macro.
+ *
+ ***********************************************/
+#define SDBUSCPP_REGISTER_STRUCT(STRUCT, ...)                                                                   \
+    namespace sdbus {                                                                                           \
+        static_assert(SDBUSCPP_PP_NARG(__VA_ARGS__) <= 16,                                                      \
+                     "Not more than 16 struct members are supported, please open an issue if you need more");   \
+        sdbus::Message& operator<<(sdbus::Message& msg, const STRUCT& items)                                    \
+        {                                                                                                       \
+            return msg << sdbus::Struct{std::forward_as_tuple(SDBUSCPP_STRUCT_MEMBERS(items, __VA_ARGS__))};    \
+        }                                                                                                       \
+        sdbus::Message& operator>>(sdbus::Message& msg, STRUCT& items)                                          \
+        {                                                                                                       \
+            sdbus::Struct s{std::forward_as_tuple(SDBUSCPP_STRUCT_MEMBERS(items, __VA_ARGS__))};                \
+            return msg >> s;                                                                                    \
+        }                                                                                                       \
+        template <>                                                                                             \
+        struct signature_of<STRUCT>                                                                             \
+            : signature_of<sdbus::Struct<SDBUSCPP_STRUCT_MEMBER_TYPES(STRUCT, __VA_ARGS__)>>                    \
+        {};                                                                                                     \
+    }                                                                                                           \
+    /**/
+
+/*!
+ * @cond SDBUSCPP_INTERNAL
+ *
+ * Internal helper preprocessor facilities
+ */
+#define SDBUSCPP_STRUCT_MEMBERS(STRUCT, ...)                                                                    \
+    SDBUSCPP_PP_CAT(SDBUSCPP_STRUCT_MEMBERS_, SDBUSCPP_PP_NARG(__VA_ARGS__))(STRUCT, __VA_ARGS__)               \
+    /**/
+#define SDBUSCPP_STRUCT_MEMBERS_1(S, M1) S.M1
+#define SDBUSCPP_STRUCT_MEMBERS_2(S, M1, M2) S.M1, S.M2
+#define SDBUSCPP_STRUCT_MEMBERS_3(S, M1, M2, M3) S.M1, S.M2, S.M3
+#define SDBUSCPP_STRUCT_MEMBERS_4(S, M1, M2, M3, M4) S.M1, S.M2, S.M3, S.M4
+#define SDBUSCPP_STRUCT_MEMBERS_5(S, M1, M2, M3, M4, M5) S.M1, S.M2, S.M3, S.M4, S.M5
+#define SDBUSCPP_STRUCT_MEMBERS_6(S, M1, M2, M3, M4, M5, M6) S.M1, S.M2, S.M3, S.M4, S.M5, S.M6
+#define SDBUSCPP_STRUCT_MEMBERS_7(S, M1, M2, M3, M4, M5, M6, M7) S.M1, S.M2, S.M3, S.M4, S.M5, S.M6, S.M7
+#define SDBUSCPP_STRUCT_MEMBERS_8(S, M1, M2, M3, M4, M5, M6, M7, M8) S.M1, S.M2, S.M3, S.M4, S.M5, S.M6, S.M7, S.M8
+#define SDBUSCPP_STRUCT_MEMBERS_9(S, M1, M2, M3, M4, M5, M6, M7, M8, M9) S.M1, S.M2, S.M3, S.M4, S.M5, S.M6, S.M7, S.M8, S.M9
+#define SDBUSCPP_STRUCT_MEMBERS_10(S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10) S.M1, S.M2, S.M3, S.M4, S.M5, S.M6, S.M7, S.M8, S.M9, S.M10
+#define SDBUSCPP_STRUCT_MEMBERS_11(S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11) S.M1, S.M2, S.M3, S.M4, S.M5, S.M6, S.M7, S.M8, S.M9, S.M10, S.M11
+#define SDBUSCPP_STRUCT_MEMBERS_12(S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12) S.M1, S.M2, S.M3, S.M4, S.M5, S.M6, S.M7, S.M8, S.M9, S.M10, S.M11, S.M12
+#define SDBUSCPP_STRUCT_MEMBERS_13(S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13) S.M1, S.M2, S.M3, S.M4, S.M5, S.M6, S.M7, S.M8, S.M9, S.M10, S.M11, S.M12, S.M13
+#define SDBUSCPP_STRUCT_MEMBERS_14(S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14) S.M1, S.M2, S.M3, S.M4, S.M5, S.M6, S.M7, S.M8, S.M9, S.M10, S.M11, S.M12, S.M13, S.M14
+#define SDBUSCPP_STRUCT_MEMBERS_15(S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) S.M1, S.M2, S.M3, S.M4, S.M5, S.M6, S.M7, S.M8, S.M9, S.M10, S.M11, S.M12, S.M13, S.M14, S.M15
+#define SDBUSCPP_STRUCT_MEMBERS_16(S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15, M16) S.M1, S.M2, S.M3, S.M4, S.M5, S.M6, S.M7, S.M8, S.M9, S.M10, S.M11, S.M12, S.M13, S.M14, S.M15, S.M16
+
+#define SDBUSCPP_STRUCT_MEMBER_TYPES(STRUCT, ...)                                                               \
+    SDBUSCPP_PP_CAT(SDBUSCPP_STRUCT_MEMBER_TYPES_, SDBUSCPP_PP_NARG(__VA_ARGS__))(STRUCT, __VA_ARGS__)          \
+    /**/
+#define SDBUSCPP_STRUCT_MEMBER_TYPES_1(S, M1) decltype(S::M1)
+#define SDBUSCPP_STRUCT_MEMBER_TYPES_2(S, M1, M2) decltype(S::M1), decltype(S::M2)
+#define SDBUSCPP_STRUCT_MEMBER_TYPES_3(S, M1, M2, M3) decltype(S::M1), decltype(S::M2), decltype(S::M3)
+#define SDBUSCPP_STRUCT_MEMBER_TYPES_4(S, M1, M2, M3, M4) decltype(S::M1), decltype(S::M2), decltype(S::M3), decltype(S::M4)
+#define SDBUSCPP_STRUCT_MEMBER_TYPES_5(S, M1, M2, M3, M4, M5) decltype(S::M1), decltype(S::M2), decltype(S::M3), decltype(S::M4), decltype(S::M5)
+#define SDBUSCPP_STRUCT_MEMBER_TYPES_6(S, M1, M2, M3, M4, M5, M6) decltype(S::M1), decltype(S::M2), decltype(S::M3), decltype(S::M4), decltype(S::M5), decltype(S::M6)
+#define SDBUSCPP_STRUCT_MEMBER_TYPES_7(S, M1, M2, M3, M4, M5, M6, M7) decltype(S::M1), decltype(S::M2), decltype(S::M3), decltype(S::M4), decltype(S::M5), decltype(S::M6), decltype(S::M7)
+#define SDBUSCPP_STRUCT_MEMBER_TYPES_8(S, M1, M2, M3, M4, M5, M6, M7, M8) decltype(S::M1), decltype(S::M2), decltype(S::M3), decltype(S::M4), decltype(S::M5), decltype(S::M6), decltype(S::M7), decltype(S::M8)
+#define SDBUSCPP_STRUCT_MEMBER_TYPES_9(S, M1, M2, M3, M4, M5, M6, M7, M8, M9) decltype(S::M1), decltype(S::M2), decltype(S::M3), decltype(S::M4), decltype(S::M5), decltype(S::M6), decltype(S::M7), decltype(S::M8), decltype(S::M9)
+#define SDBUSCPP_STRUCT_MEMBER_TYPES_10(S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10) decltype(S::M1), decltype(S::M2), decltype(S::M3), decltype(S::M4), decltype(S::M5), decltype(S::M6), decltype(S::M7), decltype(S::M8), decltype(S::M9), decltype(S::M10)
+#define SDBUSCPP_STRUCT_MEMBER_TYPES_11(S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11) decltype(S::M1), decltype(S::M2), decltype(S::M3), decltype(S::M4), decltype(S::M5), decltype(S::M6), decltype(S::M7), decltype(S::M8), decltype(S::M9), decltype(S::M10), decltype(S::M11)
+#define SDBUSCPP_STRUCT_MEMBER_TYPES_12(S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12) decltype(S::M1), decltype(S::M2), decltype(S::M3), decltype(S::M4), decltype(S::M5), decltype(S::M6), decltype(S::M7), decltype(S::M8), decltype(S::M9), decltype(S::M10), decltype(S::M11), decltype(S::M12)
+#define SDBUSCPP_STRUCT_MEMBER_TYPES_13(S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13) decltype(S::M1), decltype(S::M2), decltype(S::M3), decltype(S::M4), decltype(S::M5), decltype(S::M6), decltype(S::M7), decltype(S::M8), decltype(S::M9), decltype(S::M10), decltype(S::M11), decltype(S::M12), decltype(S::M13)
+#define SDBUSCPP_STRUCT_MEMBER_TYPES_14(S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14) decltype(S::M1), decltype(S::M2), decltype(S::M3), decltype(S::M4), decltype(S::M5), decltype(S::M6), decltype(S::M7), decltype(S::M8), decltype(S::M9), decltype(S::M10), decltype(S::M11), decltype(S::M12), decltype(S::M13), decltype(S::M14)
+#define SDBUSCPP_STRUCT_MEMBER_TYPES_15(S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) decltype(S::M1), decltype(S::M2), decltype(S::M3), decltype(S::M4), decltype(S::M5), decltype(S::M6), decltype(S::M7), decltype(S::M8), decltype(S::M9), decltype(S::M10), decltype(S::M11), decltype(S::M12), decltype(S::M13), decltype(S::M14), decltype(S::M15)
+#define SDBUSCPP_STRUCT_MEMBER_TYPES_16(S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15, M16) decltype(S::M1), decltype(S::M2), decltype(S::M3), decltype(S::M4), decltype(S::M5), decltype(S::M6), decltype(S::M7), decltype(S::M8), decltype(S::M9), decltype(S::M10), decltype(S::M11), decltype(S::M12), decltype(S::M13), decltype(S::M14), decltype(S::M15), decltype(S::M16)
+
+#define SDBUSCPP_PP_CAT(X, Y) SDBUSCPP_PP_CAT_IMPL(X, Y)
+#define SDBUSCPP_PP_CAT_IMPL(X, Y) X##Y
+#define SDBUSCPP_PP_NARG(...) SDBUSCPP_PP_NARG_IMPL(__VA_ARGS__, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
+#define SDBUSCPP_PP_NARG_IMPL(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21, _22, _23, _24, _25, _26, _27, _28, _29, _30, _31, _32, _N, ...) _N
 
 #endif /* SDBUS_CXX_TYPES_H_ */

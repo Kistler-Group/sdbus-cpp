@@ -1579,7 +1579,7 @@ For more information on basic D-Bus types, D-Bus container types, and D-Bus type
 
 ### Extending sdbus-c++ type system
 
-The above mapping between D-Bus and C++ types is what sdbus-c++ provides by default. However, the mapping can be extended. You can implement additional mapping between a D-Bus type and their custom type.
+The above mapping between D-Bus and C++ types is what sdbus-c++ provides by default. However, the mapping can be extended. We can implement additional mapping between a D-Bus type and our custom type, i.e. teach sdbus-c++ to recognize and accept our own C++ types.
 
 We need two things to do that:
 
@@ -1645,7 +1645,11 @@ Then we can simply use `std::list`s, serialize/deserialize them in a D-Bus messa
 
 Similarly, say we have our own `lockfree_map` which we would like to use natively with sdbus-c++ as a C++ type for D-Bus dictionary -- we can copy or build on top of `std::map` specializations.
 
-As another example, say we have our custom type `my::Struct` which we'd like to use as a D-Bus structure representation (sdbus-c++ provides `sdbus::Struct` type for that, but we don't want to use it because using our custom type directly is more convenient). Again, we have to provide type traits and message serialization/deserialization functions for our custom type. We build our functions and specializations on top of `sdbus::Struct`, so we don't have to copy and write a lot of boiler-plate. Serialization/deserialization functions can be placed in the same namespace as our custom type, and will be found thanks to the ADR lookup. The `signature_of` specialization must always be in either `sdbus` namespace or in a global namespace:
+#### Using user-defined structs instead of `sdbus::Struct`
+
+Many times, we have our own structs defined in our business logic code, and it would be very convenient to pass these structs directly to or from the sdbus-c++ IPC API where a D-Bus struct is expected, without having to translate them to or from `sdbus::Struct`.
+
+Say we have our custom type `my::Struct`:
 
 ```c++
 namespace my {
@@ -1655,7 +1659,25 @@ namespace my {
         std::string s;
         std::list<double> l;
     };
+} // namespace my
+```
 
+We can teach sdbus-c++ about our struct type very easily with `SDBUSCPP_REGISTER_STRUCT` macro:
+
+```c++
+SDBUSCPP_REGISTER_STRUCT(my::Struct, i, s, l);
+```
+
+The macro must be placed in the global namespace. The first argument is the struct type name and the remaining arguments are names of struct members. Of course, struct members must be of types supported by sdbus-c++ (or of user-defined types that sdbus-c++ was taught to recognize). This also means that members can be other structs -- provided that sdbus-c++ was taught about them with `SDBUSCPP_REGISTER_STRUCT` prior to this one.
+
+The macro effectively generates the `sdbus::Message` serialization and deserialization operators and the type traits (the `sdbus::signature_of` specialization) for `my::Struct`.
+
+> **_Note_:** The macro supports **max 16 struct members**. If you need more, feel free to open an issue, or read the next paragraph and write the teaching boilerplate code yourself.
+
+Alternatively, we can to provide the message serialization/deserialization functions and the type traits manually. We can build on top of `sdbus::Struct`, so we don't have to copy and write a lot of boilerplate. Serialization/deserialization functions can be placed in the same namespace as our custom type, and will be found thanks to the ADR lookup. The `signature_of` specialization must always be in either `sdbus` namespace or in a global namespace:
+
+```c++
+namespace my {
     sdbus::Message& operator<<(sdbus::Message& msg, const Struct& items)
     {
         // Re-use sdbus::Struct functionality for simplicity -- view of my::Struct through sdbus::Struct with reference types
