@@ -275,7 +275,7 @@ void concatenate(sdbus::MethodCall call)
 
     // Return error if there are no numbers in the collection
     if (numbers.empty())
-        throw sdbus::Error("org.sdbuscpp.Concatenator.Error", "No numbers provided");
+        throw sdbus::Error(sdbus::Error::Name{"org.sdbuscpp.Concatenator.Error"}, "No numbers provided");
 
     std::string result;
     for (auto number : numbers)
@@ -310,8 +310,8 @@ int main(int argc, char *argv[])
 
     // Register D-Bus methods and signals on the concatenator object, and exports the object.
     sdbus::InterfaceName interfaceName{"org.sdbuscpp.Concatenator"};
-    concatenator->addVTable( sdbus::MethodVTableItem{"concatenate", sdbus::Signature{"ais"}, {}, sdbus::Signature{"s"}, {}, &concatenate, {}}
-                           , sdbus::SignalVTableItem{"concatenated", sdbus::Signature{"s"}, {}, {}} )
+    concatenator->addVTable( sdbus::MethodVTableItem{sdbus::MethodName{"concatenate"}, sdbus::Signature{"ais"}, {}, sdbus::Signature{"s"}, {}, &concatenate, {}}
+                           , sdbus::SignalVTableItem{sdbus::MethodName{"concatenated"}, sdbus::Signature{"s"}, {}, {}} )
                            .forInterface(interfaceName);
 
     // Run the I/O event loop on the bus connection.
@@ -364,7 +364,7 @@ int main(int argc, char *argv[])
     std::vector<int> numbers = {1, 2, 3};
     std::string separator = ":";
 
-    MethodName concatenate{"concatenate"};
+    sdbus::MethodName concatenate{"concatenate"};
     // Invoke concatenate on given interface of the object
     {
         auto method = concatenatorProxy->createMethodCall(interfaceName, concatenate);
@@ -375,7 +375,7 @@ int main(int argc, char *argv[])
         assert(result == "1:2:3");
     }
 
-/    // Invoke concatenate again, this time with no numbers and we shall get an error
+    // Invoke concatenate again, this time with no numbers and we shall get an error
     {
         auto method = concatenatorProxy->createMethodCall(interfaceName, concatenate);
         method << std::vector<int>() << separator;
@@ -519,7 +519,7 @@ int main(int argc, char *argv[])
     {
         // Return error if there are no numbers in the collection
         if (numbers.empty())
-            throw sdbus::Error("org.sdbuscpp.Concatenator.Error", "No numbers provided");
+            throw sdbus::Error(sdbus::Error::Name{"org.sdbuscpp.Concatenator.Error"}, "No numbers provided");
 
         std::string result;
         for (auto number : numbers)
@@ -534,8 +534,8 @@ int main(int argc, char *argv[])
     };
 
     // Register D-Bus methods and signals on the concatenator object, and exports the object.
-    concatenator->addVTable( sdbus::registerMethod("concatenate").implementedAs(std::move(concatenate))
-                           , sdbus::registerSignal{"concatenated").withParameters<std::string>() )
+    concatenator->addVTable(sdbus::registerMethod("concatenate").implementedAs(std::move(concatenate)),
+                            sdbus::registerSignal("concatenated").withParameters<std::string>())
                            .forInterface("org.sdbuscpp.Concatenator");
 
     // Run the loop on the connection.
