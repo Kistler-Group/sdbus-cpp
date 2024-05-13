@@ -437,11 +437,11 @@ struct std::tuple_size<sdbus::Struct<_ValueTypes...>>
     namespace sdbus {                                                                                           \
         static_assert(SDBUSCPP_PP_NARG(__VA_ARGS__) <= 16,                                                      \
                      "Not more than 16 struct members are supported, please open an issue if you need more");   \
-        sdbus::Message& operator<<(sdbus::Message& msg, const STRUCT& items)                                    \
+        inline sdbus::Message& operator<<(sdbus::Message& msg, const STRUCT& items)                                    \
         {                                                                                                       \
             return msg << sdbus::Struct{std::forward_as_tuple(SDBUSCPP_STRUCT_MEMBERS(items, __VA_ARGS__))};    \
         }                                                                                                       \
-        sdbus::Message& operator>>(sdbus::Message& msg, STRUCT& items)                                          \
+        inline sdbus::Message& operator>>(sdbus::Message& msg, STRUCT& items)                                          \
         {                                                                                                       \
             sdbus::Struct s{std::forward_as_tuple(SDBUSCPP_STRUCT_MEMBERS(items, __VA_ARGS__))};                \
             return msg >> s;                                                                                    \
