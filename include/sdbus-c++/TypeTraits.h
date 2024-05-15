@@ -141,6 +141,10 @@ namespace sdbus {
     {};
 
     template <typename _T>
+    struct signature_of<const volatile _T> : signature_of<_T>
+    {};
+
+    template <typename _T>
     struct signature_of<_T&> : signature_of<_T>
     {};
 
@@ -337,9 +341,9 @@ namespace sdbus {
     };
 #endif
 
-    template <typename _Enum>
-    struct signature_of<_Enum, typename std::enable_if_t<std::is_enum_v<_Enum>>>
-        : public signature_of<std::underlying_type_t<_Enum>>
+    template <typename _Enum> // is_const_v and is_volatile_v to avoid ambiguity conflicts with const and volatile specializations of signature_of
+    struct signature_of<_Enum, typename std::enable_if_t<std::is_enum_v<_Enum> && !std::is_const_v<_Enum> && !std::is_volatile_v<_Enum>>>
+        : signature_of<std::underlying_type_t<_Enum>>
     {};
 
     template <typename _Key, typename _Value, typename _Compare, typename _Allocator>
