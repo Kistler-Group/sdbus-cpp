@@ -93,17 +93,24 @@ struct sdbus::signature_of<std::list<_Element, _Allocator>>
 {};
 
 namespace my {
+    enum class Enum
+    {
+        Value1,
+        Value2
+    };
+
     struct Struct
     {
         int i;
         std::string s;
         std::list<double> l;
+        Enum e;
 
         friend bool operator==(const Struct& lhs, const Struct& rhs) = default;
     };
 }
 
-SDBUSCPP_REGISTER_STRUCT(my::Struct, i, s, l);
+SDBUSCPP_REGISTER_STRUCT(my::Struct, i, s, l, e);
 
 /*-------------------------------------*/
 /* --          TEST CASES           -- */
@@ -487,7 +494,7 @@ TEST(AMessage, CanCarryDBusStructGivenAsCustomType)
 {
     auto msg = sdbus::createPlainMessage();
 
-    const my::Struct dataWritten{3545342, "hello"s, {3.14, 2.4568546}};
+    const my::Struct dataWritten{3545342, "hello"s, {3.14, 2.4568546}, my::Enum::Value2};
 
     msg << dataWritten;
     msg.seal();

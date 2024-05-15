@@ -102,6 +102,9 @@ namespace
     TYPE(std::span<int16_t>)HAS_DBUS_TYPE_SIGNATURE("an")
 #endif
     TYPE(SomeEnumClass)HAS_DBUS_TYPE_SIGNATURE("y")
+    TYPE(const SomeEnumClass)HAS_DBUS_TYPE_SIGNATURE("y")
+    TYPE(volatile SomeEnumClass)HAS_DBUS_TYPE_SIGNATURE("y")
+    TYPE(const volatile SomeEnumClass)HAS_DBUS_TYPE_SIGNATURE("y")
     TYPE(SomeEnumStruct)HAS_DBUS_TYPE_SIGNATURE("x")
     TYPE(SomeClassicEnum)HAS_DBUS_TYPE_SIGNATURE("u")
     TYPE(std::map<int32_t, int64_t>)HAS_DBUS_TYPE_SIGNATURE("a{ix}")
@@ -157,6 +160,9 @@ namespace
                             , std::span<int16_t>
 #endif
                             , SomeEnumClass
+                            , const SomeEnumClass
+                            , volatile SomeEnumClass
+                            , const volatile SomeEnumClass
                             , SomeEnumStruct
                             , SomeClassicEnum
                             , std::map<int32_t, int64_t>
