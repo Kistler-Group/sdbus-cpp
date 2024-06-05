@@ -31,6 +31,7 @@
 #include <sdbus-c++/TypeTraits.h>
 
 #include <cstring>
+#include <cstddef>
 #include <memory>
 #include <string>
 #include <tuple>
@@ -66,6 +67,15 @@ namespace sdbus {
             msg_.seal();
         }
 
+        template <typename _Struct>
+        explicit Variant(const as_dictionary<_Struct>& value) : Variant()
+        {
+            msg_.openVariant<std::map<std::string, Variant>>();
+            msg_ << as_dictionary(value.m_struct);
+            msg_.closeVariant();
+            msg_.seal();
+        }
+
         template <typename... _Elements>
         Variant(const std::variant<_Elements...>& value)
             : Variant()
@@ -77,10 +87,10 @@ namespace sdbus {
         template <typename _ValueType>
         _ValueType get() const
         {
-            _ValueType val;
             msg_.rewind(false);
 
             msg_.enterVariant<_ValueType>();
+            _ValueType val;
             msg_ >> val;
             msg_.exitVariant();
             return val;
@@ -405,6 +415,9 @@ struct std::tuple_size<sdbus::Struct<_ValueTypes...>>
  * clients to use their struct conveniently instead of the (too
  * generic and less expressive) `sdbus::Struct<...>` in sdbus-c++ API.
  *
+ * It also enables to serialize a user-defined struct as an a{sv} dictionary,
+ * and to deserialize an a{sv} dictionary into the user-defined struct.
+ *
  * The first argument is the struct type name and the remaining arguments
  * are names of struct members. Members must be of types supported by
  * sdbus-c++ (or of user-defined types that sdbus-c++ was taught to support).
@@ -426,31 +439,96 @@ struct std::tuple_size<sdbus::Struct<_ValueTypes...>>
  *
  * SDBUSCPP_REGISTER_STRUCT(foo::ABC, number, name, data);
  *
- * The macro effectively generates the `sdbus::Message` serialization
- * and deserialization operators and the `sdbus::signature_of`
- * specialization for `foo::ABC`.
- *
  * Up to 16 struct members are supported by the macro.
  *
  ***********************************************/
-#define SDBUSCPP_REGISTER_STRUCT(STRUCT, ...)                                                                   \
-    namespace sdbus {                                                                                           \
-        static_assert(SDBUSCPP_PP_NARG(__VA_ARGS__) <= 16,                                                      \
-                     "Not more than 16 struct members are supported, please open an issue if you need more");   \
-        inline sdbus::Message& operator<<(sdbus::Message& msg, const STRUCT& items)                                    \
-        {                                                                                                       \
-            return msg << sdbus::Struct{std::forward_as_tuple(SDBUSCPP_STRUCT_MEMBERS(items, __VA_ARGS__))};    \
-        }                                                                                                       \
-        inline sdbus::Message& operator>>(sdbus::Message& msg, STRUCT& items)                                          \
-        {                                                                                                       \
-            sdbus::Struct s{std::forward_as_tuple(SDBUSCPP_STRUCT_MEMBERS(items, __VA_ARGS__))};                \
-            return msg >> s;                                                                                    \
-        }                                                                                                       \
-        template <>                                                                                             \
-        struct signature_of<STRUCT>                                                                             \
-            : signature_of<sdbus::Struct<SDBUSCPP_STRUCT_MEMBER_TYPES(STRUCT, __VA_ARGS__)>>                    \
-        {};                                                                                                     \
-    }                                                                                                           \
+#define SDBUSCPP_REGISTER_STRUCT(STRUCT, ...)                                                                                                           \
+    namespace sdbus {                                                                                                                                   \
+        static_assert(SDBUSCPP_PP_NARG(__VA_ARGS__) <= 16,                                                                                              \
+                     "Not more than 16 struct members are supported, please open an issue if you need more");                                           \
+                                                                                                                                                        \
+        template <>                                                                                                                                     \
+        struct signature_of<STRUCT>                                                                                                                     \
+            : signature_of<sdbus::Struct<SDBUSCPP_STRUCT_MEMBER_TYPES(STRUCT, __VA_ARGS__)>>                                                            \
+        {};                                                                                                                                             \
+                                                                                                                                                        \
+        inline auto as_dictionary_if_struct(const STRUCT& object)                                                                                       \
+        {                                                                                                                                               \
+            return as_dictionary<STRUCT>(object);                                                                                                       \
+        }                                                                                                                                               \
+                                                                                                                                                        \
+        inline sdbus::Message& operator<<(sdbus::Message& msg, const STRUCT& items)                                                                     \
+        {                                                                                                                                               \
+            return msg << sdbus::Struct{std::forward_as_tuple(SDBUSCPP_STRUCT_MEMBERS(items, __VA_ARGS__))};                                            \
+        }                                                                                                                                               \
+                                                                                                                                                        \
+        inline Message& operator<<(Message& msg, const as_dictionary<STRUCT>& s)                                                                        \
+        {                                                                                                                                               \
+            if constexpr (!nested_struct_as_dict_serialization_v<STRUCT>)                                                                               \
+                return msg.serializeDictionary<std::string, Variant>({SDBUSCPP_STRUCT_MEMBERS_AS_DICT_ENTRIES(s.m_struct, __VA_ARGS__)});               \
+            else                                                                                                                                        \
+                return msg.serializeDictionary<std::string, Variant>({SDBUSCPP_STRUCT_MEMBERS_AS_NESTED_DICT_ENTRIES(s.m_struct, __VA_ARGS__)});        \
+        }                                                                                                                                               \
+                                                                                                                                                        \
+        inline Message& operator>>(Message& msg, STRUCT& s)                                                                                             \
+        {                                                                                                                                               \
+            /* First, try to deserialize as a struct */                                                                                                 \
+            if (msg.peekType().first == signature_of<STRUCT>::type_value)                                                                               \
+            {                                                                                                                                           \
+                Struct sdbusStruct{std::forward_as_tuple(SDBUSCPP_STRUCT_MEMBERS(s, __VA_ARGS__))};                                                     \
+                return msg >> sdbusStruct;                                                                                                              \
+            }                                                                                                                                           \
+                                                                                                                                                        \
+            /* Otherwise try to deserialize as a dictionary of strings to variants */                                                                   \
+                                                                                                                                                        \
+            return msg.deserializeDictionary<std::string, Variant>([&s](const auto& dictEntry)                                                          \
+            {                                                                                                                                           \
+                const std::string& key = dictEntry.first; /* Intentionally not using structured bindings */                                             \
+                const Variant& value = dictEntry.second;                                                                                                \
+                                                                                                                                                        \
+                using namespace std::string_literals;                                                                                                   \
+                /* This also handles members which are structs serialized as dict of strings to variants, recursively */                                \
+                SDBUSCPP_FIND_AND_DESERIALIZE_STRUCT_MEMBERS(s, __VA_ARGS__)                                                                            \
+                SDBUS_THROW_ERROR_IF( strict_dict_as_struct_deserialization_v<STRUCT>                                                                   \
+                                    , ("Failed to deserialize struct from a dictionary: could not find field '"s += key) += "' in struct 'my::Struct'"  \
+                                    , EINVAL );                                                                                                         \
+            });                                                                                                                                         \
+        }                                                                                                                                               \
+    }                                                                                                                                                   \
+    /**/
+
+/********************************************//**
+ * @name SDBUSCPP_ENABLE_RELAXED_DICT2STRUCT_DESERIALIZATION
+ *
+ * Enables relaxed deserialization of an a{sv} dictionary into a user-defined struct STRUCT.
+ *
+ * The default (strict) deserialization mode is that if there are entries in the dictionary
+ * which do not have a corresponding field in the struct, an exception is thrown.
+ * In the relaxed mode, such entries are silently skipped.
+ *
+ * The macro can only be used in combination with SDBUSCPP_REGISTER_STRUCT macro,
+ * and must be placed before SDBUSCPP_REGISTER_STRUCT macro.
+ ***********************************************/
+#define SDBUSCPP_ENABLE_RELAXED_DICT2STRUCT_DESERIALIZATION(STRUCT)                                             \
+    template <>                                                                                                 \
+    constexpr auto sdbus::strict_dict_as_struct_deserialization_v<STRUCT> = false;                              \
+    /**/
+
+/********************************************//**
+ * @name SDBUSCPP_ENABLE_NESTED_STRUCT2DICT_SERIALIZATION
+ *
+ * Enables nested serialization of user-defined struct STRUCT as an a{sv} dictionary.
+ *
+ * By default, STRUCT fields which are structs themselves are serialized as D-Bus structs.
+ * This macro tells sdbus-c++ to also serialize nested structs, in a recursive fashion,
+ * as a{sv} dictionaries.
+ *
+ * The macro can only be used in combination with SDBUSCPP_REGISTER_STRUCT macro,
+ * and must be placed before SDBUSCPP_REGISTER_STRUCT macro.
+ ***********************************************/
+#define SDBUSCPP_ENABLE_NESTED_STRUCT2DICT_SERIALIZATION(STRUCT)                                                \
+    template <>                                                                                                 \
+    constexpr auto sdbus::nested_struct_as_dict_serialization_v<STRUCT> = true                                  \
     /**/
 
 /*!
@@ -458,49 +536,54 @@ struct std::tuple_size<sdbus::Struct<_ValueTypes...>>
  *
  * Internal helper preprocessor facilities
  */
-#define SDBUSCPP_STRUCT_MEMBERS(STRUCT, ...)                                                                    \
-    SDBUSCPP_PP_CAT(SDBUSCPP_STRUCT_MEMBERS_, SDBUSCPP_PP_NARG(__VA_ARGS__))(STRUCT, __VA_ARGS__)               \
+#define SDBUSCPP_STRUCT_MEMBERS(STRUCT, ...)                                                                                                                    \
+    SDBUSCPP_PP_CAT(SDBUSCPP_FOR_EACH_, SDBUSCPP_PP_NARG(__VA_ARGS__))(SDBUSCPP_STRUCT_MEMBER, SDBUSCPP_PP_COMMA, STRUCT, __VA_ARGS__)                          \
     /**/
-#define SDBUSCPP_STRUCT_MEMBERS_1(S, M1) S.M1
-#define SDBUSCPP_STRUCT_MEMBERS_2(S, M1, M2) S.M1, S.M2
-#define SDBUSCPP_STRUCT_MEMBERS_3(S, M1, M2, M3) S.M1, S.M2, S.M3
-#define SDBUSCPP_STRUCT_MEMBERS_4(S, M1, M2, M3, M4) S.M1, S.M2, S.M3, S.M4
-#define SDBUSCPP_STRUCT_MEMBERS_5(S, M1, M2, M3, M4, M5) S.M1, S.M2, S.M3, S.M4, S.M5
-#define SDBUSCPP_STRUCT_MEMBERS_6(S, M1, M2, M3, M4, M5, M6) S.M1, S.M2, S.M3, S.M4, S.M5, S.M6
-#define SDBUSCPP_STRUCT_MEMBERS_7(S, M1, M2, M3, M4, M5, M6, M7) S.M1, S.M2, S.M3, S.M4, S.M5, S.M6, S.M7
-#define SDBUSCPP_STRUCT_MEMBERS_8(S, M1, M2, M3, M4, M5, M6, M7, M8) S.M1, S.M2, S.M3, S.M4, S.M5, S.M6, S.M7, S.M8
-#define SDBUSCPP_STRUCT_MEMBERS_9(S, M1, M2, M3, M4, M5, M6, M7, M8, M9) S.M1, S.M2, S.M3, S.M4, S.M5, S.M6, S.M7, S.M8, S.M9
-#define SDBUSCPP_STRUCT_MEMBERS_10(S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10) S.M1, S.M2, S.M3, S.M4, S.M5, S.M6, S.M7, S.M8, S.M9, S.M10
-#define SDBUSCPP_STRUCT_MEMBERS_11(S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11) S.M1, S.M2, S.M3, S.M4, S.M5, S.M6, S.M7, S.M8, S.M9, S.M10, S.M11
-#define SDBUSCPP_STRUCT_MEMBERS_12(S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12) S.M1, S.M2, S.M3, S.M4, S.M5, S.M6, S.M7, S.M8, S.M9, S.M10, S.M11, S.M12
-#define SDBUSCPP_STRUCT_MEMBERS_13(S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13) S.M1, S.M2, S.M3, S.M4, S.M5, S.M6, S.M7, S.M8, S.M9, S.M10, S.M11, S.M12, S.M13
-#define SDBUSCPP_STRUCT_MEMBERS_14(S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14) S.M1, S.M2, S.M3, S.M4, S.M5, S.M6, S.M7, S.M8, S.M9, S.M10, S.M11, S.M12, S.M13, S.M14
-#define SDBUSCPP_STRUCT_MEMBERS_15(S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) S.M1, S.M2, S.M3, S.M4, S.M5, S.M6, S.M7, S.M8, S.M9, S.M10, S.M11, S.M12, S.M13, S.M14, S.M15
-#define SDBUSCPP_STRUCT_MEMBERS_16(S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15, M16) S.M1, S.M2, S.M3, S.M4, S.M5, S.M6, S.M7, S.M8, S.M9, S.M10, S.M11, S.M12, S.M13, S.M14, S.M15, S.M16
+#define SDBUSCPP_STRUCT_MEMBER(STRUCT, MEMBER) STRUCT.MEMBER
 
-#define SDBUSCPP_STRUCT_MEMBER_TYPES(STRUCT, ...)                                                               \
-    SDBUSCPP_PP_CAT(SDBUSCPP_STRUCT_MEMBER_TYPES_, SDBUSCPP_PP_NARG(__VA_ARGS__))(STRUCT, __VA_ARGS__)          \
+#define SDBUSCPP_STRUCT_MEMBER_TYPES(STRUCT, ...)                                                                                                               \
+    SDBUSCPP_PP_CAT(SDBUSCPP_FOR_EACH_, SDBUSCPP_PP_NARG(__VA_ARGS__))(SDBUSCPP_STRUCT_MEMBER_TYPE, SDBUSCPP_PP_COMMA, STRUCT, __VA_ARGS__)                     \
     /**/
-#define SDBUSCPP_STRUCT_MEMBER_TYPES_1(S, M1) decltype(S::M1)
-#define SDBUSCPP_STRUCT_MEMBER_TYPES_2(S, M1, M2) decltype(S::M1), decltype(S::M2)
-#define SDBUSCPP_STRUCT_MEMBER_TYPES_3(S, M1, M2, M3) decltype(S::M1), decltype(S::M2), decltype(S::M3)
-#define SDBUSCPP_STRUCT_MEMBER_TYPES_4(S, M1, M2, M3, M4) decltype(S::M1), decltype(S::M2), decltype(S::M3), decltype(S::M4)
-#define SDBUSCPP_STRUCT_MEMBER_TYPES_5(S, M1, M2, M3, M4, M5) decltype(S::M1), decltype(S::M2), decltype(S::M3), decltype(S::M4), decltype(S::M5)
-#define SDBUSCPP_STRUCT_MEMBER_TYPES_6(S, M1, M2, M3, M4, M5, M6) decltype(S::M1), decltype(S::M2), decltype(S::M3), decltype(S::M4), decltype(S::M5), decltype(S::M6)
-#define SDBUSCPP_STRUCT_MEMBER_TYPES_7(S, M1, M2, M3, M4, M5, M6, M7) decltype(S::M1), decltype(S::M2), decltype(S::M3), decltype(S::M4), decltype(S::M5), decltype(S::M6), decltype(S::M7)
-#define SDBUSCPP_STRUCT_MEMBER_TYPES_8(S, M1, M2, M3, M4, M5, M6, M7, M8) decltype(S::M1), decltype(S::M2), decltype(S::M3), decltype(S::M4), decltype(S::M5), decltype(S::M6), decltype(S::M7), decltype(S::M8)
-#define SDBUSCPP_STRUCT_MEMBER_TYPES_9(S, M1, M2, M3, M4, M5, M6, M7, M8, M9) decltype(S::M1), decltype(S::M2), decltype(S::M3), decltype(S::M4), decltype(S::M5), decltype(S::M6), decltype(S::M7), decltype(S::M8), decltype(S::M9)
-#define SDBUSCPP_STRUCT_MEMBER_TYPES_10(S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10) decltype(S::M1), decltype(S::M2), decltype(S::M3), decltype(S::M4), decltype(S::M5), decltype(S::M6), decltype(S::M7), decltype(S::M8), decltype(S::M9), decltype(S::M10)
-#define SDBUSCPP_STRUCT_MEMBER_TYPES_11(S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11) decltype(S::M1), decltype(S::M2), decltype(S::M3), decltype(S::M4), decltype(S::M5), decltype(S::M6), decltype(S::M7), decltype(S::M8), decltype(S::M9), decltype(S::M10), decltype(S::M11)
-#define SDBUSCPP_STRUCT_MEMBER_TYPES_12(S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12) decltype(S::M1), decltype(S::M2), decltype(S::M3), decltype(S::M4), decltype(S::M5), decltype(S::M6), decltype(S::M7), decltype(S::M8), decltype(S::M9), decltype(S::M10), decltype(S::M11), decltype(S::M12)
-#define SDBUSCPP_STRUCT_MEMBER_TYPES_13(S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13) decltype(S::M1), decltype(S::M2), decltype(S::M3), decltype(S::M4), decltype(S::M5), decltype(S::M6), decltype(S::M7), decltype(S::M8), decltype(S::M9), decltype(S::M10), decltype(S::M11), decltype(S::M12), decltype(S::M13)
-#define SDBUSCPP_STRUCT_MEMBER_TYPES_14(S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14) decltype(S::M1), decltype(S::M2), decltype(S::M3), decltype(S::M4), decltype(S::M5), decltype(S::M6), decltype(S::M7), decltype(S::M8), decltype(S::M9), decltype(S::M10), decltype(S::M11), decltype(S::M12), decltype(S::M13), decltype(S::M14)
-#define SDBUSCPP_STRUCT_MEMBER_TYPES_15(S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) decltype(S::M1), decltype(S::M2), decltype(S::M3), decltype(S::M4), decltype(S::M5), decltype(S::M6), decltype(S::M7), decltype(S::M8), decltype(S::M9), decltype(S::M10), decltype(S::M11), decltype(S::M12), decltype(S::M13), decltype(S::M14), decltype(S::M15)
-#define SDBUSCPP_STRUCT_MEMBER_TYPES_16(S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15, M16) decltype(S::M1), decltype(S::M2), decltype(S::M3), decltype(S::M4), decltype(S::M5), decltype(S::M6), decltype(S::M7), decltype(S::M8), decltype(S::M9), decltype(S::M10), decltype(S::M11), decltype(S::M12), decltype(S::M13), decltype(S::M14), decltype(S::M15), decltype(S::M16)
+#define SDBUSCPP_STRUCT_MEMBER_TYPE(STRUCT, MEMBER) decltype(STRUCT::MEMBER)
+
+#define SDBUSCPP_STRUCT_MEMBERS_AS_DICT_ENTRIES(STRUCT, ...)                                                                                                    \
+    SDBUSCPP_PP_CAT(SDBUSCPP_FOR_EACH_, SDBUSCPP_PP_NARG(__VA_ARGS__))(SDBUSCPP_STRUCT_MEMBER_AS_DICT_ENTRY, SDBUSCPP_PP_COMMA, STRUCT, __VA_ARGS__)            \
+    /**/
+#define SDBUSCPP_STRUCT_MEMBER_AS_DICT_ENTRY(STRUCT, MEMBER) {#MEMBER, Variant{STRUCT.MEMBER}}
+
+#define SDBUSCPP_STRUCT_MEMBERS_AS_NESTED_DICT_ENTRIES(STRUCT, ...)                                                                                             \
+    SDBUSCPP_PP_CAT(SDBUSCPP_FOR_EACH_, SDBUSCPP_PP_NARG(__VA_ARGS__))(SDBUSCPP_STRUCT_MEMBER_AS_NESTED_DICT_ENTRY, SDBUSCPP_PP_COMMA, STRUCT, __VA_ARGS__)     \
+    /**/
+#define SDBUSCPP_STRUCT_MEMBER_AS_NESTED_DICT_ENTRY(STRUCT, MEMBER) {#MEMBER, Variant{as_dictionary_if_struct(STRUCT.MEMBER)}}
+
+#define SDBUSCPP_FIND_AND_DESERIALIZE_STRUCT_MEMBERS(STRUCT, ...)                                                                                               \
+    SDBUSCPP_PP_CAT(SDBUSCPP_FOR_EACH_, SDBUSCPP_PP_NARG(__VA_ARGS__))(SDBUSCPP_FIND_AND_DESERIALIZE_STRUCT_MEMBER, SDBUSCPP_PP_SPACE, STRUCT, __VA_ARGS__)     \
+    /**/
+#define SDBUSCPP_FIND_AND_DESERIALIZE_STRUCT_MEMBER(STRUCT, MEMBER) if (key == #MEMBER) STRUCT.MEMBER = value.get<decltype(STRUCT.MEMBER)>(); else
+
+#define SDBUSCPP_FOR_EACH_1(M, D, S, M1) M(S, M1)
+#define SDBUSCPP_FOR_EACH_2(M, D, S, M1, M2) M(S, M1) D M(S, M2)
+#define SDBUSCPP_FOR_EACH_3(M, D, S, M1, M2, M3) M(S, M1) D M(S, M2) D M(S, M3)
+#define SDBUSCPP_FOR_EACH_4(M, D, S, M1, M2, M3, M4) M(S, M1) D M(S, M2) D M(S, M3) D M(S, M4)
+#define SDBUSCPP_FOR_EACH_5(M, D, S, M1, M2, M3, M4, M5) M(S, M1) D M(S, M2) D M(S, M3) D M(S, M4) D M(S, M5)
+#define SDBUSCPP_FOR_EACH_6(M, D, S, M1, M2, M3, M4, M5, M6) M(S, M1) D M(S, M2) D M(S, M3) D M(S, M4) D M(S, M5) D M(S, M6)
+#define SDBUSCPP_FOR_EACH_7(M, D, S, M1, M2, M3, M4, M5, M6, M7) M(S, M1) D M(S, M2) D M(S, M3) D M(S, M4) D M(S, M5) D M(S, M6) D M(S, M7)
+#define SDBUSCPP_FOR_EACH_8(M, D, S, M1, M2, M3, M4, M5, M6, M7, M8) M(S, M1) D M(S, M2) D M(S, M3) D M(S, M4) D M(S, M5) D M(S, M6) D M(S, M7) D M(S, M8)
+#define SDBUSCPP_FOR_EACH_9(M, D, S, M1, M2, M3, M4, M5, M6, M7, M8, M9) M(S, M1) D M(S, M2) D M(S, M3) D M(S, M4) D M(S, M5) D M(S, M6) D M(S, M7) D M(S, M8) D M(S, M9)
+#define SDBUSCPP_FOR_EACH_10(M, D, S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10) M(S, M1) D M(S, M2) D M(S, M3) D M(S, M4) D M(S, M5) D M(S, M6) D M(S, M7) D M(S, M8) D M(S, M9) D M(S, M10)
+#define SDBUSCPP_FOR_EACH_11(M, D, S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11) M(S, M1) D M(S, M2) D M(S, M3) D M(S, M4) D M(S, M5) D M(S, M6) D M(S, M7) D M(S, M8) D M(S, M9) D M(S, M10) D M(S, M11)
+#define SDBUSCPP_FOR_EACH_12(M, D, S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12) M(S, M1) D M(S, M2) D M(S, M3) D M(S, M4) D M(S, M5) D M(S, M6) D M(S, M7) D M(S, M8) D M(S, M9) D M(S, M10) D M(S, M11) D M(S, M12)
+#define SDBUSCPP_FOR_EACH_13(M, D, S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13) M(S, M1) D M(S, M2) D M(S, M3) D M(S, M4) D M(S, M5) D M(S, M6) D M(S, M7) D M(S, M8) D M(S, M9) D M(S, M10) D M(S, M11) D M(S, M12) D M(S, M13)
+#define SDBUSCPP_FOR_EACH_14(M, D, S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14) M(S, M1) D M(S, M2) D M(S, M3) D M(S, M4) D M(S, M5) D M(S, M6) D M(S, M7) D M(S, M8) D M(S, M9) D M(S, M10) D M(S, M11) D M(S, M12) D M(S, M13) D M(S, M14)
+#define SDBUSCPP_FOR_EACH_15(M, D, S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15) M(S, M1) D M(S, M2) D M(S, M3) D M(S, M4) D M(S, M5) D M(S, M6) D M(S, M7) D M(S, M8) D M(S, M9) D M(S, M10) D M(S, M11) D M(S, M12) D M(S, M13) D M(S, M14) D M(S, M15)
+#define SDBUSCPP_FOR_EACH_16(M, D, S, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15, M16) M(S, M1) D M(S, M2) D M(S, M3) D M(S, M4) D M(S, M5) D M(S, M6) D M(S, M7) D M(S, M8) D M(S, M9) D M(S, M10) D M(S, M11) D M(S, M12) D M(S, M13) D M(S, M14) D M(S, M15) D M(S, M16)
 
 #define SDBUSCPP_PP_CAT(X, Y) SDBUSCPP_PP_CAT_IMPL(X, Y)
 #define SDBUSCPP_PP_CAT_IMPL(X, Y) X##Y
 #define SDBUSCPP_PP_NARG(...) SDBUSCPP_PP_NARG_IMPL(__VA_ARGS__, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
 #define SDBUSCPP_PP_NARG_IMPL(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21, _22, _23, _24, _25, _26, _27, _28, _29, _30, _31, _32, _N, ...) _N
+
+#define SDBUSCPP_PP_COMMA ,
+#define SDBUSCPP_PP_SPACE
 
 #endif /* SDBUS_CXX_TYPES_H_ */

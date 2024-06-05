@@ -85,6 +85,7 @@ protected:
     void doPrivilegedStuff() override;
     void emitTwoSimpleSignals() override;
     void sendLargeMessage(const std::map<int, std::string>& collection) override;
+    std::map<std::string, sdbus::Variant> returnDictionary(const std::map<std::string, sdbus::Variant>& dict) override;
 
     uint32_t action() override;
     void action(const uint32_t& value) override;
@@ -147,6 +148,7 @@ protected:
     void doPrivilegedStuff() override {}
     void emitTwoSimpleSignals() override {}
     void sendLargeMessage(const std::map<int, std::string>&) override {}
+    std::map<std::string, sdbus::Variant> returnDictionary(const std::map<std::string, sdbus::Variant>&) override { return {}; }
 
     uint32_t action() override { return {}; }
     void action(const uint32_t&) override {}

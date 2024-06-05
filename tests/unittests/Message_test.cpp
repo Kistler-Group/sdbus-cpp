@@ -36,6 +36,8 @@ using ::testing::StrEq;
 using ::testing::Gt;
 using ::testing::DoubleEq;
 using ::testing::IsNull;
+using ::testing::SizeIs;
+using ::testing::ElementsAre;
 using namespace std::string_literals;
 
 namespace
@@ -53,6 +55,7 @@ namespace sdbus {
     template <typename _ElementType>
     sdbus::Message& operator<<(sdbus::Message& msg, const std::list<_ElementType>& items)
     {
+        // TODO: This can also be simplified on the basis of a callback (see dictionary...)
         msg.openContainer<_ElementType>();
 
         for (const auto& item : items)
@@ -96,7 +99,8 @@ namespace my {
     enum class Enum
     {
         Value1,
-        Value2
+        Value2,
+        Value3
     };
 
     struct Struct
@@ -108,9 +112,35 @@ namespace my {
 
         friend bool operator==(const Struct& lhs, const Struct& rhs) = default;
     };
+
+    struct RelaxedStruct
+    {
+        int i;
+        std::string s;
+        std::list<double> l;
+        Enum e;
+
+        friend bool operator==(const RelaxedStruct& lhs, const RelaxedStruct& rhs) = default;
+    };
+
+    struct NestedStruct
+    {
+        int i;
+        std::string s;
+        Enum e;
+        Struct x;
+
+        friend bool operator==(const NestedStruct& lhs, const NestedStruct& rhs) = default;
+    };
 }
 
 SDBUSCPP_REGISTER_STRUCT(my::Struct, i, s, l, e);
+
+SDBUSCPP_ENABLE_RELAXED_DICT2STRUCT_DESERIALIZATION(my::RelaxedStruct);
+SDBUSCPP_REGISTER_STRUCT(my::RelaxedStruct, i, s, l, e);
+
+SDBUSCPP_ENABLE_NESTED_STRUCT2DICT_SERIALIZATION(my::NestedStruct);
+SDBUSCPP_REGISTER_STRUCT(my::NestedStruct, i, s, e, x);
 
 /*-------------------------------------*/
 /* --          TEST CASES           -- */
@@ -490,7 +520,7 @@ TEST(AMessage, CanCarryDBusArrayGivenAsCustomType)
     ASSERT_THAT(dataRead, Eq(dataWritten));
 }
 
-TEST(AMessage, CanCarryDBusStructGivenAsCustomType)
+TEST(AMessage, CanCarryUserDefinedStruct)
 {
     auto msg = sdbus::createPlainMessage();
 
@@ -503,6 +533,116 @@ TEST(AMessage, CanCarryDBusStructGivenAsCustomType)
     msg >> dataRead;
 
     ASSERT_THAT(dataRead, Eq(dataWritten));
+}
+
+TEST(AMessage, CanCarryNestedUserDefinedStruct)
+{
+    auto msg = sdbus::createPlainMessage();
+
+    const my::NestedStruct dataWritten{3545342, "hello"s, my::Enum::Value2, {12, "world"s, {3.14, 2.4568546}, my::Enum::Value3}};
+
+    msg << dataWritten;
+    msg.seal();
+
+    my::NestedStruct dataRead;
+    msg >> dataRead;
+
+    ASSERT_THAT(dataRead, Eq(dataWritten));
+}
+
+TEST(AMessage, CanSerializeUserDefinedStructAsDictionaryOfStringsToVariants)
+{
+    auto msg = sdbus::createPlainMessage();
+
+    const my::Struct dataWritten{3545342, "hello"s, {3.14, 2.4568546}, my::Enum::Value2};
+
+    msg << sdbus::as_dictionary{dataWritten};
+    msg.seal();
+
+    std::map<std::string, sdbus::Variant> dataRead;
+    msg >> dataRead;
+
+    ASSERT_THAT(dataRead, SizeIs(4));
+    ASSERT_THAT(dataRead.at("i").get<int>(), Eq(3545342));
+    ASSERT_THAT(dataRead.at("s").get<std::string>(), Eq("hello"));
+    ASSERT_THAT(dataRead.at("l").get<std::list<double>>(), ElementsAre(3.14, 2.4568546));
+    ASSERT_THAT(dataRead.at("e").get<my::Enum>(), Eq(my::Enum::Value2));
+}
+
+TEST(AMessage, CanRecursivelySerializeUserDefinedStructAsDictionaryOfStringsToVariants)
+{
+    auto msg = sdbus::createPlainMessage();
+
+    const my::NestedStruct dataWritten{3545342, "hello"s, my::Enum::Value2, {12, "world"s, {3.14, 2.4568546}, my::Enum::Value3}};
+
+    msg << sdbus::as_dictionary{dataWritten};
+    msg.seal();
+
+    std::map<std::string, sdbus::Variant> dataRead;
+    msg >> dataRead;
+
+    ASSERT_THAT(dataRead, SizeIs(4));
+    ASSERT_THAT(dataRead.at("i").get<int>(), Eq(3545342));
+    ASSERT_THAT(dataRead.at("s").get<std::string>(), Eq("hello"));
+    ASSERT_THAT(dataRead.at("e").get<my::Enum>(), Eq(my::Enum::Value2));
+    auto nestedStructRead = dataRead.at("x").get<std::map<std::string, sdbus::Variant>>(); // Nested struct serialized as dict
+    ASSERT_THAT(nestedStructRead.at("i").get<int>(), Eq(12));
+    ASSERT_THAT(nestedStructRead.at("s").get<std::string>(), Eq("world"));
+    ASSERT_THAT(nestedStructRead.at("l").get<std::list<double>>(), ElementsAre(3.14, 2.4568546));
+    ASSERT_THAT(nestedStructRead.at("e").get<my::Enum>(), Eq(my::Enum::Value3));
+}
+
+TEST(AMessage, CanDeserializeDictionaryOfStringsToVariantsIntoUserDefinedStruct)
+{
+    auto msg = sdbus::createPlainMessage();
+
+    std::map<std::string, sdbus::Variant> dataWritten{ {"i", sdbus::Variant{3545342}}
+                                                     , {"s", sdbus::Variant{"hello"s}}
+                                                     , {"l", sdbus::Variant{std::list<double>{3.14, 2.4568546}}}
+                                                     , {"e", sdbus::Variant{my::Enum::Value2}} };
+
+    msg << dataWritten;
+    msg.seal();
+
+    my::Struct dataRead;
+    msg >> dataRead;
+
+    ASSERT_THAT(dataRead, Eq(my::Struct{3545342, "hello"s, {3.14, 2.4568546}, my::Enum::Value2}));
+}
+
+TEST(AMessage, FailsDeserializingDictionaryIntoUserDefinedStructIfStructMemberIsNotFound)
+{
+    auto msg = sdbus::createPlainMessage();
+
+    std::map<std::string, sdbus::Variant> dataWritten{ {"i", sdbus::Variant{3545342}}
+                                                     , {"nonexistent", sdbus::Variant{"hello"s}}
+                                                     , {"l", sdbus::Variant{std::list<double>{3.14, 2.4568546}}}
+                                                     , {"e", sdbus::Variant{my::Enum::Value2}} };
+
+    msg << dataWritten;
+    msg.seal();
+
+    my::Struct dataRead;
+
+    ASSERT_THROW(msg >> dataRead, sdbus::Error);
+}
+
+TEST(AMessage, DeserializesDictionaryIntoStructWithMissingMembersSuccessfullyIfRelaxedOptionIsSet)
+{
+    auto msg = sdbus::createPlainMessage();
+
+    std::map<std::string, sdbus::Variant> dataWritten{ {"some_nonexistent_struct_member", sdbus::Variant{3545342}}
+                                                     , {"another_nonexistent_struct_member", sdbus::Variant{"hello"s}}
+                                                     , {"l", sdbus::Variant{std::list<double>{3.14, 2.4568546}}}
+                                                     , {"e", sdbus::Variant{my::Enum::Value2}} };
+
+    msg << dataWritten;
+    msg.seal();
+
+    my::RelaxedStruct dataRead{};
+    msg >> dataRead;
+
+    ASSERT_THAT(dataRead, Eq(my::RelaxedStruct{{}, {}, {3.14, 2.4568546}, my::Enum::Value2}));
 }
 
 class AMessage : public ::testing::TestWithParam<std::variant<int32_t, std::string, my::Struct>>
