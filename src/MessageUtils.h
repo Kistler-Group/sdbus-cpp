@@ -58,8 +58,6 @@ namespace sdbus
             return _Msg{msg, sdbus, adopt_message};
         }
     };
-
-    PlainMessage createPlainMessage();
 }
 
 #endif /* SDBUS_CXX_INTERNAL_MESSAGEUTILS_H_ */
