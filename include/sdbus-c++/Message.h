@@ -332,6 +332,8 @@ namespace sdbus {
         PlainMessage() = default;
     };
 
+    PlainMessage createPlainMessage();
+
     template <typename ...Elements>
     inline Message& Message::operator<<(const std::variant<Elements...>& value)
     {
