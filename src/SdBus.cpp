@@ -127,7 +127,7 @@ int SdBus::sd_bus_set_method_call_timeout(sd_bus *bus, uint64_t usec)
 #else
     (void)bus;
     (void)usec;
-    throw sdbus::Error(SD_BUS_ERROR_NOT_SUPPORTED, "Setting general method call timeout not supported by underlying version of libsystemd");
+    throw Error(Error::Name{SD_BUS_ERROR_NOT_SUPPORTED}, "Setting general method call timeout not supported by underlying version of libsystemd");
 #endif
 }
 
@@ -140,7 +140,7 @@ int SdBus::sd_bus_get_method_call_timeout(sd_bus *bus, uint64_t *ret)
 #else
     (void)bus;
     (void)ret;
-    throw sdbus::Error(SD_BUS_ERROR_NOT_SUPPORTED, "Getting general method call timeout not supported by underlying version of libsystemd");
+    throw Error(Error::Name{SD_BUS_ERROR_NOT_SUPPORTED}, "Getting general method call timeout not supported by underlying version of libsystemd");
 #endif
 }
 
