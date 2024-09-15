@@ -28,35 +28,39 @@ $ sudo cmake --build . --target install
 
 * `SDBUSCPP_BUILD_CODEGEN` [boolean]
 
-  Option for building the stub code generator `sdbus-c++-xml2cpp` for generating the adaptor and proxy interfaces out of the D-Bus IDL XML description. Default value: `OFF`. Use `-DSDBUSCPP_BUILD_CODEGEN=ON` flag to turn on building the code gen.
+  Build the codegen tool `sdbus-c++-xml2cpp` for generating the high level C++ bindings out of the D-Bus IDL XML description. Default value: `OFF`. Use `-DSDBUSCPP_BUILD_CODEGEN=ON` flag to turn on building the code gen.
 
 * `SDBUSCPP_BUILD_DOCS` [boolean]
 
-  Option for including sdbus-c++ documentation files and tutorials. Default value: `ON`. With this option turned on, you may also enable/disable the following option:
+  Include sdbus-c++ documentation files and tutorials. Default value: `ON`. With this option turned on, you may also enable/disable the following option:
 
     * `SDBUSCPP_BUILD_DOXYGEN_DOCS` [boolean]
 
-      Option for building Doxygen documentation of sdbus-c++ API. If enabled, the documentation must still be built explicitly through `cmake --build . --target doc`. Default value: `OFF`. Use `-DSDBUSCPP_BUILD_DOXYGEN_DOCS=OFF` to disable searching for Doxygen and building Doxygen documentation of sdbus-c++ API.
+      Build Doxygen documentation of sdbus-c++ API. If enabled, the documentation must still be built explicitly through `cmake --build . --target doc`. Default value: `OFF`. Use `-DSDBUSCPP_BUILD_DOXYGEN_DOCS=OFF` to disable searching for Doxygen and building Doxygen documentation of sdbus-c++ API.
 
 * `SDBUSCPP_BUILD_TESTS` [boolean]
 
-  Option for building sdbus-c++ unit and integration tests, invokable by `cmake --build . --target test` (Note: before invoking `cmake --build . --target test`, make sure you copy `tests/integrationtests/files/org.sdbuscpp.integrationtests.conf` file to `/etc/dbus-1/system.d` directory). That incorporates downloading and building static libraries of Google Test. Default value: `OFF`. Use `-DBUILD_TESTS=ON` to enable building the tests. With this option turned on, you may also enable/disable the following options:
+  Build sdbus-c++ unit and integration tests, invokable by `cmake --build . --target test` (Note: before invoking `cmake --build . --target test`, make sure you copy `tests/integrationtests/files/org.sdbuscpp.integrationtests.conf` file to `/etc/dbus-1/system.d` directory). That incorporates downloading and building static libraries of Google Test. Default value: `OFF`. Use `-DBUILD_TESTS=ON` to enable building the tests. With this option turned on, you may also enable/disable the following options:
 
     * `SDBUSCPP_BUILD_PERF_TESTS` [boolean]
 
-      Option for building sdbus-c++ performance tests. Default value: `OFF`.
+      Build sdbus-c++ performance tests. Default value: `OFF`.
 
     * `SDBUSCPP_BUILD_STRESS_TESTS` [boolean]
 
-      Option for building sdbus-c++ stress tests. Default value: `OFF`.
+      Build sdbus-c++ stress tests. Default value: `OFF`.
 
     * `SDBUSCPP_TESTS_INSTALL_PATH` [string]
 
       Path where the test binaries shall get installed. Default value: `${CMAKE_INSTALL_PREFIX}/tests/sdbus-c++` (previously: `/opt/test/bin`).
 
+* `SDBUSCPP_BUILD_EXAMPLES` [boolean]
+
+  Build example programs which are located in the _example_ directory. Examples are not installed. Default value: `OFF`.
+
 * `SDBUSCPP_BUILD_LIBSYSTEMD` [boolean]
 
-  Option for building libsystemd as a sd-bus implementation when sdbus-c++ is built, and making libsystemd an integral part of sdbus-c++ library. Default value: `OFF`, which means that the sd-bus implementation library (`libsystemd`, `libelogind`, or `basu`) will be searched via `pkg-config` in the system.
+  Build sd-bus (libsystemd library) instead of searching for it in the system, and make it part of sdbus-c++ library. Default value: `OFF`, which means that the sd-bus implementation library (`libsystemd`, `libelogind`, or `basu`) will be searched via `pkg-config` in the system.
 
   This option may be very helpful in environments where sd-bus implementation library is unavailable (see [Solving sd-bus dependency](docs/using-sdbus-c++.md#solving-sd-bus-dependency) for more information).
   
@@ -70,29 +74,25 @@ $ sudo cmake --build . --target install
 
     * `SDBUSCPP_LIBSYSTEMD_VERSION` [string]
 
-      Defines version of systemd to be downloaded, built and integrated into sdbus-c++. Default value: `242`.
+      Defines version of systemd to be downloaded, built and integrated into sdbus-c++. Default value: `252`, minimum value: `239`.
 
     * `SDBUSCPP_LIBSYSTEMD_EXTRA_CONFIG_OPTS` [string]
 
-      Additional options to be passed as-is to the libsystemd build system (meson for systemd v242) in its configure step. Can be used for passing e.g. toolchain file path in case of cross builds. Default value: empty.
+      Additional options to be passed as-is to the libsystemd build system in its configure step. Can be used for passing e.g. toolchain file path in case of cross builds. Default value: empty.
 
 * `CMAKE_BUILD_TYPE` [string]
 
-  This is a CMake-builtin option. Set to `Release` to build sdbus-c++ for production use. Set to `Debug` if you want to help further develop (and debug) the library :)
+  CMake-builtin option. Set to `Release` to build sdbus-c++ for production use. Set to `Debug` if you want to help further develop (and debug) the library :)
 
 * `BUILD_SHARED_LIBS` [boolean]
 
-  This is a global CMake flag, promoted in sdbus-c++ project to a CMake option. Use this to control whether sdbus-c++ is built as either a shared or static library. Default value: `ON`.
-
-* `SDBUSCPP_BUILD_EXAMPLES` [boolean]
-
-  Build example programs which are located in the _example_ directory. Examples are not installed. Default value: `OFF`
+  Global CMake flag, promoted in sdbus-c++ project to a CMake option. Use this to control whether sdbus-c++ is built as either a shared or static library. Default value: `ON`.
 
 Dependencies
 ------------
 
-* `C++17` - the library uses C++17 features.
-* `libsystemd`/`libelogind`/`basu` - libraries containing sd-bus implementation that sdbus-c++ is written around. In case of `libsystemd` and `libelogind`, version >= 236 is needed. (In case you have you're missing any of those sd-bus implementations, don't worry, see [Solving sd-bus dependency](docs/using-sdbus-c++.md#solving-sd-bus-dependency) for more information.)
+* `C++20/C++17` - the library uses C++20 features, but its public API is backwards compatible with C++17 and provides optional extra features when C++20 features are available
+* `libsystemd`/`libelogind`/`basu` - libraries containing sd-bus implementation that sdbus-c++ is written around. In case of `libsystemd` and `libelogind`, version >= 238 is needed. (In case you have you're missing any of those sd-bus implementations, don't worry, see [Solving sd-bus dependency](docs/using-sdbus-c++.md#solving-sd-bus-dependency) for more information.)
 * `googletest` - google unit testing framework, only necessary when building tests, will be downloaded and built automatically.
 * `pkgconfig` - required for sdbus-c++ to be able to find some dependency packages.
 * `expat` - necessary when building the xml2cpp binding code generator (`SDBUSCPP_BUILD_CODEGEN` option is `ON`).
