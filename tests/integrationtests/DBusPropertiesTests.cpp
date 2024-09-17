@@ -55,7 +55,7 @@ using namespace sdbus::test;
 /* --          TEST CASES           -- */
 /*-------------------------------------*/
 
-TYPED_TEST(SdbusTestObject, ReadsReadOnlyPropertySuccesfully)
+TYPED_TEST(SdbusTestObject, ReadsReadOnlyPropertySuccessfully)
 {
     ASSERT_THAT(this->m_proxy->state(), Eq(DEFAULT_STATE_VALUE));
 }
@@ -65,7 +65,7 @@ TYPED_TEST(SdbusTestObject, FailsWritingToReadOnlyProperty)
     ASSERT_THROW(this->m_proxy->setStateProperty("new_value"), sdbus::Error);
 }
 
-TYPED_TEST(SdbusTestObject, WritesAndReadsReadWritePropertySuccesfully)
+TYPED_TEST(SdbusTestObject, WritesAndReadsReadWritePropertySuccessfully)
 {
     uint32_t newActionValue = 5678;
 

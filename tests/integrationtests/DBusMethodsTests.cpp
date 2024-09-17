@@ -54,12 +54,25 @@ using namespace sdbus::test;
 /* --          TEST CASES           -- */
 /*-------------------------------------*/
 
-TYPED_TEST(SdbusTestObject, CallsEmptyMethodSuccesfully)
+TYPED_TEST(SdbusTestObject, CallsMethodWithLargeArgument)
+{
+    std::map<int, std::string> collection;
+    //std::size_t totalSize{};
+    for (int i = 0; i < 400'000; i++)
+    {
+        collection[i] = ("This is a string of fifty characters. This is a string of fifty " + std::to_string(i));
+        //totalSize += sizeof(int) + collection[i].size();
+    }
+    //printf("Sending large message with collection of size %zu bytes\n", totalSize);
+    this->m_proxy->sendLargeMessage(collection);
+}
+
+TYPED_TEST(SdbusTestObject, CallsEmptyMethodSuccessfully)
 {
     ASSERT_NO_THROW(this->m_proxy->noArgNoReturn());
 }
 
-TYPED_TEST(SdbusTestObject, CallsMethodsWithBaseTypesSuccesfully)
+TYPED_TEST(SdbusTestObject, CallsMethodsWithBaseTypesSuccessfully)
 {
     auto resInt = this->m_proxy->getInt();
     ASSERT_THAT(resInt, Eq(INT32_VALUE));
@@ -68,14 +81,14 @@ TYPED_TEST(SdbusTestObject, CallsMethodsWithBaseTypesSuccesfully)
     ASSERT_THAT(multiplyRes, Eq(INT64_VALUE * DOUBLE_VALUE));
 }
 
-TYPED_TEST(SdbusTestObject, CallsMethodsWithTuplesSuccesfully)
+TYPED_TEST(SdbusTestObject, CallsMethodsWithTuplesSuccessfully)
 {
     auto resTuple = this->m_proxy->getTuple();
     ASSERT_THAT(std::get<0>(resTuple), Eq(UINT32_VALUE));
     ASSERT_THAT(std::get<1>(resTuple), Eq(STRING_VALUE));
 }
 
-TYPED_TEST(SdbusTestObject, CallsMethodsWithStructSuccesfully)
+TYPED_TEST(SdbusTestObject, CallsMethodsWithStructSuccessfully)
 {
     sdbus::Struct<uint8_t, int16_t, double, std::string, std::vector<int16_t>> a{};
     auto vectorRes = this->m_proxy->getInts16FromStruct(a);
@@ -88,21 +101,21 @@ TYPED_TEST(SdbusTestObject, CallsMethodsWithStructSuccesfully)
     ASSERT_THAT(vectorRes, Eq(std::vector<int16_t>{INT16_VALUE, INT16_VALUE, -INT16_VALUE}));
 }
 
-TYPED_TEST(SdbusTestObject, CallsMethodWithVariantSuccesfully)
+TYPED_TEST(SdbusTestObject, CallsMethodWithVariantSuccessfully)
 {
     sdbus::Variant v{DOUBLE_VALUE};
     sdbus::Variant variantRes = this->m_proxy->processVariant(v);
     ASSERT_THAT(variantRes.get<int32_t>(), Eq(static_cast<int32_t>(DOUBLE_VALUE)));
 }
 
-TYPED_TEST(SdbusTestObject, CallsMethodWithStdVariantSuccesfully)
+TYPED_TEST(SdbusTestObject, CallsMethodWithStdVariantSuccessfully)
 {
     std::variant<int32_t, double, std::string> v{DOUBLE_VALUE};
     auto variantRes = this->m_proxy->processVariant(v);
     ASSERT_THAT(std::get<int32_t>(variantRes), Eq(static_cast<int32_t>(DOUBLE_VALUE)));
 }
 
-TYPED_TEST(SdbusTestObject, CallsMethodWithStructVariantsAndGetMapSuccesfully)
+TYPED_TEST(SdbusTestObject, CallsMethodWithStructVariantsAndGetMapSuccessfully)
 {
     std::vector<int32_t> x{-2, 0, 2};
     sdbus::Struct<sdbus::Variant, sdbus::Variant> y{false, true};
@@ -116,44 +129,44 @@ TYPED_TEST(SdbusTestObject, CallsMethodWithStructVariantsAndGetMapSuccesfully)
     ASSERT_THAT(mapOfVariants[2].get<bool>(), Eq(res[2].get<bool>()));
 }
 
-TYPED_TEST(SdbusTestObject, CallsMethodWithStructInStructSuccesfully)
+TYPED_TEST(SdbusTestObject, CallsMethodWithStructInStructSuccessfully)
 {
     auto val = this->m_proxy->getStructInStruct();
     ASSERT_THAT(val.template get<0>(), Eq(STRING_VALUE));
     ASSERT_THAT(std::get<0>(std::get<1>(val))[INT32_VALUE], Eq(INT32_VALUE));
 }
 
-TYPED_TEST(SdbusTestObject, CallsMethodWithTwoStructsSuccesfully)
+TYPED_TEST(SdbusTestObject, CallsMethodWithTwoStructsSuccessfully)
 {
     auto val = this->m_proxy->sumStructItems({1, 2}, {3, 4});
     ASSERT_THAT(val, Eq(1 + 2 + 3 + 4));
 }
 
-TYPED_TEST(SdbusTestObject, CallsMethodWithTwoVectorsSuccesfully)
+TYPED_TEST(SdbusTestObject, CallsMethodWithTwoVectorsSuccessfully)
 {
     auto val = this->m_proxy->sumArrayItems({1, 7}, {2, 3, 4});
     ASSERT_THAT(val, Eq(1 + 7 + 2 + 3 + 4));
 }
 
-TYPED_TEST(SdbusTestObject, CallsMethodWithSignatureSuccesfully)
+TYPED_TEST(SdbusTestObject, CallsMethodWithSignatureSuccessfully)
 {
     auto resSignature = this->m_proxy->getSignature();
     ASSERT_THAT(resSignature, Eq(SIGNATURE_VALUE));
 }
 
-TYPED_TEST(SdbusTestObject, CallsMethodWithObjectPathSuccesfully)
+TYPED_TEST(SdbusTestObject, CallsMethodWithObjectPathSuccessfully)
 {
     auto resObjectPath = this->m_proxy->getObjPath();
     ASSERT_THAT(resObjectPath, Eq(OBJECT_PATH_VALUE));
 }
 
-TYPED_TEST(SdbusTestObject, CallsMethodWithUnixFdSuccesfully)
+TYPED_TEST(SdbusTestObject, CallsMethodWithUnixFdSuccessfully)
 {
     auto resUnixFd = this->m_proxy->getUnixFd();
     ASSERT_THAT(resUnixFd.get(), Gt(UNIX_FD_VALUE));
 }
 
-TYPED_TEST(SdbusTestObject, CallsMethodWithComplexTypeSuccesfully)
+TYPED_TEST(SdbusTestObject, CallsMethodWithComplexTypeSuccessfully)
 {
     auto resComplex = this->m_proxy->getComplex();
     ASSERT_THAT(resComplex.count(0), Eq(1));
@@ -263,6 +276,17 @@ TYPED_TEST(SdbusTestObject, CanAccessAssociatedMethodCallMessageInAsyncMethodCal
 
     ASSERT_THAT(this->m_adaptor->m_methodCallMsg, NotNull());
     ASSERT_THAT(this->m_adaptor->m_methodName, Eq("doOperationAsync"));
+}
+
+TYPED_TEST(SdbusTestObject, CanSendCallsAndReceiveRepliesWithLargeData)
+{
+    std::map<int32_t, std::string> largeMap;
+    for (int32_t i = 0; i < 40'000; ++i)
+        largeMap.emplace(i, "This is string nr. " + std::to_string(i+1));
+
+    auto returnedMap = this->m_proxy->doOperationWithLargeData(largeMap);
+
+    ASSERT_THAT(returnedMap, Eq(largeMap));
 }
 
 #if LIBSYSTEMD_VERSION>=240

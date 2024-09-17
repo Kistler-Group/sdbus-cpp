@@ -130,10 +130,24 @@ public:
         return result;
     }
 
+    std::map<int32_t, std::string> doOperationWithLargeData(const std::map<int32_t, std::string>& largeParam)
+    {
+        std::map<int32_t, std::string> result;
+        m_proxy.callMethod("doOperationWithLargeData").onInterface(INTERFACE_NAME).withArguments(largeParam).storeResultsTo(result);
+        return result;
+    }
+
     uint32_t doOperationAsync(const uint32_t& arg0)
     {
         uint32_t result;
         m_proxy.callMethod("doOperationAsync").onInterface(INTERFACE_NAME).withArguments(arg0).storeResultsTo(result);
+        return result;
+    }
+
+    std::map<int32_t, std::string> doOperationAsyncWithLargeData(const uint32_t& arg0, const std::map<int32_t, std::string>& largeParam)
+    {
+        std::map<int32_t, std::string> result;
+        m_proxy.callMethod("doOperationAsyncWithLargeData").onInterface(INTERFACE_NAME).withArguments(arg0, largeParam).storeResultsTo(result);
         return result;
     }
 
@@ -183,6 +197,11 @@ public:
     void emitTwoSimpleSignals()
     {
         m_proxy.callMethod("emitTwoSimpleSignals").onInterface(INTERFACE_NAME);
+    }
+
+    void sendLargeMessage(const std::map<int, std::string>& collection)
+    {
+        m_proxy.callMethod("sendLargeMessage").onInterface(INTERFACE_NAME).withArguments(collection);
     }
 
     void unregisterSimpleSignalHandler()

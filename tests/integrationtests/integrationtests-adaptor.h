@@ -46,7 +46,9 @@ protected:
                           , sdbus::registerMethod("sumStructItems").withInputParamNames("arg0", "arg1").withOutputParamNames("arg0").implementedAs([this](const sdbus::Struct<uint8_t, uint16_t>& arg0, const sdbus::Struct<int32_t, int64_t>& arg1){ return this->sumStructItems(arg0, arg1); })
                           , sdbus::registerMethod("sumArrayItems").withInputParamNames("arg0", "arg1").withOutputParamNames("arg0").implementedAs([this](const std::vector<uint16_t>& arg0, const std::array<uint64_t, 3>& arg1){ return this->sumArrayItems(arg0, arg1); })
                           , sdbus::registerMethod("doOperation").withInputParamNames("arg0").withOutputParamNames("arg0").implementedAs([this](const uint32_t& arg0){ return this->doOperation(arg0); })
+                          , sdbus::registerMethod("doOperationWithLargeData").withInputParamNames("largeMap").withOutputParamNames("largeMap").implementedAs([this](const std::map<int32_t, std::string>& largeMap){ return this->doOperationWithLargeData(largeMap); })
                           , sdbus::registerMethod("doOperationAsync").withInputParamNames("arg0").withOutputParamNames("arg0").implementedAs([this](sdbus::Result<uint32_t>&& result, uint32_t arg0){ this->doOperationAsync(std::move(result), std::move(arg0)); })
+                          , sdbus::registerMethod("doOperationAsyncWithLargeData").withInputParamNames("arg0", "largeMap").withOutputParamNames("largeMap").implementedAs([this](sdbus::Result<std::map<int32_t, std::string>>&& result, uint32_t arg0, const std::map<int32_t, std::string>& largeMap){ this->doOperationAsyncWithLargeData(std::move(result), std::move(arg0), largeMap); })
                           , sdbus::registerMethod("getSignature").withOutputParamNames("arg0").implementedAs([this](){ return this->getSignature(); })
                           , sdbus::registerMethod("getObjPath").withOutputParamNames("arg0").implementedAs([this](){ return this->getObjPath(); })
                           , sdbus::registerMethod("getUnixFd").withOutputParamNames("arg0").implementedAs([this](){ return this->getUnixFd(); })
@@ -55,6 +57,7 @@ protected:
                           , sdbus::registerMethod("throwErrorWithNoReply").implementedAs([this](){ return this->throwErrorWithNoReply(); }).withNoReply()
                           , sdbus::registerMethod("doPrivilegedStuff").implementedAs([this](){ return this->doPrivilegedStuff(); }).markAsPrivileged()
                           , sdbus::registerMethod("emitTwoSimpleSignals").implementedAs([this](){ return this->emitTwoSimpleSignals(); })
+                          , sdbus::registerMethod("sendLargeMessage").implementedAs([this](const std::map<int, std::string>& collection){ this->sendLargeMessage(collection); })
                           , sdbus::registerSignal("simpleSignal").markAsDeprecated()
                           , sdbus::registerSignal("signalWithMap").withParameters<std::map<int32_t, std::string>>("aMap")
                           , sdbus::registerSignal("signalWithVariant").withParameters<sdbus::Variant>("aVariant")
@@ -93,7 +96,9 @@ private:
     virtual int32_t sumStructItems(const sdbus::Struct<uint8_t, uint16_t>& arg0, const sdbus::Struct<int32_t, int64_t>& arg1) = 0;
     virtual uint32_t sumArrayItems(const std::vector<uint16_t>& arg0, const std::array<uint64_t, 3>& arg1) = 0;
     virtual uint32_t doOperation(const uint32_t& arg0) = 0;
+    virtual std::map<int32_t, std::string> doOperationWithLargeData(const std::map<int32_t, std::string>& largeParam) = 0;
     virtual void doOperationAsync(sdbus::Result<uint32_t>&& result, uint32_t arg0) = 0;
+    virtual void doOperationAsyncWithLargeData(sdbus::Result<std::map<int32_t, std::string>>&& result, uint32_t arg0, const std::map<int32_t, std::string>& largeParam) = 0;
     virtual sdbus::Signature getSignature() = 0;
     virtual sdbus::ObjectPath getObjPath() = 0;
     virtual sdbus::UnixFd getUnixFd() = 0;
@@ -102,6 +107,7 @@ private:
     virtual void throwErrorWithNoReply() = 0;
     virtual void doPrivilegedStuff() = 0;
     virtual void emitTwoSimpleSignals() = 0;
+    virtual void sendLargeMessage(const std::map<int, std::string>& collection) = 0;
 
 private:
     virtual uint32_t action() = 0;

@@ -81,7 +81,7 @@ public:
     MOCK_METHOD2(sd_bus_process, int(sd_bus *bus, sd_bus_message **r));
     MOCK_METHOD1(sd_bus_get_current_message, sd_bus_message*(sd_bus *bus));
     MOCK_METHOD2(sd_bus_get_poll_data, int(sd_bus *bus, PollData* data));
-    MOCK_METHOD2(sd_bus_get_n_queued_read, int(sd_bus *bus, uint64_t *ret));
+    MOCK_METHOD3(sd_bus_get_n_queued, int(sd_bus *bus, uint64_t *read, uint64_t* write));
     MOCK_METHOD1(sd_bus_flush, int(sd_bus *bus));
     MOCK_METHOD1(sd_bus_flush_close_unref, sd_bus *(sd_bus *bus));
     MOCK_METHOD1(sd_bus_close_unref, sd_bus *(sd_bus *bus));

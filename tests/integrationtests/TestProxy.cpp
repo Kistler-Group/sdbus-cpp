@@ -151,6 +151,14 @@ std::future<MethodReply> TestProxy::doOperationClientSideAsyncOnBasicAPILevel(ui
     return getProxy().callMethodAsync(methodCall, sdbus::with_future);
 }
 
+std::future<std::map<int32_t, std::string>> TestProxy::doOperationWithLargeDataClientSideAsync(const std::map<int32_t, std::string>& largeParam, with_future_t)
+{
+    return getProxy().callMethodAsync("doOperationWithLargeData")
+                     .onInterface(sdbus::test::INTERFACE_NAME)
+                     .withArguments(largeParam)
+                     .getResultAsFuture<std::map<int32_t, std::string>>();
+}
+
 void TestProxy::doErroneousOperationClientSideAsync()
 {
     getProxy().callMethodAsync("throwError")

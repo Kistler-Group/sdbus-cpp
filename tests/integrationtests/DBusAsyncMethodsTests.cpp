@@ -87,7 +87,7 @@ TYPED_TEST(AsyncSdbusTestObject, ThrowsTimeoutErrorWhenClientSideAsyncMethodTime
     }
 }
 
-TYPED_TEST(AsyncSdbusTestObject, RunsServerSideAsynchoronousMethodAsynchronously)
+TYPED_TEST(AsyncSdbusTestObject, RunsServerSideAsynchronousMethodAsynchronously)
 {
     // Yeah, this is kinda timing-dependent test, but times should be safe...
     std::mutex mtx;
@@ -142,6 +142,19 @@ TYPED_TEST(AsyncSdbusTestObject, HandlesCorrectlyABulkOfParallelServerSideAsyncM
     ASSERT_THAT(resultCount, Eq(1500));
 }
 
+TYPED_TEST(AsyncSdbusTestObject, RunsServerSideAsynchronousMethodWithLargeMessage)
+{
+    std::map<int32_t, std::string> largeMap;
+    for (int32_t i = 0; i < 40'000; ++i)
+        largeMap.emplace(i, "This is string nr. " + std::to_string(i+1));
+
+    auto result1 = this->m_proxy->doOperationAsyncWithLargeData(0, largeMap); // Sends large map back in the context of the callback (event loop thread)
+    auto result2 = this->m_proxy->doOperationAsyncWithLargeData(500, largeMap); // Sends large map back outside the context of the event loop thread
+
+    ASSERT_THAT(result1, Eq(largeMap));
+    ASSERT_THAT(result2, Eq(largeMap));
+}
+
 TYPED_TEST(AsyncSdbusTestObject, InvokesMethodAsynchronouslyOnClientSide)
 {
     std::promise<uint32_t> promise;
@@ -175,6 +188,17 @@ TYPED_TEST(AsyncSdbusTestObject, InvokesMethodAsynchronouslyOnClientSideWithFutu
     methodReply >> returnValue;
 
     ASSERT_THAT(returnValue, Eq(100));
+}
+
+TYPED_TEST(AsyncSdbusTestObject, InvokesMethodWithLargeDataAsynchronouslyOnClientSideWithFuture)
+{
+    std::map<int32_t, std::string> largeMap;
+    for (int32_t i = 0; i < 40'000; ++i)
+        largeMap.emplace(i, "This is string nr. " + std::to_string(i+1));
+
+    auto future = this->m_proxy->doOperationWithLargeDataClientSideAsync(largeMap, sdbus::with_future);
+
+    ASSERT_THAT(future.get(), Eq(largeMap));
 }
 
 TYPED_TEST(AsyncSdbusTestObject, AnswersThatAsyncCallIsPendingIfItIsInProgress)

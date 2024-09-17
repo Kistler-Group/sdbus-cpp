@@ -187,7 +187,7 @@ namespace sdbus::internal {
         void finishHandshake(sd_bus* bus);
         bool waitForNextEvent();
 
-        [[nodiscard]] bool arePendingMessagesInReadQueue() const;
+        [[nodiscard]] bool arePendingMessagesInQueues() const;
 
         void notifyEventLoopToExit();
         void notifyEventLoopToWakeUpFromPoll();

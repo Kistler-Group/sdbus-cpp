@@ -73,7 +73,9 @@ protected:
     int32_t sumStructItems(const sdbus::Struct<uint8_t, uint16_t>& arg0, const sdbus::Struct<int32_t, int64_t>& arg1) override;
     uint32_t sumArrayItems(const std::vector<uint16_t>& arg0, const std::array<uint64_t, 3>& arg1) override;
     uint32_t doOperation(const uint32_t& arg0) override;
+    std::map<int32_t, std::string> doOperationWithLargeData(const std::map<int32_t, std::string>& largeParam) override;
     void doOperationAsync(sdbus::Result<uint32_t>&& result, uint32_t arg0) override;
+    void doOperationAsyncWithLargeData(sdbus::Result<std::map<int32_t, std::string>>&& result, uint32_t arg0, const std::map<int32_t, std::string>& largeParam) override;
     sdbus::Signature getSignature() override;
     sdbus::ObjectPath getObjPath() override;
     sdbus::UnixFd getUnixFd() override;
@@ -82,6 +84,7 @@ protected:
     void throwErrorWithNoReply() override;
     void doPrivilegedStuff() override;
     void emitTwoSimpleSignals() override;
+    void sendLargeMessage(const std::map<int, std::string>& collection) override;
 
     uint32_t action() override;
     void action(const uint32_t& value) override;
@@ -132,7 +135,9 @@ protected:
     int32_t sumStructItems(const sdbus::Struct<uint8_t, uint16_t>&, const sdbus::Struct<int32_t, int64_t>&) override { return {}; }
     uint32_t sumArrayItems(const std::vector<uint16_t>&, const std::array<uint64_t, 3>&) override { return {}; }
     uint32_t doOperation(const uint32_t&) override { return {}; }
+    std::map<int32_t, std::string> doOperationWithLargeData(const std::map<int32_t, std::string>&) override { return {}; }
     void doOperationAsync(sdbus::Result<uint32_t>&&, uint32_t) override {}
+    void doOperationAsyncWithLargeData(sdbus::Result<std::map<int32_t, std::string>>&&, uint32_t, const std::map<int32_t, std::string>&) override {}
     sdbus::Signature getSignature() override { return {}; }
     sdbus::ObjectPath getObjPath() override { return {}; }
     sdbus::UnixFd getUnixFd() override { return {}; }
@@ -141,6 +146,7 @@ protected:
     void throwErrorWithNoReply() override {}
     void doPrivilegedStuff() override {}
     void emitTwoSimpleSignals() override {}
+    void sendLargeMessage(const std::map<int, std::string>&) override {}
 
     uint32_t action() override { return {}; }
     void action(const uint32_t&) override {}
