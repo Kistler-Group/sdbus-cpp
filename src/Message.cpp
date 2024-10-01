@@ -30,7 +30,6 @@
 #include "sdbus-c++/Types.h"
 
 #include "IConnection.h"
-#include "ISdBus.h"
 #include "MessageUtils.h"
 #include "ScopeGuard.h"
 
@@ -40,27 +39,27 @@
 
 namespace sdbus {
 
-Message::Message(internal::ISdBus* sdbus) noexcept
-    : sdbus_(sdbus)
+Message::Message(internal::IConnection* connection) noexcept
+    : connection_(connection)
 {
-    assert(sdbus_ != nullptr);
+    assert(connection_ != nullptr);
 }
 
-Message::Message(void *msg, internal::ISdBus* sdbus) noexcept
+Message::Message(void *msg, internal::IConnection* connection) noexcept
     : msg_(msg)
-    , sdbus_(sdbus)
+    , connection_(connection)
 {
     assert(msg_ != nullptr);
-    assert(sdbus_ != nullptr);
-    sdbus_->sd_bus_message_ref((sd_bus_message*)msg_);
+    assert(connection_ != nullptr);
+    connection_->incrementMessageRefCount((sd_bus_message*)msg_);
 }
 
-Message::Message(void *msg, internal::ISdBus* sdbus, adopt_message_t) noexcept
+Message::Message(void *msg, internal::IConnection* connection, adopt_message_t) noexcept
     : msg_(msg)
-    , sdbus_(sdbus)
+    , connection_(connection)
 {
     assert(msg_ != nullptr);
-    assert(sdbus_ != nullptr);
+    assert(connection_ != nullptr);
 }
 
 Message::Message(const Message& other) noexcept
@@ -71,13 +70,13 @@ Message::Message(const Message& other) noexcept
 Message& Message::operator=(const Message& other) noexcept
 {
     if (msg_)
-        sdbus_->sd_bus_message_unref((sd_bus_message*)msg_);
+        connection_->decrementMessageRefCount((sd_bus_message*)msg_);
 
     msg_ = other.msg_;
-    sdbus_ = other.sdbus_;
+    connection_ = other.connection_;
     ok_ = other.ok_;
 
-    sdbus_->sd_bus_message_ref((sd_bus_message*)msg_);
+    connection_->incrementMessageRefCount((sd_bus_message*)msg_);
 
     return *this;
 }
@@ -90,12 +89,12 @@ Message::Message(Message&& other) noexcept
 Message& Message::operator=(Message&& other) noexcept
 {
     if (msg_)
-        sdbus_->sd_bus_message_unref((sd_bus_message*)msg_);
+        connection_->decrementMessageRefCount((sd_bus_message*)msg_);
 
     msg_ = other.msg_;
     other.msg_ = nullptr;
-    sdbus_ = other.sdbus_;
-    other.sdbus_ = nullptr;
+    connection_ = other.connection_;
+    other.connection_ = nullptr;
     ok_ = other.ok_;
     other.ok_ = true;
 
@@ -105,13 +104,17 @@ Message& Message::operator=(Message&& other) noexcept
 Message::~Message()
 {
     if (msg_)
-        sdbus_->sd_bus_message_unref((sd_bus_message*)msg_);
+        connection_->decrementMessageRefCount((sd_bus_message*)msg_);
 }
 
 Message& Message::operator<<(bool item)
 {
     int intItem = item;
 
+    // Direct sd-bus method, bypassing SdBus mutex, are called here, since Message serialization/deserialization,
+    // as well as getter/setter methods are not thread safe by design. Additionally, they are called frequently,
+    // so some overhead is spared. What is thread-safe in Message class is Message constructors, copy/move operations
+    // and the destructor, so the Message instance can be passed from one thread to another safely.
     auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_BOOLEAN, &intItem);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a bool value", -r);
 
@@ -648,7 +651,7 @@ std::pair<char, const char*> Message::peekType() const
 
 bool Message::isValid() const
 {
-    return msg_ != nullptr && sdbus_ != nullptr;
+    return msg_ != nullptr && connection_ != nullptr;
 }
 
 bool Message::isEmpty() const
@@ -661,17 +664,20 @@ bool Message::isAtEnd(bool complete) const
     return sd_bus_message_at_end((sd_bus_message*)msg_, complete) > 0;
 }
 
+// TODO: Create a RAII ownership class for creds with copy&move semantics, doing ref()/unref() under the hood.
+//   Create a method Message::querySenderCreds() that will return an object of this class by value, through IConnection and SdBus mutex.
+//   The class will expose methods like getPid(), getUid(), etc. that will directly call sd_bus_creds_* functions, no need for mutex here.
 pid_t Message::getCredsPid() const
 {
     uint64_t mask = SD_BUS_CREDS_PID | SD_BUS_CREDS_AUGMENT;
     sd_bus_creds *creds = nullptr;
-    SCOPE_EXIT{ sdbus_->sd_bus_creds_unref(creds); };
+    SCOPE_EXIT{ connection_->decrementCredsRefCount(creds); };
 
-    int r = sdbus_->sd_bus_query_sender_creds((sd_bus_message*)msg_, mask, &creds);
+    int r = connection_->querySenderCredentials((sd_bus_message*)msg_, mask, &creds);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus creds", -r);
 
     pid_t pid = 0;
-    r = sdbus_->sd_bus_creds_get_pid(creds, &pid);
+    r = sd_bus_creds_get_pid(creds, &pid);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus cred pid", -r);
     return pid;
 }
@@ -680,12 +686,12 @@ uid_t Message::getCredsUid() const
 {
     uint64_t mask = SD_BUS_CREDS_UID | SD_BUS_CREDS_AUGMENT;
     sd_bus_creds *creds = nullptr;
-    SCOPE_EXIT{ sdbus_->sd_bus_creds_unref(creds); };
-    int r = sdbus_->sd_bus_query_sender_creds((sd_bus_message*)msg_, mask, &creds);
+    SCOPE_EXIT{ connection_->decrementCredsRefCount(creds); };
+    int r = connection_->querySenderCredentials((sd_bus_message*)msg_, mask, &creds);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus creds", -r);
 
     uid_t uid = (uid_t)-1;
-    r = sdbus_->sd_bus_creds_get_uid(creds, &uid);
+    r = sd_bus_creds_get_uid(creds, &uid);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus cred uid", -r);
     return uid;
 }
@@ -694,12 +700,12 @@ uid_t Message::getCredsEuid() const
 {
     uint64_t mask = SD_BUS_CREDS_EUID | SD_BUS_CREDS_AUGMENT;
     sd_bus_creds *creds = nullptr;
-    SCOPE_EXIT{ sdbus_->sd_bus_creds_unref(creds); };
-    int r = sdbus_->sd_bus_query_sender_creds((sd_bus_message*)msg_, mask, &creds);
+    SCOPE_EXIT{ connection_->decrementCredsRefCount(creds); };
+    int r = connection_->querySenderCredentials((sd_bus_message*)msg_, mask, &creds);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus creds", -r);
 
     uid_t euid = (uid_t)-1;
-    r = sdbus_->sd_bus_creds_get_euid(creds, &euid);
+    r = sd_bus_creds_get_euid(creds, &euid);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus cred euid", -r);
     return euid;
 }
@@ -708,12 +714,12 @@ gid_t Message::getCredsGid() const
 {
     uint64_t mask = SD_BUS_CREDS_GID | SD_BUS_CREDS_AUGMENT;
     sd_bus_creds *creds = nullptr;
-    SCOPE_EXIT{ sdbus_->sd_bus_creds_unref(creds); };
-    int r = sdbus_->sd_bus_query_sender_creds((sd_bus_message*)msg_, mask, &creds);
+    SCOPE_EXIT{ connection_->decrementCredsRefCount(creds); };
+    int r = connection_->querySenderCredentials((sd_bus_message*)msg_, mask, &creds);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus creds", -r);
 
     gid_t gid = (gid_t)-1;
-    r = sdbus_->sd_bus_creds_get_gid(creds, &gid);
+    r = sd_bus_creds_get_gid(creds, &gid);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus cred gid", -r);
     return gid;
 }
@@ -722,12 +728,12 @@ gid_t Message::getCredsEgid() const
 {
     uint64_t mask = SD_BUS_CREDS_EGID | SD_BUS_CREDS_AUGMENT;
     sd_bus_creds *creds = nullptr;
-    SCOPE_EXIT{ sdbus_->sd_bus_creds_unref(creds); };
-    int r = sdbus_->sd_bus_query_sender_creds((sd_bus_message*)msg_, mask, &creds);
+    SCOPE_EXIT{ connection_->decrementCredsRefCount(creds); };
+    int r = connection_->querySenderCredentials((sd_bus_message*)msg_, mask, &creds);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus creds", -r);
 
     gid_t egid = (gid_t)-1;
-    r = sdbus_->sd_bus_creds_get_egid(creds, &egid);
+    r = sd_bus_creds_get_egid(creds, &egid);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus cred egid", -r);
     return egid;
 }
@@ -736,12 +742,12 @@ std::vector<gid_t> Message::getCredsSupplementaryGids() const
 {
     uint64_t mask = SD_BUS_CREDS_SUPPLEMENTARY_GIDS | SD_BUS_CREDS_AUGMENT;
     sd_bus_creds *creds = nullptr;
-    SCOPE_EXIT{ sdbus_->sd_bus_creds_unref(creds); };
-    int r = sdbus_->sd_bus_query_sender_creds((sd_bus_message*)msg_, mask, &creds);
+    SCOPE_EXIT{ connection_->decrementCredsRefCount(creds); };
+    int r = connection_->querySenderCredentials((sd_bus_message*)msg_, mask, &creds);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus creds", -r);
 
     const gid_t *cGids = nullptr;
-    r = sdbus_->sd_bus_creds_get_supplementary_gids(creds, &cGids);
+    r = sd_bus_creds_get_supplementary_gids(creds, &cGids);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus cred supplementary gids", -r);
 
     std::vector<gid_t> gids{};
@@ -758,21 +764,21 @@ std::string Message::getSELinuxContext() const
 {
     uint64_t mask = SD_BUS_CREDS_AUGMENT | SD_BUS_CREDS_SELINUX_CONTEXT;
     sd_bus_creds *creds = nullptr;
-    SCOPE_EXIT{ sdbus_->sd_bus_creds_unref(creds); };
-    int r = sdbus_->sd_bus_query_sender_creds((sd_bus_message*)msg_, mask, &creds);
+    SCOPE_EXIT{ connection_->decrementCredsRefCount(creds); };
+    int r = connection_->querySenderCredentials((sd_bus_message*)msg_, mask, &creds);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus creds", -r);
 
     const char *cLabel = nullptr;
-    r = sdbus_->sd_bus_creds_get_selinux_context(creds, &cLabel);
+    r = sd_bus_creds_get_selinux_context(creds, &cLabel);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus cred selinux context", -r);
     return cLabel;
 }
 
 
 MethodCall::MethodCall( void *msg
-                      , internal::ISdBus *sdbus
+                      , internal::IConnection *connection
                       , adopt_message_t) noexcept
-   : Message(msg, sdbus, adopt_message)
+   : Message(msg, connection, adopt_message)
 {
 }
 
@@ -799,70 +805,45 @@ MethodReply MethodCall::send(uint64_t timeout) const
 
 MethodReply MethodCall::sendWithReply(uint64_t timeout) const
 {
-    sd_bus_error sdbusError = SD_BUS_ERROR_NULL;
-    SCOPE_EXIT{ sd_bus_error_free(&sdbusError); };
+    auto* sdbusReply = connection_->callMethod((sd_bus_message*)msg_, timeout);
 
-    sd_bus_message* sdbusReply{};
-    auto r = sdbus_->sd_bus_call(nullptr, (sd_bus_message*)msg_, timeout, &sdbusError, &sdbusReply);
-
-    if (sd_bus_error_is_set(&sdbusError))
-        throw Error(Error::Name{sdbusError.name}, sdbusError.message);
-
-    SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method", -r);
-
-    return Factory::create<MethodReply>(sdbusReply, sdbus_, adopt_message);
+    return Factory::create<MethodReply>(sdbusReply, connection_, adopt_message);
 }
 
 MethodReply MethodCall::sendWithNoReply() const
 {
-    auto r = sdbus_->sd_bus_send(nullptr, (sd_bus_message*)msg_, nullptr);
-    SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method with no reply", -r);
+    connection_->sendMessage((sd_bus_message*)msg_);
 
     return Factory::create<MethodReply>(); // No reply
 }
 
 Slot MethodCall::send(void* callback, void* userData, uint64_t timeout, return_slot_t) const
 {
-    sd_bus_slot* slot;
-
-    auto r = sdbus_->sd_bus_call_async(nullptr, &slot, (sd_bus_message*)msg_, (sd_bus_message_handler_t)callback, userData, timeout);
-    SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method asynchronously", -r);
-
-    return {slot, [sdbus_ = sdbus_](void *slot){ sdbus_->sd_bus_slot_unref((sd_bus_slot*)slot); }};
+    return connection_->callMethodAsync((sd_bus_message*)msg_, (sd_bus_message_handler_t)callback, userData, timeout, return_slot);
 }
 
 MethodReply MethodCall::createReply() const
 {
-    sd_bus_message* sdbusReply{};
-    auto r = sdbus_->sd_bus_message_new_method_return((sd_bus_message*)msg_, &sdbusReply);
-    SDBUS_THROW_ERROR_IF(r < 0, "Failed to create method reply", -r);
+    auto* sdbusReply = connection_->createMethodReply((sd_bus_message*)msg_);
 
-    return Factory::create<MethodReply>(sdbusReply, sdbus_, adopt_message);
+    return Factory::create<MethodReply>(sdbusReply, connection_, adopt_message);
 }
 
 MethodReply MethodCall::createErrorReply(const Error& error) const
 {
-    sd_bus_error sdbusError = SD_BUS_ERROR_NULL;
-    SCOPE_EXIT{ sd_bus_error_free(&sdbusError); };
-    sd_bus_error_set(&sdbusError, error.getName().c_str(), error.getMessage().c_str());
+    sd_bus_message* sdbusErrorReply = connection_->createErrorReplyMessage((sd_bus_message*)msg_, error);
 
-    sd_bus_message* sdbusErrorReply{};
-    auto r = sdbus_->sd_bus_message_new_method_error((sd_bus_message*)msg_, &sdbusErrorReply, &sdbusError);
-    SDBUS_THROW_ERROR_IF(r < 0, "Failed to create method error reply", -r);
-
-    return Factory::create<MethodReply>(sdbusErrorReply, sdbus_, adopt_message);
+    return Factory::create<MethodReply>(sdbusErrorReply, connection_, adopt_message);
 }
 
 void MethodReply::send() const
 {
-    auto r = sdbus_->sd_bus_send(nullptr, (sd_bus_message*)msg_, nullptr);
-    SDBUS_THROW_ERROR_IF(r < 0, "Failed to send reply", -r);
+    connection_->sendMessage((sd_bus_message*)msg_);
 }
 
 void Signal::send() const
 {
-    auto r = sdbus_->sd_bus_send(nullptr, (sd_bus_message*)msg_, nullptr);
-    SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit signal", -r);
+    connection_->sendMessage((sd_bus_message*)msg_);
 }
 
 void Signal::setDestination(const std::string& destination)
@@ -872,7 +853,7 @@ void Signal::setDestination(const std::string& destination)
 
 void Signal::setDestination(const char* destination)
 {
-    auto r = sdbus_->sd_bus_message_set_destination((sd_bus_message*)msg_, destination);
+    auto r = sd_bus_message_set_destination((sd_bus_message*)msg_, destination);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to set signal destination", -r);
 }
 
@@ -929,7 +910,7 @@ PlainMessage createPlainMessage()
     // This is a bit of a hack, but it enables use to work with D-Bus message locally without
     // the need of D-Bus daemon. This is especially useful in unit tests of both sdbus-c++ and client code.
     // Additionally, it's light-weight and fast solution.
-    auto& connection = getPseudoConnectionInstance();
+    const auto& connection = getPseudoConnectionInstance();
     return connection.createPlainMessage();
 }
 

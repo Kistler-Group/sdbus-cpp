@@ -179,16 +179,6 @@ Connection::PollData Connection::getEventLoopPollData() const
     return {pollData.fd, pollData.events, timeout, eventFd_.fd};
 }
 
-const ISdBus& Connection::getSdBusInterface() const
-{
-    return *sdbus_.get();
-}
-
-ISdBus& Connection::getSdBusInterface()
-{
-    return *sdbus_.get();
-}
-
 void Connection::addObjectManager(const ObjectPath& objectPath)
 {
     auto r = sdbus_->sd_bus_add_object_manager(bus_.get(), nullptr, objectPath.c_str());
@@ -488,7 +478,7 @@ PlainMessage Connection::createPlainMessage() const
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create a plain message", -r);
 
-    return Message::Factory::create<PlainMessage>(sdbusMsg, sdbus_.get(), adopt_message);
+    return Message::Factory::create<PlainMessage>(sdbusMsg, const_cast<Connection*>(this), adopt_message);
 }
 
 MethodCall Connection::createMethodCall( const ServiceName& destination
@@ -515,7 +505,7 @@ MethodCall Connection::createMethodCall( const char* destination
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create method call", -r);
 
-    return Message::Factory::create<MethodCall>(sdbusMsg, sdbus_.get(), adopt_message);
+    return Message::Factory::create<MethodCall>(sdbusMsg, const_cast<Connection*>(this), adopt_message);
 }
 
 Signal Connection::createSignal( const ObjectPath& objectPath
@@ -535,34 +525,7 @@ Signal Connection::createSignal( const char* objectPath
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create signal", -r);
 
-    return Message::Factory::create<Signal>(sdbusMsg, sdbus_.get(), adopt_message);
-}
-
-MethodReply Connection::callMethod(const MethodCall& message, uint64_t timeout)
-{
-    // If the call expects reply, this call will block the bus connection from
-    // serving other messages until the reply arrives or the call times out.
-    auto reply = message.send(timeout);
-
-    // Wake up event loop to process messages that may have arrived in the meantime...
-    wakeUpEventLoopIfMessagesInQueue();
-
-    return reply;
-}
-
-Slot Connection::callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout, return_slot_t)
-{
-    // TODO: Think of ways of optimizing these three locking/unlocking of sdbus mutex (merge into one call?)
-    auto timeoutBefore = getEventLoopPollData().timeout;
-    auto slot = message.send(callback, userData, timeout, return_slot);
-    auto timeoutAfter = getEventLoopPollData().timeout;
-
-    // An event loop may wait in poll with timeout `t1', while in another thread an async call is made with
-    // timeout `t2'. If `t2' < `t1', then we have to wake up the event loop thread to update its poll timeout.
-    if (timeoutAfter < timeoutBefore)
-        notifyEventLoopToWakeUpFromPoll();
-
-    return slot;
+    return Message::Factory::create<Signal>(sdbusMsg, const_cast<Connection*>(this), adopt_message);
 }
 
 void Connection::emitPropertiesChangedSignal( const ObjectPath& objectPath
@@ -646,6 +609,100 @@ Slot Connection::registerSignalHandler( const char* sender
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to register signal handler", -r);
 
     return {slot, [this](void *slot){ sdbus_->sd_bus_slot_unref((sd_bus_slot*)slot); }};
+}
+
+sd_bus_message* Connection::incrementMessageRefCount(sd_bus_message* sdbusMsg)
+{
+    return sdbus_->sd_bus_message_ref(sdbusMsg);
+}
+
+sd_bus_message* Connection::decrementMessageRefCount(sd_bus_message* sdbusMsg)
+{
+    return sdbus_->sd_bus_message_unref(sdbusMsg);
+}
+
+int Connection::querySenderCredentials(sd_bus_message* sdbusMsg, uint64_t mask, sd_bus_creds **creds)
+{
+    return sdbus_->sd_bus_query_sender_creds(sdbusMsg, mask, creds);
+}
+
+sd_bus_creds* Connection::incrementCredsRefCount(sd_bus_creds* creds)
+{
+    return sdbus_->sd_bus_creds_ref(creds);
+}
+
+sd_bus_creds* Connection::decrementCredsRefCount(sd_bus_creds* creds)
+{
+    return sdbus_->sd_bus_creds_unref(creds);
+}
+
+sd_bus_message* Connection::callMethod(sd_bus_message* sdbusMsg, uint64_t timeout)
+{
+    sd_bus_error sdbusError = SD_BUS_ERROR_NULL;
+    SCOPE_EXIT{ sd_bus_error_free(&sdbusError); };
+
+    // This call will block the bus connection from serving other messages
+    // until the reply arrives or the call times out.
+    sd_bus_message* sdbusReply{};
+    auto r = sdbus_->sd_bus_call(nullptr, sdbusMsg, timeout, &sdbusError, &sdbusReply);
+
+    if (sd_bus_error_is_set(&sdbusError))
+        throw Error(Error::Name{sdbusError.name}, sdbusError.message);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method", -r);
+
+    // Wake up event loop to process messages that may have arrived in the meantime...
+    wakeUpEventLoopIfMessagesInQueue();
+
+    return sdbusReply;
+}
+
+Slot Connection::callMethodAsync(sd_bus_message* sdbusMsg, sd_bus_message_handler_t callback, void* userData, uint64_t timeout, return_slot_t)
+{
+    sd_bus_slot *slot{};
+
+    // TODO: Think of ways of optimizing these three locking/unlocking of sdbus mutex (merge into one call?)
+    auto timeoutBefore = getEventLoopPollData().timeout;
+    auto r = sdbus_->sd_bus_call_async(nullptr, &slot, sdbusMsg, (sd_bus_message_handler_t)callback, userData, timeout);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method asynchronously", -r);
+    auto timeoutAfter = getEventLoopPollData().timeout;
+
+    // An event loop may wait in poll with timeout `t1', while in another thread an async call is made with
+    // timeout `t2'. If `t2' < `t1', then we have to wake up the event loop thread to update its poll timeout.
+    if (timeoutAfter < timeoutBefore)
+        notifyEventLoopToWakeUpFromPoll();
+
+    return {slot, [this](void *slot){ sdbus_->sd_bus_slot_unref((sd_bus_slot*)slot); }};
+}
+
+void Connection::sendMessage(sd_bus_message* sdbusMsg)
+{
+    auto r = sdbus_->sd_bus_send(nullptr, sdbusMsg, nullptr);
+
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to send D-Bus message", -r);
+}
+
+sd_bus_message* Connection::createMethodReply(sd_bus_message* sdbusMsg)
+{
+    sd_bus_message* sdbusReply{};
+
+    auto r = sdbus_->sd_bus_message_new_method_return(sdbusMsg, &sdbusReply);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to create method reply", -r);
+
+    return sdbusReply;
+}
+
+sd_bus_message* Connection::createErrorReplyMessage(sd_bus_message* sdbusMsg, const Error& error)
+{
+    sd_bus_error sdbusError = SD_BUS_ERROR_NULL;
+    SCOPE_EXIT{ sd_bus_error_free(&sdbusError); };
+    sd_bus_error_set(&sdbusError, error.getName().c_str(), error.getMessage().c_str());
+
+    sd_bus_message* sdbusErrorReply{};
+    auto r = sdbus_->sd_bus_message_new_method_error(sdbusMsg, &sdbusErrorReply, &sdbusError);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to create method error reply", -r);
+
+    return sdbusErrorReply;
 }
 
 Connection::BusPtr Connection::openBus(const BusFactory& busFactory)
@@ -785,7 +842,7 @@ Message Connection::getCurrentlyProcessedMessage() const
 {
     auto* sdbusMsg = sdbus_->sd_bus_get_current_message(bus_.get());
 
-    return Message::Factory::create<Message>(sdbusMsg, sdbus_.get());
+    return Message::Factory::create<Message>(sdbusMsg, const_cast<Connection*>(this));
 }
 
 template <typename StringBasedType>
@@ -804,7 +861,7 @@ int Connection::sdbus_match_callback(sd_bus_message *sdbusMessage, void *userDat
     assert(matchInfo != nullptr);
     assert(matchInfo->callback);
 
-    auto message = Message::Factory::create<PlainMessage>(sdbusMessage, &matchInfo->connection.getSdBusInterface());
+    auto message = Message::Factory::create<PlainMessage>(sdbusMessage, &matchInfo->connection);
 
     auto ok = invokeHandlerAndCatchErrors([&](){ matchInfo->callback(std::move(message)); }, retError);
 
@@ -817,7 +874,7 @@ int Connection::sdbus_match_install_callback(sd_bus_message *sdbusMessage, void 
     assert(matchInfo != nullptr);
     assert(matchInfo->installCallback);
 
-    auto message = Message::Factory::create<PlainMessage>(sdbusMessage, &matchInfo->connection.getSdBusInterface());
+    auto message = Message::Factory::create<PlainMessage>(sdbusMessage, &matchInfo->connection);
 
     auto ok = invokeHandlerAndCatchErrors([&](){ matchInfo->installCallback(std::move(message)); }, retError);
 

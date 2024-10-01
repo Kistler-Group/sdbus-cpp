@@ -58,7 +58,7 @@ namespace sdbus {
     class UnixFd;
     class MethodReply;
     namespace internal {
-        class ISdBus;
+        class IConnection;
     }
 }
 
@@ -245,15 +245,15 @@ namespace sdbus {
 
     protected:
         Message() = default;
-        explicit Message(internal::ISdBus* sdbus) noexcept;
-        Message(void *msg, internal::ISdBus* sdbus) noexcept;
-        Message(void *msg, internal::ISdBus* sdbus, adopt_message_t) noexcept;
+        explicit Message(internal::IConnection* connection) noexcept;
+        Message(void *msg, internal::IConnection* connection) noexcept;
+        Message(void *msg, internal::IConnection* connection, adopt_message_t) noexcept;
 
         friend Factory;
 
     protected:
         void* msg_{};
-        internal::ISdBus* sdbus_{};
+        internal::IConnection* connection_{};
         mutable bool ok_{true};
     };
 
@@ -275,7 +275,7 @@ namespace sdbus {
         bool doesntExpectReply() const;
 
     protected:
-        MethodCall(void *msg, internal::ISdBus* sdbus, adopt_message_t) noexcept;
+        MethodCall(void *msg, internal::IConnection* connection, adopt_message_t) noexcept;
 
     private:
         MethodReply sendWithReply(uint64_t timeout = 0) const;

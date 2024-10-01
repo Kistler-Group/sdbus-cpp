@@ -47,15 +47,15 @@ namespace sdbus
         }
 
         template<typename _Msg>
-        static _Msg create(void *msg, internal::ISdBus* sdbus)
+        static _Msg create(void *msg, internal::IConnection* connection)
         {
-            return _Msg{msg, sdbus};
+            return _Msg{msg, connection};
         }
 
         template<typename _Msg>
-        static _Msg create(void *msg, internal::ISdBus* sdbus, adopt_message_t)
+        static _Msg create(void *msg, internal::IConnection* connection, adopt_message_t)
         {
-            return _Msg{msg, sdbus, adopt_message};
+            return _Msg{msg, connection, adopt_message};
         }
     };
 }

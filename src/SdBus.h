@@ -90,6 +90,7 @@ public:
     virtual int sd_bus_message_set_destination(sd_bus_message *m, const char *destination) override;
 
     virtual int sd_bus_query_sender_creds(sd_bus_message *m, uint64_t mask, sd_bus_creds **c) override;
+    virtual sd_bus_creds* sd_bus_creds_ref(sd_bus_creds *c) override;
     virtual sd_bus_creds* sd_bus_creds_unref(sd_bus_creds *c) override;
 
     virtual int sd_bus_creds_get_pid(sd_bus_creds *c, pid_t *pid) override;

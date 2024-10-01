@@ -454,6 +454,13 @@ int SdBus::sd_bus_query_sender_creds(sd_bus_message *m, uint64_t mask, sd_bus_cr
     return ::sd_bus_query_sender_creds(m, mask, c);
 }
 
+sd_bus_creds* SdBus::sd_bus_creds_ref(sd_bus_creds *c)
+{
+    std::lock_guard lock(sdbusMutex_);
+
+    return ::sd_bus_creds_ref(c);
+}
+
 sd_bus_creds* SdBus::sd_bus_creds_unref(sd_bus_creds *c)
 {
     std::lock_guard lock(sdbusMutex_);
