@@ -403,7 +403,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        [[nodiscard]] virtual Signal createSignal(const InterfaceName& interfaceName, const SignalName& signalName) = 0;
+        [[nodiscard]] virtual Signal createSignal(const InterfaceName& interfaceName, const SignalName& signalName) const = 0;
 
         /*!
          * @brief Emits signal for this object path
@@ -419,7 +419,7 @@ namespace sdbus {
     protected: // Internal API for efficiency reasons used by high-level API helper classes
         friend SignalEmitter;
 
-        [[nodiscard]] virtual Signal createSignal(const char* interfaceName, const char* signalName) = 0;
+        [[nodiscard]] virtual Signal createSignal(const char* interfaceName, const char* signalName) const = 0;
     };
 
     // Out-of-line member definitions

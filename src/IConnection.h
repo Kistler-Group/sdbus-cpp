@@ -51,6 +51,7 @@ namespace sdbus {
     using MethodName = MemberName;
     using SignalName = MemberName;
     using PropertyName = MemberName;
+    class Error;
     namespace internal {
         class ISdBus;
     }
@@ -63,9 +64,6 @@ namespace sdbus::internal {
     {
     public:
         ~IConnection() override = default;
-
-        [[nodiscard]] virtual const ISdBus& getSdBusInterface() const = 0;
-        [[nodiscard]] virtual ISdBus& getSdBusInterface() = 0;
 
         [[nodiscard]] virtual Slot addObjectVTable( const ObjectPath& objectPath
                                                   , const InterfaceName& interfaceName
@@ -89,13 +87,6 @@ namespace sdbus::internal {
                                                  , const char* interfaceName
                                                  , const char* signalName ) const = 0;
 
-        virtual MethodReply callMethod(const MethodCall& message, uint64_t timeout) = 0;
-        [[nodiscard]] virtual Slot callMethod( const MethodCall& message
-                                             , void* callback
-                                             , void* userData
-                                             , uint64_t timeout
-                                             , return_slot_t ) = 0;
-
         virtual void emitPropertiesChangedSignal( const ObjectPath& objectPath
                                                 , const InterfaceName& interfaceName
                                                 , const std::vector<PropertyName>& propNames ) = 0;
@@ -116,6 +107,25 @@ namespace sdbus::internal {
                                                         , sd_bus_message_handler_t callback
                                                         , void* userData
                                                         , return_slot_t ) = 0;
+
+        virtual sd_bus_message* incrementMessageRefCount(sd_bus_message* sdbusMsg) = 0;
+        virtual sd_bus_message* decrementMessageRefCount(sd_bus_message* sdbusMsg) = 0;
+
+        // TODO: Refactor to higher level (Creds class will ownership handling and getters)
+        virtual int querySenderCredentials(sd_bus_message* sdbusMsg, uint64_t mask, sd_bus_creds **creds) = 0;
+        virtual sd_bus_creds* incrementCredsRefCount(sd_bus_creds* creds) = 0;
+        virtual sd_bus_creds* decrementCredsRefCount(sd_bus_creds* creds) = 0;
+
+        virtual sd_bus_message* callMethod(sd_bus_message* sdbusMsg, uint64_t timeout) = 0;
+        [[nodiscard]] virtual Slot callMethodAsync( sd_bus_message* sdbusMsg
+                                                  , sd_bus_message_handler_t callback
+                                                  , void* userData
+                                                  , uint64_t timeout
+                                                  , return_slot_t ) = 0;
+        virtual void sendMessage(sd_bus_message* sdbusMsg) = 0;
+
+        virtual sd_bus_message* createMethodReply(sd_bus_message* sdbusMsg) = 0;
+        virtual sd_bus_message* createErrorReplyMessage(sd_bus_message* sdbusMsg, const Error& error) = 0;
     };
 
     [[nodiscard]] std::unique_ptr<sdbus::internal::IConnection> createPseudoConnection();

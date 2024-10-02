@@ -56,8 +56,8 @@ namespace sdbus::internal {
              , ObjectPath objectPath
              , dont_run_event_loop_thread_t );
 
-        MethodCall createMethodCall(const InterfaceName& interfaceName, const MethodName& methodName) override;
-        MethodCall createMethodCall(const char* interfaceName, const char* methodName) override;
+        MethodCall createMethodCall(const InterfaceName& interfaceName, const MethodName& methodName) const override;
+        MethodCall createMethodCall(const char* interfaceName, const char* methodName) const override;
         MethodReply callMethod(const MethodCall& message) override;
         MethodReply callMethod(const MethodCall& message, uint64_t timeout) override;
         PendingAsyncCall callMethodAsync(const MethodCall& message, async_reply_handler asyncReplyCallback) override;

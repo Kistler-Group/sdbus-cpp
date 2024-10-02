@@ -83,12 +83,12 @@ void Object::unregister()
     objectManagerSlot_.reset();
 }
 
-sdbus::Signal Object::createSignal(const InterfaceName& interfaceName, const SignalName& signalName)
+Signal Object::createSignal(const InterfaceName& interfaceName, const SignalName& signalName) const
 {
     return connection_.createSignal(objectPath_, interfaceName, signalName);
 }
 
-sdbus::Signal Object::createSignal(const char* interfaceName, const char* signalName)
+Signal Object::createSignal(const char* interfaceName, const char* signalName) const
 {
     return connection_.createSignal(objectPath_.c_str(), interfaceName, signalName);
 }
@@ -326,7 +326,7 @@ int Object::sdbus_method_callback(sd_bus_message *sdbusMessage, void *userData, 
     assert(vtable != nullptr);
     assert(vtable->object != nullptr);
 
-    auto message = Message::Factory::create<MethodCall>(sdbusMessage, &vtable->object->connection_.getSdBusInterface());
+    auto message = Message::Factory::create<MethodCall>(sdbusMessage, &vtable->object->connection_);
 
     const auto* methodItem = findMethod(*vtable, message.getMemberName());
     assert(methodItem != nullptr);
@@ -359,7 +359,7 @@ int Object::sdbus_property_get_callback( sd_bus */*bus*/
         return 1;
     }
 
-    auto reply = Message::Factory::create<PropertyGetReply>(sdbusReply, &vtable->object->connection_.getSdBusInterface());
+    auto reply = Message::Factory::create<PropertyGetReply>(sdbusReply, &vtable->object->connection_);
 
     auto ok = invokeHandlerAndCatchErrors([&](){ propertyItem->getCallback(reply); }, retError);
 
@@ -382,7 +382,7 @@ int Object::sdbus_property_set_callback( sd_bus */*bus*/
     assert(propertyItem != nullptr);
     assert(propertyItem->setCallback);
 
-    auto value = Message::Factory::create<PropertySetCall>(sdbusValue, &vtable->object->connection_.getSdBusInterface());
+    auto value = Message::Factory::create<PropertySetCall>(sdbusValue, &vtable->object->connection_);
 
     auto ok = invokeHandlerAndCatchErrors([&](){ propertyItem->setCallback(std::move(value)); }, retError);
 

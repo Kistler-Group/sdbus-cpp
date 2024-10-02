@@ -120,9 +120,6 @@ namespace sdbus::internal {
         void detachSdEventLoop() override;
         sd_event *getSdEventLoop() override;
 
-        [[nodiscard]] const ISdBus& getSdBusInterface() const override;
-        [[nodiscard]] ISdBus& getSdBusInterface() override;
-
         Slot addObjectVTable( const ObjectPath& objectPath
                             , const InterfaceName& interfaceName
                             , const sd_bus_vtable* vtable
@@ -145,9 +142,6 @@ namespace sdbus::internal {
                                          , const char* interfaceName
                                          , const char* signalName ) const override;
 
-        MethodReply callMethod(const MethodCall& message, uint64_t timeout) override;
-        Slot callMethod(const MethodCall& message, void* callback, void* userData, uint64_t timeout, return_slot_t) override;
-
         void emitPropertiesChangedSignal( const ObjectPath& objectPath
                                         , const InterfaceName& interfaceName
                                         , const std::vector<PropertyName>& propNames ) override;
@@ -168,6 +162,20 @@ namespace sdbus::internal {
                                   , sd_bus_message_handler_t callback
                                   , void* userData
                                   , return_slot_t ) override;
+
+        sd_bus_message* incrementMessageRefCount(sd_bus_message* sdbusMsg) override;
+        sd_bus_message* decrementMessageRefCount(sd_bus_message* sdbusMsg) override;
+
+        int querySenderCredentials(sd_bus_message* sdbusMsg, uint64_t mask, sd_bus_creds **creds) override;
+        sd_bus_creds* incrementCredsRefCount(sd_bus_creds* creds) override;
+        sd_bus_creds* decrementCredsRefCount(sd_bus_creds* creds) override;
+
+        sd_bus_message* callMethod(sd_bus_message* sdbusMsg, uint64_t timeout) override;
+        Slot callMethodAsync(sd_bus_message* sdbusMsg, sd_bus_message_handler_t callback, void* userData, uint64_t timeout, return_slot_t) override;
+        void sendMessage(sd_bus_message* sdbusMsg) override;
+
+        sd_bus_message* createMethodReply(sd_bus_message* sdbusMsg) override;
+        sd_bus_message* createErrorReplyMessage(sd_bus_message* sdbusMsg, const Error& error) override;
 
     private:
         using BusFactory = std::function<int(sd_bus**)>;

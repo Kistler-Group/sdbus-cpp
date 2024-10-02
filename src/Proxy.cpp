@@ -84,12 +84,12 @@ Proxy::Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
     // This proxy is meant to be created, used for simple synchronous D-Bus call(s) and then dismissed.
 }
 
-MethodCall Proxy::createMethodCall(const InterfaceName& interfaceName, const MethodName& methodName)
+MethodCall Proxy::createMethodCall(const InterfaceName& interfaceName, const MethodName& methodName) const
 {
     return connection_->createMethodCall(destination_, objectPath_, interfaceName, methodName);
 }
 
-MethodCall Proxy::createMethodCall(const char* interfaceName, const char* methodName)
+MethodCall Proxy::createMethodCall(const char* interfaceName, const char* methodName) const
 {
     return connection_->createMethodCall(destination_.c_str(), objectPath_.c_str(), interfaceName, methodName);
 }
@@ -103,7 +103,7 @@ MethodReply Proxy::callMethod(const MethodCall& message, uint64_t timeout)
 {
     SDBUS_THROW_ERROR_IF(!message.isValid(), "Invalid method call message provided", EINVAL);
 
-    return connection_->callMethod(message, timeout);
+    return message.send(timeout);
 }
 
 PendingAsyncCall Proxy::callMethodAsync(const MethodCall& message, async_reply_handler asyncReplyCallback)
@@ -124,11 +124,7 @@ PendingAsyncCall Proxy::callMethodAsync(const MethodCall& message, async_reply_h
                                                                       , .proxy = *this
                                                                       , .floating = false });
 
-    asyncCallInfo->slot = connection_->callMethod( message
-                                                 , (void*)&Proxy::sdbus_async_reply_handler
-                                                 , asyncCallInfo.get()
-                                                 , timeout
-                                                 , return_slot );
+    asyncCallInfo->slot = message.send((void*)&Proxy::sdbus_async_reply_handler, asyncCallInfo.get(), timeout, return_slot);
 
     auto asyncCallInfoWeakPtr = std::weak_ptr{asyncCallInfo};
 
@@ -145,11 +141,7 @@ Slot Proxy::callMethodAsync(const MethodCall& message, async_reply_handler async
                                                                       , .proxy = *this
                                                                       , .floating = true });
 
-    asyncCallInfo->slot = connection_->callMethod( message
-                                                 , (void*)&Proxy::sdbus_async_reply_handler
-                                                 , asyncCallInfo.get()
-                                                 , timeout
-                                                 , return_slot );
+    asyncCallInfo->slot = message.send((void*)&Proxy::sdbus_async_reply_handler, asyncCallInfo.get(), timeout, return_slot);
 
     return {asyncCallInfo.release(), [](void *ptr){ delete static_cast<AsyncCallInfo*>(ptr); }};
 }
@@ -259,7 +251,7 @@ int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userDat
         proxy.floatingAsyncCallSlots_.erase(asyncCallInfo);
     };
 
-    auto message = Message::Factory::create<MethodReply>(sdbusMessage, &proxy.connection_->getSdBusInterface());
+    auto message = Message::Factory::create<MethodReply>(sdbusMessage, proxy.connection_.get());
 
     auto ok = invokeHandlerAndCatchErrors([&]
     {
@@ -284,8 +276,7 @@ int Proxy::sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd
     assert(signalInfo != nullptr);
     assert(signalInfo->callback);
 
-    // TODO: Hide Message factory invocation under Connection API (tell, don't ask principle), then we can remove getSdBusInterface()
-    auto message = Message::Factory::create<Signal>(sdbusMessage, &signalInfo->proxy.connection_->getSdBusInterface());
+    auto message = Message::Factory::create<Signal>(sdbusMessage, signalInfo->proxy.connection_.get());
 
     auto ok = invokeHandlerAndCatchErrors([&](){ signalInfo->callback(std::move(message)); }, retError);
 

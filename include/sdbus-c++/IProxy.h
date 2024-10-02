@@ -364,7 +364,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        [[nodiscard]] virtual MethodCall createMethodCall(const InterfaceName& interfaceName, const MethodName& methodName) = 0;
+        [[nodiscard]] virtual MethodCall createMethodCall(const InterfaceName& interfaceName, const MethodName& methodName) const = 0;
 
         /*!
          * @brief Calls method on the remote D-Bus object
@@ -652,7 +652,7 @@ namespace sdbus {
         friend AsyncMethodInvoker;
         friend SignalSubscriber;
 
-        [[nodiscard]] virtual MethodCall createMethodCall(const char* interfaceName, const char* methodName) = 0;
+        [[nodiscard]] virtual MethodCall createMethodCall(const char* interfaceName, const char* methodName) const = 0;
         virtual void registerSignalHandler( const char* interfaceName
                                           , const char* signalName
                                           , signal_handler signalHandler ) = 0;

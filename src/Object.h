@@ -53,8 +53,8 @@ namespace sdbus::internal {
         Slot addVTable(InterfaceName interfaceName, std::vector<VTableItem> vtable, return_slot_t) override;
         void unregister() override;
 
-        sdbus::Signal createSignal(const InterfaceName& interfaceName, const SignalName& signalName) override;
-        sdbus::Signal createSignal(const char* interfaceName, const char* signalName) override;
+        Signal createSignal(const InterfaceName& interfaceName, const SignalName& signalName) const override;
+        Signal createSignal(const char* interfaceName, const char* signalName) const override;
         void emitSignal(const sdbus::Signal& message) override;
         void emitPropertiesChangedSignal(const InterfaceName& interfaceName, const std::vector<PropertyName>& propNames) override;
         void emitPropertiesChangedSignal(const char* interfaceName, const std::vector<PropertyName>& propNames) override;
