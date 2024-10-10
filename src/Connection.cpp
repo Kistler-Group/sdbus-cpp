@@ -651,7 +651,8 @@ sd_bus_message* Connection::callMethod(sd_bus_message* sdbusMsg, uint64_t timeou
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method", -r);
 
-    // Wake up event loop to process messages that may have arrived in the meantime...
+    // Wake up event loop to process messages that may have arrived in the meantime,
+    // or to dispatch the outbound message that hasn't yet been fully sent out.
     wakeUpEventLoopIfMessagesInQueue();
 
     return sdbusReply;
@@ -669,7 +670,8 @@ Slot Connection::callMethodAsync(sd_bus_message* sdbusMsg, sd_bus_message_handle
 
     // An event loop may wait in poll with timeout `t1', while in another thread an async call is made with
     // timeout `t2'. If `t2' < `t1', then we have to wake up the event loop thread to update its poll timeout.
-    if (timeoutAfter < timeoutBefore)
+    // We also have to wake up the event loop to process the messages that may be in the read/write queues.
+    if (timeoutAfter < timeoutBefore || arePendingMessagesInQueues())
         notifyEventLoopToWakeUpFromPoll();
 
     return {slot, [this](void *slot){ sdbus_->sd_bus_slot_unref((sd_bus_slot*)slot); }};
@@ -678,6 +680,9 @@ Slot Connection::callMethodAsync(sd_bus_message* sdbusMsg, sd_bus_message_handle
 void Connection::sendMessage(sd_bus_message* sdbusMsg)
 {
     auto r = sdbus_->sd_bus_send(nullptr, sdbusMsg, nullptr);
+
+    // Wake up event loop to continue dispatching the (fairly large) outbound message that hasn't yet been fully sent
+    wakeUpEventLoopIfMessagesInQueue();
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to send D-Bus message", -r);
 }
@@ -758,11 +763,15 @@ void Connection::notifyEventLoopToWakeUpFromPoll()
 
 void Connection::wakeUpEventLoopIfMessagesInQueue()
 {
-    // When doing a sync call, other D-Bus messages may have arrived, waiting in the read queue.
+    // We need this in two cases:
+    // 1. When doing a sync call, other D-Bus messages may have arrived, waiting in the read queue.
     // In case an event loop is inside a poll in another thread, or an external event loop polls in the
     // same thread but as an unrelated event source, then we need to wake up the poll explicitly so the
     // event loop 1. processes all messages in the read queue, 2. updates poll timeout before next poll.
-    if (arePendingMessagesInReadQueue())
+    // 2. Additionally, when sending out messages, these may be too long to be sent out entirely within
+    // the single sd_bus_send() or sd_bus_call_async() call, in which case they are queued in the write
+    // queue. We need to wake up the event loop to continue sending the message until it's fully sent.
+    if (arePendingMessagesInQueues())
         notifyEventLoopToWakeUpFromPoll();
 }
 
@@ -801,6 +810,8 @@ bool Connection::waitForNextEvent()
                           , {loopExitFd_.fd, POLLIN, 0} };
     constexpr auto fdsCount = sizeof(fds)/sizeof(fds[0]);
 
+    // Are there pending messages in the inbound queue? Then sd-bus will set timeout to 0, so poll() will wake up right away.
+    // Are there pending messages in the outbound queue? Then sd-bus will add POLLOUT to events, so poll() will wake up right away.
     auto timeout = sdbusPollData.getPollTimeout();
     auto r = poll(fds, fdsCount, timeout);
 
@@ -814,7 +825,7 @@ bool Connection::waitForNextEvent()
     {
         auto cleared = eventFd_.clear();
         SDBUS_THROW_ERROR_IF(!cleared, "Failed to read from the event descriptor", -errno);
-        // Go poll() again, but with up-to-date timeout (which will wake poll() up right away if there are messages to process)
+        // Go poll() again, but with freshly calculated, up-to-date timeout and with up-to-date events to watch
         return waitForNextEvent();
     }
     // Loop exit notification
@@ -828,14 +839,15 @@ bool Connection::waitForNextEvent()
     return true;
 }
 
-bool Connection::arePendingMessagesInReadQueue() const
+bool Connection::arePendingMessagesInQueues() const
 {
     uint64_t readQueueSize{};
+    uint64_t writeQueueSize{};
 
-    auto r = sdbus_->sd_bus_get_n_queued_read(bus_.get(), &readQueueSize);
-    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get number of pending messages in read queue", -r);
+    auto r = sdbus_->sd_bus_get_n_queued(bus_.get(), &readQueueSize, &writeQueueSize);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get number of pending messages in sd-bus queues", -r);
 
-    return readQueueSize > 0;
+    return readQueueSize > 0 || writeQueueSize > 0;
 }
 
 Message Connection::getCurrentlyProcessedMessage() const

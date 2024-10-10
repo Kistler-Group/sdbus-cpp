@@ -48,14 +48,14 @@ using namespace sdbus::test;
 /* --          TEST CASES           -- */
 /*-------------------------------------*/
 
-TYPED_TEST(SdbusTestObject, EmitsSimpleSignalSuccesfully)
+TYPED_TEST(SdbusTestObject, EmitsSimpleSignalSuccessfully)
 {
     this->m_adaptor->emitSimpleSignal();
 
     ASSERT_TRUE(waitUntil(this->m_proxy->m_gotSimpleSignal));
 }
 
-TYPED_TEST(SdbusTestObject, EmitsSimpleSignalToMultipleProxiesSuccesfully)
+TYPED_TEST(SdbusTestObject, EmitsSimpleSignalToMultipleProxiesSuccessfully)
 {
     auto proxy1 = std::make_unique<TestProxy>(*this->s_adaptorConnection, SERVICE_NAME, OBJECT_PATH);
     auto proxy2 = std::make_unique<TestProxy>(*this->s_adaptorConnection, SERVICE_NAME, OBJECT_PATH);
@@ -78,7 +78,7 @@ TYPED_TEST(SdbusTestObject, ProxyDoesNotReceiveSignalFromOtherBusName)
     ASSERT_FALSE(waitUntil(this->m_proxy->m_gotSimpleSignal, 1s));
 }
 
-TYPED_TEST(SdbusTestObject, EmitsSignalWithMapSuccesfully)
+TYPED_TEST(SdbusTestObject, EmitsSignalWithMapSuccessfully)
 {
     this->m_adaptor->emitSignalWithMap({{0, "zero"}, {1, "one"}});
 
@@ -87,19 +87,19 @@ TYPED_TEST(SdbusTestObject, EmitsSignalWithMapSuccesfully)
     ASSERT_THAT(this->m_proxy->m_mapFromSignal[1], Eq("one"));
 }
 
-TYPED_TEST(SdbusTestObject, EmitsSignalWithLargeMapSuccesfully)
+TYPED_TEST(SdbusTestObject, EmitsSignalWithLargeMapSuccessfully)
 {
-  std::map<int32_t, std::string> largeMap;
-  for (int32_t i = 0; i < 20'000; ++i)
-      largeMap.emplace(i, "This is string nr. " + std::to_string(i+1));
-  this->m_adaptor->emitSignalWithMap(largeMap);
+    std::map<int32_t, std::string> largeMap;
+    for (int32_t i = 0; i < 20'000; ++i)
+        largeMap.emplace(i, "This is string nr. " + std::to_string(i+1));
+    this->m_adaptor->emitSignalWithMap(largeMap);
 
-  ASSERT_TRUE(waitUntil(this->m_proxy->m_gotSignalWithMap));
-  ASSERT_THAT(this->m_proxy->m_mapFromSignal[0], Eq("This is string nr. 1"));
-  ASSERT_THAT(this->m_proxy->m_mapFromSignal[1], Eq("This is string nr. 2"));
+    ASSERT_TRUE(waitUntil(this->m_proxy->m_gotSignalWithMap));
+    ASSERT_THAT(this->m_proxy->m_mapFromSignal[0], Eq("This is string nr. 1"));
+    ASSERT_THAT(this->m_proxy->m_mapFromSignal[1], Eq("This is string nr. 2"));
 }
 
-TYPED_TEST(SdbusTestObject, EmitsSignalWithVariantSuccesfully)
+TYPED_TEST(SdbusTestObject, EmitsSignalWithVariantSuccessfully)
 {
     double d = 3.14;
     this->m_adaptor->emitSignalWithVariant(sdbus::Variant{d});
@@ -108,7 +108,7 @@ TYPED_TEST(SdbusTestObject, EmitsSignalWithVariantSuccesfully)
     ASSERT_THAT(this->m_proxy->m_variantFromSignal, DoubleEq(d));
 }
 
-TYPED_TEST(SdbusTestObject, EmitsSignalWithoutRegistrationSuccesfully)
+TYPED_TEST(SdbusTestObject, EmitsSignalWithoutRegistrationSuccessfully)
 {
     this->m_adaptor->emitSignalWithoutRegistration({"platform", sdbus::Signature{"av"}});
 

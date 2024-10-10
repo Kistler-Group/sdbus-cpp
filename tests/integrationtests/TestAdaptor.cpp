@@ -128,6 +128,14 @@ uint32_t TestAdaptor::doOperation(const uint32_t& param)
     return param;
 }
 
+std::map<int32_t, std::string> TestAdaptor::doOperationWithLargeData(const std::map<int32_t, std::string>& largeParam)
+{
+    m_methodCallMsg = std::make_unique<const Message>(getObject().getCurrentlyProcessedMessage());
+    m_methodName = m_methodCallMsg->getMemberName();
+
+    return largeParam;
+}
+
 void TestAdaptor::doOperationAsync(sdbus::Result<uint32_t>&& result, uint32_t param)
 {
     m_methodCallMsg = std::make_unique<const Message>(getObject().getCurrentlyProcessedMessage());
@@ -146,6 +154,27 @@ void TestAdaptor::doOperationAsync(sdbus::Result<uint32_t>&& result, uint32_t pa
             std::this_thread::sleep_for(std::chrono::milliseconds(param));
             result.returnResults(param);
         }).detach();
+    }
+}
+
+void TestAdaptor::doOperationAsyncWithLargeData(sdbus::Result<std::map<int32_t, std::string>>&& result, uint32_t param, const std::map<int32_t, std::string>& largeMap)
+{
+    m_methodCallMsg = std::make_unique<const Message>(getObject().getCurrentlyProcessedMessage());
+    m_methodName = m_methodCallMsg->getMemberName();
+
+    if (param == 0)
+    {
+        // Don't sleep and return the result from this thread
+        result.returnResults(largeMap);
+    }
+    else
+    {
+        // Process asynchronously in another thread and return the result from there
+        std::thread([param, largeMap, result = std::move(result)]()
+                    {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(param));
+                        result.returnResults(largeMap);
+                    }).detach();
     }
 }
 
@@ -210,6 +239,11 @@ void TestAdaptor::emitTwoSimpleSignals()
 {
     emitSimpleSignal();
     emitSignalWithMap({});
+}
+
+void TestAdaptor::sendLargeMessage(const std::map<int, std::string>& /*collection*/)
+{
+    //printf("Adaptor: got collection with %zu items", collection.size());
 }
 
 std::string TestAdaptor::state()
