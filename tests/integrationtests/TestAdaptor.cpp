@@ -246,6 +246,11 @@ void TestAdaptor::sendLargeMessage(const std::map<int, std::string>& /*collectio
     //printf("Adaptor: got collection with %zu items", collection.size());
 }
 
+std::map<std::string, sdbus::Variant> TestAdaptor::returnDictionary(const std::map<std::string, sdbus::Variant>& dict)
+{
+    return dict;
+}
+
 std::string TestAdaptor::state()
 {
     return m_state;

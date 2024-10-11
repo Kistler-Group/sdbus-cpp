@@ -48,7 +48,21 @@ using ::testing::ElementsAre;
 using ::testing::SizeIs;
 using ::testing::NotNull;
 using namespace std::chrono_literals;
+using namespace std::string_literals;
 using namespace sdbus::test;
+
+namespace my {
+    struct Struct
+    {
+        int i;
+        std::string s;
+        std::vector<double> l;
+
+        friend bool operator==(const Struct &lhs, const Struct &rhs) = default;
+    };
+}
+
+SDBUSCPP_REGISTER_STRUCT(my::Struct, i, s, l);
 
 /*-------------------------------------*/
 /* --          TEST CASES           -- */
@@ -247,6 +261,21 @@ TYPED_TEST(SdbusTestObject, CanReceiveSignalWhileMakingMethodCall)
 
     EXPECT_TRUE(waitUntil(this->m_proxy->m_gotSimpleSignal));
     EXPECT_TRUE(waitUntil(this->m_proxy->m_gotSignalWithMap));
+}
+
+TYPED_TEST(SdbusTestObject, CanSendAndReceiveDictionariesAsCustomStructsImplicitly)
+{
+    // This test demonstrates that sdbus-c++ can send a SDBUSCPP_REGISTER_STRUCT-described struct as a dictionary of strings to variants,
+    // and that sdbus-c++ can automatically deserialize a dictionary of strings to variants into such a struct (instead of a map).
+    const my::Struct structSent{3545342, "hello"s, {3.14, 2.4568546}};
+    my::Struct structReceived;
+
+    this->m_proxy->getProxy().callMethod("returnDictionary")
+                             .onInterface("org.sdbuscpp.integrationtests")
+                             .withArguments(sdbus::as_dictionary(structSent))
+                             .storeResultsTo(structReceived);
+
+    ASSERT_THAT(structReceived, Eq(structSent));
 }
 
 TYPED_TEST(SdbusTestObject, CanAccessAssociatedMethodCallMessageInMethodCallHandler)
