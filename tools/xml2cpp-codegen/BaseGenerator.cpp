@@ -53,7 +53,7 @@ int BaseGenerator::transformXmlToFile(const Document& doc, const char* filename)
 int BaseGenerator::writeToFile(const char* filename, const std::string& data) const
 {
     std::ofstream file(filename);
-    if (file.bad())
+    if (file.fail())
     {
         std::cerr << "Unable to write file " << filename << endl;
         return 1;

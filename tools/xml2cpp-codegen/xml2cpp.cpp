@@ -186,7 +186,10 @@ int main(int argc, char **argv)
             std::cerr << "Generating proxy header " << proxy << endl;
         }
         ProxyGenerator pg;
-        pg.transformXmlToFile(doc, proxy);
+        if(pg.transformXmlToFile(doc, proxy)) {
+            std::cerr << "Failed to generate proxy header" << endl;
+            return 1;
+        }
     }
 
     if (adaptor)
@@ -196,7 +199,11 @@ int main(int argc, char **argv)
             std::cerr << "Generating adaptor header " << adaptor << endl;
         }
         AdaptorGenerator ag;
-        ag.transformXmlToFile(doc, adaptor);
+        if(ag.transformXmlToFile(doc, adaptor)) {
+            std::cerr << "Failed to generate adaptor header" << endl;
+            return 1;
+        }
+
     }
 
     return 0;
