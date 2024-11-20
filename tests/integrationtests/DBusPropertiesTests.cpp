@@ -81,3 +81,12 @@ TYPED_TEST(SdbusTestObject, CanAccessAssociatedPropertySetMessageInPropertySetHa
     ASSERT_THAT(this->m_adaptor->m_propertySetMsg, NotNull());
     ASSERT_THAT(this->m_adaptor->m_propertySetSender, Not(IsEmpty()));
 }
+
+TYPED_TEST(SdbusTestObject, WritesAndReadsReadWriteVariantPropertySuccessfully)
+{
+    sdbus::Variant newActionValue{5678};
+
+    this->m_proxy->actionVariant(newActionValue);
+
+    ASSERT_THAT(this->m_proxy->actionVariant().template get<int>(), Eq(5678));
+}

@@ -42,6 +42,7 @@ const ObjectPath OBJECT_PATH  {"/org/sdbuscpp/integrationtests/ObjectA1"};
 const ObjectPath OBJECT_PATH_2{"/org/sdbuscpp/integrationtests/ObjectB1"};
 const PropertyName STATE_PROPERTY{"state"};
 const PropertyName ACTION_PROPERTY{"action"};
+const PropertyName ACTION_VARIANT_PROPERTY{"actionVariant"};
 const PropertyName BLOCKING_PROPERTY{"blocking"};
 const std::string DIRECT_CONNECTION_SOCKET_PATH{std::filesystem::temp_directory_path() / "sdbus-cpp-direct-connection-test"};
 
@@ -58,6 +59,7 @@ const int UNIX_FD_VALUE = 0;
 
 const std::string DEFAULT_STATE_VALUE{"default-state-value"};
 const uint32_t DEFAULT_ACTION_VALUE{999};
+const std::string DEFAULT_ACTION_VARIANT_VALUE{"ahoj"};
 const bool DEFAULT_BLOCKING_VALUE{true};
 
 constexpr const double DOUBLE_VALUE{3.24L};

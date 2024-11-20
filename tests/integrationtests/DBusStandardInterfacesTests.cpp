@@ -141,9 +141,10 @@ TYPED_TEST(SdbusTestObject, GetsAllPropertiesViaPropertiesInterface)
 {
     const auto properties = this->m_proxy->GetAll(INTERFACE_NAME);
 
-    ASSERT_THAT(properties, SizeIs(3));
+    ASSERT_THAT(properties, SizeIs(4));
     EXPECT_THAT(properties.at(STATE_PROPERTY).template get<std::string>(), Eq(DEFAULT_STATE_VALUE));
     EXPECT_THAT(properties.at(ACTION_PROPERTY).template get<uint32_t>(), Eq(DEFAULT_ACTION_VALUE));
+    EXPECT_THAT(properties.at(ACTION_VARIANT_PROPERTY).template get<sdbus::Variant>().template get<std::string>(), Eq(DEFAULT_ACTION_VARIANT_VALUE));
     EXPECT_THAT(properties.at(BLOCKING_PROPERTY).template get<bool>(), Eq(DEFAULT_BLOCKING_VALUE));
 }
 
@@ -161,9 +162,10 @@ TYPED_TEST(SdbusTestObject, GetsAllPropertiesAsynchronouslyViaPropertiesInterfac
     });
     const auto properties = future.get();
 
-    ASSERT_THAT(properties, SizeIs(3));
+    ASSERT_THAT(properties, SizeIs(4));
     EXPECT_THAT(properties.at(STATE_PROPERTY).get<std::string>(), Eq(DEFAULT_STATE_VALUE));
     EXPECT_THAT(properties.at(ACTION_PROPERTY).get<uint32_t>(), Eq(DEFAULT_ACTION_VALUE));
+    EXPECT_THAT(properties.at(ACTION_VARIANT_PROPERTY).template get<sdbus::Variant>().template get<std::string>(), Eq(DEFAULT_ACTION_VARIANT_VALUE));
     EXPECT_THAT(properties.at(BLOCKING_PROPERTY).get<bool>(), Eq(DEFAULT_BLOCKING_VALUE));
 }
 
@@ -173,9 +175,10 @@ TYPED_TEST(SdbusTestObject, GetsAllPropertiesAsynchronouslyViaPropertiesInterfac
 
     auto properties = future.get();
 
-    ASSERT_THAT(properties, SizeIs(3));
+    ASSERT_THAT(properties, SizeIs(4));
     EXPECT_THAT(properties.at(STATE_PROPERTY).template get<std::string>(), Eq(DEFAULT_STATE_VALUE));
     EXPECT_THAT(properties.at(ACTION_PROPERTY).template get<uint32_t>(), Eq(DEFAULT_ACTION_VALUE));
+    EXPECT_THAT(properties.at(ACTION_VARIANT_PROPERTY).template get<sdbus::Variant>().template get<std::string>(), Eq(DEFAULT_ACTION_VARIANT_VALUE));
     EXPECT_THAT(properties.at(BLOCKING_PROPERTY).template get<bool>(), Eq(DEFAULT_BLOCKING_VALUE));
 }
 
@@ -252,17 +255,19 @@ TYPED_TEST(SdbusTestObject, EmitsInterfacesAddedSignalForSelectedObjectInterface
         EXPECT_THAT(interfacesAndProperties.count(INTERFACE_NAME), Eq(1));
 #if LIBSYSTEMD_VERSION<=244
         // Up to sd-bus v244, all properties are added to the list, i.e. `state', `action', and `blocking' in this case.
-        EXPECT_THAT(interfacesAndProperties.at(INTERFACE_NAME), SizeIs(3));
+        EXPECT_THAT(interfacesAndProperties.at(INTERFACE_NAME), SizeIs(4));
         EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count(STATE_PROPERTY));
         EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count(ACTION_PROPERTY));
+        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count(ACTION_VARIANT_PROPERTY));
         EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count(BLOCKING_PROPERTY));
 #else
         // Since v245 sd-bus does not add to the InterfacesAdded signal message the values of properties marked only
         // for invalidation on change, which makes the behavior consistent with the PropertiesChangedSignal.
         // So in this specific instance, `action' property is no more added to the list.
-        EXPECT_THAT(interfacesAndProperties.at(INTERFACE_NAME), SizeIs(2));
+        EXPECT_THAT(interfacesAndProperties.at(INTERFACE_NAME), SizeIs(3));
         EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count(STATE_PROPERTY));
         EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count(BLOCKING_PROPERTY));
+        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count(ACTION_VARIANT_PROPERTY));
 #endif
         signalReceived = true;
     };
@@ -288,17 +293,19 @@ TYPED_TEST(SdbusTestObject, EmitsInterfacesAddedSignalForAllObjectInterfaces)
 #endif
 #if LIBSYSTEMD_VERSION<=244
         // Up to sd-bus v244, all properties are added to the list, i.e. `state', `action', and `blocking' in this case.
-        EXPECT_THAT(interfacesAndProperties.at(INTERFACE_NAME), SizeIs(3));
+        EXPECT_THAT(interfacesAndProperties.at(INTERFACE_NAME), SizeIs(4));
         EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count(STATE_PROPERTY));
         EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count(ACTION_PROPERTY));
+        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count(ACTION_VARIANT_PROPERTY));
         EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count(BLOCKING_PROPERTY));
 #else
         // Since v245 sd-bus does not add to the InterfacesAdded signal message the values of properties marked only
         // for invalidation on change, which makes the behavior consistent with the PropertiesChangedSignal.
         // So in this specific instance, `action' property is no more added to the list.
-        EXPECT_THAT(interfacesAndProperties.at(INTERFACE_NAME), SizeIs(2));
+        EXPECT_THAT(interfacesAndProperties.at(INTERFACE_NAME), SizeIs(3));
         EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count(STATE_PROPERTY));
         EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count(BLOCKING_PROPERTY));
+        EXPECT_TRUE(interfacesAndProperties.at(INTERFACE_NAME).count(ACTION_VARIANT_PROPERTY));
 #endif
         signalReceived = true;
     };

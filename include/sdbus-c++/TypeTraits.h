@@ -106,6 +106,9 @@ namespace sdbus {
     // Tag denoting a call where the reply shouldn't be waited for
     struct dont_expect_reply_t { explicit dont_expect_reply_t() = default; };
     inline constexpr dont_expect_reply_t dont_expect_reply{};
+    // Tag denoting that the variant shall embed the other variant as its value, instead of creating a copy
+    struct embed_variant_t { explicit embed_variant_t() = default; };
+    inline constexpr embed_variant_t embed_variant{};
 
     // Helper for static assert
     template <class... _T> constexpr bool always_false = false;
