@@ -273,6 +273,7 @@ namespace sdbus {
     {
         static constexpr std::array contents = (signature_of_v<_ValueTypes> + ...);
         static constexpr std::array value = std::array{'('} + contents + std::array{')'};
+        static constexpr char type_value{'r'}; /* Not actually used in signatures on D-Bus, see specs */
         static constexpr bool is_valid = true;
         static constexpr bool is_trivial_dbus_type = false;
     };
@@ -317,6 +318,7 @@ namespace sdbus {
     struct signature_of<DictEntry<_T1, _T2>>
     {
         static constexpr std::array value = std::array{'{'} + signature_of_v<std::tuple<_T1, _T2>> + std::array{'}'};
+        static constexpr char type_value{'e'}; /* Not actually used in signatures on D-Bus, see specs */
         static constexpr bool is_valid = true;
         static constexpr bool is_trivial_dbus_type = false;
     };
@@ -349,9 +351,7 @@ namespace sdbus {
     template <typename _Key, typename _Value, typename _Compare, typename _Allocator>
     struct signature_of<std::map<_Key, _Value, _Compare, _Allocator>>
     {
-        static constexpr std::array contents = signature_of_v<std::tuple<_Key, _Value>>;
-        static constexpr std::array dict_entry = std::array{'{'} + contents + std::array{'}'};
-        static constexpr std::array value = std::array{'a'} + dict_entry;
+        static constexpr std::array value = std::array{'a'} + signature_of_v<DictEntry<_Key, _Value>>;
         static constexpr bool is_valid = true;
         static constexpr bool is_trivial_dbus_type = false;
     };
@@ -574,6 +574,36 @@ namespace sdbus {
     template <typename... _VariantTypes, typename _QueriedType>
     constexpr bool is_one_of_variants_types<std::variant<_VariantTypes...>, _QueriedType>
         = (std::is_same_v<_QueriedType, _VariantTypes> || ...);
+
+    // Wrapper (tag) denoting we want to serialize user-defined struct
+    // into a D-Bus message as a dictionary of strings to variants.
+    template <typename _Struct>
+    struct as_dictionary
+    {
+        explicit as_dictionary(const _Struct& s) : m_struct(s) {}
+        const _Struct& m_struct;
+    };
+
+    template <typename _Type>
+    const _Type& as_dictionary_if_struct(const _Type& object)
+    {
+        return object; // identity in case _Type is not struct (user-defined structs shall provide an overload)
+    }
+
+    // By default, the dict-as-struct deserialization strategy is strict.
+    // Strict means that every key of the deserialized dictionary must have its counterpart member in the struct, otherwise an exception is thrown.
+    // Relaxed means that a key that does not have a matching struct member is silently ignored.
+    // The behavior can be overridden for user-defined struct by specializing this variable template.
+    template <typename _Struct>
+    constexpr auto strict_dict_as_struct_deserialization_v = true;
+
+    // By default, the struct-as-dict serialization strategy is single-level only (as opposed to nested).
+    // Single-level means that only the specific struct is serialized as a dictionary, serializing members that are structs always as structs.
+    // Nested means that the struct *and* its members that are structs are all serialized as a dictionary. If nested strategy is also
+    // defined for the nested struct, then the same behavior applies for that struct, recursively.
+    // The behavior can be overridden for user-defined struct by specializing this variable template.
+    template <typename _Struct>
+    constexpr auto nested_struct_as_dict_serialization_v = false;
 
     namespace detail
     {

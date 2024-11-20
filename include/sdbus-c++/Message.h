@@ -114,6 +114,8 @@ namespace sdbus {
 #endif
         template <typename _Enum, typename = std::enable_if_t<std::is_enum_v<_Enum>>>
         Message& operator<<(const _Enum& item);
+        template <typename _Key, typename _Value>
+        Message& operator<<(const DictEntry<_Key, _Value>& value);
         template <typename _Key, typename _Value, typename _Compare, typename _Allocator>
         Message& operator<<(const std::map<_Key, _Value, _Compare, _Allocator>& items);
         template <typename _Key, typename _Value, typename _Hash, typename _KeyEqual, typename _Allocator>
@@ -150,6 +152,8 @@ namespace sdbus {
 #endif
         template <typename _Enum, typename = std::enable_if_t<std::is_enum_v<_Enum>>>
         Message& operator>>(_Enum& item);
+        template <typename _Key, typename _Value>
+        Message& operator>>(DictEntry<_Key, _Value>& value);
         template <typename _Key, typename _Value, typename _Compare, typename _Allocator>
         Message& operator>>(std::map<_Key, _Value, _Compare, _Allocator>& items);
         template <typename _Key, typename _Value, typename _Hash, typename _KeyEqual, typename _Allocator>
@@ -196,6 +200,13 @@ namespace sdbus {
         Message& appendArray(char type, const void *ptr, size_t size);
         Message& readArray(char type, const void **ptr, size_t *size);
 
+        template <typename _Key, typename _Value, typename _Callback>
+        Message& serializeDictionary(const _Callback& callback);
+        template <typename _Key, typename _Value>
+        Message& serializeDictionary(const std::initializer_list<DictEntry<_Key, _Value>>& dictEntries);
+        template <typename _Key, typename _Value, typename _Callback>
+        Message& deserializeDictionary(const _Callback& callback);
+
         explicit operator bool() const;
         void clearFlags();
 
@@ -237,11 +248,6 @@ namespace sdbus {
         void deserializeArraySlow(_Array& items);
         template <typename _Element, typename _Allocator>
         void deserializeArraySlow(std::vector<_Element, _Allocator>& items);
-
-        template <typename _Dictionary>
-        void serializeDictionary(const _Dictionary& items);
-        template <typename _Dictionary>
-        void deserializeDictionary(_Dictionary& items);
 
     protected:
         Message() = default;
@@ -402,10 +408,21 @@ namespace sdbus {
         }
     }
 
+    template <typename _Key, typename _Value>
+    inline Message& Message::operator<<(const DictEntry<_Key, _Value>& value)
+    {
+        openDictEntry<_Key, _Value>();
+        *this << value.first;
+        *this << value.second;
+        closeDictEntry();
+
+        return *this;
+    }
+
     template <typename _Key, typename _Value, typename _Compare, typename _Allocator>
     inline Message& Message::operator<<(const std::map<_Key, _Value, _Compare, _Allocator>& items)
     {
-        serializeDictionary(items);
+        serializeDictionary<_Key, _Value>([&items](Message& msg){ for (const auto& item : items) msg << item; });
 
         return *this;
     }
@@ -413,28 +430,27 @@ namespace sdbus {
     template <typename _Key, typename _Value, typename _Hash, typename _KeyEqual, typename _Allocator>
     inline Message& Message::operator<<(const std::unordered_map<_Key, _Value, _Hash, _KeyEqual, _Allocator>& items)
     {
-        serializeDictionary(items);
+        serializeDictionary<_Key, _Value>([&items](Message& msg){ for (const auto& item : items) msg << item; });
 
         return *this;
     }
 
-    template <typename _Dictionary>
-    inline void Message::serializeDictionary(const _Dictionary& items)
+    template <typename _Key, typename _Value>
+    inline Message& Message::serializeDictionary(const std::initializer_list<DictEntry<_Key, _Value>>& items)
     {
-        using KeyType = typename _Dictionary::key_type;
-        using MappedType = typename _Dictionary::mapped_type;
+        serializeDictionary<_Key, _Value>([&](Message& msg){ for (const auto& item : items) msg << item; });
 
-        openContainer<DictEntry<KeyType, MappedType>>();
+        return *this;
+    }
 
-        for (const auto& item : items)
-        {
-            openDictEntry<KeyType, MappedType>();
-            *this << item.first;
-            *this << item.second;
-            closeDictEntry();
-        }
-
+    template <typename _Key, typename _Value, typename _Callback>
+    inline Message& Message::serializeDictionary(const _Callback& callback)
+    {
+        openContainer<DictEntry<_Key, _Value>>();
+        callback(*this);
         closeContainer();
+
+        return *this;
     }
 
     namespace detail
@@ -619,10 +635,21 @@ namespace sdbus {
         exitContainer();
     }
 
+    template <typename _Key, typename _Value>
+    inline Message& Message::operator>>(DictEntry<_Key, _Value>& value)
+    {
+        if (!enterDictEntry<_Key, _Value>())
+            return *this;
+        *this >> value.first >> value.second;
+        exitDictEntry();
+
+        return *this;
+    }
+
     template <typename _Key, typename _Value, typename _Compare, typename _Allocator>
     inline Message& Message::operator>>(std::map<_Key, _Value, _Compare, _Allocator>& items)
     {
-        deserializeDictionary(items);
+        deserializeDictionary<_Key, _Value>([&items](auto dictEntry){ items.insert(std::move(dictEntry)); });
 
         return *this;
     }
@@ -630,37 +657,30 @@ namespace sdbus {
     template <typename _Key, typename _Value, typename _Hash, typename _KeyEqual, typename _Allocator>
     inline Message& Message::operator>>(std::unordered_map<_Key, _Value, _Hash, _KeyEqual, _Allocator>& items)
     {
-        deserializeDictionary(items);
+        deserializeDictionary<_Key, _Value>([&items](auto dictEntry){ items.insert(std::move(dictEntry)); });
 
         return *this;
     }
 
-    template <typename _Dictionary>
-    inline void Message::deserializeDictionary(_Dictionary& items)
+    template <typename _Key, typename _Value, typename _Callback>
+    inline Message& Message::deserializeDictionary(const _Callback& callback)
     {
-        using KeyType = typename _Dictionary::key_type;
-        using MappedType = typename _Dictionary::mapped_type;
-
-        if (!enterContainer<DictEntry<KeyType, MappedType>>())
-            return;
+        if (!enterContainer<DictEntry<_Key, _Value>>())
+            return *this;
 
         while (true)
         {
-            if (!enterDictEntry<KeyType, MappedType>())
+            DictEntry<_Key, _Value> dictEntry;
+            *this >> dictEntry;
+            if (!*this)
                 break;
-
-            KeyType key;
-            MappedType value;
-            *this >> key >> value;
-
-            items.emplace(std::move(key), std::move(value));
-
-            exitDictEntry();
+            callback(std::move(dictEntry));
         }
-
         clearFlags();
 
         exitContainer();
+
+        return *this;
     }
 
     namespace detail

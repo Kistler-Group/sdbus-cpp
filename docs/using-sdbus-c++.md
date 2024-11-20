@@ -20,11 +20,12 @@ Using sdbus-c++ library
 15. [Using D-Bus properties](#using-d-bus-properties)
 16. [Standard D-Bus interfaces](#standard-d-bus-interfaces)
 17. [Representing D-Bus Types in sdbus-c++](#representing-d-bus-types-in-sdbus-c)
-18. [Support for match rules](#support-for-match-rules)
-19. [Using direct (peer-to-peer) D-Bus connections](#using-direct-peer-to-peer-d-bus-connections)
-20. [Using sdbus-c++ in external event loops](#using-sdbus-c-in-external-event-loops)
-21. [Migrating to sdbus-c++ v2](#migrating-to-sdbus-c-v2)
-22. [Conclusion](#conclusion)
+18. [Adding user-defined types to the sdbus-c++ type system](#adding-user-defined-types-to-the-sdbus-c-type-system)
+19. [Support for match rules](#support-for-match-rules)
+20. [Using direct (peer-to-peer) D-Bus connections](#using-direct-peer-to-peer-d-bus-connections)
+21. [Using sdbus-c++ in external event loops](#using-sdbus-c-in-external-event-loops)
+22. [Migrating to sdbus-c++ v2](#migrating-to-sdbus-c-v2)
+23. [Conclusion](#conclusion)
 
 Introduction
 ------------
@@ -1577,7 +1578,7 @@ To see how C++ types are mapped to D-Bus types (including container types) in sd
 
 For more information on basic D-Bus types, D-Bus container types, and D-Bus type system in general, make sure to consult the [D-Bus specification](https://dbus.freedesktop.org/doc/dbus-specification.html#type-system).
 
-### Extending sdbus-c++ type system
+## Adding user-defined types to the sdbus-c++ type system
 
 The above mapping between D-Bus and C++ types is what sdbus-c++ provides by default. However, the mapping can be extended. We can implement additional mapping between a D-Bus type and our custom type, i.e. teach sdbus-c++ to recognize and accept our own C++ types.
 
@@ -1645,9 +1646,9 @@ Then we can simply use `std::list`s, serialize/deserialize them in a D-Bus messa
 
 Similarly, say we have our own `lockfree_map` which we would like to use natively with sdbus-c++ as a C++ type for D-Bus dictionary -- we can copy or build on top of `std::map` specializations.
 
-#### Using user-defined structs instead of `sdbus::Struct`
+### Teaching sdbus-c++ about user-defined structs
 
-Many times, we have our own structs defined in our business logic code, and it would be very convenient to pass these structs directly to or from the sdbus-c++ IPC API where a D-Bus struct is expected, without having to translate them to or from `sdbus::Struct`.
+There is `SDBUSCPP_REGISTER_STRUCT` macro that we can use to teach sdbus-c++ about our structs and unlock some struct-related convenience functionality.
 
 Say we have our custom type `my::Struct`:
 
@@ -1662,7 +1663,7 @@ namespace my {
 } // namespace my
 ```
 
-We can teach sdbus-c++ about our struct type very easily with `SDBUSCPP_REGISTER_STRUCT` macro:
+This is how we introduce the struct to sdbus-c++:
 
 ```c++
 SDBUSCPP_REGISTER_STRUCT(my::Struct, i, s, l);
@@ -1670,37 +1671,90 @@ SDBUSCPP_REGISTER_STRUCT(my::Struct, i, s, l);
 
 The macro must be placed in the global namespace. The first argument is the struct type name and the remaining arguments are names of struct members. Of course, struct members must be of types supported by sdbus-c++ (or of user-defined types that sdbus-c++ was taught to recognize). This also means that members can be other structs -- provided that sdbus-c++ was taught about them with `SDBUSCPP_REGISTER_STRUCT` prior to this one.
 
-The macro effectively generates the `sdbus::Message` serialization and deserialization operators and the type traits (the `sdbus::signature_of` specialization) for `my::Struct`.
+`SDBUSCPP_REGISTER_STRUCT` enables us:
 
-> **_Note_:** The macro supports **max 16 struct members**. If you need more, feel free to open an issue, or read the next paragraph and write the teaching boilerplate code yourself.
+  * to use user-defined structs in place of (more generic, less expressive) `sdbus::Struct`s
+  * to serialize a user-defined struct as a dictionary of strings to variants (`a{sv}` dictionary)
+  * to deserialize the `a{sv}` dictionary into a user-defined struct.
 
-Alternatively, we can to provide the message serialization/deserialization functions and the type traits manually. We can build on top of `sdbus::Struct`, so we don't have to copy and write a lot of boilerplate. Serialization/deserialization functions can be placed in the same namespace as our custom type, and will be found thanks to the ADR lookup. The `signature_of` specialization must always be in either `sdbus` namespace or in a global namespace:
+This is described in detail in the following sections.
+
+> **_Note_:** The macro supports **max 16 struct members**. If you need more, feel free to open an issue, or implement the teaching code yourself :o) 
+
+> **_Another note_:** You may have noticed one of `my::Struct` members is `std::list`. Thanks to the custom support for `std::list` implemented higher above, it's now automatically accepted by sdbus-c++ as a D-Bus array representation.
+
+### Using user-defined structs in place of `sdbus::Struct`
+
+Many times, we have our own structs defined in our business logic code, and it would be very convenient to pass these structs directly to or from the sdbus-c++ IPC API where a D-Bus struct is expected, without having to translate them to or from `sdbus::Struct`.
+
+For example, a D-Bus method `foo` that takes an argument of signature `(isad)` can simply be called with `my::Struct` instance instead of `sdbus::Struct<int, std::string, std::vector<dobule>>` instance:
 
 ```c++
-namespace my {
-    sdbus::Message& operator<<(sdbus::Message& msg, const Struct& items)
-    {
-        // Re-use sdbus::Struct functionality for simplicity -- view of my::Struct through sdbus::Struct with reference types
-        return msg << sdbus::Struct{std::forward_as_tuple(items.i, items.s, items.l)};
-    }
-
-    sdbus::Message& operator>>(sdbus::Message& msg, Struct& items)
-    {
-        // Re-use sdbus::Struct functionality for simplicity -- view of my::Struct through sdbus::Struct with reference types
-        sdbus::Struct s{std::forward_as_tuple(items.i, items.s, items.l)};
-        return msg >> s;
-    }
-} // namespace my
-
-template <>
-struct sdbus::signature_of<my::Struct>
-    : sdbus::signature_of<sdbus::Struct<int, std::string, std::list<double>>>
-{};
+my::Struct s{77, "hello"s, {3.14, 285.9}};
+proxy->callMethod("foo").onInterface(INTERFACE_NAME).withArguments(s);
 ```
 
-> **_Note_:** One of `my::Struct` members is `std::list`. Thanks to the above custom support for `std::list`, it's now automatically accepted by sdbus-c++ as a D-Bus array representation.
+For this purpose, the macro simply generates the `sdbus::Message` serialization and deserialization operators and the type traits (the `sdbus::signature_of` specialization) for `my::Struct`.
 
-Live examples of extending sdbus-c++ types can be found in [Message unit tests](/tests/unittests/Message_test.cpp).
+Nesting structs is supported by default.
+
+### Serializing a user-defined struct as the a{sv} dictionary
+
+`SDBUSCPP_REGISTER_STRUCT` macro additionally teaches sdbus-c++ to serialize our structs as `a{sv}` dictionaries. This can be quite a handy feature.
+
+For example, a D-Bus method `foo` that takes an argument of signature `a{sv}` can be passed `my::Struct` instance:
+
+```c++
+my::Struct s{77, "hello"s, {3.14, 285.9}};
+proxy->callMethod("foo").onInterface(INTERFACE_NAME).withArguments(sdbus::as_dictionary(s));
+```
+
+Decorating the struct instance with `sdbus::as_dictionary()` instructs sdbus-c++ to serialize the struct as an `a{sv}` dictionary, with struct field name being the key and struct field value being the value. Here is a C++ representation of the resulting dictionary:
+
+```c++
+std::map<std::string, sdbus::Variant> dict{{"i"s, sdbus::Variant{77}}, {"s"s, sdbus::Variant{"hello"s}}, {"l"s, sdbus::Variant{std::list<double>{3.14, 285.9}}}};
+```
+
+The default struct-as-dict serialization strategy is single-level (as opposed to nested). Single-level means that struct members that are structs themselves are serialized as D-Bus structs (the variant in the dict entry contains a struct value). Nested means that also struct members that are structs are all serialized as an `a{sv}` dictionary (the variant in the dict entry contains `a{sv}` dictionary). We can turn on nested serialization with the `SDBUSCPP_ENABLE_NESTED_STRUCT2DICT_SERIALIZATION` macro:
+
+```c++
+SDBUSCPP_ENABLE_NESTED_STRUCT2DICT_SERIALIZATION(my::Struct);
+```
+
+If nested strategy is also enabled for the nested struct type, then the same behavior applies for that struct, recursively. (It goes without saying that member struct type needs to be registered through `SDBUSCPP_REGISTER_STRUCT` macro, too.)
+
+The macro must be placed before the `SDBUSCPP_REGISTER_STRUCT(my::Struct);` macro.
+
+### Deserializing the a{sv} dictionary into a user-defined struct
+
+Another handy feature enabled by the `SDBUSCPP_REGISTER_STRUCT` macro is an automatic deserialization of `a{sv}` dictionaries to user-defined structs.
+
+For example, a D-Bus signal `bar` that carries data of signature `a{sv}` can be deserialized not only into a C++ dictionary type, but also directly into a user-defined struct, leading to shorter and more natural code:
+
+```c++
+proxy->uponSignal("bar").onInterface(INTERFACE_NAME).call([](const my::Struct& s){ std::cout << "Got signal with s.i == " << s.i << "\n"; });
+```
+
+How easy and convenient, right?
+
+The requirements:
+
+  * All keys in the dictionary must exactly match the names of fields in the struct. Ordering of struct fields vs. items in the dictionary is irrelevant; the field in the struct is found by its name given by the dict key. If the corresponding struct field is not found, `sdbus::Error` exception is thrown.
+  * The type of value in the dictionary item and the corresponding struct field must also exactly match. Otherwise, `sdbus::Error` exception is thrown.
+
+The first bullet point is a so-called strict dict-to-struct deserialization strategy. There is also a relaxed one -- meaning that a dict entry key that does not have a matching struct member counterpart is not an error and is silently skipped. We can turn on relaxed deserialization with the `SDBUSCPP_ENABLE_RELAXED_DICT2STRUCT_DESERIALIZATION` macro:
+
+```c++
+SDBUSCPP_ENABLE_RELAXED_DICT2STRUCT_DESERIALIZATION(my::Struct);
+```
+
+The macro must be placed before the `SDBUSCPP_REGISTER_STRUCT(my::Struct);` macro.
+
+Real examples of extending sdbus-c++ types, including the use of all above-mentioned struct-related macros, can be found in [Message unit tests](/tests/unittests/Message_test.cpp) and also in test case [SdbusTestObject.CanSendAndReceiveDictionariesAsCustomStructsImplicitly](/tests/integrationtests/DBusMethodsTests.cpp#L266) in integration tests.
+
+Happy `struct`ing!
+
+> **_Wait!_:** You might say. What about XML IDL and generated C++ bindings? Well, there is no user-defined struct support in there. Yet. An extended XML syntax would be required. But we may implement something like that in the future (and you can help us).
 
 Support for match rules
 -----------------------

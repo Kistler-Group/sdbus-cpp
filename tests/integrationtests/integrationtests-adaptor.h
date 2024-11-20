@@ -58,6 +58,7 @@ protected:
                           , sdbus::registerMethod("doPrivilegedStuff").implementedAs([this](){ return this->doPrivilegedStuff(); }).markAsPrivileged()
                           , sdbus::registerMethod("emitTwoSimpleSignals").implementedAs([this](){ return this->emitTwoSimpleSignals(); })
                           , sdbus::registerMethod("sendLargeMessage").implementedAs([this](const std::map<int, std::string>& collection){ this->sendLargeMessage(collection); })
+                          , sdbus::registerMethod("returnDictionary").implementedAs([this](const std::map<std::string, sdbus::Variant>& dictionary){ return this->returnDictionary(dictionary); })
                           , sdbus::registerSignal("simpleSignal").markAsDeprecated()
                           , sdbus::registerSignal("signalWithMap").withParameters<std::map<int32_t, std::string>>("aMap")
                           , sdbus::registerSignal("signalWithVariant").withParameters<sdbus::Variant>("aVariant")
@@ -108,6 +109,7 @@ private:
     virtual void doPrivilegedStuff() = 0;
     virtual void emitTwoSimpleSignals() = 0;
     virtual void sendLargeMessage(const std::map<int, std::string>& collection) = 0;
+    virtual std::map<std::string, sdbus::Variant> returnDictionary(const std::map<std::string, sdbus::Variant>& dict) = 0;
 
 private:
     virtual uint32_t action() = 0;
