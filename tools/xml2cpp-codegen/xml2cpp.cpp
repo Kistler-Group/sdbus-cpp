@@ -51,6 +51,7 @@ void usage(std::ostream& output, const char* programName)
             "      --adaptor=FILE   Generate header file FILE with stub class (server)" << endl <<
             "  -h, --help           " << endl <<
             "      --verbose        Explain what is being done" << endl <<
+            "  -v, --version        Prints out sdbus-c++ version used by the tool" << endl <<
             endl <<
             "The stub generator takes an XML file describing DBus interface and creates" << endl <<
             "C++ header files to be used by C++ code wanting to cumminicate through that" << endl <<
@@ -102,6 +103,11 @@ int main(int argc, char **argv)
         else if (!strcmp(*argv, "--help") || !strcmp(*argv, "-h"))
         {
             usage(std::cout, programName);
+            return 0;
+        }
+        else if (!strcmp(*argv, "--version") || !strcmp(*argv, "-v"))
+        {
+            std::cout << "Version: " << SDBUS_XML2CPP_VERSION << std::endl;
             return 0;
         }
         else if (!strcmp(*argv, "--verbose"))
