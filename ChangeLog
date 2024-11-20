@@ -292,6 +292,12 @@ v2.0.0
 - Require systemd of at least v238
 - Many other fixes and updates in code, tests, build system, CI, and documentation
 
-v2.x.y
+v2.1.0
 - Add SDBUSCPP_REGISTER_STRUCT macro to conveniently teach sdbus-c++ about user-defined structs
+- Extend the SDBUSCPP_REGISTER_STRUCT macro with serialization of user-defined structs as dicts, and deserialization of dicts into user-defined structs
+- Make createPlainMessage() function public
+- Solve the problem of sending large D-Bus messages properly (through the event loop thread)
 - Fix partially renamed BUILD_DOXYGEN_DOC CMake option
+- Change googletest to default version 1.14.0
+- Add version parameter to the xml2cpp codegen tool
+- A few other internal refactorings and improvements
