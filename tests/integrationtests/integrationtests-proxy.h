@@ -225,6 +225,16 @@ public:
         m_proxy.setProperty("action").onInterface(INTERFACE_NAME).toValue(value);
     }
 
+    sdbus::Variant actionVariant()
+    {
+        return m_proxy.getProperty("actionVariant").onInterface(INTERFACE_NAME).get<sdbus::Variant>();
+    }
+
+    void actionVariant(const sdbus::Variant& value)
+    {
+        m_proxy.setProperty("actionVariant").onInterface(INTERFACE_NAME).toValue({value, sdbus::embed_variant});
+    }
+
     bool blocking()
     {
         return m_proxy.getProperty("blocking").onInterface(INTERFACE_NAME).get<bool>();

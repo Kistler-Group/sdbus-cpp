@@ -266,6 +266,16 @@ void TestAdaptor::action(const uint32_t& value)
     m_action = value;
 }
 
+sdbus::Variant TestAdaptor::actionVariant()
+{
+    return m_actionVariant;
+}
+
+void TestAdaptor::actionVariant(const sdbus::Variant& value)
+{
+    m_actionVariant = value;
+}
+
 bool TestAdaptor::blocking()
 {
     return m_blocking;

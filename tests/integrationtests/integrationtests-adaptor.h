@@ -63,6 +63,7 @@ protected:
                           , sdbus::registerSignal("signalWithMap").withParameters<std::map<int32_t, std::string>>("aMap")
                           , sdbus::registerSignal("signalWithVariant").withParameters<sdbus::Variant>("aVariant")
                           , sdbus::registerProperty("action").withGetter([this](){ return this->action(); }).withSetter([this](const uint32_t& value){ this->action(value); }).withUpdateBehavior(sdbus::Flags::EMITS_INVALIDATION_SIGNAL)
+                          , sdbus::registerProperty("actionVariant").withGetter([this](){ return this->actionVariant(); }).withSetter([this](const sdbus::Variant& value){ this->actionVariant(value); }).withUpdateBehavior(sdbus::Flags::EMITS_NO_SIGNAL)
                           , sdbus::registerProperty("blocking").withGetter([this](){ return this->blocking(); }).withSetter([this](const bool& value){ this->blocking(value); })
                           , sdbus::registerProperty("state").withGetter([this](){ return this->state(); }).markAsDeprecated().withUpdateBehavior(sdbus::Flags::CONST_PROPERTY_VALUE)
                           ).forInterface(INTERFACE_NAME);
@@ -113,7 +114,9 @@ private:
 
 private:
     virtual uint32_t action() = 0;
+    virtual sdbus::Variant actionVariant() = 0;
     virtual void action(const uint32_t& value) = 0;
+    virtual void actionVariant(const sdbus::Variant& value) = 0;
     virtual bool blocking() = 0;
     virtual void blocking(const bool& value) = 0;
     virtual std::string state() = 0;

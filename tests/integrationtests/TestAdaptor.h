@@ -89,6 +89,8 @@ protected:
 
     uint32_t action() override;
     void action(const uint32_t& value) override;
+    sdbus::Variant actionVariant() override;
+    void actionVariant(const sdbus::Variant& value) override;
     bool blocking() override;
     void blocking(const bool& value) override;
     std::string state() override;
@@ -101,6 +103,7 @@ private:
     const std::string m_state{DEFAULT_STATE_VALUE};
     uint32_t m_action{DEFAULT_ACTION_VALUE};
     bool m_blocking{DEFAULT_BLOCKING_VALUE};
+    sdbus::Variant m_actionVariant{"ahoj"};
 
 public: // for tests
     // For dont-expect-reply method call verifications
@@ -152,6 +155,8 @@ protected:
 
     uint32_t action() override { return {}; }
     void action(const uint32_t&) override {}
+    sdbus::Variant actionVariant() override { return {}; }
+    void actionVariant(const sdbus::Variant&) override {}
     bool blocking() override { return {}; }
     void blocking(const bool&) override {}
     std::string state() override { return {}; }

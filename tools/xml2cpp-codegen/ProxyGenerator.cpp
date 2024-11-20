@@ -375,6 +375,9 @@ std::tuple<std::string, std::string> ProxyGenerator::processProperties(const Nod
 
         if (propertyAccess == "readwrite" || propertyAccess == "write")
         {
+            if (propertySignature == "v")
+                propertyArg = "{" + propertyArg + ", sdbus::embed_variant}";
+
             const std::string realRetType = (asyncSet ? (futureSet ? "std::future<void>" : "sdbus::PendingAsyncCall") : "void");
 
             propertySS << tab << realRetType << " " << propertyNameSafe << "(" << propertyTypeArg << ")" << endl

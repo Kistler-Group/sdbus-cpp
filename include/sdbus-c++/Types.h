@@ -67,6 +67,14 @@ namespace sdbus {
             msg_.seal();
         }
 
+        Variant(const Variant& value, embed_variant_t) : Variant()
+        {
+            msg_.openVariant<Variant>();
+            msg_ << value;
+            msg_.closeVariant();
+            msg_.seal();
+        }
+
         template <typename _Struct>
         explicit Variant(const as_dictionary<_Struct>& value) : Variant()
         {
