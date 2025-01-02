@@ -351,7 +351,7 @@ TYPED_TEST(SdbusTestObject, CanRegisterAdditionalVTableDynamicallyAtAnyTime)
                                       , sdbus::return_slot );
 
     // The new remote vtable is registered as long as we keep vtableSlot, so remote method calls now should pass
-    auto proxy = sdbus::createProxy(SERVICE_NAME, OBJECT_PATH, sdbus::dont_run_event_loop_thread);
+    auto proxy = sdbus::createLightWeightProxy(SERVICE_NAME, OBJECT_PATH);
     int result{};
     proxy->callMethod("subtract").onInterface(interfaceName).withArguments(10, 2).storeResultsTo(result);
 
@@ -370,6 +370,6 @@ TYPED_TEST(SdbusTestObject, CanUnregisterAdditionallyRegisteredVTableAtAnyTime)
     vtableSlot.reset(); // Letting the slot go means letting go the associated vtable registration
 
     // No such remote D-Bus method under given interface exists anymore...
-    auto proxy = sdbus::createProxy(SERVICE_NAME, OBJECT_PATH, sdbus::dont_run_event_loop_thread);
+    auto proxy = sdbus::createLightWeightProxy(SERVICE_NAME, OBJECT_PATH);
     ASSERT_THROW(proxy->callMethod("subtract").onInterface(interfaceName).withArguments(10, 2), sdbus::Error);
 }

@@ -400,6 +400,13 @@ std::unique_ptr<sdbus::IProxy> createProxy( std::unique_ptr<IConnection>&& conne
                                                    , dont_run_event_loop_thread );
 }
 
+std::unique_ptr<sdbus::IProxy> createLightWeightProxy( std::unique_ptr<IConnection>&& connection
+                                                     , ServiceName destination
+                                                     , ObjectPath objectPath )
+{
+    return createProxy(std::move(connection), std::move(destination), std::move(objectPath), dont_run_event_loop_thread);
+}
+
 std::unique_ptr<sdbus::IProxy> createProxy( ServiceName destination
                                           , ObjectPath objectPath )
 {
@@ -426,6 +433,11 @@ std::unique_ptr<sdbus::IProxy> createProxy( ServiceName destination
                                                    , std::move(destination)
                                                    , std::move(objectPath)
                                                    , dont_run_event_loop_thread );
+}
+
+std::unique_ptr<sdbus::IProxy> createLightWeightProxy(ServiceName destination, ObjectPath objectPath)
+{
+    return createProxy(std::move(destination), std::move(objectPath), dont_run_event_loop_thread);
 }
 
 }
