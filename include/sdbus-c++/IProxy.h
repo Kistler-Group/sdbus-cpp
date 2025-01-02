@@ -385,7 +385,7 @@ namespace sdbus {
          * callMethod() function overload, which does not block the bus connection, or do the synchronous
          * call from another Proxy instance created just before the call and then destroyed (which is
          * anyway quite a typical approach in D-Bus implementations). Such proxy instance must have
-         * its own bus connection. So-called light-weight proxies (ones created with `dont_run_event_loop_thread`
+         * its own bus connection. So-called light-weight proxies (ones running without an event loop thread)
          * tag are designed for exactly that purpose.
          *
          * The default D-Bus method call timeout is used. See IConnection::getMethodCallTimeout().
@@ -416,7 +416,7 @@ namespace sdbus {
          * callMethod() function overload, which does not block the bus connection, or do the synchronous
          * call from another Proxy instance created just before the call and then destroyed (which is
          * anyway quite a typical approach in D-Bus implementations). Such proxy instance must have
-         * its own bus connection. So-called light-weight proxies (ones created with `dont_run_event_loop_thread`
+         * its own bus connection. So-called light-weight proxies (ones running without an event loop thread)
          * tag are designed for exactly that purpose.
          *
          * If timeout is zero, the default D-Bus method call timeout is used. See IConnection::getMethodCallTimeout().
@@ -889,7 +889,7 @@ namespace sdbus {
                                                             , ObjectPath objectPath );
 
     /*!
-     * @brief Creates a proxy object for a specific remote D-Bus object
+     * @brief Creates a light-weight proxy object for a specific remote D-Bus object
      *
      * @param[in] connection D-Bus connection to be used by the proxy object
      * @param[in] destination Bus name that provides the remote D-Bus object
@@ -917,6 +917,15 @@ namespace sdbus {
                                                             , dont_run_event_loop_thread_t );
 
     /*!
+     * @brief Creates a light-weight proxy object for a specific remote D-Bus object
+     *
+     * Does the same thing as createProxy(std::unique_ptr<sdbus::IConnection>&&, ServiceName, ObjectPath, dont_run_event_loop_thread_t);
+     */
+    [[nodiscard]] std::unique_ptr<sdbus::IProxy> createLightWeightProxy( std::unique_ptr<sdbus::IConnection>&& connection
+                                                                       , ServiceName destination
+                                                                       , ObjectPath objectPath );
+
+    /*!
      * @brief Creates a proxy object for a specific remote D-Bus object
      *
      * @param[in] destination Bus name that provides the remote D-Bus object
@@ -937,7 +946,7 @@ namespace sdbus {
                                                             , ObjectPath objectPath );
 
     /*!
-     * @brief Creates a proxy object for a specific remote D-Bus object
+     * @brief Creates a light-weight proxy object for a specific remote D-Bus object
      *
      * @param[in] destination Bus name that provides the remote D-Bus object
      * @param[in] objectPath Path of the remote D-Bus object
@@ -957,6 +966,13 @@ namespace sdbus {
     [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( ServiceName destination
                                                             , ObjectPath objectPath
                                                             , dont_run_event_loop_thread_t );
+
+    /*!
+     * @brief Creates a light-weight proxy object for a specific remote D-Bus object
+     *
+     * Does the same thing as createProxy(ServiceName, ObjectPath, dont_run_event_loop_thread_t);
+     */
+    [[nodiscard]] std::unique_ptr<sdbus::IProxy> createLightWeightProxy(ServiceName destination, ObjectPath objectPath);
 
 }
 
