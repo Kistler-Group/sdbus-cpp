@@ -121,7 +121,7 @@ std::string AdaptorGenerator::processInterface(Node& interface) const
     if(!annotationRegistration.empty())
     {
         std::stringstream str;
-        str << "sdbus::setInterfaceFlags()" << annotationRegistration << ";";
+        str << "sdbus::setInterfaceFlags()" << annotationRegistration;
         annotationRegistration = str.str();
     }
 
