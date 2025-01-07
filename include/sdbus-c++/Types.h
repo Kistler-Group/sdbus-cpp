@@ -194,14 +194,7 @@ namespace sdbus {
     class ObjectPath : public std::string
     {
     public:
-        ObjectPath() = default;
-        explicit ObjectPath(std::string value)
-            : std::string(std::move(value))
-        {}
-        explicit ObjectPath(const char* value)
-            : std::string(value)
-        {}
-
+        using std::string::string;
         using std::string::operator=;
     };
 
@@ -214,14 +207,7 @@ namespace sdbus {
     class BusName : public std::string
     {
     public:
-        BusName() = default;
-        explicit BusName(std::string value)
-            : std::string(std::move(value))
-        {}
-        explicit BusName(const char* value)
-            : std::string(value)
-        {}
-
+        using std::string::string;
         using std::string::operator=;
     };
 
@@ -237,14 +223,7 @@ namespace sdbus {
     class InterfaceName : public std::string
     {
     public:
-        InterfaceName() = default;
-        explicit InterfaceName(std::string value)
-            : std::string(std::move(value))
-        {}
-        explicit InterfaceName(const char* value)
-            : std::string(value)
-        {}
-
+        using std::string::string;
         using std::string::operator=;
     };
 
@@ -257,14 +236,7 @@ namespace sdbus {
     class MemberName : public std::string
     {
     public:
-        MemberName() = default;
-        explicit MemberName(std::string value)
-                : std::string(std::move(value))
-        {}
-        explicit MemberName(const char* value)
-                : std::string(value)
-        {}
-
+        using std::string::string;
         using std::string::operator=;
     };
 
@@ -281,14 +253,7 @@ namespace sdbus {
     class Signature : public std::string
     {
     public:
-        Signature() = default;
-        explicit Signature(std::string value)
-            : std::string(std::move(value))
-        {}
-        explicit Signature(const char* value)
-            : std::string(value)
-        {}
-
+        using std::string::string;
         using std::string::operator=;
     };
 
