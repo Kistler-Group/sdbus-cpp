@@ -344,6 +344,17 @@ namespace sdbus {
             return objectsInterfacesAndProperties;
         }
 
+        template <typename _Function>
+        PendingAsyncCall GetManagedObjectsAync(_Function&& callback)
+        {
+          std::map<sdbus::ObjectPath, std::map<sdbus::InterfaceName, std::map<PropertyName, sdbus::Variant>>> objectsInterfacesAndProperties;
+          return m_proxy.callMethodAsync("GetManagedObjects").onInterface(INTERFACE_NAME).uponReplyInvoke(std::forward<_Function>(callback));
+        }
+
+        std::future<std::map<sdbus::ObjectPath, std::map<sdbus::InterfaceName, std::map<PropertyName, sdbus::Variant>>>> GetManagedObjectsAync(with_future_t) const {
+          return m_proxy.callMethodAsync("GetManagedObjects").onInterface(INTERFACE_NAME).getResultAsFuture<std::map<sdbus::ObjectPath, std::map<sdbus::InterfaceName, std::map<PropertyName, sdbus::Variant>>>>();
+        }
+
     private:
         sdbus::IProxy& m_proxy;
     };
