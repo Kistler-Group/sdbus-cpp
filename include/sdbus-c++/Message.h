@@ -215,6 +215,7 @@ namespace sdbus {
         const char* getSender() const;
         const char* getPath() const;
         const char* getDestination() const;
+        uint64_t getCookie() const;
         // TODO: short docs in whole Message API
         std::pair<char, const char*> peekType() const;
         bool isValid() const;
@@ -296,6 +297,7 @@ namespace sdbus {
     public:
         MethodReply() = default;
         void send() const;
+        uint64_t getReplyCookie() const;
     };
 
     class Signal : public Message

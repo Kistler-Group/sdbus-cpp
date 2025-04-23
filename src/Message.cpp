@@ -640,6 +640,14 @@ const char* Message::getDestination() const
     return sd_bus_message_get_destination((sd_bus_message*)msg_);
 }
 
+uint64_t Message::getCookie() const
+{
+    uint64_t cookie;
+    auto r =  sd_bus_message_get_cookie((sd_bus_message*)msg_, &cookie);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get cookie", -r);
+    return cookie;
+}
+
 std::pair<char, const char*> Message::peekType() const
 {
     char typeSignature{};
@@ -839,6 +847,14 @@ MethodReply MethodCall::createErrorReply(const Error& error) const
 void MethodReply::send() const
 {
     connection_->sendMessage((sd_bus_message*)msg_);
+}
+
+uint64_t MethodReply::getReplyCookie() const
+{
+    uint64_t cookie;
+    auto r =  sd_bus_message_get_reply_cookie((sd_bus_message*)msg_, &cookie);
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to get cookie", -r);
+    return cookie;
 }
 
 void Signal::send() const
