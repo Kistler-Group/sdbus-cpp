@@ -95,6 +95,7 @@ protected:
 public:
     void installDoOperationClientSideAsyncReplyHandler(std::function<void(uint32_t res, std::optional<sdbus::Error> err)> handler);
     uint32_t doOperationWithTimeout(const std::chrono::microseconds &timeout, uint32_t param);
+    MethodReply doOperationOnBasicAPILevel(uint32_t param);
     sdbus::PendingAsyncCall doOperationClientSideAsync(uint32_t param);
     [[nodiscard]] sdbus::Slot doOperationClientSideAsync(uint32_t param, sdbus::return_slot_t);
     std::future<uint32_t> doOperationClientSideAsync(uint32_t param, with_future_t);
@@ -121,6 +122,7 @@ public: // for tests
     std::function<void(uint32_t res, std::optional<sdbus::Error> err)> m_DoOperationClientSideAsyncReplyHandler;
     std::function<void(const sdbus::InterfaceName&, const std::map<PropertyName, sdbus::Variant>&, const std::vector<PropertyName>&)> m_onPropertiesChangedHandler;
 
+    std::unique_ptr<const MethodCall> m_methodCallMsg;
     std::unique_ptr<const Message> m_signalMsg;
     SignalName m_signalName;
 };

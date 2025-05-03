@@ -113,6 +113,16 @@ uint32_t TestProxy::doOperationWithTimeout(const std::chrono::microseconds &time
     return result;
 }
 
+MethodReply TestProxy::doOperationOnBasicAPILevel(uint32_t param)
+{
+    auto methodCall = getProxy().createMethodCall(test::INTERFACE_NAME, MethodName{"doOperation"});
+    methodCall << param;
+
+    m_methodCallMsg = std::make_unique<MethodCall>(methodCall);
+
+    return getProxy().callMethod(methodCall);
+}
+
 sdbus::PendingAsyncCall TestProxy::doOperationClientSideAsync(uint32_t param)
 {
     return getProxy().callMethodAsync("doOperation")
