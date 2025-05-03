@@ -28,13 +28,23 @@
 
 #include "sdbus-c++/Error.h"
 #include "sdbus-c++/Types.h"
+#include "sdbus-c++/TypeTraits.h"
 
 #include "IConnection.h"
 #include "MessageUtils.h"
 #include "ScopeGuard.h"
 
 #include <cassert>
+#include <cstdint> // int16_t, uint64_t, ...
+#include <cstdlib> // atexit
 #include <cstring>
+#include <string>
+#include <string_view>
+#include <sys/types.h> // pid_t, gid_t, ...
+#include <tuple> // std::ignore
+#include <memory> // std::unique_ptr
+#include <utility> // std::move
+#include <vector>
 #include SDBUS_HEADER
 
 namespace sdbus {
@@ -51,7 +61,7 @@ Message::Message(void *msg, internal::IConnection* connection) noexcept
 {
     assert(msg_ != nullptr);
     assert(connection_ != nullptr);
-    connection_->incrementMessageRefCount((sd_bus_message*)msg_);
+    connection_->incrementMessageRefCount(static_cast<sd_bus_message*>(msg_));
 }
 
 Message::Message(void *msg, internal::IConnection* connection, adopt_message_t) noexcept
@@ -69,14 +79,17 @@ Message::Message(const Message& other) noexcept
 
 Message& Message::operator=(const Message& other) noexcept
 {
+    if (this == &other)
+        return *this;
+
     if (msg_)
-        connection_->decrementMessageRefCount((sd_bus_message*)msg_);
+        connection_->decrementMessageRefCount(static_cast<sd_bus_message*>(msg_));
 
     msg_ = other.msg_;
     connection_ = other.connection_;
     ok_ = other.ok_;
 
-    connection_->incrementMessageRefCount((sd_bus_message*)msg_);
+    connection_->incrementMessageRefCount(static_cast<sd_bus_message*>(msg_));
 
     return *this;
 }
@@ -89,7 +102,7 @@ Message::Message(Message&& other) noexcept
 Message& Message::operator=(Message&& other) noexcept
 {
     if (msg_)
-        connection_->decrementMessageRefCount((sd_bus_message*)msg_);
+        connection_->decrementMessageRefCount(static_cast<sd_bus_message*>(msg_));
 
     msg_ = other.msg_;
     other.msg_ = nullptr;
@@ -104,18 +117,18 @@ Message& Message::operator=(Message&& other) noexcept
 Message::~Message()
 {
     if (msg_)
-        connection_->decrementMessageRefCount((sd_bus_message*)msg_);
+        connection_->decrementMessageRefCount(static_cast<sd_bus_message*>(msg_));
 }
 
 Message& Message::operator<<(bool item)
 {
-    int intItem = item;
+    int itemAsInt = static_cast<int>(item);
 
     // Direct sd-bus method, bypassing SdBus mutex, are called here, since Message serialization/deserialization,
     // as well as getter/setter methods are not thread safe by design. Additionally, they are called frequently,
     // so some overhead is spared. What is thread-safe in Message class is Message constructors, copy/move operations
     // and the destructor, so the Message instance can be passed from one thread to another safely.
-    auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_BOOLEAN, &intItem);
+    auto r = sd_bus_message_append_basic(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_BOOLEAN, &itemAsInt);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a bool value", -r);
 
     return *this;
@@ -123,7 +136,7 @@ Message& Message::operator<<(bool item)
 
 Message& Message::operator<<(int16_t item)
 {
-    auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_INT16, &item);
+    auto r = sd_bus_message_append_basic(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_INT16, &item);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a int16_t value", -r);
 
     return *this;
@@ -131,7 +144,7 @@ Message& Message::operator<<(int16_t item)
 
 Message& Message::operator<<(int32_t item)
 {
-    auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_INT32, &item);
+    auto r = sd_bus_message_append_basic(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_INT32, &item);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a int32_t value", -r);
 
     return *this;
@@ -139,7 +152,7 @@ Message& Message::operator<<(int32_t item)
 
 Message& Message::operator<<(int64_t item)
 {
-    auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_INT64, &item);
+    auto r = sd_bus_message_append_basic(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_INT64, &item);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a int64_t value", -r);
 
     return *this;
@@ -147,7 +160,7 @@ Message& Message::operator<<(int64_t item)
 
 Message& Message::operator<<(uint8_t item)
 {
-    auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_BYTE, &item);
+    auto r = sd_bus_message_append_basic(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_BYTE, &item);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a byte value", -r);
 
     return *this;
@@ -155,7 +168,7 @@ Message& Message::operator<<(uint8_t item)
 
 Message& Message::operator<<(uint16_t item)
 {
-    auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_UINT16, &item);
+    auto r = sd_bus_message_append_basic(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_UINT16, &item);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a uint16_t value", -r);
 
     return *this;
@@ -163,7 +176,7 @@ Message& Message::operator<<(uint16_t item)
 
 Message& Message::operator<<(uint32_t item)
 {
-    auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_UINT32, &item);
+    auto r = sd_bus_message_append_basic(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_UINT32, &item);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a uint32_t value", -r);
 
     return *this;
@@ -171,7 +184,7 @@ Message& Message::operator<<(uint32_t item)
 
 Message& Message::operator<<(uint64_t item)
 {
-    auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_UINT64, &item);
+    auto r = sd_bus_message_append_basic(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_UINT64, &item);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a uint64_t value", -r);
 
     return *this;
@@ -179,7 +192,7 @@ Message& Message::operator<<(uint64_t item)
 
 Message& Message::operator<<(double item)
 {
-    auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_DOUBLE, &item);
+    auto r = sd_bus_message_append_basic(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_DOUBLE, &item);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a double value", -r);
 
     return *this;
@@ -187,7 +200,7 @@ Message& Message::operator<<(double item)
 
 Message& Message::operator<<(const char* item)
 {
-    auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_STRING, item);
+    auto r = sd_bus_message_append_basic(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_STRING, item);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a C-string value", -r);
 
     return *this;
@@ -195,7 +208,7 @@ Message& Message::operator<<(const char* item)
 
 Message& Message::operator<<(const std::string& item)
 {
-    auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_STRING, item.c_str());
+    auto r = sd_bus_message_append_basic(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_STRING, item.c_str());
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a string value", -r);
 
     return *this;
@@ -204,7 +217,7 @@ Message& Message::operator<<(const std::string& item)
 Message& Message::operator<<(std::string_view item)
 {
     char* destPtr{};
-    auto r = sd_bus_message_append_string_space((sd_bus_message*)msg_, item.length(), &destPtr);
+    auto r = sd_bus_message_append_string_space(static_cast<sd_bus_message*>(msg_), item.length(), &destPtr);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a string_view value", -r);
 
     std::memcpy(destPtr, item.data(), item.length());
@@ -221,7 +234,7 @@ Message& Message::operator<<(const Variant &item)
 
 Message& Message::operator<<(const ObjectPath &item)
 {
-    auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_OBJECT_PATH, item.c_str());
+    auto r = sd_bus_message_append_basic(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_OBJECT_PATH, item.c_str());
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize an ObjectPath value", -r);
 
     return *this;
@@ -229,7 +242,7 @@ Message& Message::operator<<(const ObjectPath &item)
 
 Message& Message::operator<<(const Signature &item)
 {
-    auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_SIGNATURE, item.c_str());
+    auto r = sd_bus_message_append_basic(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_SIGNATURE, item.c_str());
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a Signature value", -r);
 
     return *this;
@@ -238,7 +251,7 @@ Message& Message::operator<<(const Signature &item)
 Message& Message::operator<<(const UnixFd &item)
 {
     auto fd = item.get();
-    auto r = sd_bus_message_append_basic((sd_bus_message*)msg_, SD_BUS_TYPE_UNIX_FD, &fd);
+    auto r = sd_bus_message_append_basic(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_UNIX_FD, &fd);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize a UnixFd value", -r);
 
     return *this;
@@ -246,7 +259,7 @@ Message& Message::operator<<(const UnixFd &item)
 
 Message& Message::appendArray(char type, const void *ptr, size_t size)
 {
-    auto r = sd_bus_message_append_array((sd_bus_message*)msg_, type, ptr, size);
+    auto r = sd_bus_message_append_array(static_cast<sd_bus_message*>(msg_), type, ptr, size);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to serialize an array", -r);
 
     return *this;
@@ -254,8 +267,8 @@ Message& Message::appendArray(char type, const void *ptr, size_t size)
 
 Message& Message::operator>>(bool& item)
 {
-    int intItem;
-    auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_BOOLEAN, &intItem);
+    int intItem{};
+    auto r = sd_bus_message_read_basic(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_BOOLEAN, &intItem);
     if (r == 0)
         ok_ = false;
 
@@ -268,7 +281,7 @@ Message& Message::operator>>(bool& item)
 
 Message& Message::operator>>(int16_t& item)
 {
-    auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_INT16, &item);
+    auto r = sd_bus_message_read_basic(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_INT16, &item);
     if (r == 0)
         ok_ = false;
 
@@ -279,7 +292,7 @@ Message& Message::operator>>(int16_t& item)
 
 Message& Message::operator>>(int32_t& item)
 {
-    auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_INT32, &item);
+    auto r = sd_bus_message_read_basic(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_INT32, &item);
     if (r == 0)
         ok_ = false;
 
@@ -290,7 +303,7 @@ Message& Message::operator>>(int32_t& item)
 
 Message& Message::operator>>(int64_t& item)
 {
-    auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_INT64, &item);
+    auto r = sd_bus_message_read_basic(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_INT64, &item);
     if (r == 0)
         ok_ = false;
 
@@ -301,7 +314,7 @@ Message& Message::operator>>(int64_t& item)
 
 Message& Message::operator>>(uint8_t& item)
 {
-    auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_BYTE, &item);
+    auto r = sd_bus_message_read_basic(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_BYTE, &item);
     if (r == 0)
         ok_ = false;
 
@@ -312,7 +325,7 @@ Message& Message::operator>>(uint8_t& item)
 
 Message& Message::operator>>(uint16_t& item)
 {
-    auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_UINT16, &item);
+    auto r = sd_bus_message_read_basic(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_UINT16, &item);
     if (r == 0)
         ok_ = false;
 
@@ -323,7 +336,7 @@ Message& Message::operator>>(uint16_t& item)
 
 Message& Message::operator>>(uint32_t& item)
 {
-    auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_UINT32, &item);
+    auto r = sd_bus_message_read_basic(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_UINT32, &item);
     if (r == 0)
         ok_ = false;
 
@@ -334,7 +347,7 @@ Message& Message::operator>>(uint32_t& item)
 
 Message& Message::operator>>(uint64_t& item)
 {
-    auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_UINT64, &item);
+    auto r = sd_bus_message_read_basic(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_UINT64, &item);
     if (r == 0)
         ok_ = false;
 
@@ -345,7 +358,7 @@ Message& Message::operator>>(uint64_t& item)
 
 Message& Message::readArray(char type, const void **ptr, size_t *size)
 {
-    auto r = sd_bus_message_read_array((sd_bus_message*)msg_, type, ptr, size);
+    auto r = sd_bus_message_read_array(static_cast<sd_bus_message*>(msg_), type, ptr, size);
     if (r == 0)
         ok_ = false;
 
@@ -356,7 +369,7 @@ Message& Message::readArray(char type, const void **ptr, size_t *size)
 
 Message& Message::operator>>(double& item)
 {
-    auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_DOUBLE, &item);
+    auto r = sd_bus_message_read_basic(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_DOUBLE, &item);
     if (r == 0)
         ok_ = false;
 
@@ -367,7 +380,7 @@ Message& Message::operator>>(double& item)
 
 Message& Message::operator>>(char*& item)
 {
-    auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_STRING, &item);
+    auto r = sd_bus_message_read_basic(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_STRING, reinterpret_cast<void*>(&item));
     if (r == 0)
         ok_ = false;
 
@@ -403,7 +416,7 @@ Message& Message::operator>>(Variant &item)
 Message& Message::operator>>(ObjectPath &item)
 {
     char* str{};
-    auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_OBJECT_PATH, &str);
+    auto r = sd_bus_message_read_basic(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_OBJECT_PATH, reinterpret_cast<void*>(&str));
     if (r == 0)
         ok_ = false;
 
@@ -418,7 +431,7 @@ Message& Message::operator>>(ObjectPath &item)
 Message& Message::operator>>(Signature &item)
 {
     char* str{};
-    auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_SIGNATURE, &str);
+    auto r = sd_bus_message_read_basic(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_SIGNATURE, reinterpret_cast<void*>(&str));
     if (r == 0)
         ok_ = false;
 
@@ -433,7 +446,7 @@ Message& Message::operator>>(Signature &item)
 Message& Message::operator>>(UnixFd &item)
 {
     int fd = -1;
-    auto r = sd_bus_message_read_basic((sd_bus_message*)msg_, SD_BUS_TYPE_UNIX_FD, &fd);
+    auto r = sd_bus_message_read_basic(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_UNIX_FD, &fd);
     if (r == 0)
         ok_ = false;
 
@@ -446,7 +459,7 @@ Message& Message::operator>>(UnixFd &item)
 
 Message& Message::openContainer(const char* signature)
 {
-    auto r = sd_bus_message_open_container((sd_bus_message*)msg_, SD_BUS_TYPE_ARRAY, signature);
+    auto r = sd_bus_message_open_container(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_ARRAY, signature);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to open a container", -r);
 
     return *this;
@@ -454,7 +467,7 @@ Message& Message::openContainer(const char* signature)
 
 Message& Message::closeContainer()
 {
-    auto r = sd_bus_message_close_container((sd_bus_message*)msg_);
+    auto r = sd_bus_message_close_container(static_cast<sd_bus_message*>(msg_));
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to close a container", -r);
 
     return *this;
@@ -462,7 +475,7 @@ Message& Message::closeContainer()
 
 Message& Message::openDictEntry(const char* signature)
 {
-    auto r = sd_bus_message_open_container((sd_bus_message*)msg_, SD_BUS_TYPE_DICT_ENTRY, signature);
+    auto r = sd_bus_message_open_container(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_DICT_ENTRY, signature);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to open a dictionary entry", -r);
 
     return *this;
@@ -470,7 +483,7 @@ Message& Message::openDictEntry(const char* signature)
 
 Message& Message::closeDictEntry()
 {
-    auto r = sd_bus_message_close_container((sd_bus_message*)msg_);
+    auto r = sd_bus_message_close_container(static_cast<sd_bus_message*>(msg_));
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to close a dictionary entry", -r);
 
     return *this;
@@ -478,7 +491,7 @@ Message& Message::closeDictEntry()
 
 Message& Message::openVariant(const char* signature)
 {
-    auto r = sd_bus_message_open_container((sd_bus_message*)msg_, SD_BUS_TYPE_VARIANT, signature);
+    auto r = sd_bus_message_open_container(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_VARIANT, signature);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to open a variant", -r);
 
     return *this;
@@ -486,7 +499,7 @@ Message& Message::openVariant(const char* signature)
 
 Message& Message::closeVariant()
 {
-    auto r = sd_bus_message_close_container((sd_bus_message*)msg_);
+    auto r = sd_bus_message_close_container(static_cast<sd_bus_message*>(msg_));
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to close a variant", -r);
 
     return *this;
@@ -494,7 +507,7 @@ Message& Message::closeVariant()
 
 Message& Message::openStruct(const char* signature)
 {
-    auto r = sd_bus_message_open_container((sd_bus_message*)msg_, SD_BUS_TYPE_STRUCT, signature);
+    auto r = sd_bus_message_open_container(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_STRUCT, signature);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to open a struct", -r);
 
     return *this;
@@ -502,7 +515,7 @@ Message& Message::openStruct(const char* signature)
 
 Message& Message::closeStruct()
 {
-    auto r = sd_bus_message_close_container((sd_bus_message*)msg_);
+    auto r = sd_bus_message_close_container(static_cast<sd_bus_message*>(msg_));
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to close a struct", -r);
 
     return *this;
@@ -510,7 +523,7 @@ Message& Message::closeStruct()
 
 Message& Message::enterContainer(const char* signature)
 {
-    auto r = sd_bus_message_enter_container((sd_bus_message*)msg_, SD_BUS_TYPE_ARRAY, signature);
+    auto r = sd_bus_message_enter_container(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_ARRAY, signature);
     if (r == 0)
         ok_ = false;
 
@@ -521,7 +534,7 @@ Message& Message::enterContainer(const char* signature)
 
 Message& Message::exitContainer()
 {
-    auto r = sd_bus_message_exit_container((sd_bus_message*)msg_);
+    auto r = sd_bus_message_exit_container(static_cast<sd_bus_message*>(msg_));
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to exit a container", -r);
 
     return *this;
@@ -529,7 +542,7 @@ Message& Message::exitContainer()
 
 Message& Message::enterDictEntry(const char* signature)
 {
-    auto r = sd_bus_message_enter_container((sd_bus_message*)msg_, SD_BUS_TYPE_DICT_ENTRY, signature);
+    auto r = sd_bus_message_enter_container(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_DICT_ENTRY, signature);
     if (r == 0)
         ok_ = false;
 
@@ -540,7 +553,7 @@ Message& Message::enterDictEntry(const char* signature)
 
 Message& Message::exitDictEntry()
 {
-    auto r = sd_bus_message_exit_container((sd_bus_message*)msg_);
+    auto r = sd_bus_message_exit_container(static_cast<sd_bus_message*>(msg_));
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to exit a dictionary entry", -r);
 
     return *this;
@@ -548,7 +561,7 @@ Message& Message::exitDictEntry()
 
 Message& Message::enterVariant(const char* signature)
 {
-    auto r = sd_bus_message_enter_container((sd_bus_message*)msg_, SD_BUS_TYPE_VARIANT, signature);
+    auto r = sd_bus_message_enter_container(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_VARIANT, signature);
     if (r == 0)
         ok_ = false;
 
@@ -559,7 +572,7 @@ Message& Message::enterVariant(const char* signature)
 
 Message& Message::exitVariant()
 {
-    auto r = sd_bus_message_exit_container((sd_bus_message*)msg_);
+    auto r = sd_bus_message_exit_container(static_cast<sd_bus_message*>(msg_));
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to exit a variant", -r);
 
     return *this;
@@ -567,7 +580,7 @@ Message& Message::exitVariant()
 
 Message& Message::enterStruct(const char* signature)
 {
-    auto r = sd_bus_message_enter_container((sd_bus_message*)msg_, SD_BUS_TYPE_STRUCT, signature);
+    auto r = sd_bus_message_enter_container(static_cast<sd_bus_message*>(msg_), SD_BUS_TYPE_STRUCT, signature);
     if (r == 0)
         ok_ = false;
 
@@ -578,7 +591,7 @@ Message& Message::enterStruct(const char* signature)
 
 Message& Message::exitStruct()
 {
-    auto r = sd_bus_message_exit_container((sd_bus_message*)msg_);
+    auto r = sd_bus_message_exit_container(static_cast<sd_bus_message*>(msg_));
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to exit a struct", -r);
 
     return *this;
@@ -597,7 +610,7 @@ void Message::clearFlags()
 
 void Message::copyTo(Message& destination, bool complete) const
 {
-    auto r = sd_bus_message_copy((sd_bus_message*)destination.msg_, (sd_bus_message*)msg_, complete);
+    auto r = sd_bus_message_copy(static_cast<sd_bus_message*>(destination.msg_), static_cast<sd_bus_message*>(msg_), complete); // NOLINT(readability-implicit-bool-conversion)
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to copy the message", -r);
 }
 
@@ -605,45 +618,45 @@ void Message::seal()
 {
     const auto messageCookie = 1;
     const auto sealTimeout = 0;
-    auto r = sd_bus_message_seal((sd_bus_message*)msg_, messageCookie, sealTimeout);
+    auto r = sd_bus_message_seal(static_cast<sd_bus_message*>(msg_), messageCookie, sealTimeout);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to seal the message", -r);
 }
 
 void Message::rewind(bool complete)
 {
-    auto r = sd_bus_message_rewind((sd_bus_message*)msg_, complete);
+    auto r = sd_bus_message_rewind(static_cast<sd_bus_message*>(msg_), complete); // NOLINT(readability-implicit-bool-conversion)
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to rewind the message", -r);
 }
 
 const char* Message::getInterfaceName() const
 {
-    return sd_bus_message_get_interface((sd_bus_message*)msg_);
+    return sd_bus_message_get_interface(static_cast<sd_bus_message*>(msg_));
 }
 
 const char* Message::getMemberName() const
 {
-    return sd_bus_message_get_member((sd_bus_message*)msg_);
+    return sd_bus_message_get_member(static_cast<sd_bus_message*>(msg_));
 }
 
 const char* Message::getSender() const
 {
-    return sd_bus_message_get_sender((sd_bus_message*)msg_);
+    return sd_bus_message_get_sender(static_cast<sd_bus_message*>(msg_));
 }
 
 const char* Message::getPath() const
 {
-    return sd_bus_message_get_path((sd_bus_message*)msg_);
+    return sd_bus_message_get_path(static_cast<sd_bus_message*>(msg_));
 }
 
 const char* Message::getDestination() const
 {
-    return sd_bus_message_get_destination((sd_bus_message*)msg_);
+    return sd_bus_message_get_destination(static_cast<sd_bus_message*>(msg_));
 }
 
 uint64_t Message::getCookie() const
 {
-    uint64_t cookie;
-    auto r =  sd_bus_message_get_cookie((sd_bus_message*)msg_, &cookie);
+    uint64_t cookie{};
+    auto r =  sd_bus_message_get_cookie(static_cast<sd_bus_message*>(msg_), &cookie);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get cookie", -r);
     return cookie;
 }
@@ -652,7 +665,7 @@ std::pair<char, const char*> Message::peekType() const
 {
     char typeSignature{};
     const char* contentsSignature{};
-    auto r = sd_bus_message_peek_type((sd_bus_message*)msg_, &typeSignature, &contentsSignature);
+    auto r = sd_bus_message_peek_type(static_cast<sd_bus_message*>(msg_), &typeSignature, &contentsSignature);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to peek message type", -r);
     return {typeSignature, contentsSignature};
 }
@@ -664,12 +677,12 @@ bool Message::isValid() const
 
 bool Message::isEmpty() const
 {
-    return sd_bus_message_is_empty((sd_bus_message*)msg_) != 0;
+    return sd_bus_message_is_empty(static_cast<sd_bus_message*>(msg_)) != 0;
 }
 
 bool Message::isAtEnd(bool complete) const
 {
-    return sd_bus_message_at_end((sd_bus_message*)msg_, complete) > 0;
+    return sd_bus_message_at_end(static_cast<sd_bus_message*>(msg_), complete) > 0; // NOLINT(readability-implicit-bool-conversion)
 }
 
 // TODO: Create a RAII ownership class for creds with copy&move semantics, doing ref()/unref() under the hood.
@@ -677,11 +690,11 @@ bool Message::isAtEnd(bool complete) const
 //   The class will expose methods like getPid(), getUid(), etc. that will directly call sd_bus_creds_* functions, no need for mutex here.
 pid_t Message::getCredsPid() const
 {
-    uint64_t mask = SD_BUS_CREDS_PID | SD_BUS_CREDS_AUGMENT;
+    const uint64_t mask = SD_BUS_CREDS_PID | SD_BUS_CREDS_AUGMENT;
     sd_bus_creds *creds = nullptr;
     SCOPE_EXIT{ connection_->decrementCredsRefCount(creds); };
 
-    int r = connection_->querySenderCredentials((sd_bus_message*)msg_, mask, &creds);
+    int r = connection_->querySenderCredentials(static_cast<sd_bus_message*>(msg_), mask, &creds);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus creds", -r);
 
     pid_t pid = 0;
@@ -692,13 +705,13 @@ pid_t Message::getCredsPid() const
 
 uid_t Message::getCredsUid() const
 {
-    uint64_t mask = SD_BUS_CREDS_UID | SD_BUS_CREDS_AUGMENT;
+    const uint64_t mask = SD_BUS_CREDS_UID | SD_BUS_CREDS_AUGMENT;
     sd_bus_creds *creds = nullptr;
     SCOPE_EXIT{ connection_->decrementCredsRefCount(creds); };
-    int r = connection_->querySenderCredentials((sd_bus_message*)msg_, mask, &creds);
+    int r = connection_->querySenderCredentials(static_cast<sd_bus_message*>(msg_), mask, &creds);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus creds", -r);
 
-    uid_t uid = (uid_t)-1;
+    auto uid = static_cast<uid_t>(-1);
     r = sd_bus_creds_get_uid(creds, &uid);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus cred uid", -r);
     return uid;
@@ -706,13 +719,13 @@ uid_t Message::getCredsUid() const
 
 uid_t Message::getCredsEuid() const
 {
-    uint64_t mask = SD_BUS_CREDS_EUID | SD_BUS_CREDS_AUGMENT;
+    const uint64_t mask = SD_BUS_CREDS_EUID | SD_BUS_CREDS_AUGMENT;
     sd_bus_creds *creds = nullptr;
     SCOPE_EXIT{ connection_->decrementCredsRefCount(creds); };
-    int r = connection_->querySenderCredentials((sd_bus_message*)msg_, mask, &creds);
+    int r = connection_->querySenderCredentials(static_cast<sd_bus_message*>(msg_), mask, &creds);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus creds", -r);
 
-    uid_t euid = (uid_t)-1;
+    auto euid = static_cast<uid_t>(-1);
     r = sd_bus_creds_get_euid(creds, &euid);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus cred euid", -r);
     return euid;
@@ -720,13 +733,13 @@ uid_t Message::getCredsEuid() const
 
 gid_t Message::getCredsGid() const
 {
-    uint64_t mask = SD_BUS_CREDS_GID | SD_BUS_CREDS_AUGMENT;
+    const uint64_t mask = SD_BUS_CREDS_GID | SD_BUS_CREDS_AUGMENT;
     sd_bus_creds *creds = nullptr;
     SCOPE_EXIT{ connection_->decrementCredsRefCount(creds); };
-    int r = connection_->querySenderCredentials((sd_bus_message*)msg_, mask, &creds);
+    int r = connection_->querySenderCredentials(static_cast<sd_bus_message*>(msg_), mask, &creds);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus creds", -r);
 
-    gid_t gid = (gid_t)-1;
+    auto gid = static_cast<gid_t>(-1);
     r = sd_bus_creds_get_gid(creds, &gid);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus cred gid", -r);
     return gid;
@@ -734,13 +747,13 @@ gid_t Message::getCredsGid() const
 
 gid_t Message::getCredsEgid() const
 {
-    uint64_t mask = SD_BUS_CREDS_EGID | SD_BUS_CREDS_AUGMENT;
+    const uint64_t mask = SD_BUS_CREDS_EGID | SD_BUS_CREDS_AUGMENT;
     sd_bus_creds *creds = nullptr;
     SCOPE_EXIT{ connection_->decrementCredsRefCount(creds); };
-    int r = connection_->querySenderCredentials((sd_bus_message*)msg_, mask, &creds);
+    int r = connection_->querySenderCredentials(static_cast<sd_bus_message*>(msg_), mask, &creds);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus creds", -r);
 
-    gid_t egid = (gid_t)-1;
+    auto egid = static_cast<gid_t>(-1);
     r = sd_bus_creds_get_egid(creds, &egid);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus cred egid", -r);
     return egid;
@@ -748,10 +761,10 @@ gid_t Message::getCredsEgid() const
 
 std::vector<gid_t> Message::getCredsSupplementaryGids() const
 {
-    uint64_t mask = SD_BUS_CREDS_SUPPLEMENTARY_GIDS | SD_BUS_CREDS_AUGMENT;
+    const uint64_t mask = SD_BUS_CREDS_SUPPLEMENTARY_GIDS | SD_BUS_CREDS_AUGMENT;
     sd_bus_creds *creds = nullptr;
     SCOPE_EXIT{ connection_->decrementCredsRefCount(creds); };
-    int r = connection_->querySenderCredentials((sd_bus_message*)msg_, mask, &creds);
+    int r = connection_->querySenderCredentials(static_cast<sd_bus_message*>(msg_), mask, &creds);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus creds", -r);
 
     const gid_t *cGids = nullptr;
@@ -762,7 +775,7 @@ std::vector<gid_t> Message::getCredsSupplementaryGids() const
     if (cGids != nullptr)
     {
         for (int i = 0; i < r; i++)
-            gids.push_back(cGids[i]);
+            gids.push_back(cGids[i]); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 
     return gids;
@@ -770,10 +783,10 @@ std::vector<gid_t> Message::getCredsSupplementaryGids() const
 
 std::string Message::getSELinuxContext() const
 {
-    uint64_t mask = SD_BUS_CREDS_AUGMENT | SD_BUS_CREDS_SELINUX_CONTEXT;
+    const uint64_t mask = SD_BUS_CREDS_AUGMENT | SD_BUS_CREDS_SELINUX_CONTEXT;
     sd_bus_creds *creds = nullptr;
     SCOPE_EXIT{ connection_->decrementCredsRefCount(creds); };
-    int r = connection_->querySenderCredentials((sd_bus_message*)msg_, mask, &creds);
+    int r = connection_->querySenderCredentials(static_cast<sd_bus_message*>(msg_), mask, &creds);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get bus creds", -r);
 
     const char *cLabel = nullptr;
@@ -792,13 +805,13 @@ MethodCall::MethodCall( void *msg
 
 void MethodCall::dontExpectReply()
 {
-    auto r = sd_bus_message_set_expect_reply((sd_bus_message*)msg_, 0);
+    auto r = sd_bus_message_set_expect_reply(static_cast<sd_bus_message*>(msg_), 0);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to set the dont-expect-reply flag", -r);
 }
 
 bool MethodCall::doesntExpectReply() const
 {
-    auto r = sd_bus_message_get_expect_reply((sd_bus_message*)msg_);
+    auto r = sd_bus_message_get_expect_reply(static_cast<sd_bus_message*>(msg_));
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get the dont-expect-reply flag", -r);
     return r == 0;
 }
@@ -807,69 +820,69 @@ MethodReply MethodCall::send(uint64_t timeout) const
 {
     if (!doesntExpectReply())
         return sendWithReply(timeout);
-    else
-        return sendWithNoReply();
+
+    return sendWithNoReply();
 }
 
 MethodReply MethodCall::sendWithReply(uint64_t timeout) const
 {
-    auto* sdbusReply = connection_->callMethod((sd_bus_message*)msg_, timeout);
+    auto* sdbusReply = connection_->callMethod(static_cast<sd_bus_message*>(msg_), timeout);
 
     return Factory::create<MethodReply>(sdbusReply, connection_, adopt_message);
 }
 
 MethodReply MethodCall::sendWithNoReply() const
 {
-    connection_->sendMessage((sd_bus_message*)msg_);
+    connection_->sendMessage(static_cast<sd_bus_message*>(msg_));
 
     return Factory::create<MethodReply>(); // No reply
 }
 
-Slot MethodCall::send(void* callback, void* userData, uint64_t timeout, return_slot_t) const
+Slot MethodCall::send(void* callback, void* userData, uint64_t timeout, return_slot_t) const // NOLINT(bugprone-easily-swappable-parameters)
 {
-    return connection_->callMethodAsync((sd_bus_message*)msg_, (sd_bus_message_handler_t)callback, userData, timeout, return_slot);
+    return connection_->callMethodAsync(static_cast<sd_bus_message*>(msg_), reinterpret_cast<sd_bus_message_handler_t>(callback), userData, timeout, return_slot);
 }
 
 MethodReply MethodCall::createReply() const
 {
-    auto* sdbusReply = connection_->createMethodReply((sd_bus_message*)msg_);
+    auto* sdbusReply = connection_->createMethodReply(static_cast<sd_bus_message*>(msg_));
 
     return Factory::create<MethodReply>(sdbusReply, connection_, adopt_message);
 }
 
 MethodReply MethodCall::createErrorReply(const Error& error) const
 {
-    sd_bus_message* sdbusErrorReply = connection_->createErrorReplyMessage((sd_bus_message*)msg_, error);
+    sd_bus_message* sdbusErrorReply = connection_->createErrorReplyMessage(static_cast<sd_bus_message*>(msg_), error);
 
     return Factory::create<MethodReply>(sdbusErrorReply, connection_, adopt_message);
 }
 
 void MethodReply::send() const
 {
-    connection_->sendMessage((sd_bus_message*)msg_);
+    connection_->sendMessage(static_cast<sd_bus_message*>(msg_));
 }
 
 uint64_t MethodReply::getReplyCookie() const
 {
-    uint64_t cookie;
-    auto r =  sd_bus_message_get_reply_cookie((sd_bus_message*)msg_, &cookie);
+    uint64_t cookie{};
+    auto r =  sd_bus_message_get_reply_cookie(static_cast<sd_bus_message*>(msg_), &cookie);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to get cookie", -r);
     return cookie;
 }
 
 void Signal::send() const
 {
-    connection_->sendMessage((sd_bus_message*)msg_);
+    connection_->sendMessage(static_cast<sd_bus_message*>(msg_));
 }
 
 void Signal::setDestination(const std::string& destination)
 {
-    return setDestination(destination.c_str());
+    setDestination(destination.c_str());
 }
 
 void Signal::setDestination(const char* destination)
 {
-    auto r = sd_bus_message_set_destination((sd_bus_message*)msg_, destination);
+    auto r = sd_bus_message_set_destination(static_cast<sd_bus_message*>(msg_), destination);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to set signal destination", -r);
 }
 
@@ -886,16 +899,16 @@ namespace {
 // Another common solution is global sdbus-c++ startup/shutdown functions, but that would be an intrusive change.
 
 #ifdef __cpp_constinit
-constinit static bool pseudoConnectionDestroyed{};
+constinit bool pseudoConnectionDestroyed{}; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 #else
-static bool pseudoConnectionDestroyed{};
+bool pseudoConnectionDestroyed{}; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 #endif
 
 std::unique_ptr<sdbus::internal::IConnection, void(*)(sdbus::internal::IConnection*)> createPseudoConnection()
 {
     auto deleter = [](sdbus::internal::IConnection* con)
     {
-        delete con;
+        delete con; // NOLINT(cppcoreguidelines-owning-memory)
         pseudoConnectionDestroyed = true;
     };
 
@@ -909,7 +922,7 @@ sdbus::internal::IConnection& getPseudoConnectionInstance()
     if (pseudoConnectionDestroyed)
     {
         connection = createPseudoConnection(); // Phoenix rising from the ashes
-        atexit([](){ connection.~unique_ptr(); }); // We have to manually take care of deleting the phoenix
+        std::ignore = atexit([](){ connection.~unique_ptr(); }); // We have to manually take care of deleting the phoenix
         pseudoConnectionDestroyed = false;
     }
 
@@ -918,7 +931,7 @@ sdbus::internal::IConnection& getPseudoConnectionInstance()
     return *connection;
 }
 
-}
+} // namespace
 
 PlainMessage createPlainMessage()
 {
@@ -930,4 +943,4 @@ PlainMessage createPlainMessage()
     return connection.createPlainMessage();
 }
 
-}
+} // namespace sdbus

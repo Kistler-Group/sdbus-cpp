@@ -62,7 +62,7 @@ public:
     virtual int sd_bus_open_system(sd_bus **ret) override;
     virtual int sd_bus_open_user(sd_bus **ret) override;
     virtual int sd_bus_open_user_with_address(sd_bus **ret, const char* address) override;
-    virtual int sd_bus_open_system_remote(sd_bus **ret, const char* hsot) override;
+    virtual int sd_bus_open_system_remote(sd_bus **ret, const char* host) override;
     virtual int sd_bus_open_direct(sd_bus **ret, const char* address) override;
     virtual int sd_bus_open_direct(sd_bus **ret, int fd) override;
     virtual int sd_bus_open_server(sd_bus **ret, int fd) override;
@@ -79,7 +79,7 @@ public:
     virtual int sd_bus_new(sd_bus **ret) override;
     virtual int sd_bus_start(sd_bus *bus) override;
 
-    virtual int sd_bus_process(sd_bus *bus, sd_bus_message **r) override;
+    virtual int sd_bus_process(sd_bus *bus, sd_bus_message **msg) override;
     virtual sd_bus_message* sd_bus_get_current_message(sd_bus *bus) override;
     virtual int sd_bus_get_poll_data(sd_bus *bus, PollData* data) override;
     virtual int sd_bus_get_n_queued(sd_bus *bus, uint64_t *read, uint64_t* write) override;

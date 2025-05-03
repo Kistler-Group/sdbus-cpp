@@ -27,21 +27,34 @@
 #include "Connection.h"
 
 #include "sdbus-c++/Error.h"
+#include "sdbus-c++/IConnection.h"
 #include "sdbus-c++/Message.h"
 #include "sdbus-c++/Types.h"
+#include "sdbus-c++/TypeTraits.h"
 
+#include "ISdBus.h"
 #include "MessageUtils.h"
 #include "ScopeGuard.h"
 #include "SdBus.h"
 #include "Utils.h"
 
+#include <algorithm>
+#include <cassert>
+#include <cerrno>
+#include <chrono>
+#include <cstdint>
+#include <ctime>
+#include <memory>
 #include <poll.h>
+#include <string>
 #include <sys/eventfd.h>
 #include SDBUS_HEADER
 #ifndef SDBUS_basu // sd_event integration is not supported in basu-based sdbus-c++
 #include <systemd/sd-event.h>
 #endif
 #include <unistd.h>
+#include <utility>
+#include <vector>
 
 namespace sdbus::internal {
 
@@ -105,8 +118,18 @@ Connection::Connection(std::unique_ptr<ISdBus>&& interface, pseudo_bus_t)
 }
 
 Connection::~Connection()
+try
 {
     Connection::leaveEventLoop();
+}
+catch (...) // NOLINT(bugprone-empty-catch)
+{
+    // Theoretically, we can fail to notify the event fd or join with the joinable thread...
+    // What to do now here in the destructor? That is the question:
+    //   1. Report the problem... but how, where?
+    //   2. Terminate immediately... too harsh?
+    //   3. Ignore and go on... even when some resources may be lingering?
+    // Since the failure here is expected to be very unlikely, we choose the defensive approach of (3).
 }
 
 void Connection::requestName(const ServiceName& name)
@@ -194,7 +217,7 @@ Slot Connection::addObjectManager(const ObjectPath& objectPath, return_slot_t)
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to add object manager", -r);
 
-    return {slot, [this](void *slot){ sdbus_->sd_bus_slot_unref((sd_bus_slot*)slot); }};
+    return {slot, [this](void *slot){ sdbus_->sd_bus_slot_unref(static_cast<sd_bus_slot*>(slot)); }};
 }
 
 void Connection::setMethodCallTimeout(uint64_t timeout)
@@ -206,7 +229,7 @@ void Connection::setMethodCallTimeout(uint64_t timeout)
 
 uint64_t Connection::getMethodCallTimeout() const
 {
-    uint64_t timeout;
+    uint64_t timeout{};
 
     auto r = sdbus_->sd_bus_get_method_call_timeout(bus_.get(), &timeout);
 
@@ -230,9 +253,9 @@ Slot Connection::addMatch(const std::string& match, message_handler callback, re
     auto r = sdbus_->sd_bus_add_match(bus_.get(), &slot, match.c_str(), &Connection::sdbus_match_callback, matchInfo.get());
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to add match", -r);
 
-    matchInfo->slot = {slot, [this](void *slot){ sdbus_->sd_bus_slot_unref((sd_bus_slot*)slot); }};
+    matchInfo->slot = {slot, [this](void *slot){ sdbus_->sd_bus_slot_unref(static_cast<sd_bus_slot*>(slot)); }};
 
-    return {matchInfo.release(), [](void *ptr){ delete static_cast<MatchInfo*>(ptr); }};
+    return {matchInfo.release(), [](void *ptr){ delete static_cast<MatchInfo*>(ptr); }}; // NOLINT(cppcoreguidelines-owning-memory)
 }
 
 void Connection::addMatchAsync(const std::string& match, message_handler callback, message_handler installCallback)
@@ -259,9 +282,9 @@ Slot Connection::addMatchAsync( const std::string& match
                                            , matchInfo.get());
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to add match", -r);
 
-    matchInfo->slot = {slot, [this](void *slot){ sdbus_->sd_bus_slot_unref((sd_bus_slot*)slot); }};
+    matchInfo->slot = {slot, [this](void *slot){ sdbus_->sd_bus_slot_unref(static_cast<sd_bus_slot*>(slot)); }};
 
-    return {matchInfo.release(), [](void *ptr){ delete static_cast<MatchInfo*>(ptr); }};
+    return {matchInfo.release(), [](void *ptr){ delete static_cast<MatchInfo*>(ptr); }}; // NOLINT(cppcoreguidelines-owning-memory)
 }
 
 void Connection::attachSdEventLoop(sd_event *event, int priority)
@@ -306,7 +329,7 @@ Slot Connection::createSdEventSlot(sd_event *event)
         (void)sd_event_default(&event);
     SDBUS_THROW_ERROR_IF(!event, "Invalid sd_event handle", EINVAL);
 
-    return Slot{event, [](void* event){ sd_event_unref((sd_event*)event); }};
+    return Slot{event, [](void* event){ sd_event_unref(static_cast<sd_event*>(event)); }};
 }
 
 Slot Connection::createSdTimeEventSourceSlot(sd_event *event, int priority)
@@ -314,7 +337,7 @@ Slot Connection::createSdTimeEventSourceSlot(sd_event *event, int priority)
     sd_event_source *timeEventSource{};
     auto r = sd_event_add_time(event, &timeEventSource, CLOCK_MONOTONIC, 0, 0, onSdTimerEvent, this);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to add timer event", -r);
-    Slot sdTimeEventSource{timeEventSource, [](void* source){ deleteSdEventSource((sd_event_source*)source); }};
+    Slot sdTimeEventSource{timeEventSource, [](void* source){ deleteSdEventSource(static_cast<sd_event_source*>(source)); }};
 
     r = sd_event_source_set_priority(timeEventSource, priority);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to set time event priority", -r);
@@ -325,12 +348,12 @@ Slot Connection::createSdTimeEventSourceSlot(sd_event *event, int priority)
     return sdTimeEventSource;
 }
 
-Slot Connection::createSdIoEventSourceSlot(sd_event *event, int fd, int priority)
+Slot Connection::createSdIoEventSourceSlot(sd_event *event, int fd, int priority) // NOLINT(bugprone-easily-swappable-parameters)
 {
     sd_event_source *ioEventSource{};
     auto r = sd_event_add_io(event, &ioEventSource, fd, 0, onSdIoEvent, this);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to add io event", -r);
-    Slot sdIoEventSource{ioEventSource, [](void* source){ deleteSdEventSource((sd_event_source*)source); }};
+    Slot sdIoEventSource{ioEventSource, [](void* source){ deleteSdEventSource(static_cast<sd_event_source*>(source)); }};
 
     r = sd_event_source_set_prepare(ioEventSource, onSdEventPrepare);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to set prepare callback for IO event", -r);
@@ -344,12 +367,12 @@ Slot Connection::createSdIoEventSourceSlot(sd_event *event, int fd, int priority
     return sdIoEventSource;
 }
 
-Slot Connection::createSdInternalEventSourceSlot(sd_event *event, int fd, int priority)
+Slot Connection::createSdInternalEventSourceSlot(sd_event *event, int fd, int priority) // NOLINT(bugprone-easily-swappable-parameters)
 {
     sd_event_source *internalEventSource{};
     auto r = sd_event_add_io(event, &internalEventSource, fd, 0, onSdInternalEvent, this);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to add internal event", -r);
-    Slot sdInternalEventSource{internalEventSource, [](void* source){ deleteSdEventSource((sd_event_source*)source); }};
+    Slot sdInternalEventSource{internalEventSource, [](void* source){ deleteSdEventSource(static_cast<sd_event_source*>(source)); }};
 
     // sd-event loop calls prepare callbacks for all event sources, not just for the one that fired now.
     // So since onSdEventPrepare is already registered on ioEventSource, we don't need to duplicate it here.
@@ -367,7 +390,7 @@ Slot Connection::createSdInternalEventSourceSlot(sd_event *event, int fd, int pr
 
 int Connection::onSdTimerEvent(sd_event_source */*s*/, uint64_t /*usec*/, void *userdata)
 {
-    auto connection = static_cast<Connection*>(userdata);
+    auto *connection = static_cast<Connection*>(userdata);
     assert(connection != nullptr);
 
     (void)connection->processPendingEvent();
@@ -377,7 +400,7 @@ int Connection::onSdTimerEvent(sd_event_source */*s*/, uint64_t /*usec*/, void *
 
 int Connection::onSdIoEvent(sd_event_source */*s*/, int /*fd*/, uint32_t /*revents*/, void *userdata)
 {
-    auto connection = static_cast<Connection*>(userdata);
+    auto *connection = static_cast<Connection*>(userdata);
     assert(connection != nullptr);
 
     (void)connection->processPendingEvent();
@@ -387,7 +410,7 @@ int Connection::onSdIoEvent(sd_event_source */*s*/, int /*fd*/, uint32_t /*reven
 
 int Connection::onSdInternalEvent(sd_event_source */*s*/, int /*fd*/, uint32_t /*revents*/, void *userdata)
 {
-    auto connection = static_cast<Connection*>(userdata);
+    auto *connection = static_cast<Connection*>(userdata);
     assert(connection != nullptr);
 
     // It's not really necessary to processPendingEvent() here. We just clear the event fd.
@@ -410,7 +433,7 @@ int Connection::onSdInternalEvent(sd_event_source */*s*/, int /*fd*/, uint32_t /
 
 int Connection::onSdEventPrepare(sd_event_source */*s*/, void *userdata)
 {
-    auto connection = static_cast<Connection*>(userdata);
+    auto *connection = static_cast<Connection*>(userdata);
     assert(connection != nullptr);
 
     auto sdbusPollData = connection->getEventLoopPollData();
@@ -432,16 +455,16 @@ int Connection::onSdEventPrepare(sd_event_source */*s*/, void *userdata)
     // In case the timeout is infinite, we disable the timer in the sd_event loop.
     // This prevents a syscall error, where `timerfd_settime` returns `EINVAL`,
     // because the value is too big. See #324 for details
-    r = sd_event_source_set_enabled(sdTimeEventSource, sdbusPollData.timeout != sdbusPollData.timeout.max() ? SD_EVENT_ONESHOT : SD_EVENT_OFF);
+    r = sd_event_source_set_enabled(sdTimeEventSource, sdbusPollData.timeout != std::chrono::microseconds::max() ? SD_EVENT_ONESHOT : SD_EVENT_OFF);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to enable time event source", -r);
 
     return 1;
 }
 
-void Connection::deleteSdEventSource(sd_event_source *s)
+void Connection::deleteSdEventSource(sd_event_source *source)
 {
 #if LIBSYSTEMD_VERSION>=243
-    sd_event_source_disable_unref(s);
+    sd_event_source_disable_unref(source);
 #else
     sd_event_source_set_enabled(s, SD_EVENT_OFF);
     sd_event_source_unref(s);
@@ -467,7 +490,7 @@ Slot Connection::addObjectVTable( const ObjectPath& objectPath
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to register object vtable", -r);
 
-    return {slot, [this](void *slot){ sdbus_->sd_bus_slot_unref((sd_bus_slot*)slot); }};
+    return {slot, [this](void *slot){ sdbus_->sd_bus_slot_unref(static_cast<sd_bus_slot*>(slot)); }};
 }
 
 PlainMessage Connection::createPlainMessage() const
@@ -478,6 +501,8 @@ PlainMessage Connection::createPlainMessage() const
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create a plain message", -r);
 
+    // TODO: const_cast..? Finish the const correctness design
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
     return Message::Factory::create<PlainMessage>(sdbusMsg, const_cast<Connection*>(this), adopt_message);
 }
 
@@ -498,13 +523,15 @@ MethodCall Connection::createMethodCall( const char* destination
 
     auto r = sdbus_->sd_bus_message_new_method_call( bus_.get()
                                                    , &sdbusMsg
-                                                   , !*destination ? nullptr : destination
+                                                   , *destination == '\0' ? nullptr : destination
                                                    , objectPath
                                                    , interfaceName
                                                    , methodName);
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create method call", -r);
 
+    // TODO: const_cast..? Finish the const correctness design
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
     return Message::Factory::create<MethodCall>(sdbusMsg, const_cast<Connection*>(this), adopt_message);
 }
 
@@ -525,6 +552,8 @@ Signal Connection::createSignal( const char* objectPath
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create signal", -r);
 
+    // TODO: const_cast..? Finish the const correctness design
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
     return Message::Factory::create<Signal>(sdbusMsg, const_cast<Connection*>(this), adopt_message);
 }
 
@@ -544,7 +573,7 @@ void Connection::emitPropertiesChangedSignal( const char* objectPath
     auto r = sdbus_->sd_bus_emit_properties_changed_strv( bus_.get()
                                                         , objectPath
                                                         , interfaceName
-                                                        , propNames.empty() ? nullptr : &names[0] );
+                                                        , propNames.empty() ? nullptr : names.data() );
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit PropertiesChanged signal", -r);
 }
@@ -563,7 +592,7 @@ void Connection::emitInterfacesAddedSignal( const ObjectPath& objectPath
 
     auto r = sdbus_->sd_bus_emit_interfaces_added_strv( bus_.get()
                                                       , objectPath.c_str()
-                                                      , interfaces.empty() ? nullptr : &names[0] );
+                                                      , interfaces.empty() ? nullptr : names.data() );
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit InterfacesAdded signal", -r);
 }
@@ -582,7 +611,7 @@ void Connection::emitInterfacesRemovedSignal( const ObjectPath& objectPath
 
     auto r = sdbus_->sd_bus_emit_interfaces_removed_strv( bus_.get()
                                                         , objectPath.c_str()
-                                                        , interfaces.empty() ? nullptr : &names[0] );
+                                                        , interfaces.empty() ? nullptr : names.data() );
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to emit InterfacesRemoved signal", -r);
 }
@@ -599,16 +628,16 @@ Slot Connection::registerSignalHandler( const char* sender
 
     auto r = sdbus_->sd_bus_match_signal( bus_.get()
                                         , &slot
-                                        , !*sender ? nullptr : sender
-                                        , !*objectPath ? nullptr : objectPath
-                                        , !*interfaceName ? nullptr : interfaceName
-                                        , !*signalName ? nullptr : signalName
+                                        , *sender == '\0' ? nullptr : sender
+                                        , *objectPath == '\0' ? nullptr : objectPath
+                                        , *interfaceName == '\0' ? nullptr : interfaceName
+                                        , *signalName == '\0' ? nullptr : signalName
                                         , callback
                                         , userData );
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to register signal handler", -r);
 
-    return {slot, [this](void *slot){ sdbus_->sd_bus_slot_unref((sd_bus_slot*)slot); }};
+    return {slot, [this](void *slot){ sdbus_->sd_bus_slot_unref(static_cast<sd_bus_slot*>(slot)); }};
 }
 
 sd_bus_message* Connection::incrementMessageRefCount(sd_bus_message* sdbusMsg)
@@ -646,7 +675,7 @@ sd_bus_message* Connection::callMethod(sd_bus_message* sdbusMsg, uint64_t timeou
     sd_bus_message* sdbusReply{};
     auto r = sdbus_->sd_bus_call(nullptr, sdbusMsg, timeout, &sdbusError, &sdbusReply);
 
-    if (sd_bus_error_is_set(&sdbusError))
+    if (sd_bus_error_is_set(&sdbusError) != 0)
         throw Error(Error::Name{sdbusError.name}, sdbusError.message);
 
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method", -r);
@@ -664,7 +693,7 @@ Slot Connection::callMethodAsync(sd_bus_message* sdbusMsg, sd_bus_message_handle
 
     // TODO: Think of ways of optimizing these three locking/unlocking of sdbus mutex (merge into one call?)
     auto timeoutBefore = getEventLoopPollData().timeout;
-    auto r = sdbus_->sd_bus_call_async(nullptr, &slot, sdbusMsg, (sd_bus_message_handler_t)callback, userData, timeout);
+    auto r = sdbus_->sd_bus_call_async(nullptr, &slot, sdbusMsg, callback, userData, timeout);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to call method asynchronously", -r);
     auto timeoutAfter = getEventLoopPollData().timeout;
 
@@ -674,7 +703,7 @@ Slot Connection::callMethodAsync(sd_bus_message* sdbusMsg, sd_bus_message_handle
     if (timeoutAfter < timeoutBefore || arePendingMessagesInQueues())
         notifyEventLoopToWakeUpFromPoll();
 
-    return {slot, [this](void *slot){ sdbus_->sd_bus_slot_unref((sd_bus_slot*)slot); }};
+    return {slot, [this](void *slot){ sdbus_->sd_bus_slot_unref(static_cast<sd_bus_slot*>(slot)); }};
 }
 
 void Connection::sendMessage(sd_bus_message* sdbusMsg)
@@ -713,7 +742,7 @@ sd_bus_message* Connection::createErrorReplyMessage(sd_bus_message* sdbusMsg, co
 Connection::BusPtr Connection::openBus(const BusFactory& busFactory)
 {
     sd_bus* bus{};
-    int r = busFactory(&bus);
+    const int r = busFactory(&bus);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to open bus", -r);
 
     BusPtr busPtr{bus, [this](sd_bus* bus){ return sdbus_->sd_bus_flush_close_unref(bus); }};
@@ -725,7 +754,7 @@ Connection::BusPtr Connection::openPseudoBus()
 {
     sd_bus* bus{};
 
-    int r = sdbus_->sd_bus_new(&bus);
+    const int r = sdbus_->sd_bus_new(&bus);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to open pseudo bus", -r);
 
     (void)sdbus_->sd_bus_start(bus);
@@ -783,10 +812,10 @@ void Connection::joinWithEventLoop()
 
 bool Connection::processPendingEvent()
 {
-    auto bus = bus_.get();
+    auto *bus = bus_.get();
     assert(bus != nullptr);
 
-    int r = sdbus_->sd_bus_process(bus, nullptr);
+    const int r = sdbus_->sd_bus_process(bus, nullptr);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to process bus requests", -r);
 
     // In correct use of sdbus-c++ API, r can be 0 only when processPendingEvent()
@@ -798,7 +827,7 @@ bool Connection::processPendingEvent()
     return r > 0;
 }
 
-bool Connection::waitForNextEvent()
+bool Connection::waitForNextEvent() // NOLINT(misc-no-recursion)
 {
     assert(bus_ != nullptr);
     assert(loopExitFd_.fd >= 0);
@@ -821,7 +850,7 @@ bool Connection::waitForNextEvent()
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to wait on the bus", -errno);
 
     // Wake up notification, in order that we re-enter poll with freshly read PollData (namely, new poll timeout thereof)
-    if (fds[1].revents & POLLIN)
+    if (fds[1].revents & POLLIN) // NOLINT(readability-implicit-bool-conversion)
     {
         auto cleared = eventFd_.clear();
         SDBUS_THROW_ERROR_IF(!cleared, "Failed to read from the event descriptor", -errno);
@@ -829,7 +858,7 @@ bool Connection::waitForNextEvent()
         return waitForNextEvent();
     }
     // Loop exit notification
-    if (fds[2].revents & POLLIN)
+    if (fds[2].revents & POLLIN) // NOLINT(readability-implicit-bool-conversion)
     {
         auto cleared = loopExitFd_.clear();
         SDBUS_THROW_ERROR_IF(!cleared, "Failed to read from the loop exit descriptor", -errno);
@@ -854,6 +883,8 @@ Message Connection::getCurrentlyProcessedMessage() const
 {
     auto* sdbusMsg = sdbus_->sd_bus_get_current_message(bus_.get());
 
+    // TODO: const_cast..? Finish the const correctness design
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
     return Message::Factory::create<Message>(sdbusMsg, const_cast<Connection*>(this));
 }
 
@@ -861,8 +892,9 @@ template <typename StringBasedType>
 std::vector</*const */char*> Connection::to_strv(const std::vector<StringBasedType>& strings)
 {
     std::vector</*const */char*> strv;
+    strv.reserve(strings.size());
     for (auto& str : strings)
-        strv.push_back(const_cast<char*>(str.c_str()));
+        strv.push_back(const_cast<char*>(str.c_str())); // NOLINT(cppcoreguidelines-pro-type-const-cast)
     strv.push_back(nullptr);
     return strv;
 }
@@ -894,8 +926,8 @@ int Connection::sdbus_match_install_callback(sd_bus_message *sdbusMessage, void 
 }
 
 Connection::EventFd::EventFd()
+    : fd(eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK))
 {
-    fd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
     SDBUS_THROW_ERROR_IF(fd < 0, "Failed to create event object", -errno);
 }
 
@@ -905,14 +937,14 @@ Connection::EventFd::~EventFd()
     close(fd);
 }
 
-void Connection::EventFd::notify()
+void Connection::EventFd::notify() const
 {
     assert(fd >= 0);
     auto r = eventfd_write(fd, 1);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to notify event descriptor", -errno);
 }
 
-bool Connection::EventFd::clear()
+bool Connection::EventFd::clear() const
 {
     assert(fd >= 0);
 
@@ -933,10 +965,10 @@ std::chrono::microseconds IConnection::PollData::getRelativeTimeout() const
 
     if (timeout == zero)
         return zero;
-    else if (timeout == max)
+    if (timeout == max)
         return max;
-    else
-        return std::max(std::chrono::duration_cast<std::chrono::microseconds>(timeout - now()), zero);
+
+    return std::max(std::chrono::duration_cast<std::chrono::microseconds>(timeout - now()), zero);
 }
 
 int IConnection::PollData::getPollTimeout() const
@@ -945,8 +977,8 @@ int IConnection::PollData::getPollTimeout() const
 
     if (relativeTimeout == decltype(relativeTimeout)::max())
         return -1;
-    else
-        return static_cast<int>(std::chrono::ceil<std::chrono::milliseconds>(relativeTimeout).count());
+
+    return static_cast<int>(std::chrono::ceil<std::chrono::milliseconds>(relativeTimeout).count());
 }
 
 } // namespace sdbus

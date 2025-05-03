@@ -202,24 +202,24 @@ namespace sdbus::internal {
 
     private:
 #ifndef SDBUS_basu // sd_event integration is not supported if instead of libsystemd we are based on basu
-        Slot createSdEventSlot(sd_event *event);
+        static Slot createSdEventSlot(sd_event *event);
         Slot createSdTimeEventSourceSlot(sd_event *event, int priority);
         Slot createSdIoEventSourceSlot(sd_event *event, int fd, int priority);
         Slot createSdInternalEventSourceSlot(sd_event *event, int fd, int priority);
-        static void deleteSdEventSource(sd_event_source *s);
+        static void deleteSdEventSource(sd_event_source *source);
 
-        static int onSdTimerEvent(sd_event_source *s, uint64_t usec, void *userdata);
-        static int onSdIoEvent(sd_event_source *s, int fd, uint32_t revents, void *userdata);
-        static int onSdInternalEvent(sd_event_source *s, int fd, uint32_t revents, void *userdata);
-        static int onSdEventPrepare(sd_event_source *s, void *userdata);
+        static int onSdTimerEvent(sd_event_source *source, uint64_t usec, void *userdata);
+        static int onSdIoEvent(sd_event_source *source, int fd, uint32_t revents, void *userdata);
+        static int onSdInternalEvent(sd_event_source *source, int fd, uint32_t revents, void *userdata);
+        static int onSdEventPrepare(sd_event_source *source, void *userdata);
 #endif
 
         struct EventFd
         {
             EventFd();
             ~EventFd();
-            void notify();
-            bool clear();
+            void notify() const;
+            bool clear() const;
 
             int fd{-1};
         };

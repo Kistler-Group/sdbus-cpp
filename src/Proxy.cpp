@@ -28,15 +28,25 @@
 
 #include "sdbus-c++/Error.h"
 #include "sdbus-c++/IConnection.h"
+#include "sdbus-c++/IProxy.h"
 #include "sdbus-c++/Message.h"
+#include "sdbus-c++/TypeTraits.h"
 
 #include "IConnection.h"
 #include "MessageUtils.h"
 #include "ScopeGuard.h"
 #include "Utils.h"
 
+#include <algorithm>
 #include <cassert>
+#include <cerrno>
+#include <cstdint>
 #include <cstring>
+#include <exception>
+#include <future>
+#include <memory>
+#include <mutex>
+#include <optional>
 #include SDBUS_HEADER
 #include <utility>
 
@@ -124,7 +134,7 @@ PendingAsyncCall Proxy::callMethodAsync(const MethodCall& message, async_reply_h
                                                                       , .proxy = *this
                                                                       , .floating = false });
 
-    asyncCallInfo->slot = message.send((void*)&Proxy::sdbus_async_reply_handler, asyncCallInfo.get(), timeout, return_slot);
+    asyncCallInfo->slot = message.send(reinterpret_cast<void*>(&Proxy::sdbus_async_reply_handler), asyncCallInfo.get(), timeout, return_slot);
 
     auto asyncCallInfoWeakPtr = std::weak_ptr{asyncCallInfo};
 
@@ -141,9 +151,9 @@ Slot Proxy::callMethodAsync(const MethodCall& message, async_reply_handler async
                                                                       , .proxy = *this
                                                                       , .floating = true });
 
-    asyncCallInfo->slot = message.send((void*)&Proxy::sdbus_async_reply_handler, asyncCallInfo.get(), timeout, return_slot);
+    asyncCallInfo->slot = message.send(reinterpret_cast<void*>(&Proxy::sdbus_async_reply_handler), asyncCallInfo.get(), timeout, return_slot);
 
-    return {asyncCallInfo.release(), [](void *ptr){ delete static_cast<AsyncCallInfo*>(ptr); }};
+    return {asyncCallInfo.release(), [](void *ptr){ delete static_cast<AsyncCallInfo*>(ptr); }}; // NOLINT(cppcoreguidelines-owning-memory)
 }
 
 std::future<MethodReply> Proxy::callMethodAsync(const MethodCall& message, with_future_t)
@@ -212,7 +222,7 @@ Slot Proxy::registerSignalHandler( const char* interfaceName
                                                          , signalInfo.get()
                                                          , return_slot );
 
-    return {signalInfo.release(), [](void *ptr){ delete static_cast<SignalInfo*>(ptr); }};
+    return {signalInfo.release(), [](void *ptr){ delete static_cast<SignalInfo*>(ptr); }}; // NOLINT(cppcoreguidelines-owning-memory)
 }
 
 void Proxy::unregister()
@@ -290,7 +300,7 @@ Proxy::FloatingAsyncCallSlots::~FloatingAsyncCallSlots()
 
 void Proxy::FloatingAsyncCallSlots::push_back(std::shared_ptr<AsyncCallInfo> asyncCallInfo)
 {
-    std::lock_guard lock(mutex_);
+    const std::lock_guard lock(mutex_);
     if (!asyncCallInfo->finished) // The call may have finished in the meantime
         slots_.emplace_back(std::move(asyncCallInfo));
 }
@@ -326,7 +336,7 @@ void Proxy::FloatingAsyncCallSlots::clear()
     // mutex) is in progress in a different thread, we get double-mutex deadlock.
 }
 
-}
+} // namespace sdbus::internal
 
 namespace sdbus {
 
@@ -354,7 +364,7 @@ bool PendingAsyncCall::isPending() const
     return !callInfo_.expired();
 }
 
-}
+} // namespace sdbus
 
 namespace sdbus {
 
@@ -370,29 +380,27 @@ std::unique_ptr<sdbus::IProxy> createProxy( IConnection& connection
                                                    , std::move(objectPath) );
 }
 
+// NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved): connection is moved but cast to an internal type
 std::unique_ptr<sdbus::IProxy> createProxy( std::unique_ptr<IConnection>&& connection
                                           , ServiceName destination
                                           , ObjectPath objectPath )
 {
-    auto* sdbusConnection = dynamic_cast<sdbus::internal::IConnection*>(connection.get());
+    auto* sdbusConnection = dynamic_cast<sdbus::internal::IConnection*>(connection.release());
     SDBUS_THROW_ERROR_IF(!sdbusConnection, "Connection is not a real sdbus-c++ connection", EINVAL);
-
-    connection.release();
 
     return std::make_unique<sdbus::internal::Proxy>( std::unique_ptr<sdbus::internal::IConnection>(sdbusConnection)
                                                    , std::move(destination)
                                                    , std::move(objectPath) );
 }
 
+// NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved): connection is moved cast to an internal type
 std::unique_ptr<sdbus::IProxy> createProxy( std::unique_ptr<IConnection>&& connection
                                           , ServiceName destination
                                           , ObjectPath objectPath
                                           , dont_run_event_loop_thread_t )
 {
-    auto* sdbusConnection = dynamic_cast<sdbus::internal::IConnection*>(connection.get());
+    auto* sdbusConnection = dynamic_cast<sdbus::internal::IConnection*>(connection.release());
     SDBUS_THROW_ERROR_IF(!sdbusConnection, "Connection is not a real sdbus-c++ connection", EINVAL);
-
-    connection.release();
 
     return std::make_unique<sdbus::internal::Proxy>( std::unique_ptr<sdbus::internal::IConnection>(sdbusConnection)
                                                    , std::move(destination)
@@ -440,4 +448,4 @@ std::unique_ptr<sdbus::IProxy> createLightWeightProxy(ServiceName destination, O
     return createProxy(std::move(destination), std::move(objectPath), dont_run_event_loop_thread);
 }
 
-}
+} // namespace sdbus
