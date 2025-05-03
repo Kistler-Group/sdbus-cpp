@@ -29,6 +29,8 @@
 #include "ScopeGuard.h"
 
 #include SDBUS_HEADER
+#include <string>
+#include <utility>
 
 namespace sdbus
 {
@@ -38,7 +40,7 @@ namespace sdbus
         sd_bus_error_set_errno(&sdbusError, errNo);
         SCOPE_EXIT{ sd_bus_error_free(&sdbusError); };
 
-        Error::Name name(sd_bus_error_is_set(&sdbusError) ? sdbusError.name : "");
+        Error::Name name(sd_bus_error_is_set(&sdbusError) != 0 ? sdbusError.name : "");
         std::string message(std::move(customMsg));
         if (!message.empty() && sdbusError.message != nullptr)
         {
@@ -51,6 +53,6 @@ namespace sdbus
             message = sdbusError.message;
         }
 
-        return Error(std::move(name), std::move(message));
+        return {std::move(name), std::move(message)};
     }
 } // namespace sdbus

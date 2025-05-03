@@ -35,7 +35,7 @@ option(SDBUSCPP_BUILD_DOCS "Build documentation for sdbus-c++" ON)
 if(SDBUSCPP_BUILD_DOCS)
     option(SDBUSCPP_BUILD_DOXYGEN_DOCS "Build doxygen documentation for sdbus-c++ API" OFF)
 endif()
-#option(SDBUSCPP_CLANG_TIDY "Co-compile with clang-tidy static analyzer" OFF)
+option(SDBUSCPP_CLANG_TIDY "Co-compile with clang-tidy static analyzer" OFF)
 #option(SDBUSCPP_COVERAGE "Build sdbus-c++ with code coverage instrumentation" OFF)
 # We promote the BUILD_SHARED_LIBS flag to a (global) option only if we are the main project
 if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
@@ -263,6 +263,24 @@ endif()
 if(SDBUSCPP_BUILD_DOCS)
     message(STATUS "Building with documentation")
     add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/docs")
+endif()
+
+#----------------------------------
+# STATIC ANALYSIS
+#----------------------------------
+
+if(SDBUSCPP_CLANG_TIDY)
+    message(STATUS "Building with static analysis")
+    find_program(CLANG_TIDY NAMES clang-tidy)
+    if(NOT CLANG_TIDY)
+        message(STATUS "clang-tidy not found")
+    else()
+        message(STATUS "clang-tidy found: ${CLANG_TIDY}")
+        set_target_properties(sdbus-c++-objlib PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY}")
+        set_target_properties(sdbus-c++ PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY}")
+        set_target_properties(sdbus-c++-unit-tests PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY}")
+        set_target_properties(sdbus-c++-integration-tests PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY}")
+    endif()
 endif()
 
 #----------------------------------
