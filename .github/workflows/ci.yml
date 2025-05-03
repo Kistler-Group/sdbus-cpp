@@ -22,7 +22,7 @@ jobs:
             compiler: gcc
             build: shared-libsystemd
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: install-libsystemd-toolchain
       if: matrix.build == 'embedded-static-libsystemd'
       run: |
@@ -92,7 +92,7 @@ jobs:
         cpack -G DEB
     - name: 'Upload Artifact'
       if: matrix.build == 'shared-libsystemd' && matrix.os == 'ubuntu-22.04' && matrix.compiler == 'g++'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: "debian-packages-${{ matrix.os }}-${{ matrix.compiler }}"
         path: |
@@ -103,7 +103,7 @@ jobs:
     name: build (freebsd, clang/libc++, basu)
     runs-on: ubuntu-22.04 # until https://github.com/actions/runner/issues/385
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Test in FreeBSD VM
       uses: vmactions/freebsd-vm@v1
       with:
