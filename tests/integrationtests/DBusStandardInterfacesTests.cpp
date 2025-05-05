@@ -127,6 +127,26 @@ TYPED_TEST(SdbusTestObject, SetsPropertyAsynchronouslyViaPropertiesInterface)
     ASSERT_THAT(this->m_proxy->action(), Eq(newActionValue));
 }
 
+TYPED_TEST(SdbusTestObject, CancelsAsynchronousPropertySettingViaPropertiesInterface)
+{
+    uint32_t newActionValue = 2346;
+    std::promise<void> promise;
+    auto future = promise.get_future();
+
+    {
+        auto slot = this->m_proxy->SetAsync(INTERFACE_NAME, "action", sdbus::Variant{newActionValue}, [&](std::optional<sdbus::Error> err)
+        {
+            if (!err)
+                promise.set_value();
+            else
+                promise.set_exception(std::make_exception_ptr(*std::move(err)));
+        }, sdbus::return_slot);
+        // Now the slot is destroyed, cancelling the async call
+    }
+
+    ASSERT_THAT(future.wait_for(300ms), Eq(std::future_status::timeout));
+}
+
 TYPED_TEST(SdbusTestObject, SetsPropertyAsynchronouslyViaPropertiesInterfaceWithFuture)
 {
     uint32_t newActionValue = 2347;
