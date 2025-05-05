@@ -50,6 +50,8 @@
 
 namespace sdbus { namespace test {
 
+inline const uint32_t ANY_UNSIGNED_NUMBER{123};
+
 class BaseTestFixture : public ::testing::Test
 {
 public:

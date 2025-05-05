@@ -286,6 +286,14 @@ TYPED_TEST(SdbusTestObject, CanAccessAssociatedMethodCallMessageInMethodCallHand
     ASSERT_THAT(this->m_adaptor->m_methodName, Eq("doOperation"));
 }
 
+TYPED_TEST(SdbusTestObject, ProvidesSerialInMethodCallAndMethodReplyMessage)
+{
+    auto reply = this->m_proxy->doOperationOnBasicAPILevel(ANY_UNSIGNED_NUMBER);
+
+    ASSERT_THAT(this->m_proxy->m_methodCallMsg->getCookie(), Gt(0));
+    ASSERT_THAT(reply.getReplyCookie(), Eq(this->m_proxy->m_methodCallMsg->getCookie())); // Pairing method reply with method call message
+}
+
 TYPED_TEST(SdbusTestObject, CanAccessAssociatedMethodCallMessageInAsyncMethodCallHandler)
 {
     this->m_proxy->doOperationAsync(10); // This will save pointer to method call message on server side
