@@ -14,15 +14,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04]
+        os: [ubuntu-22.04, ubuntu-24.04]
         compiler: [g++, clang]
         build: [shared-libsystemd, embedded-static-libsystemd]
-        include:
-          - os: ubuntu-20.04
-            compiler: gcc
-            build: shared-libsystemd
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: install-libsystemd-toolchain
       if: matrix.build == 'embedded-static-libsystemd'
       run: |
@@ -36,7 +32,7 @@ jobs:
     - name: install-clang
       if: matrix.compiler == 'clang'
       run: |
-        sudo apt-get install -y clang
+        sudo apt-get install -y clang libc++-dev
         sudo update-alternatives --remove-all cc
         sudo update-alternatives --install /usr/bin/cc cc /usr/bin/clang 10
         sudo update-alternatives --remove-all c++
@@ -45,31 +41,14 @@ jobs:
         echo "SDBUSCPP_EXTRA_CXX_FLAGS=-stdlib=libc++" >> $GITHUB_ENV
 # We don't install googletest but we let it be built within sdbus-c++ builds below, since it needs to be built against libc++ for Clang jobs to pass
 #    - name: install-googletest
-#      if: matrix.os == 'ubuntu-22.04'
 #      run: |
 #        sudo apt-get install -y libgmock-dev
-#    - name: install-googletest
-#      if: matrix.os == 'ubuntu-20.04' # On older ubuntus the libgmock-dev package is either unavailable or has faulty pkg-config file, so we build & install manually
-#      run: |
-#        git clone https://github.com/google/googletest.git
-#        cd googletest
-#        mkdir build
-#        cd build
-#        cmake .. -DCMAKE_CXX_FLAGS="$SDBUSCPP_EXTRA_CXX_FLAGS"
-#        cmake --build . -j4
-#        sudo cmake --build . --target install
     - name: configure-debug
-      if: matrix.build == 'shared-libsystemd' && matrix.os == 'ubuntu-22.04'
+      if: matrix.build == 'shared-libsystemd'
       run: |
         mkdir build
         cd build
         cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_CXX_FLAGS="-O0 -g -W -Wextra -Wall -Wnon-virtual-dtor -Werror $SDBUSCPP_EXTRA_CXX_FLAGS" -DCMAKE_VERBOSE_MAKEFILE=ON -DSDBUSCPP_INSTALL=ON -DSDBUSCPP_BUILD_TESTS=ON -DSDBUSCPP_BUILD_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON -DSDBUSCPP_BUILD_CODEGEN=ON -DSDBUSCPP_GOOGLETEST_VERSION=1.14.0 ..
-    - name: configure-debug-no-tests
-      if: matrix.os == 'ubuntu-20.04'
-      run: |
-        mkdir build
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_CXX_FLAGS="-O0 -g -W -Wextra -Wall -Wnon-virtual-dtor -Werror $SDBUSCPP_EXTRA_CXX_FLAGS" -DCMAKE_VERBOSE_MAKEFILE=ON -DSDBUSCPP_INSTALL=ON -DSDBUSCPP_BUILD_TESTS=OFF -DSDBUSCPP_BUILD_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON -DSDBUSCPP_BUILD_CODEGEN=ON ..
     - name: configure-release-with-embedded-libsystemd
       if: matrix.build == 'embedded-static-libsystemd'
       run: |
@@ -86,13 +65,13 @@ jobs:
         sudo cmake --build . --target install
         ctest --output-on-failure
     - name: pack
-      if: matrix.build == 'shared-libsystemd' && matrix.os == 'ubuntu-20.04'
+      if: matrix.build == 'shared-libsystemd'
       run: |
         cd build
         cpack -G DEB
     - name: 'Upload Artifact'
-      if: matrix.build == 'shared-libsystemd' && matrix.os == 'ubuntu-22.04' && matrix.compiler == 'g++'
-      uses: actions/upload-artifact@v3
+      if: matrix.build == 'shared-libsystemd' && matrix.compiler == 'g++'
+      uses: actions/upload-artifact@v4
       with:
         name: "debian-packages-${{ matrix.os }}-${{ matrix.compiler }}"
         path: |
@@ -103,7 +82,7 @@ jobs:
     name: build (freebsd, clang/libc++, basu)
     runs-on: ubuntu-22.04 # until https://github.com/actions/runner/issues/385
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Test in FreeBSD VM
       uses: vmactions/freebsd-vm@v1
       with:
