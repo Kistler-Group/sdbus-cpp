@@ -217,7 +217,7 @@ namespace sdbus {
         }
 
         template <typename _Function>
-        PendingAsyncCall SetAsync(const InterfaceName& interfaceName, const PropertyName& propertyName, const sdbus::Variant& value, _Function&& callback, return_slot_t)
+        [[nodiscard]] Slot SetAsync(const InterfaceName& interfaceName, const PropertyName& propertyName, const sdbus::Variant& value, _Function&& callback, return_slot_t)
         {
             return m_proxy.setPropertyAsync(propertyName).onInterface(interfaceName).toValue(value).uponReplyInvoke(std::forward<_Function>(callback), return_slot);
         }
@@ -229,7 +229,7 @@ namespace sdbus {
         }
 
         template <typename _Function>
-        PendingAsyncCall SetAsync(std::string_view interfaceName, std::string_view propertyName, const sdbus::Variant& value, _Function&& callback, return_slot_t)
+        [[nodiscard]] Slot SetAsync(std::string_view interfaceName, std::string_view propertyName, const sdbus::Variant& value, _Function&& callback, return_slot_t)
         {
             return m_proxy.setPropertyAsync(propertyName).onInterface(interfaceName).toValue(value).uponReplyInvoke(std::forward<_Function>(callback), return_slot);
         }
@@ -261,7 +261,7 @@ namespace sdbus {
         }
 
         template <typename _Function>
-        PendingAsyncCall GetAllAsync(const InterfaceName& interfaceName, _Function&& callback, return_slot_t)
+        [[nodiscard]] Slot GetAllAsync(const InterfaceName& interfaceName, _Function&& callback, return_slot_t)
         {
             return m_proxy.getAllPropertiesAsync().onInterface(interfaceName).uponReplyInvoke(std::forward<_Function>(callback), return_slot);
         }
@@ -273,7 +273,7 @@ namespace sdbus {
         }
 
         template <typename _Function>
-        PendingAsyncCall GetAllAsync(std::string_view interfaceName, _Function&& callback, return_slot_t)
+        [[nodiscard]] Slot GetAllAsync(std::string_view interfaceName, _Function&& callback, return_slot_t)
         {
             return m_proxy.getAllPropertiesAsync().onInterface(interfaceName).uponReplyInvoke(std::forward<_Function>(callback), return_slot);
         }
