@@ -264,6 +264,43 @@ TYPED_TEST(SdbusTestObject, GetsManagedObjectsSuccessfully)
         .at(ACTION_PROPERTY).template get<uint32_t>(), Eq(DEFAULT_ACTION_VALUE));
 }
 
+TYPED_TEST(SdbusTestObject, GetsManagedObjectsAsynchronously)
+{
+    std::promise<size_t> promise;
+    auto future = promise.get_future();
+    auto adaptor2 = std::make_unique<TestAdaptor>(*this->s_adaptorConnection, OBJECT_PATH_2);
+
+    this->m_objectManagerProxy->GetManagedObjectsAsync([&](std::optional<sdbus::Error> /*err*/, const std::map<sdbus::ObjectPath, std::map<sdbus::InterfaceName, std::map<sdbus::PropertyName, sdbus::Variant>>>& objectsInterfacesAndProperties)
+    {
+        promise.set_value(objectsInterfacesAndProperties.size());
+    });
+
+    ASSERT_THAT(future.get(), Eq(2));
+}
+
+TYPED_TEST(SdbusTestObject, GetsManagedObjectsAsynchronouslyViaSlotReturningOverload)
+{
+    std::promise<size_t> promise;
+    auto future = promise.get_future();
+    auto adaptor2 = std::make_unique<TestAdaptor>(*this->s_adaptorConnection, OBJECT_PATH_2);
+
+    auto slot = this->m_objectManagerProxy->GetManagedObjectsAsync([&](std::optional<sdbus::Error> /*err*/, const std::map<sdbus::ObjectPath, std::map<sdbus::InterfaceName, std::map<sdbus::PropertyName, sdbus::Variant>>>& objectsInterfacesAndProperties)
+    {
+        promise.set_value(objectsInterfacesAndProperties.size());
+    }, sdbus::return_slot);
+
+    ASSERT_THAT(future.get(), Eq(2));
+}
+
+TYPED_TEST(SdbusTestObject, GetsManagedObjectsAsynchronouslyViaFutureOverload)
+{
+    auto adaptor2 = std::make_unique<TestAdaptor>(*this->s_adaptorConnection, OBJECT_PATH_2);
+
+    auto future = this->m_objectManagerProxy->GetManagedObjectsAsync(sdbus::with_future);
+
+    ASSERT_THAT(future.get().size(), Eq(2));
+}
+
 TYPED_TEST(SdbusTestObject, EmitsInterfacesAddedSignalForSelectedObjectInterfaces)
 {
     std::atomic<bool> signalReceived{false};
