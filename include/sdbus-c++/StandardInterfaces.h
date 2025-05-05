@@ -168,6 +168,11 @@ namespace sdbus {
             return m_proxy.getPropertyAsync(propertyName).onInterface(interfaceName).uponReplyInvoke(std::forward<_Function>(callback), return_slot);
         }
 
+        std::future<sdbus::Variant> GetAsync(const InterfaceName& interfaceName, const PropertyName& propertyName, with_future_t)
+        {
+            return m_proxy.getPropertyAsync(propertyName).onInterface(interfaceName).getResultAsFuture();
+        }
+
         template <typename _Function>
         PendingAsyncCall GetAsync(std::string_view interfaceName, std::string_view propertyName, _Function&& callback)
         {
@@ -178,11 +183,6 @@ namespace sdbus {
         [[nodiscard]] Slot GetAsync(std::string_view interfaceName, std::string_view propertyName, _Function&& callback, return_slot_t)
         {
             return m_proxy.getPropertyAsync(propertyName).onInterface(interfaceName).uponReplyInvoke(std::forward<_Function>(callback), return_slot);
-        }
-
-        std::future<sdbus::Variant> GetAsync(const InterfaceName& interfaceName, const PropertyName& propertyName, with_future_t)
-        {
-            return m_proxy.getPropertyAsync(propertyName).onInterface(interfaceName).getResultAsFuture();
         }
 
         std::future<sdbus::Variant> GetAsync(std::string_view interfaceName, std::string_view propertyName, with_future_t)
@@ -222,6 +222,11 @@ namespace sdbus {
             return m_proxy.setPropertyAsync(propertyName).onInterface(interfaceName).toValue(value).uponReplyInvoke(std::forward<_Function>(callback), return_slot);
         }
 
+        std::future<void> SetAsync(const InterfaceName& interfaceName, const PropertyName& propertyName, const sdbus::Variant& value, with_future_t)
+        {
+            return m_proxy.setPropertyAsync(propertyName).onInterface(interfaceName).toValue(value).getResultAsFuture();
+        }
+
         template <typename _Function>
         PendingAsyncCall SetAsync(std::string_view interfaceName, std::string_view propertyName, const sdbus::Variant& value, _Function&& callback)
         {
@@ -232,11 +237,6 @@ namespace sdbus {
         [[nodiscard]] Slot SetAsync(std::string_view interfaceName, std::string_view propertyName, const sdbus::Variant& value, _Function&& callback, return_slot_t)
         {
             return m_proxy.setPropertyAsync(propertyName).onInterface(interfaceName).toValue(value).uponReplyInvoke(std::forward<_Function>(callback), return_slot);
-        }
-
-        std::future<void> SetAsync(const InterfaceName& interfaceName, const PropertyName& propertyName, const sdbus::Variant& value, with_future_t)
-        {
-            return m_proxy.setPropertyAsync(propertyName).onInterface(interfaceName).toValue(value).getResultAsFuture();
         }
 
         std::future<void> SetAsync(std::string_view interfaceName, std::string_view propertyName, const sdbus::Variant& value, with_future_t)
@@ -266,6 +266,11 @@ namespace sdbus {
             return m_proxy.getAllPropertiesAsync().onInterface(interfaceName).uponReplyInvoke(std::forward<_Function>(callback), return_slot);
         }
 
+        std::future<std::map<PropertyName, sdbus::Variant>> GetAllAsync(const InterfaceName& interfaceName, with_future_t)
+        {
+            return m_proxy.getAllPropertiesAsync().onInterface(interfaceName).getResultAsFuture();
+        }
+
         template <typename _Function>
         PendingAsyncCall GetAllAsync(std::string_view interfaceName, _Function&& callback)
         {
@@ -276,11 +281,6 @@ namespace sdbus {
         [[nodiscard]] Slot GetAllAsync(std::string_view interfaceName, _Function&& callback, return_slot_t)
         {
             return m_proxy.getAllPropertiesAsync().onInterface(interfaceName).uponReplyInvoke(std::forward<_Function>(callback), return_slot);
-        }
-
-        std::future<std::map<PropertyName, sdbus::Variant>> GetAllAsync(const InterfaceName& interfaceName, with_future_t)
-        {
-            return m_proxy.getAllPropertiesAsync().onInterface(interfaceName).getResultAsFuture();
         }
 
         std::future<std::map<PropertyName, sdbus::Variant>> GetAllAsync(std::string_view interfaceName, with_future_t)
@@ -345,14 +345,20 @@ namespace sdbus {
         }
 
         template <typename _Function>
-        PendingAsyncCall GetManagedObjectsAync(_Function&& callback)
+        PendingAsyncCall GetManagedObjectsAsync(_Function&& callback)
         {
-          std::map<sdbus::ObjectPath, std::map<sdbus::InterfaceName, std::map<PropertyName, sdbus::Variant>>> objectsInterfacesAndProperties;
-          return m_proxy.callMethodAsync("GetManagedObjects").onInterface(INTERFACE_NAME).uponReplyInvoke(std::forward<_Function>(callback));
+            return m_proxy.callMethodAsync("GetManagedObjects").onInterface(INTERFACE_NAME).uponReplyInvoke(std::forward<_Function>(callback));
         }
 
-        std::future<std::map<sdbus::ObjectPath, std::map<sdbus::InterfaceName, std::map<PropertyName, sdbus::Variant>>>> GetManagedObjectsAync(with_future_t) const {
-          return m_proxy.callMethodAsync("GetManagedObjects").onInterface(INTERFACE_NAME).getResultAsFuture<std::map<sdbus::ObjectPath, std::map<sdbus::InterfaceName, std::map<PropertyName, sdbus::Variant>>>>();
+        template <typename _Function>
+        [[nodiscard]] Slot GetManagedObjectsAsync(_Function&& callback, return_slot_t)
+        {
+            return m_proxy.callMethodAsync("GetManagedObjects").onInterface(INTERFACE_NAME).uponReplyInvoke(std::forward<_Function>(callback), return_slot);
+        }
+
+        std::future<std::map<sdbus::ObjectPath, std::map<sdbus::InterfaceName, std::map<PropertyName, sdbus::Variant>>>> GetManagedObjectsAsync(with_future_t)
+        {
+            return m_proxy.callMethodAsync("GetManagedObjects").onInterface(INTERFACE_NAME).getResultAsFuture<std::map<sdbus::ObjectPath, std::map<sdbus::InterfaceName, std::map<PropertyName, sdbus::Variant>>>>();
         }
 
     private:
