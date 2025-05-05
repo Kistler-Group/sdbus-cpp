@@ -32,7 +32,7 @@ jobs:
     - name: install-clang
       if: matrix.compiler == 'clang'
       run: |
-        sudo apt-get install -y clang
+        sudo apt-get install -y clang libc++-dev
         sudo update-alternatives --remove-all cc
         sudo update-alternatives --install /usr/bin/cc cc /usr/bin/clang 10
         sudo update-alternatives --remove-all c++
@@ -44,7 +44,7 @@ jobs:
 #      run: |
 #        sudo apt-get install -y libgmock-dev
     - name: configure-debug
-      if: matrix.build == 'shared-libsystemd' && matrix.os == 'ubuntu-22.04'
+      if: matrix.build == 'shared-libsystemd'
       run: |
         mkdir build
         cd build
@@ -65,12 +65,12 @@ jobs:
         sudo cmake --build . --target install
         ctest --output-on-failure
     - name: pack
-      if: matrix.build == 'shared-libsystemd' && matrix.os == 'ubuntu-22.04'
+      if: matrix.build == 'shared-libsystemd'
       run: |
         cd build
         cpack -G DEB
     - name: 'Upload Artifact'
-      if: matrix.build == 'shared-libsystemd' && matrix.os == 'ubuntu-22.04' && matrix.compiler == 'g++'
+      if: matrix.build == 'shared-libsystemd' && matrix.compiler == 'g++'
       uses: actions/upload-artifact@v4
       with:
         name: "debian-packages-${{ matrix.os }}-${{ matrix.compiler }}"
