@@ -62,13 +62,18 @@ public:
         registerAdaptor();
     }
 
+    CelsiusThermometerAdaptor(const CelsiusThermometerAdaptor&) = delete;
+    CelsiusThermometerAdaptor& operator=(const CelsiusThermometerAdaptor&) = delete;
+    CelsiusThermometerAdaptor(CelsiusThermometerAdaptor&&) = delete;
+    CelsiusThermometerAdaptor& operator=(CelsiusThermometerAdaptor&&) = delete;
+
     ~CelsiusThermometerAdaptor()
     {
         unregisterAdaptor();
     }
 
 protected:
-    virtual uint32_t getCurrentTemperature() override
+    uint32_t getCurrentTemperature() override
     {
         return m_currentTemperature++;
     }
@@ -85,6 +90,11 @@ public:
     {
         registerProxy();
     }
+
+    CelsiusThermometerProxy(const CelsiusThermometerProxy&) = delete;
+    CelsiusThermometerProxy& operator=(const CelsiusThermometerProxy&) = delete;
+    CelsiusThermometerProxy(CelsiusThermometerProxy&&) = delete;
+    CelsiusThermometerProxy& operator=(CelsiusThermometerProxy&&) = delete;
 
     ~CelsiusThermometerProxy()
     {
@@ -152,6 +162,11 @@ public:
         registerAdaptor();
     }
 
+    FahrenheitThermometerAdaptor(const FahrenheitThermometerAdaptor&) = delete;
+    FahrenheitThermometerAdaptor& operator=(const FahrenheitThermometerAdaptor&) = delete;
+    FahrenheitThermometerAdaptor(FahrenheitThermometerAdaptor&&) = delete;
+    FahrenheitThermometerAdaptor& operator=(FahrenheitThermometerAdaptor&&) = delete;
+
     ~FahrenheitThermometerAdaptor()
     {
         exit_ = true;
@@ -163,13 +178,13 @@ public:
     }
 
 protected:
-    virtual uint32_t getCurrentTemperature() override
+    uint32_t getCurrentTemperature() override
     {
         // In this D-Bus call, make yet another D-Bus call to another service over the same connection
         return static_cast<uint32_t>(celsiusProxy_.getCurrentTemperature() * 1.8 + 32.);
     }
 
-    virtual void createDelegateObject(sdbus::Result<sdbus::ObjectPath>&& result) override
+    void createDelegateObject(sdbus::Result<sdbus::ObjectPath>&& result) override
     {
         static size_t objectCounter{};
         objectCounter++;
@@ -180,7 +195,7 @@ protected:
         cond_.notify_one();
     }
 
-    virtual void destroyDelegateObject(sdbus::Result<>&& /*result*/, sdbus::ObjectPath delegate) override
+    void destroyDelegateObject(sdbus::Result<>&& /*result*/, sdbus::ObjectPath delegate) override
     {
         std::unique_lock<std::mutex> lock(mutex_);
         requests_.push(WorkItem{0, std::move(delegate), {}});
@@ -215,6 +230,11 @@ public:
     {
         registerProxy();
     }
+
+    FahrenheitThermometerProxy(const FahrenheitThermometerProxy&) = delete;
+    FahrenheitThermometerProxy& operator=(const FahrenheitThermometerProxy&) = delete;
+    FahrenheitThermometerProxy(FahrenheitThermometerProxy&&) = delete;
+    FahrenheitThermometerProxy& operator=(FahrenheitThermometerProxy&&) = delete;
 
     ~FahrenheitThermometerProxy()
     {
@@ -262,6 +282,11 @@ public:
         registerAdaptor();
     }
 
+    ConcatenatorAdaptor(const ConcatenatorAdaptor&) = delete;
+    ConcatenatorAdaptor& operator=(const ConcatenatorAdaptor&) = delete;
+    ConcatenatorAdaptor(ConcatenatorAdaptor&&) = delete;
+    ConcatenatorAdaptor& operator=(ConcatenatorAdaptor&&) = delete;
+
     ~ConcatenatorAdaptor()
     {
         exit_ = true;
@@ -273,7 +298,7 @@ public:
     }
 
 protected:
-    virtual void concatenate(sdbus::Result<std::string>&& result, std::map<std::string, sdbus::Variant> params) override
+    void concatenate(sdbus::Result<std::string>&& result, std::map<std::string, sdbus::Variant> params) override
     {
         std::unique_lock<std::mutex> lock(mutex_);
         requests_.push(WorkItem{std::move(params), std::move(result)});
@@ -303,13 +328,18 @@ public:
         registerProxy();
     }
 
+    ConcatenatorProxy(const ConcatenatorProxy&) = delete;
+    ConcatenatorProxy& operator=(const ConcatenatorProxy&) = delete;
+    ConcatenatorProxy(ConcatenatorProxy&&) = delete;
+    ConcatenatorProxy& operator=(ConcatenatorProxy&&) = delete;
+
     ~ConcatenatorProxy()
     {
         unregisterProxy();
     }
 
 private:
-    virtual void onConcatenateReply(const std::string& result, [[maybe_unused]] std::optional<sdbus::Error> error) override
+    void onConcatenateReply(const std::string& result, [[maybe_unused]] std::optional<sdbus::Error> error) override
     {
         assert(error == std::nullopt);
 
@@ -318,21 +348,21 @@ private:
         str >> aString;
         assert(aString == "sdbus-c++-stress-tests");
 
-        uint32_t aNumber;
+        uint32_t aNumber{};
         str >> aNumber;
         assert(aNumber > 0);
 
         ++repliesReceived_;
     }
 
-    virtual void onConcatenatedSignal(const std::string& concatenatedString) override
+    void onConcatenatedSignal(const std::string& concatenatedString) override
     {
         std::stringstream str(concatenatedString);
         std::string aString;
         str >> aString;
         assert(aString == "sdbus-c++-stress-tests");
 
-        uint32_t aNumber;
+        uint32_t aNumber{};
         str >> aNumber;
         assert(aNumber > 0);
 
@@ -345,10 +375,10 @@ public:
 };
 
 //-----------------------------------------
-int main(int argc, char *argv[])
+int main(int argc, char *argv[]) // NOLINT(bugprone-exception-escape, readability-function-cognitive-complexity)
 {
-    long loops;
-    long loopDuration;
+    long loops{};
+    long loopDuration{};
 
     if (argc == 1)
     {
@@ -357,8 +387,8 @@ int main(int argc, char *argv[])
     }
     else if (argc == 3)
     {
-        loops = std::atol(argv[1]);
-        loopDuration = std::atol(argv[2]);
+        loops = std::atol(argv[1]); // NOLINT(cert-err34-c, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        loopDuration = std::atol(argv[2]); // NOLINT(cert-err34-c, cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
     else
         throw std::runtime_error("Wrong program options");
@@ -442,8 +472,8 @@ int main(int argc, char *argv[])
 
                         // Update statistics
                         concatenationCallsMade = localCounter;
-                        concatenationRepliesReceived = (uint32_t)concatenator.repliesReceived_;
-                        concatenationSignalsReceived = (uint32_t)concatenator.signalsReceived_;
+                        concatenationRepliesReceived = static_cast<uint32_t>(concatenator.repliesReceived_);
+                        concatenationSignalsReceived = static_cast<uint32_t>(concatenator.signalsReceived_);
                     }
                 }
             });
