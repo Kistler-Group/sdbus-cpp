@@ -87,6 +87,46 @@ namespace sdbus {
         auto reply = call_.createErrorReply(error);
         reply.send();
     }
+    
+    
+    // Specialization for void return type
+    template <>
+    class Result<void>
+    {
+    public:
+        Result() = default;
+        Result(MethodCall call);
+
+        Result(const Result&) = delete;
+        Result& operator=(const Result&) = delete;
+
+        Result(Result&& other) = default;
+        Result& operator=(Result&& other) = default;
+
+        void returnResult() const;
+        void returnError(const Error& error) const;
+
+    private:
+        MethodCall call_;
+    };
+
+    inline Result<void>::Result(MethodCall call)
+        : call_(std::move(call))
+    {
+    }
+
+    inline void Result<void>::returnResult() const
+    {
+        assert(call_.isValid());
+        auto reply = call_.createReply();
+        reply.send();
+    }
+
+    inline void Result<void>::returnError(const Error& error) const
+    {
+        auto reply = call_.createErrorReply(error);
+        reply.send();
+    }
 
 }
 
