@@ -97,6 +97,29 @@ TEST(AVariant, CanBeCopied)
     ASSERT_THAT(variantCopy2.get<std::string>(), Eq(value));
 }
 
+TEST(AVariant, CanBeMoved)
+{
+    auto value = "hello"s;
+    sdbus::Variant variant(value);
+
+    auto movedVariant{std::move(variant)};
+
+    ASSERT_THAT(movedVariant.get<std::string>(), Eq(value));
+    ASSERT_TRUE(variant.isEmpty());
+}
+
+TEST(AVariant, CanBeMovedIntoAMap)
+{
+    auto value = "hello"s;
+    sdbus::Variant variant(value);
+
+    std::map<std::string, sdbus::Variant> mymap;
+    mymap.try_emplace("payload", std::move(variant));
+
+    ASSERT_THAT(mymap["payload"].get<std::string>(), Eq(value));
+    ASSERT_TRUE(variant.isEmpty());
+}
+
 TEST(AVariant, IsNotEmptyWhenContainsAValue)
 {
     sdbus::Variant v("hello");
