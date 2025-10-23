@@ -151,6 +151,10 @@ namespace sdbus {
     struct signature_of<_T&> : signature_of<_T>
     {};
 
+    template <typename _T>
+    struct signature_of<_T&&> : signature_of<_T>
+    {};
+
     template <>
     struct signature_of<void>
     {
