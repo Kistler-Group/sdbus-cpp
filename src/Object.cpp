@@ -69,12 +69,12 @@ Slot Object::addVTable(InterfaceName interfaceName, std::vector<VTableItem> vtab
     // 3rd step -- register the vtable with sd-bus
     internalVTable->slot = connection_.addObjectVTable( objectPath_
                                                       , internalVTable->interfaceName
-                                                      , &internalVTable->sdbusVTable[0]
+                                                      , internalVTable->sdbusVTable.data()
                                                       , internalVTable.get()
                                                       , return_slot );
 
     // Return vtable wrapped in a Slot object
-    return {internalVTable.release(), [](void *ptr){ delete static_cast<VTable*>(ptr); }};
+    return {internalVTable.release(), [](void *ptr){ delete static_cast<VTable*>(ptr); }}; // NOLINT(cppcoreguidelines-owning-memory)
 }
 
 void Object::unregister()
@@ -181,9 +181,9 @@ Object::VTable Object::createInternalVTable(InterfaceName interfaceName, std::ve
     }
 
     // Sort arrays so we can do fast searching for an item in sd-bus callback handlers
-    std::sort(internalVTable.methods.begin(), internalVTable.methods.end(), [](const auto& a, const auto& b){ return a.name < b.name; });
-    std::sort(internalVTable.signals.begin(), internalVTable.signals.end(), [](const auto& a, const auto& b){ return a.name < b.name; });
-    std::sort(internalVTable.properties.begin(), internalVTable.properties.end(), [](const auto& a, const auto& b){ return a.name < b.name; });
+    std::sort(internalVTable.methods.begin(), internalVTable.methods.end(), [](const auto& lhs, const auto& rhs){ return lhs.name < rhs.name; });
+    std::sort(internalVTable.signals.begin(), internalVTable.signals.end(), [](const auto& lhs, const auto& rhs){ return lhs.name < rhs.name; });
+    std::sort(internalVTable.properties.begin(), internalVTable.properties.end(), [](const auto& lhs, const auto& rhs){ return lhs.name < rhs.name; });
 
     internalVTable.object = this;
 
@@ -389,7 +389,7 @@ int Object::sdbus_property_set_callback( sd_bus */*bus*/
     return ok ? 1 : -1;
 }
 
-}
+} // namespace sdbus::internal
 
 namespace sdbus {
 
@@ -401,4 +401,4 @@ std::unique_ptr<sdbus::IObject> createObject(sdbus::IConnection& connection, Obj
     return std::make_unique<sdbus::internal::Object>(*sdbusConnection, std::move(objectPath));
 }
 
-}
+} // namespace sdbus

@@ -26,87 +26,87 @@
  */
 
 #include "SdBus.h"
-#include <sdbus-c++/Error.h>
+#include "sdbus-c++/Error.h"
 #include <algorithm>
 
 namespace sdbus::internal {
 
-sd_bus_message* SdBus::sd_bus_message_ref(sd_bus_message *m)
+sd_bus_message* SdBus::sd_bus_message_ref(sd_bus_message *msg)
 {
     std::lock_guard lock(sdbusMutex_);
 
-    return ::sd_bus_message_ref(m);
+    return ::sd_bus_message_ref(msg);
 }
 
-sd_bus_message* SdBus::sd_bus_message_unref(sd_bus_message *m)
+sd_bus_message* SdBus::sd_bus_message_unref(sd_bus_message *msg)
 {
     std::lock_guard lock(sdbusMutex_);
 
-    return ::sd_bus_message_unref(m);
+    return ::sd_bus_message_unref(msg);
 }
 
-int SdBus::sd_bus_send(sd_bus *bus, sd_bus_message *m, uint64_t *cookie)
+int SdBus::sd_bus_send(sd_bus *bus, sd_bus_message *msg, uint64_t *cookie)
 {
     std::lock_guard lock(sdbusMutex_);
 
-    auto r = ::sd_bus_send(bus, m, cookie);
+    auto r = ::sd_bus_send(bus, msg, cookie);
     if (r < 0)
         return r;
 
     return r;
 }
 
-int SdBus::sd_bus_call(sd_bus *bus, sd_bus_message *m, uint64_t usec, sd_bus_error *ret_error, sd_bus_message **reply)
+int SdBus::sd_bus_call(sd_bus *bus, sd_bus_message *msg, uint64_t usec, sd_bus_error *ret_error, sd_bus_message **reply)
 {
     std::lock_guard lock(sdbusMutex_);
 
-    return ::sd_bus_call(bus, m, usec, ret_error, reply);
+    return ::sd_bus_call(bus, msg, usec, ret_error, reply);
 }
 
-int SdBus::sd_bus_call_async(sd_bus *bus, sd_bus_slot **slot, sd_bus_message *m, sd_bus_message_handler_t callback, void *userdata, uint64_t usec)
+int SdBus::sd_bus_call_async(sd_bus *bus, sd_bus_slot **slot, sd_bus_message *msg, sd_bus_message_handler_t callback, void *userdata, uint64_t usec)
 {
     std::lock_guard lock(sdbusMutex_);
 
-    auto r = ::sd_bus_call_async(bus, slot, m, callback, userdata, usec);
+    auto r = ::sd_bus_call_async(bus, slot, msg, callback, userdata, usec);
     if (r < 0)
       return r;
 
     return r;
 }
 
-int SdBus::sd_bus_message_new(sd_bus *bus, sd_bus_message **m, uint8_t type)
+int SdBus::sd_bus_message_new(sd_bus *bus, sd_bus_message **msg, uint8_t type)
 {
     std::lock_guard lock(sdbusMutex_);
 
-    return ::sd_bus_message_new(bus, m, type);
+    return ::sd_bus_message_new(bus, msg, type);
 }
 
-int SdBus::sd_bus_message_new_method_call(sd_bus *bus, sd_bus_message **m, const char *destination, const char *path, const char *interface, const char *member)
+int SdBus::sd_bus_message_new_method_call(sd_bus *bus, sd_bus_message **msg, const char *destination, const char *path, const char *interface, const char *member)
 {
     std::lock_guard lock(sdbusMutex_);
 
-    return ::sd_bus_message_new_method_call(bus, m, destination, path, interface, member);
+    return ::sd_bus_message_new_method_call(bus, msg, destination, path, interface, member);
 }
 
-int SdBus::sd_bus_message_new_signal(sd_bus *bus, sd_bus_message **m, const char *path, const char *interface, const char *member)
+int SdBus::sd_bus_message_new_signal(sd_bus *bus, sd_bus_message **msg, const char *path, const char *interface, const char *member)
 {
     std::lock_guard lock(sdbusMutex_);
 
-    return ::sd_bus_message_new_signal(bus, m, path, interface, member);
+    return ::sd_bus_message_new_signal(bus, msg, path, interface, member);
 }
 
-int SdBus::sd_bus_message_new_method_return(sd_bus_message *call, sd_bus_message **m)
+int SdBus::sd_bus_message_new_method_return(sd_bus_message *call, sd_bus_message **msg)
 {
     std::lock_guard lock(sdbusMutex_);
 
-    return ::sd_bus_message_new_method_return(call, m);
+    return ::sd_bus_message_new_method_return(call, msg);
 }
 
-int SdBus::sd_bus_message_new_method_error(sd_bus_message *call, sd_bus_message **m, const sd_bus_error *e)
+int SdBus::sd_bus_message_new_method_error(sd_bus_message *call, sd_bus_message **msg, const sd_bus_error *err)
 {
     std::lock_guard lock(sdbusMutex_);
 
-    return ::sd_bus_message_new_method_error(call, m, e);
+    return ::sd_bus_message_new_method_error(call, msg, err);
 }
 
 int SdBus::sd_bus_set_method_call_timeout(sd_bus *bus, uint64_t usec)
@@ -197,14 +197,14 @@ int SdBus::sd_bus_open_user_with_address(sd_bus **ret, const char* address)
     if (r < 0)
         return r;
 
-    r = ::sd_bus_set_bus_client(bus, true);
+    r = ::sd_bus_set_bus_client(bus, true); // NOLINT(readability-implicit-bool-conversion)
     if (r < 0)
         return r;
 
     // Copying behavior from
     // https://github.com/systemd/systemd/blob/fee6441601c979165ebcbb35472036439f8dad5f/src/libsystemd/sd-bus/sd-bus.c#L1381
     // Here, we make the bus as trusted
-    r = ::sd_bus_set_trusted(bus, true);
+    r = ::sd_bus_set_trusted(bus, true); // NOLINT(readability-implicit-bool-conversion)
     if (r < 0)
         return r;
 
@@ -276,7 +276,7 @@ int SdBus::sd_bus_open_server(sd_bus **ret, int fd)
     if (r < 0)
         return r;
 
-    r = ::sd_bus_set_server(bus, true, id);
+    r = ::sd_bus_set_server(bus, true, id); // NOLINT(readability-implicit-bool-conversion)
     if (r < 0)
         return r;
 
@@ -373,11 +373,11 @@ int SdBus::sd_bus_start(sd_bus *bus)
     return ::sd_bus_start(bus);
 }
 
-int SdBus::sd_bus_process(sd_bus *bus, sd_bus_message **r)
+int SdBus::sd_bus_process(sd_bus *bus, sd_bus_message **msg)
 {
     std::lock_guard lock(sdbusMutex_);
 
-    return ::sd_bus_process(bus, r);
+    return ::sd_bus_process(bus, msg);
 }
 
 sd_bus_message* SdBus::sd_bus_get_current_message(sd_bus *bus)
@@ -404,7 +404,7 @@ int SdBus::sd_bus_get_poll_data(sd_bus *bus, PollData* data)
     return r;
 }
 
-int SdBus::sd_bus_get_n_queued(sd_bus *bus, uint64_t *read, uint64_t* write)
+int SdBus::sd_bus_get_n_queued(sd_bus *bus, uint64_t *read, uint64_t* write) // NOLINT(bugprone-easily-swappable-parameters)
 {
     std::lock_guard lock(sdbusMutex_);
 
@@ -434,81 +434,81 @@ sd_bus* SdBus::sd_bus_close_unref(sd_bus *bus)
 #endif
 }
 
-int SdBus::sd_bus_message_set_destination(sd_bus_message *m, const char *destination)
+int SdBus::sd_bus_message_set_destination(sd_bus_message *msg, const char *destination)
 {
     std::lock_guard lock(sdbusMutex_);
 
-    return ::sd_bus_message_set_destination(m, destination);
+    return ::sd_bus_message_set_destination(msg, destination);
 }
 
-int SdBus::sd_bus_query_sender_creds(sd_bus_message *m, uint64_t mask, sd_bus_creds **c)
+int SdBus::sd_bus_query_sender_creds(sd_bus_message *msg, uint64_t mask, sd_bus_creds **creds)
 {
     std::lock_guard lock(sdbusMutex_);
 
-    return ::sd_bus_query_sender_creds(m, mask, c);
+    return ::sd_bus_query_sender_creds(msg, mask, creds);
 }
 
-sd_bus_creds* SdBus::sd_bus_creds_ref(sd_bus_creds *c)
+sd_bus_creds* SdBus::sd_bus_creds_ref(sd_bus_creds *creds)
 {
     std::lock_guard lock(sdbusMutex_);
 
-    return ::sd_bus_creds_ref(c);
+    return ::sd_bus_creds_ref(creds);
 }
 
-sd_bus_creds* SdBus::sd_bus_creds_unref(sd_bus_creds *c)
+sd_bus_creds* SdBus::sd_bus_creds_unref(sd_bus_creds *creds)
 {
     std::lock_guard lock(sdbusMutex_);
 
-    return ::sd_bus_creds_unref(c);
+    return ::sd_bus_creds_unref(creds);
 }
 
-int SdBus::sd_bus_creds_get_pid(sd_bus_creds *c, pid_t *pid)
+int SdBus::sd_bus_creds_get_pid(sd_bus_creds *creds, pid_t *pid)
 {
     std::lock_guard lock(sdbusMutex_);
 
-    return ::sd_bus_creds_get_pid(c, pid);
+    return ::sd_bus_creds_get_pid(creds, pid);
 }
 
-int SdBus::sd_bus_creds_get_uid(sd_bus_creds *c, uid_t *uid)
+int SdBus::sd_bus_creds_get_uid(sd_bus_creds *creds, uid_t *uid)
 {
     std::lock_guard lock(sdbusMutex_);
 
-    return ::sd_bus_creds_get_uid(c, uid);
+    return ::sd_bus_creds_get_uid(creds, uid);
 }
 
-int SdBus::sd_bus_creds_get_euid(sd_bus_creds *c, uid_t *euid)
+int SdBus::sd_bus_creds_get_euid(sd_bus_creds *creds, uid_t *euid)
 {
     std::lock_guard lock(sdbusMutex_);
 
-    return ::sd_bus_creds_get_euid(c, euid);
+    return ::sd_bus_creds_get_euid(creds, euid);
 }
 
-int SdBus::sd_bus_creds_get_gid(sd_bus_creds *c, gid_t *gid)
+int SdBus::sd_bus_creds_get_gid(sd_bus_creds *creds, gid_t *gid)
 {
     std::lock_guard lock(sdbusMutex_);
 
-    return ::sd_bus_creds_get_gid(c, gid);
+    return ::sd_bus_creds_get_gid(creds, gid);
 }
 
-int SdBus::sd_bus_creds_get_egid(sd_bus_creds *c, uid_t *egid)
+int SdBus::sd_bus_creds_get_egid(sd_bus_creds *creds, uid_t *egid)
 {
     std::lock_guard lock(sdbusMutex_);
 
-    return ::sd_bus_creds_get_egid(c, egid);
+    return ::sd_bus_creds_get_egid(creds, egid);
 }
 
-int SdBus::sd_bus_creds_get_supplementary_gids(sd_bus_creds *c, const gid_t **gids)
+int SdBus::sd_bus_creds_get_supplementary_gids(sd_bus_creds *creds, const gid_t **gids)
 {
     std::lock_guard lock(sdbusMutex_);
 
-    return ::sd_bus_creds_get_supplementary_gids(c, gids);
+    return ::sd_bus_creds_get_supplementary_gids(creds, gids);
 }
 
-int SdBus::sd_bus_creds_get_selinux_context(sd_bus_creds *c, const char **label)
+int SdBus::sd_bus_creds_get_selinux_context(sd_bus_creds *creds, const char **label)
 {
     std::lock_guard lock(sdbusMutex_);
 
-    return ::sd_bus_creds_get_selinux_context(c, label);
+    return ::sd_bus_creds_get_selinux_context(creds, label);
 }
 
-}
+} // namespace sdbus::internal

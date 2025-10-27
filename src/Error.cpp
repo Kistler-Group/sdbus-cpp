@@ -44,6 +44,6 @@ namespace sdbus
         message.append(sdbusError.message);
         message.append(")");
 
-        return Error(std::move(name), std::move(message));
+        return {std::move(name), std::move(message)};
     }
 } // namespace sdbus

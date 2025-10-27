@@ -46,34 +46,26 @@ jobs:
     - name: configure-debug-gcc11 # For gcc 11, turn off the annoying deprecated-copy warning
       if: matrix.build == 'shared-libsystemd' && matrix.compiler == 'g++' && matrix.os == 'ubuntu-22.04'
       run: |
-        mkdir build
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_CXX_FLAGS="-O0 -g -W -Wextra -Wall -Wnon-virtual-dtor -Wno-deprecated-copy -Werror $SDBUSCPP_EXTRA_CXX_FLAGS" -DCMAKE_VERBOSE_MAKEFILE=ON -DSDBUSCPP_INSTALL=ON -DSDBUSCPP_BUILD_TESTS=ON -DSDBUSCPP_BUILD_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON -DSDBUSCPP_BUILD_CODEGEN=ON -DSDBUSCPP_GOOGLETEST_VERSION=1.14.0 ..
+        cmake -B _build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_CXX_FLAGS="-O0 -g -W -Wextra -Wall -Wnon-virtual-dtor -Wno-deprecated-copy -Werror $SDBUSCPP_EXTRA_CXX_FLAGS" -DCMAKE_VERBOSE_MAKEFILE=ON -DSDBUSCPP_INSTALL=ON -DSDBUSCPP_BUILD_TESTS=ON -DSDBUSCPP_BUILD_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON -DSDBUSCPP_BUILD_CODEGEN=ON -DSDBUSCPP_GOOGLETEST_VERSION=1.14.0
     - name: configure-debug
       if: matrix.build == 'shared-libsystemd' && (matrix.compiler != 'g++' || matrix.os != 'ubuntu-22.04')
       run: |
-        mkdir build
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_CXX_FLAGS="-O0 -g -W -Wextra -Wall -Wnon-virtual-dtor -Werror $SDBUSCPP_EXTRA_CXX_FLAGS" -DCMAKE_VERBOSE_MAKEFILE=ON -DSDBUSCPP_INSTALL=ON -DSDBUSCPP_BUILD_TESTS=ON -DSDBUSCPP_BUILD_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON -DSDBUSCPP_BUILD_CODEGEN=ON -DSDBUSCPP_GOOGLETEST_VERSION=1.14.0 ..
+        cmake -B _build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_CXX_FLAGS="-O0 -g -W -Wextra -Wall -Wnon-virtual-dtor -Werror $SDBUSCPP_EXTRA_CXX_FLAGS" -DCMAKE_VERBOSE_MAKEFILE=ON -DSDBUSCPP_INSTALL=ON -DSDBUSCPP_BUILD_TESTS=ON -DSDBUSCPP_BUILD_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON -DSDBUSCPP_BUILD_CODEGEN=ON -DSDBUSCPP_GOOGLETEST_VERSION=1.14.0
     - name: configure-release-with-embedded-libsystemd
       if: matrix.build == 'embedded-static-libsystemd'
       run: |
-        mkdir build
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_CXX_FLAGS="$SDBUSCPP_EXTRA_CXX_FLAGS" -DCMAKE_VERBOSE_MAKEFILE=ON -DSDBUSCPP_INSTALL=ON -DSDBUSCPP_BUILD_TESTS=ON -DSDBUSCPP_BUILD_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON -DSDBUSCPP_BUILD_CODEGEN=ON -DSDBUSCPP_BUILD_LIBSYSTEMD=ON -DSDBUSCPP_LIBSYSTEMD_VERSION=252 -DSDBUSCPP_GOOGLETEST_VERSION=1.14.0 ..
+        cmake -B _build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_CXX_FLAGS="$SDBUSCPP_EXTRA_CXX_FLAGS" -DCMAKE_VERBOSE_MAKEFILE=ON -DSDBUSCPP_INSTALL=ON -DSDBUSCPP_BUILD_TESTS=ON -DSDBUSCPP_BUILD_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON -DSDBUSCPP_BUILD_CODEGEN=ON -DSDBUSCPP_BUILD_LIBSYSTEMD=ON -DSDBUSCPP_LIBSYSTEMD_VERSION=252 -DSDBUSCPP_GOOGLETEST_VERSION=1.14.0
     - name: make
       run: |
-        cd build
-        cmake --build . -j4
+        cmake --build _build -j4
     - name: verify
       run: |
-        cd build
-        sudo cmake --build . --target install
+        sudo cmake --build _build --target install
         ctest --output-on-failure
     - name: pack
       if: matrix.build == 'shared-libsystemd'
       run: |
-        cd build
+        cd _build
         cpack -G DEB
     - name: 'Upload Artifact'
       if: matrix.build == 'shared-libsystemd' && matrix.compiler == 'g++'
@@ -81,9 +73,30 @@ jobs:
       with:
         name: "debian-packages-${{ matrix.os }}-${{ matrix.compiler }}"
         path: |
-          build/sdbus-c++*.deb
-          build/sdbus-c++*.ddeb
+          _build/sdbus-c++*.deb
+          _build/sdbus-c++*.ddeb
         retention-days: 10
+  static-analysis:
+    name: static-analysis (ubuntu-24.04, clang-tidy, shared-libsystemd)
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: install-deps
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y libsystemd-dev libgmock-dev clang
+          sudo update-alternatives --remove-all cc
+          sudo update-alternatives --install /usr/bin/cc cc /usr/bin/clang 10
+          sudo update-alternatives --remove-all c++
+          sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++ 10
+      - name: configure
+        run: |
+          cmake -B _build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-O0 -g" -DCMAKE_VERBOSE_MAKEFILE=ON -DSDBUSCPP_CLANG_TIDY=ON -DSDBUSCPP_BUILD_TESTS=ON -DSDBUSCPP_BUILD_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON
+      - name: make
+        run: |
+          cmake --build _build -j4
   freebsd-build:
     name: build (freebsd, clang/libc++, basu)
     runs-on: ubuntu-22.04 # until https://github.com/actions/runner/issues/385
