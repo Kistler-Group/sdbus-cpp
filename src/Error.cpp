@@ -32,17 +32,24 @@
 
 namespace sdbus
 {
-    sdbus::Error createError(int errNo, std::string customMsg)
+    Error createError(int errNo, std::string customMsg)
     {
         sd_bus_error sdbusError = SD_BUS_ERROR_NULL;
         sd_bus_error_set_errno(&sdbusError, errNo);
         SCOPE_EXIT{ sd_bus_error_free(&sdbusError); };
 
-        Error::Name name(sdbusError.name);
+        Error::Name name(sd_bus_error_is_set(&sdbusError) ? sdbusError.name : "");
         std::string message(std::move(customMsg));
-        message.append(" (");
-        message.append(sdbusError.message);
-        message.append(")");
+        if (!message.empty() && sdbusError.message != nullptr)
+        {
+            message.append(" (");
+            message.append(sdbusError.message);
+            message.append(")");
+        }
+        else if (sdbusError.message != nullptr)
+        {
+            message = sdbusError.message;
+        }
 
         return Error(std::move(name), std::move(message));
     }
