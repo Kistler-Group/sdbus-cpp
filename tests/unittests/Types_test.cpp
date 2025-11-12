@@ -453,6 +453,7 @@ TEST(AnError, CanBeConstructedFromANameAndAMessage)
     auto error = sdbus::Error(sdbus::Error::Name{"org.sdbuscpp.error"}, "message");
     EXPECT_THAT(error.getName(), Eq<std::string>("org.sdbuscpp.error"));
     EXPECT_THAT(error.getMessage(), Eq<std::string>("message"));
+    EXPECT_TRUE(error.isValid());
 }
 
 TEST(AnError, CanBeConstructedFromANameOnly)
@@ -462,6 +463,45 @@ TEST(AnError, CanBeConstructedFromANameOnly)
     EXPECT_THAT(error1.getName(), Eq<std::string>("org.sdbuscpp.error"));
     EXPECT_THAT(error2.getName(), Eq<std::string>("org.sdbuscpp.error"));
 
-    EXPECT_THAT(error1.getMessage(), Eq<std::string>(""));
-    EXPECT_THAT(error2.getMessage(), Eq<std::string>(""));
+    EXPECT_TRUE(error1.getMessage().empty());
+    EXPECT_TRUE(error2.getMessage().empty());
+
+    EXPECT_TRUE(error1.isValid());
+    EXPECT_TRUE(error2.isValid());
+}
+
+TEST(AnError, IsInvalidWhenConstructedWithAnEmptyName)
+{
+    auto error = sdbus::Error({});
+
+    EXPECT_TRUE(error.getName().empty());
+    EXPECT_TRUE(error.getMessage().empty());
+    EXPECT_FALSE(error.isValid());
+}
+
+TEST(AnErrorFactory, CanCreateAnErrorFromErrno)
+{
+    auto error = sdbus::createError(ENOENT, "custom message");
+
+    EXPECT_THAT(error.getName(), Eq<std::string>("org.freedesktop.DBus.Error.FileNotFound"));
+    EXPECT_THAT(error.getMessage(), Eq<std::string>("custom message (No such file or directory)"));
+    EXPECT_TRUE(error.isValid());
+}
+
+TEST(AnErrorFactory, CreatesGenericErrorWhenErrnoIsUnknown)
+{
+    auto error = sdbus::createError(123456, "custom message");
+
+    EXPECT_THAT(error.getName(), Eq<std::string>("org.freedesktop.DBus.Error.Failed"));
+    EXPECT_THAT(error.getMessage(), Eq<std::string>("custom message (Unknown error 123456)"));
+    EXPECT_TRUE(error.isValid());
+}
+
+TEST(AnErrorFactory, CreatesEmptyInvalidErrorWhenErrnoIsZero)
+{
+    auto error = sdbus::createError(0, "custom message");
+
+    EXPECT_TRUE(error.getName().empty());
+    EXPECT_THAT(error.getMessage(), Eq<std::string>("custom message"));
+    EXPECT_FALSE(error.isValid());
 }

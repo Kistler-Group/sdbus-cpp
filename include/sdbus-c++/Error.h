@@ -64,7 +64,7 @@ namespace sdbus {
         }
 
         Error(Name name, std::string message)
-            : std::runtime_error("[" + name + "] " + message)
+            : std::runtime_error(!message.empty() ? "[" + name + "] " + message : "[" + name + "]")
             , name_(std::move(name))
             , message_(std::move(message))
         {
@@ -90,7 +90,7 @@ namespace sdbus {
         std::string message_;
     };
 
-    Error createError(int errNo, std::string customMsg);
+    Error createError(int errNo, std::string customMsg = {});
 
     inline const Error::Name SDBUSCPP_ERROR_NAME{"org.sdbuscpp.Error"};
 }
