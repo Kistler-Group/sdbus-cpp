@@ -34,6 +34,7 @@
 #include <algorithm>
 #include <iterator>
 #include <regex>
+#include <unordered_map>
 
 using std::endl;
 
@@ -62,6 +63,20 @@ int ProxyGenerator::transformXmlToFileImpl(const Document &doc, const char *file
     return writeToFile(filename, code.str());
 }
 
+std::string prepareDefaultTimeout(const std::string& val, const std::string& unit)
+{
+    const std::unordered_map<std::string, std::string> chronoTypes = {
+        {"us", "std::chrono::microseconds"},
+        {"ms", "std::chrono::milliseconds"},
+        {"s", "std::chrono::seconds"},
+        {"min", "std::chrono::minutes"}  
+    };
+    const auto iter = chronoTypes.find(unit);
+
+    const std::string type = (iter != chronoTypes.end()) ? iter->second : "std::chrono::microseconds";
+    const std::string defaultValue = type + "(" + val + ")";
+    return defaultValue;
+}
 
 std::string ProxyGenerator::processInterface(Node& interface) const
 {
@@ -212,13 +227,16 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes&
         std::tie(outArgStr, outArgTypeStr, std::ignore, std::ignore) = argsToNamesAndTypes(outArgs);
 
         const std::string realRetType = (async && !dontExpectReply ? (future ? "std::future<" + retType + ">" : "sdbus::PendingAsyncCall") : async ? "void" : retType);
-        definitionSS << tab << realRetType << " " << nameSafe << "(" << inArgTypeStr << ")" << endl
-                << tab << "{" << endl;
 
+        std::string timeoutDefaultValue;
         if (!timeoutValue.empty())
         {
-            definitionSS << tab << tab << "using namespace std::chrono_literals;" << endl;
+            const auto val = smTimeout.str(1);
+            const auto unit = smTimeout.str(2);
+            timeoutDefaultValue = prepareDefaultTimeout(val, unit);
         }
+        definitionSS << tab << realRetType << " " << nameSafe << "(" << inArgTypeStr  << (!timeoutDefaultValue.empty() ? ", const std::chrono::microseconds& timeout = " + timeoutDefaultValue : "")  << ")" << endl
+                << tab << "{" << endl;
 
         if (outArgs.size() > 0 && !async)
         {
@@ -230,9 +248,7 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes&
 
         if (!timeoutValue.empty())
         {
-            const auto val = smTimeout.str(1);
-            const auto unit = smTimeout.str(2);
-            definitionSS << ".withTimeout(" << val << (unit.empty() ? "us" : unit) << ")";
+            definitionSS << ".withTimeout(" << "timeout" << ")";
         }
 
         if (inArgs.size() > 0)
