@@ -488,6 +488,7 @@ TEST(AnErrorFactory, CanCreateAnErrorFromErrno)
     EXPECT_TRUE(error.isValid());
 }
 
+#ifndef SDBUS_basu // Creating error from invalid errno is not supported on basu backend
 TEST(AnErrorFactory, CreatesGenericErrorWhenErrnoIsUnknown)
 {
     auto error = sdbus::createError(123456, "custom message");
@@ -496,6 +497,7 @@ TEST(AnErrorFactory, CreatesGenericErrorWhenErrnoIsUnknown)
     EXPECT_THAT(error.getMessage(), Eq<std::string>("custom message (Unknown error 123456)"));
     EXPECT_TRUE(error.isValid());
 }
+#endif // SDBUS_basu
 
 TEST(AnErrorFactory, CreatesEmptyInvalidErrorWhenErrnoIsZero)
 {
