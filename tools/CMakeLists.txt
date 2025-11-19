@@ -4,7 +4,7 @@
 
 cmake_minimum_required(VERSION 3.5)
 
-project(sdbus-c++-tools VERSION 2.1.0)
+project(sdbus-c++-tools VERSION 2.2.0)
 
 include(GNUInstallDirs)
 

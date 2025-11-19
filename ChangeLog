@@ -301,3 +301,13 @@ v2.1.0
 - Change googletest to default version 1.14.0
 - Add version parameter to the xml2cpp codegen tool
 - A few other internal refactorings and improvements
+
+v2.2.0
+- Add createLightWeightProxy() overload for convenience
+- Add cookie-related API to Message class
+- Add async overloads of GetManagedObjects() function
+- Add signature_of specialization for r-value references
+- Create a valid sdbus::Error even when errno is invalid or zero
+- Fix the return type of some slot-returning functions
+- Fix annotation generation in xml2cpp tool
+- A few other, mainly CI related updates
