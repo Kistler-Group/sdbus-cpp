@@ -318,7 +318,7 @@ set(CPACK_PACKAGE_VENDOR "Kistler")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "High-level C++ D-Bus library")
 set(CPACK_PACKAGE_CONTACT "info@kistler.com")
 set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
-set(CPACK_COMPONENTS_ALL runtime dev doc)
+set(CPACK_COMPONENTS_ALL sdbus-c++-runtime sdbus-c++-dev sdbus-c++-doc)
 set(CPACK_COMPONENT_DEV_DEPENDS "runtime")
 # specific for DEB generator
 set(CPACK_DEB_COMPONENT_INSTALL ON)
