@@ -311,3 +311,7 @@ v2.2.0
 - Fix the return type of some slot-returning functions
 - Fix annotation generation in xml2cpp tool
 - A few other, mainly CI related updates
+
+v2.2.1
+- Fix component names in CPack configuration
+- Generate correct, expected DEB package names
