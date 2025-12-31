@@ -216,6 +216,9 @@ target_link_libraries(sdbus-c++-objlib
             Threads::Threads)
 
 add_library(sdbus-c++)
+# Create alias to allow consistent target use regardless whether used in-source or found via find_package
+add_library(SDBusCpp::sdbus-c++ ALIAS sdbus-c++)
+
 target_include_directories(sdbus-c++ PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 set_target_properties(sdbus-c++
