@@ -313,6 +313,11 @@ if(SDBUSCPP_INSTALL)
     endif()
 endif()
 
+export(TARGETS ${EXPORT_SET}
+    NAMESPACE SDBusCpp::
+    FILE sdbus-c++-targets.cmake
+)
+
 #----------------------------------
 # CPACK
 #----------------------------------
