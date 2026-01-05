@@ -284,14 +284,23 @@ set(PKGCONFIG_DEPS ${SDBUS_LIB})
 configure_file(pkgconfig/sdbus-c++.pc.in pkgconfig/sdbus-c++.pc @ONLY)
 
 #----------------------------------
-# INSTALLATION
+# EXPORTING BUILD-TREE TARGETS
+#----------------------------------
+
+set(EXPORT_SET sdbus-c++)
+if(NOT BUILD_SHARED_LIBS)
+    list(APPEND EXPORT_SET "sdbus-c++-objlib")
+endif()
+
+export(TARGETS ${EXPORT_SET}
+       NAMESPACE SDBusCpp::
+       FILE sdbus-c++-targets.cmake)
+
+#----------------------------------
+# INSTALLATION & EXPORTING INSTALL-TREE TARGETS
 #----------------------------------
 
 if(SDBUSCPP_INSTALL)
-    set(EXPORT_SET sdbus-c++)
-    if(NOT BUILD_SHARED_LIBS)
-        list(APPEND EXPORT_SET "sdbus-c++-objlib")
-    endif()
     install(TARGETS ${EXPORT_SET}
             EXPORT sdbus-c++-targets
             RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT sdbus-c++-runtime
@@ -312,11 +321,6 @@ if(SDBUSCPP_INSTALL)
         install(FILES README README.md NEWS COPYING ChangeLog AUTHORS DESTINATION ${CMAKE_INSTALL_DOCDIR} COMPONENT sdbus-c++-doc)
     endif()
 endif()
-
-export(TARGETS ${EXPORT_SET}
-    NAMESPACE SDBusCpp::
-    FILE sdbus-c++-targets.cmake
-)
 
 #----------------------------------
 # CPACK
