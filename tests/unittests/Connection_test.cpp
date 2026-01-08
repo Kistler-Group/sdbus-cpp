@@ -26,10 +26,17 @@
  */
 
 #include "Connection.h"
+#include "sdbus-c++/Error.h"
 #include "sdbus-c++/Types.h"
 #include "unittests/mocks/SdBusMock.h"
 
-#include <gtest/gtest.h>
+#include <gtest/gtest.h> // IWYU pragma: export
+#include <cerrno>
+#include <memory>
+#include <utility>
+
+// NOLINTBEGIN(cppcoreguidelines-non-private-member-variables-in-classes,misc-non-private-member-variables-in-classes)
+// NOLINTBEGIN(bugprone-reserved-identifier,cert-dcl37-c,cert-dcl51-cpp)
 
 using ::testing::_;
 using ::testing::DoAll;
@@ -194,30 +201,33 @@ template<> std::unique_ptr<Connection> AConnectionNameRequest<Connection::remote
     return std::make_unique<Connection>(std::unique_ptr<NiceMock<SdBusMock>>(sdBusIntfMock_), Connection::remote_system_bus, "some host");
 }
 
-typedef ::testing::Types< Connection::default_bus_t
-                        , Connection::system_bus_t
-                        , Connection::session_bus_t
-                        , Connection::custom_session_bus_t
-                        , Connection::remote_system_bus_t
-                        , Connection::pseudo_bus_t
-                        > BusTypeTags;
+using BusTypeTags = ::testing::Types< Connection::default_bus_t
+                                    , Connection::system_bus_t
+                                    , Connection::session_bus_t
+                                    , Connection::custom_session_bus_t
+                                    , Connection::remote_system_bus_t
+                                    , Connection::pseudo_bus_t
+                                    >;
 
 TYPED_TEST_SUITE(AConnectionNameRequest, BusTypeTags);
-}
+} // namespace
 
 TYPED_TEST(AConnectionNameRequest, DoesNotThrowOnSuccess)
 {
     EXPECT_CALL(*this->sdBusIntfMock_, sd_bus_request_name(_, _, _)).WillOnce(Return(1));
-    sdbus::ConnectionName name{"org.sdbuscpp.somename"};
+    const sdbus::ConnectionName name{"org.sdbuscpp.somename"};
 
     this->con_->requestName(name);
 }
 
 TYPED_TEST(AConnectionNameRequest, ThrowsOnFail)
 {
-    sdbus::ConnectionName name{"org.sdbuscpp.somename"};
+    const sdbus::ConnectionName name{"org.sdbuscpp.somename"};
 
     EXPECT_CALL(*this->sdBusIntfMock_, sd_bus_request_name(_, _, _)).WillOnce(Return(-1));
 
     ASSERT_THROW(this->con_->requestName(name), sdbus::Error);
 }
+
+// NOLINTEND(bugprone-reserved-identifier,cert-dcl37-c,cert-dcl51-cpp)
+// NOLINTEND(cppcoreguidelines-non-private-member-variables-in-classes,misc-non-private-member-variables-in-classes)

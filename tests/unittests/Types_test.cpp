@@ -24,12 +24,24 @@
  * along with sdbus-c++. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <sdbus-c++/Error.h>
+#include <sdbus-c++/Message.h>
 #include <sdbus-c++/Types.h>
-#include "MessageUtils.h"
+#include <sdbus-c++/TypeTraits.h>
+
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <cstdint>
+#include <cerrno>
+#include <map>
+#include <string>
+#include <variant>
+#include <vector>
 #include <sys/eventfd.h>
+#include <tuple>
+#include <type_traits>
+#include <unistd.h>
+#include <utility>
 
 using ::testing::Eq;
 using ::testing::Gt;
@@ -39,7 +51,7 @@ namespace
 {
     constexpr const uint64_t ANY_UINT64 = 84578348354;
     constexpr const double ANY_DOUBLE = 3.14;
-}
+} // namespace
 
 /*-------------------------------------*/
 /* --          TEST CASES           -- */
@@ -52,14 +64,14 @@ TEST(AVariant, CanBeDefaultConstructed)
 
 TEST(AVariant, ContainsNoValueAfterDefaultConstructed)
 {
-    sdbus::Variant v;
+    const sdbus::Variant var;
 
-    ASSERT_TRUE(v.isEmpty());
+    ASSERT_TRUE(var.isEmpty());
 }
 
 TEST(AVariant, CanBeConstructedFromASimpleValue)
 {
-    int value = 5;
+    const int value = 5;
 
     ASSERT_NO_THROW(sdbus::Variant{value});
 }
@@ -67,7 +79,7 @@ TEST(AVariant, CanBeConstructedFromASimpleValue)
 TEST(AVariant, CanBeConstructedFromAComplexValue)
 {
     using ComplexType = std::map<uint64_t, std::vector<sdbus::Struct<std::string, double>>>;
-    ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{{"hello"s, ANY_DOUBLE}, {"world"s, ANY_DOUBLE}}} };
+    const ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{{"hello"s, ANY_DOUBLE}, {"world"s, ANY_DOUBLE}}} };
 
     ASSERT_NO_THROW(sdbus::Variant{value});
 }
@@ -77,9 +89,9 @@ TEST(AVariant, CanBeConstructedFromAnStdVariant)
     using ComplexType = std::vector<sdbus::Struct<std::string, double>>;
     using StdVariantType = std::variant<std::string, uint64_t, ComplexType>;
     ComplexType value{{"hello"s, ANY_DOUBLE}, {"world"s, ANY_DOUBLE}};
-    StdVariantType stdVariant{value};
+    const StdVariantType stdVariant{value};
 
-    sdbus::Variant sdbusVariant{stdVariant};
+    const sdbus::Variant sdbusVariant{stdVariant};
 
     ASSERT_TRUE(sdbusVariant.containsValueOfType<ComplexType>());
     ASSERT_THAT(sdbusVariant.get<ComplexType>(), Eq(value));
@@ -88,10 +100,10 @@ TEST(AVariant, CanBeConstructedFromAnStdVariant)
 TEST(AVariant, CanBeCopied)
 {
     auto value = "hello"s;
-    sdbus::Variant variant(value);
+    const sdbus::Variant variant(value);
 
-    auto variantCopy1{variant};
-    auto variantCopy2 = variantCopy1;
+    const auto variantCopy1{variant}; // NOLINT(performance-unnecessary-copy-initialization)
+    const auto variantCopy2 = variantCopy1; // NOLINT(performance-unnecessary-copy-initialization)
 
     ASSERT_THAT(variantCopy1.get<std::string>(), Eq(value));
     ASSERT_THAT(variantCopy2.get<std::string>(), Eq(value));
@@ -105,33 +117,33 @@ TEST(AVariant, CanBeMoved)
     auto movedVariant{std::move(variant)};
 
     ASSERT_THAT(movedVariant.get<std::string>(), Eq(value));
-    ASSERT_TRUE(variant.isEmpty());
+    ASSERT_TRUE(variant.isEmpty()); // NOLINT(bugprone-use-after-move,hicpp-invalid-access-moved)
 }
 
 TEST(AVariant, CanBeMovedIntoAMap)
 {
-    auto value = "hello"s;
-    sdbus::Variant variant(value);
+    const auto value = "hello"s;
+    sdbus::Variant variant(value); // NOLINT(misc-const-correctness)
 
     std::map<std::string, sdbus::Variant> mymap;
     mymap.try_emplace("payload", std::move(variant));
 
     ASSERT_THAT(mymap["payload"].get<std::string>(), Eq(value));
-    ASSERT_TRUE(variant.isEmpty());
+    ASSERT_TRUE(variant.isEmpty()); // NOLINT(bugprone-use-after-move,hicpp-invalid-access-moved)
 }
 
 TEST(AVariant, IsNotEmptyWhenContainsAValue)
 {
-    sdbus::Variant v("hello");
+    const sdbus::Variant var("hello");
 
-    ASSERT_FALSE(v.isEmpty());
+    ASSERT_FALSE(var.isEmpty());
 }
 
 TEST(ASimpleVariant, ReturnsTheSimpleValueWhenAsked)
 {
-    int value = 5;
+    const int value = 5;
 
-    sdbus::Variant variant(value);
+    const sdbus::Variant variant(value);
 
     ASSERT_THAT(variant.get<int>(), Eq(value));
 }
@@ -139,17 +151,17 @@ TEST(ASimpleVariant, ReturnsTheSimpleValueWhenAsked)
 TEST(AComplexVariant, ReturnsTheComplexValueWhenAsked)
 {
     using ComplexType = std::map<uint64_t, std::vector<sdbus::Struct<std::string, double>>>;
-    ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{{"hello"s, ANY_DOUBLE}, {"world"s, ANY_DOUBLE}}} };
+    const ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{{"hello"s, ANY_DOUBLE}, {"world"s, ANY_DOUBLE}}} };
 
-    sdbus::Variant variant(value);
+    const sdbus::Variant variant(value);
 
-    ASSERT_THAT(variant.get<decltype(value)>(), Eq(value));
+    ASSERT_THAT(variant.get<ComplexType>(), Eq(value));
 }
 
 TEST(AVariant, HasConceptuallyNonmutableGetMethodWhichCanBeCalledXTimes)
 {
-    std::string value{"I am a string"};
-    sdbus::Variant variant(value);
+    const std::string value{"I am a string"};
+    const sdbus::Variant variant(value);
 
     ASSERT_THAT(variant.get<std::string>(), Eq(value));
     ASSERT_THAT(variant.get<std::string>(), Eq(value));
@@ -159,9 +171,9 @@ TEST(AVariant, HasConceptuallyNonmutableGetMethodWhichCanBeCalledXTimes)
 TEST(AVariant, ReturnsTrueWhenAskedIfItContainsTheTypeItReallyContains)
 {
     using ComplexType = std::map<uint64_t, std::vector<sdbus::Struct<std::string, double>>>;
-    ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{{"hello"s, ANY_DOUBLE}, {"world"s, ANY_DOUBLE}}} };
+    const ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{{"hello"s, ANY_DOUBLE}, {"world"s, ANY_DOUBLE}}} };
 
-    sdbus::Variant variant(value);
+    const sdbus::Variant variant(value);
 
     ASSERT_TRUE(variant.containsValueOfType<ComplexType>());
 }
@@ -170,8 +182,8 @@ TEST(AVariant, CanBeConvertedIntoAnStdVariant)
 {
     using ComplexType = std::vector<sdbus::Struct<std::string, double>>;
     using StdVariantType = std::variant<std::string, uint64_t, ComplexType>;
-    ComplexType value{{"hello"s, ANY_DOUBLE}, {"world"s, ANY_DOUBLE}};
-    sdbus::Variant sdbusVariant{value};
+    const ComplexType value{{"hello"s, ANY_DOUBLE}, {"world"s, ANY_DOUBLE}};
+    const sdbus::Variant sdbusVariant{value};
     StdVariantType stdVariant{sdbusVariant};
 
     ASSERT_TRUE(std::holds_alternative<ComplexType>(stdVariant));
@@ -183,18 +195,18 @@ TEST(AVariant, IsImplicitlyInterchangeableWithStdVariant)
     using ComplexType = std::vector<sdbus::Struct<std::string, double>>;
     using StdVariantType = std::variant<std::string, uint64_t, ComplexType>;
     ComplexType value{{"hello"s, ANY_DOUBLE}, {"world"s, ANY_DOUBLE}};
-    StdVariantType stdVariant{value};
+    const StdVariantType stdVariant{value};
 
-    auto stdVariantCopy = [](const sdbus::Variant &v) -> StdVariantType { return v; }(stdVariant);
+    auto stdVariantCopy = [](const sdbus::Variant &var) -> StdVariantType { return var; }(stdVariant);
 
     ASSERT_THAT(stdVariantCopy, Eq(stdVariant));
 }
 
 TEST(ASimpleVariant, ReturnsFalseWhenAskedIfItContainsTypeItDoesntReallyContain)
 {
-    int value = 5;
+    const int value = 5;
 
-    sdbus::Variant variant(value);
+    const sdbus::Variant variant(value);
 
     ASSERT_FALSE(variant.containsValueOfType<double>());
 }
@@ -203,17 +215,17 @@ TEST(AVariant, CanContainOtherEmbeddedVariants)
 {
     using TypeWithVariants = std::vector<sdbus::Struct<sdbus::Variant, double>>;
     TypeWithVariants value;
-    value.push_back({sdbus::Variant("a string"), ANY_DOUBLE});
-    value.push_back({sdbus::Variant(ANY_UINT64), ANY_DOUBLE});
+    value.emplace_back(sdbus::Variant("a string"), ANY_DOUBLE);
+    value.emplace_back(sdbus::Variant(ANY_UINT64), ANY_DOUBLE);
 
-    sdbus::Variant variant(value);
+    const sdbus::Variant variant(value);
 
     ASSERT_TRUE(variant.containsValueOfType<TypeWithVariants>());
 }
 
 TEST(ANonEmptyVariant, SerializesSuccessfullyToAMessage)
 {
-    sdbus::Variant variant("a string");
+    const sdbus::Variant variant("a string");
 
     auto msg = sdbus::createPlainMessage();
 
@@ -222,7 +234,7 @@ TEST(ANonEmptyVariant, SerializesSuccessfullyToAMessage)
 
 TEST(AnEmptyVariant, ThrowsWhenBeingSerializedToAMessage)
 {
-    sdbus::Variant variant;
+    const sdbus::Variant variant;
 
     auto msg = sdbus::createPlainMessage();
 
@@ -232,8 +244,8 @@ TEST(AnEmptyVariant, ThrowsWhenBeingSerializedToAMessage)
 TEST(ANonEmptyVariant, SerializesToAndDeserializesFromAMessageSuccessfully)
 {
     using ComplexType = std::map<uint64_t, std::vector<sdbus::Struct<std::string, double>>>;
-    ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{{"hello"s, ANY_DOUBLE}, {"world"s, ANY_DOUBLE}}} };
-    sdbus::Variant variant(value);
+    const ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{{"hello"s, ANY_DOUBLE}, {"world"s, ANY_DOUBLE}}} };
+    const sdbus::Variant variant(value);
 
     auto msg = sdbus::createPlainMessage();
     variant.serializeTo(msg);
@@ -241,30 +253,30 @@ TEST(ANonEmptyVariant, SerializesToAndDeserializesFromAMessageSuccessfully)
     sdbus::Variant variant2;
     variant2.deserializeFrom(msg);
 
-    ASSERT_THAT(variant2.get<decltype(value)>(), Eq(value));
+    ASSERT_THAT(variant2.get<ComplexType>(), Eq(value));
 }
 
 TEST(CopiesOfVariant, SerializeToAndDeserializeFromMessageSuccessfully)
 {
     using ComplexType = std::map<uint64_t, std::vector<sdbus::Struct<std::string, double>>>;
-    ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{{"hello"s, ANY_DOUBLE}, {"world"s, ANY_DOUBLE}}} };
-    sdbus::Variant variant(value);
-    auto variantCopy1{variant};
-    auto variantCopy2 = variant;
+    const ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{{"hello"s, ANY_DOUBLE}, {"world"s, ANY_DOUBLE}}} };
+    const sdbus::Variant variant(value);
+    auto variantCopy1{variant}; // NOLINT(performance-unnecessary-copy-initialization)
+    auto variantCopy2 = variant; // NOLINT(performance-unnecessary-copy-initialization)
 
     auto msg = sdbus::createPlainMessage();
     variant.serializeTo(msg);
     variantCopy1.serializeTo(msg);
     variantCopy2.serializeTo(msg);
     msg.seal();
-    sdbus::Variant receivedVariant1, receivedVariant2, receivedVariant3;
+    sdbus::Variant receivedVariant1, receivedVariant2, receivedVariant3; // NOLINT(readability-isolate-declaration)
     receivedVariant1.deserializeFrom(msg);
     receivedVariant2.deserializeFrom(msg);
     receivedVariant3.deserializeFrom(msg);
 
-    ASSERT_THAT(receivedVariant1.get<decltype(value)>(), Eq(value));
-    ASSERT_THAT(receivedVariant2.get<decltype(value)>(), Eq(value));
-    ASSERT_THAT(receivedVariant3.get<decltype(value)>(), Eq(value));
+    ASSERT_THAT(receivedVariant1.get<ComplexType>(), Eq(value));
+    ASSERT_THAT(receivedVariant2.get<ComplexType>(), Eq(value));
+    ASSERT_THAT(receivedVariant3.get<ComplexType>(), Eq(value));
 }
 
 TEST(AStruct, CanBeCreatedFromStdTuple)
@@ -295,7 +307,7 @@ TEST(AStruct, CanBeUsedLikeStdTupleType)
 
 TEST(AStruct, CanBeUsedInStructuredBinding)
 {
-    sdbus::Struct valueStruct(1234, "abcd", true);
+    const sdbus::Struct valueStruct(1234, "abcd", true);
 
     auto [first, second, third] = valueStruct;
 
@@ -311,7 +323,7 @@ TEST(AnObjectPath, CanBeConstructedFromCString)
 
 TEST(AnObjectPath, CanBeConstructedFromStdString)
 {
-    std::string aPath{"/some/path"};
+    const std::string aPath{"/some/path"};
 
     ASSERT_THAT(sdbus::ObjectPath{aPath}, Eq(aPath));
 }
@@ -322,7 +334,6 @@ TEST(AnObjectPath, CanBeMovedLikeAStdString)
     sdbus::ObjectPath oPath{aPath};
 
     ASSERT_THAT(sdbus::ObjectPath{std::move(oPath)}, Eq(sdbus::ObjectPath(std::move(aPath))));
-    ASSERT_THAT(std::string(oPath), Eq(aPath));
 }
 
 TEST(ASignature, CanBeConstructedFromCString)
@@ -334,7 +345,7 @@ TEST(ASignature, CanBeConstructedFromCString)
 
 TEST(ASignature, CanBeConstructedFromStdString)
 {
-    std::string aSignature{"us"};
+    const std::string aSignature{"us"};
 
     ASSERT_THAT(sdbus::Signature{aSignature}, Eq(aSignature));
 }
@@ -365,9 +376,9 @@ TEST(AUnixFd, AdoptsAndOwnsFdAsIsUponAdoptionConstruction)
 
 TEST(AUnixFd, DuplicatesFdUponCopyConstruction)
 {
-    sdbus::UnixFd unixFd(::eventfd(0, EFD_SEMAPHORE | EFD_NONBLOCK));
+    const sdbus::UnixFd unixFd(::eventfd(0, EFD_SEMAPHORE | EFD_NONBLOCK));
 
-    sdbus::UnixFd unixFdCopy{unixFd};
+    const sdbus::UnixFd unixFdCopy{unixFd}; // NOLINT(performance-unnecessary-copy-initialization)
 
     EXPECT_THAT(unixFdCopy.get(), Gt(unixFd.get()));
 }
@@ -377,20 +388,20 @@ TEST(AUnixFd, TakesOverFdUponMoveConstruction)
     auto fd = ::eventfd(0, EFD_SEMAPHORE | EFD_NONBLOCK);
     sdbus::UnixFd unixFd(fd, sdbus::adopt_fd);
 
-    sdbus::UnixFd unixFdNew{std::move(unixFd)};
+    const sdbus::UnixFd unixFdNew{std::move(unixFd)};
 
-    EXPECT_FALSE(unixFd.isValid());
+    EXPECT_FALSE(unixFd.isValid()); // NOLINT(bugprone-use-after-move,hicpp-invalid-access-moved,clang-analyzer-cplusplus.Move)
     EXPECT_THAT(unixFdNew.get(), Eq(fd));
 }
 
 TEST(AUnixFd, ClosesFdProperlyUponDestruction)
 {
-    int fd, fdCopy;
+    int fd{}, fdCopy{}; // NOLINT(readability-isolate-declaration)
     {
         fd = ::eventfd(0, EFD_SEMAPHORE | EFD_NONBLOCK);
         sdbus::UnixFd unixFd(fd, sdbus::adopt_fd);
         auto unixFdNew = std::move(unixFd);
-        auto unixFdCopy = unixFdNew;
+        auto unixFdCopy = unixFdNew; // NOLINT(performance-unnecessary-copy-initialization)
         fdCopy = unixFdCopy.get();
     }
 
@@ -401,7 +412,7 @@ TEST(AUnixFd, ClosesFdProperlyUponDestruction)
 TEST(AUnixFd, DoesNotCloseReleasedFd)
 {
     auto fd = ::eventfd(0, EFD_SEMAPHORE | EFD_NONBLOCK);
-    int fdReleased;
+    int fdReleased{};
     {
         sdbus::UnixFd unixFd(fd, sdbus::adopt_fd);
         fdReleased = unixFd.release();
