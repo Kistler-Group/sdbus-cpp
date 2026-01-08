@@ -24,17 +24,25 @@
  * along with sdbus-c++. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <sdbus-c++/Error.h>
+#include <sdbus-c++/Message.h>
 #include <sdbus-c++/Types.h>
-#include "MessageUtils.h"
+#include <sdbus-c++/TypeTraits.h>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <array>
 #include <cstdint>
 #include <list>
+#include <map>
+#include <span>
+#include <string>
+#include <string_view>
+#include <variant>
+#include <vector>
 
 using ::testing::Eq;
 using ::testing::StrEq;
 using ::testing::Gt;
-using ::testing::DoubleEq;
 using ::testing::IsNull;
 using ::testing::SizeIs;
 using ::testing::ElementsAre;
@@ -48,15 +56,15 @@ namespace
         msg >> str;
         return str;
     }
-}
+} // namespace
 
 namespace sdbus {
 
-    template <typename _ElementType>
-    sdbus::Message& operator<<(sdbus::Message& msg, const std::list<_ElementType>& items)
+    template <typename ElementType>
+    sdbus::Message& operator<<(sdbus::Message& msg, const std::list<ElementType>& items)
     {
         // TODO: This can also be simplified on the basis of a callback (see dictionary...)
-        msg.openContainer<_ElementType>();
+        msg.openContainer<ElementType>();
 
         for (const auto& item : items)
             msg << item;
@@ -66,15 +74,15 @@ namespace sdbus {
         return msg;
     }
 
-    template <typename _ElementType>
-    sdbus::Message& operator>>(sdbus::Message& msg, std::list<_ElementType>& items)
+    template <typename ElementType>
+    sdbus::Message& operator>>(sdbus::Message& msg, std::list<ElementType>& items)
     {
-        if(!msg.enterContainer<_ElementType>())
+        if(!msg.enterContainer<ElementType>())
             return msg;
 
         while (true)
         {
-            _ElementType elem;
+            ElementType elem;
             if (msg >> elem)
                 items.emplace_back(std::move(elem));
             else
@@ -88,15 +96,15 @@ namespace sdbus {
         return msg;
     }
 
-}
+} // namespace sdbus
 
-template <typename _Element, typename _Allocator>
-struct sdbus::signature_of<std::list<_Element, _Allocator>>
-    : sdbus::signature_of<std::vector<_Element, _Allocator>>
+template <typename Element, typename Allocator>
+struct sdbus::signature_of<std::list<Element, Allocator>>
+    : sdbus::signature_of<std::vector<Element, Allocator>>
 {};
 
 namespace my {
-    enum class Enum
+    enum class Enum : std::uint8_t
     {
         Value1,
         Value2,
@@ -105,42 +113,42 @@ namespace my {
 
     struct Struct
     {
-        int i;
+        int i{};
         std::string s;
         std::list<double> l;
-        Enum e;
+        Enum e{};
 
         friend bool operator==(const Struct& lhs, const Struct& rhs) = default;
     };
 
     struct RelaxedStruct
     {
-        int i;
+        int i{};
         std::string s;
         std::list<double> l;
-        Enum e;
+        Enum e{};
 
         friend bool operator==(const RelaxedStruct& lhs, const RelaxedStruct& rhs) = default;
     };
 
     struct NestedStruct
     {
-        int i;
+        int i{};
         std::string s;
-        Enum e;
+        Enum e{};
         Struct x;
 
         friend bool operator==(const NestedStruct& lhs, const NestedStruct& rhs) = default;
     };
-}
+} // namespace my
 
-SDBUSCPP_REGISTER_STRUCT(my::Struct, i, s, l, e);
+SDBUSCPP_REGISTER_STRUCT(my::Struct, i, s, l, e); // NOLINT(readability-identifier-length)
 
 SDBUSCPP_ENABLE_RELAXED_DICT2STRUCT_DESERIALIZATION(my::RelaxedStruct);
-SDBUSCPP_REGISTER_STRUCT(my::RelaxedStruct, i, s, l, e);
+SDBUSCPP_REGISTER_STRUCT(my::RelaxedStruct, i, s, l, e); // NOLINT(readability-identifier-length)
 
 SDBUSCPP_ENABLE_NESTED_STRUCT2DICT_SERIALIZATION(my::NestedStruct);
-SDBUSCPP_REGISTER_STRUCT(my::NestedStruct, i, s, e, x);
+SDBUSCPP_REGISTER_STRUCT(my::NestedStruct, i, s, e, x); // NOLINT(readability-identifier-length)
 
 /*-------------------------------------*/
 /* --          TEST CASES           -- */
@@ -153,7 +161,7 @@ TEST(AMessage, CanBeDefaultConstructed)
 
 TEST(AMessage, IsInvalidAfterDefaultConstructed)
 {
-    sdbus::PlainMessage msg;
+    const sdbus::PlainMessage msg;
 
     ASSERT_FALSE(msg.isValid());
 }
@@ -218,7 +226,7 @@ TEST(AMessage, CanCarryASimpleInteger)
     msg << dataWritten;
     msg.seal();
 
-    int dataRead;
+    int dataRead{};
     msg >> dataRead;
 
     ASSERT_THAT(dataRead, Eq(dataWritten));
@@ -258,7 +266,7 @@ TEST(AMessage, CanCarryAVariant)
 {
     auto msg = sdbus::createPlainMessage();
 
-    const auto dataWritten = sdbus::Variant((double)3.14);
+    const auto dataWritten = sdbus::Variant(3.14);
 
     msg << dataWritten;
     msg.seal();
@@ -273,7 +281,7 @@ TEST(AMessage, CanCarryACollectionOfEmbeddedVariants)
 {
     auto msg = sdbus::createPlainMessage();
 
-    std::vector<sdbus::Variant> value{sdbus::Variant{"hello"s}, sdbus::Variant{(double)3.14}};
+    std::vector<sdbus::Variant> value{sdbus::Variant{"hello"s}, sdbus::Variant{3.14}};
     const auto dataWritten = sdbus::Variant{value};
 
     msg << dataWritten;
@@ -320,12 +328,12 @@ TEST(AMessage, CanCarryDBusArrayOfTrivialTypesGivenAsStdArray)
 {
     auto msg = sdbus::createPlainMessage();
 
-    const std::array<int, 3> dataWritten{3545342, 43643532, 324325};
+    const std::array dataWritten{3545342, 43643532, 324325};
 
     msg << dataWritten;
     msg.seal();
 
-    std::array<int, 3> dataRead;
+    std::array<int, 3> dataRead{};
     msg >> dataRead;
 
     ASSERT_THAT(dataRead, Eq(dataWritten));
@@ -351,13 +359,13 @@ TEST(AMessage, CanCarryDBusArrayOfTrivialTypesGivenAsStdSpan)
 {
     auto msg = sdbus::createPlainMessage();
 
-    const std::array<int, 3> sourceArray{3545342, 43643532, 324325};
+    const std::array sourceArray{3545342, 43643532, 324325};
     const std::span dataWritten{sourceArray};
 
     msg << dataWritten;
     msg.seal();
 
-    std::array<int, 3> destinationArray;
+    std::array<int, 3> destinationArray{};
     std::span dataRead{destinationArray};
     msg >> dataRead;
 
@@ -386,8 +394,8 @@ TEST(AMessage, CanCarryAnEnumValue)
 {
     auto msg = sdbus::createPlainMessage();
 
-    enum class EnumA : int16_t {X = 5} aWritten{EnumA::X};
-    enum EnumB {Y = 11} bWritten{EnumB::Y};
+    const enum class EnumA : int16_t {X = 5} aWritten{EnumA::X}; // NOLINT(performance-enum-size)
+    const enum EnumB {Y = 11} bWritten{EnumB::Y}; // NOLINT(performance-enum-size)
 
     msg << aWritten << bWritten;
     msg.seal();
@@ -409,7 +417,7 @@ TEST(AMessage, ThrowsWhenDestinationStdArrayIsTooSmallDuringDeserialization)
     msg << dataWritten;
     msg.seal();
 
-    std::array<int, 3> dataRead;
+    std::array<int, 3> dataRead{};
     ASSERT_THROW(msg >> dataRead, sdbus::Error);
 }
 
@@ -423,7 +431,7 @@ TEST(AMessage, ThrowsWhenDestinationStdSpanIsTooSmallDuringDeserialization)
     msg << dataWritten;
     msg.seal();
 
-    std::array<int, 2> destinationArray;
+    std::array<int, 2> destinationArray{};
     std::span dataRead{destinationArray};
     ASSERT_THROW(msg >> dataRead, sdbus::Error);
 }
@@ -433,7 +441,7 @@ TEST(AMessage, CanCarryADictionary)
 {
     auto msg = sdbus::createPlainMessage();
 
-    std::map<int, std::string> dataWritten{{1, "one"}, {2, "two"}};
+    const std::map<int, std::string> dataWritten{{1, "one"}, {2, "two"}};
 
     msg << dataWritten;
     msg.seal();
@@ -468,7 +476,7 @@ TEST(AMessage, CanCarryAComplexType)
                             >
                         >;
 
-    ComplexType dataWritten = { {1, {{{5, {{sdbus::ObjectPath{"/some/object"}, true, 45, {{6, "hello"}, {7, "world"}}}}}}, sdbus::Signature{"av"}, 3.14}}};
+    const ComplexType dataWritten = { {1, {{{5, {{sdbus::ObjectPath{"/some/object"}, true, 45, {{6, "hello"}, {7, "world"}}}}}}, sdbus::Signature{"av"}, 3.14}}};
 
     msg << dataWritten;
     msg.seal();
@@ -596,10 +604,10 @@ TEST(AMessage, CanDeserializeDictionaryOfStringsToVariantsIntoUserDefinedStruct)
 {
     auto msg = sdbus::createPlainMessage();
 
-    std::map<std::string, sdbus::Variant> dataWritten{ {"i", sdbus::Variant{3545342}}
-                                                     , {"s", sdbus::Variant{"hello"s}}
-                                                     , {"l", sdbus::Variant{std::list<double>{3.14, 2.4568546}}}
-                                                     , {"e", sdbus::Variant{my::Enum::Value2}} };
+    const std::map<std::string, sdbus::Variant> dataWritten{ {"i", sdbus::Variant{3545342}}
+                                                           , {"s", sdbus::Variant{"hello"s}}
+                                                           , {"l", sdbus::Variant{std::list<double>{3.14, 2.4568546}}}
+                                                           , {"e", sdbus::Variant{my::Enum::Value2}} };
 
     msg << dataWritten;
     msg.seal();
@@ -614,10 +622,10 @@ TEST(AMessage, FailsDeserializingDictionaryIntoUserDefinedStructIfStructMemberIs
 {
     auto msg = sdbus::createPlainMessage();
 
-    std::map<std::string, sdbus::Variant> dataWritten{ {"i", sdbus::Variant{3545342}}
-                                                     , {"nonexistent", sdbus::Variant{"hello"s}}
-                                                     , {"l", sdbus::Variant{std::list<double>{3.14, 2.4568546}}}
-                                                     , {"e", sdbus::Variant{my::Enum::Value2}} };
+    const std::map<std::string, sdbus::Variant> dataWritten{ {"i", sdbus::Variant{3545342}}
+                                                           , {"nonexistent", sdbus::Variant{"hello"s}}
+                                                           , {"l", sdbus::Variant{std::list<double>{3.14, 2.4568546}}}
+                                                           , {"e", sdbus::Variant{my::Enum::Value2}} };
 
     msg << dataWritten;
     msg.seal();
@@ -631,10 +639,10 @@ TEST(AMessage, DeserializesDictionaryIntoStructWithMissingMembersSuccessfullyIfR
 {
     auto msg = sdbus::createPlainMessage();
 
-    std::map<std::string, sdbus::Variant> dataWritten{ {"some_nonexistent_struct_member", sdbus::Variant{3545342}}
-                                                     , {"another_nonexistent_struct_member", sdbus::Variant{"hello"s}}
-                                                     , {"l", sdbus::Variant{std::list<double>{3.14, 2.4568546}}}
-                                                     , {"e", sdbus::Variant{my::Enum::Value2}} };
+    const std::map<std::string, sdbus::Variant> dataWritten{ {"some_nonexistent_struct_member", sdbus::Variant{3545342}}
+                                                           , {"another_nonexistent_struct_member", sdbus::Variant{"hello"s}}
+                                                           , {"l", sdbus::Variant{std::list<double>{3.14, 2.4568546}}}
+                                                           , {"e", sdbus::Variant{my::Enum::Value2}} };
 
     msg << dataWritten;
     msg.seal();

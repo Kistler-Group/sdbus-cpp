@@ -30,6 +30,15 @@
 #include <gmock/gmock.h>
 #include <cstdint>
 #include <type_traits>
+#include <string>
+#include <string_view>
+#include <vector>
+#include <array>
+#include <map>
+#include <unordered_map>
+#include <variant>
+#include <span>
+#include <tuple>
 
 using ::testing::Eq;
 
@@ -39,12 +48,12 @@ namespace
     // FIXTURE DEFINITION FOR TYPED TESTS
     // ----
 
-    template <typename _T>
+    template <typename>
     class Type2DBusTypeSignatureConversion
         : public ::testing::Test
     {
     protected:
-        const std::string dbusTypeSignature_{getDBusTypeSignature()};
+        std::string dbusTypeSignature_{getDBusTypeSignature()};
     private:
         static std::string getDBusTypeSignature();
     };
@@ -54,20 +63,22 @@ namespace
         A, B, C
     };
 
-    enum struct SomeEnumStruct : int64_t
+    enum struct SomeEnumStruct : int64_t // NOLINT(performance-enum-size)
     {
         A, B, C
     };
 
-    enum SomeClassicEnum
+    enum SomeClassicEnum // NOLINT(performance-enum-size)
     {
         A, B, C
     };
 
+    // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TYPE(...)                                                                       \
     template <>                                                                         \
     std::string Type2DBusTypeSignatureConversion<__VA_ARGS__>::getDBusTypeSignature()   \
     /**/
+    // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define HAS_DBUS_TYPE_SIGNATURE(_SIG)                                                   \
     {                                                                                   \
         return (_SIG);                                                                  \
@@ -132,46 +143,45 @@ namespace
                         >;
     TYPE(ComplexType)HAS_DBUS_TYPE_SIGNATURE("a{t(a{ya(oanbva{is})}ghss)}")
 
-    typedef ::testing::Types< bool
-                            , uint8_t
-                            , int16_t
-                            , uint16_t
-                            , int32_t
-                            , uint32_t
-                            , int64_t
-                            , uint64_t
-                            , double
-                            , const char*
-                            , std::string
-                            , std::string_view
-                            , sdbus::BusName
-                            , sdbus::InterfaceName
-                            , sdbus::MemberName
-                            , sdbus::ObjectPath
-                            , sdbus::Signature
-                            , sdbus::Variant
-                            , std::variant<int16_t, std::string>
-                            , sdbus::UnixFd
-                            , sdbus::Struct<bool>
-                            , sdbus::Struct<uint16_t, double, std::string, sdbus::Variant>
-                            , std::vector<int16_t>
-                            , std::array<int16_t, 3>
+    using DBusSupportedTypes = ::testing::Types< bool
+                                               , uint8_t
+                                               , int16_t
+                                               , uint16_t
+                                               , int32_t
+                                               , uint32_t
+                                               , int64_t
+                                               , uint64_t
+                                               , double
+                                               , const char*
+                                               , std::string
+                                               , std::string_view
+                                               , sdbus::BusName
+                                               , sdbus::InterfaceName
+                                               , sdbus::MemberName
+                                               , sdbus::ObjectPath
+                                               , sdbus::Signature
+                                               , sdbus::Variant
+                                               , std::variant<int16_t, std::string>
+                                               , sdbus::UnixFd
+                                               , sdbus::Struct<bool>
+                                               , sdbus::Struct<uint16_t, double, std::string, sdbus::Variant>
+                                               , std::vector<int16_t>
+                                               , std::array<int16_t, 3>
 #ifdef __cpp_lib_span
-                            , std::span<int16_t>
+                                               , std::span<int16_t>
 #endif
-                            , SomeEnumClass
-                            , const SomeEnumClass
-                            , volatile SomeEnumClass
-                            , const volatile SomeEnumClass
-                            , SomeEnumStruct
-                            , SomeClassicEnum
-                            , std::map<int32_t, int64_t>
-                            , std::unordered_map<int32_t, int64_t>
-                            , ComplexType
-                            > DBusSupportedTypes;
+                                               , SomeEnumClass
+                                               , const SomeEnumClass
+                                               , volatile SomeEnumClass
+                                               , const volatile SomeEnumClass
+                                               , SomeEnumStruct
+                                               , SomeClassicEnum
+                                               , std::map<int32_t, int64_t>
+                                               , std::unordered_map<int32_t, int64_t>
+                                               , ComplexType >;
 
     TYPED_TEST_SUITE(Type2DBusTypeSignatureConversion, DBusSupportedTypes);
-}
+} // namespace
 
 /*-------------------------------------*/
 /* --          TEST CASES           -- */
@@ -189,11 +199,11 @@ TEST(FreeFunctionTypeTraits, DetectsTraitsOfTrivialSignatureFunction)
     using Fnc = decltype(f);
 
     static_assert(!sdbus::is_async_method_v<Fnc>, "Free function incorrectly detected as async method");
-    static_assert(std::is_same<sdbus::function_arguments_t<Fnc>, std::tuple<>>::value, "Incorrectly detected free function parameters");
-    static_assert(std::is_same<sdbus::tuple_of_function_input_arg_types_t<Fnc>, std::tuple<>>::value, "Incorrectly detected tuple of free function parameters");
-    static_assert(std::is_same<sdbus::tuple_of_function_output_arg_types_t<Fnc>, void>::value, "Incorrectly detected tuple of free function return types");
+    static_assert(std::is_same_v<sdbus::function_arguments_t<Fnc>, std::tuple<>>, "Incorrectly detected free function parameters");
+    static_assert(std::is_same_v<sdbus::tuple_of_function_input_arg_types_t<Fnc>, std::tuple<>>, "Incorrectly detected tuple of free function parameters");
+    static_assert(std::is_same_v<sdbus::tuple_of_function_output_arg_types_t<Fnc>, void>, "Incorrectly detected tuple of free function return types");
     static_assert(sdbus::function_argument_count_v<Fnc> == 0, "Incorrectly detected free function parameter count");
-    static_assert(std::is_void<sdbus::function_result_t<Fnc>>::value, "Incorrectly detected free function return type");
+    static_assert(std::is_void_v<sdbus::function_result_t<Fnc>>, "Incorrectly detected free function return type");
 }
 
 TEST(FreeFunctionTypeTraits, DetectsTraitsOfNontrivialSignatureFunction)
@@ -202,11 +212,11 @@ TEST(FreeFunctionTypeTraits, DetectsTraitsOfNontrivialSignatureFunction)
     using Fnc = decltype(f);
 
     static_assert(!sdbus::is_async_method_v<Fnc>, "Free function incorrectly detected as async method");
-    static_assert(std::is_same<sdbus::function_arguments_t<Fnc>, std::tuple<double&, const char*, int>>::value, "Incorrectly detected free function parameters");
-    static_assert(std::is_same<sdbus::tuple_of_function_input_arg_types_t<Fnc>, std::tuple<double, const char*, int>>::value, "Incorrectly detected tuple of free function parameters");
-    static_assert(std::is_same<sdbus::tuple_of_function_output_arg_types_t<Fnc>, std::tuple<char, int>>::value, "Incorrectly detected tuple of free function return types");
+    static_assert(std::is_same_v<sdbus::function_arguments_t<Fnc>, std::tuple<double&, const char*, int>>, "Incorrectly detected free function parameters");
+    static_assert(std::is_same_v<sdbus::tuple_of_function_input_arg_types_t<Fnc>, std::tuple<double, const char*, int>>, "Incorrectly detected tuple of free function parameters");
+    static_assert(std::is_same_v<sdbus::tuple_of_function_output_arg_types_t<Fnc>, std::tuple<char, int>>, "Incorrectly detected tuple of free function return types");
     static_assert(sdbus::function_argument_count_v<Fnc> == 3, "Incorrectly detected free function parameter count");
-    static_assert(std::is_same<sdbus::function_result_t<Fnc>, std::tuple<char, int>>::value, "Incorrectly detected free function return type");
+    static_assert(std::is_same_v<sdbus::function_result_t<Fnc>, std::tuple<char, int>>, "Incorrectly detected free function return type");
 }
 
 TEST(FreeFunctionTypeTraits, DetectsTraitsOfAsyncFunction)
@@ -215,9 +225,9 @@ TEST(FreeFunctionTypeTraits, DetectsTraitsOfAsyncFunction)
     using Fnc = decltype(f);
 
     static_assert(sdbus::is_async_method_v<Fnc>, "Free async function incorrectly detected as sync method");
-    static_assert(std::is_same<sdbus::function_arguments_t<Fnc>, std::tuple<double&, const char*, int>>::value, "Incorrectly detected free function parameters");
-    static_assert(std::is_same<sdbus::tuple_of_function_input_arg_types_t<Fnc>, std::tuple<double, const char*, int>>::value, "Incorrectly detected tuple of free function parameters");
-    static_assert(std::is_same<sdbus::tuple_of_function_output_arg_types_t<Fnc>, std::tuple<char, int>>::value, "Incorrectly detected tuple of free function return types");
+    static_assert(std::is_same_v<sdbus::function_arguments_t<Fnc>, std::tuple<double&, const char*, int>>, "Incorrectly detected free function parameters");
+    static_assert(std::is_same_v<sdbus::tuple_of_function_input_arg_types_t<Fnc>, std::tuple<double, const char*, int>>, "Incorrectly detected tuple of free function parameters");
+    static_assert(std::is_same_v<sdbus::tuple_of_function_output_arg_types_t<Fnc>, std::tuple<char, int>>, "Incorrectly detected tuple of free function return types");
     static_assert(sdbus::function_argument_count_v<Fnc> == 3, "Incorrectly detected free function parameter count");
-    static_assert(std::is_same<sdbus::function_result_t<Fnc>, std::tuple<char, int>>::value, "Incorrectly detected free function return type");
+    static_assert(std::is_same_v<sdbus::function_result_t<Fnc>, std::tuple<char, int>>, "Incorrectly detected free function return type");
 }
