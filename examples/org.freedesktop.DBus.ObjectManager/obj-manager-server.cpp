@@ -18,6 +18,9 @@
 #include <memory>
 #include <thread>
 #include <chrono>
+#include <utility>
+#include <string>
+#include <cstdint>
 
 using sdbus::ObjectPath;
 
@@ -29,6 +32,11 @@ public:
     {
         registerAdaptor();
     }
+
+    ManagerAdaptor(const ManagerAdaptor&) = delete;
+    ManagerAdaptor& operator=(const ManagerAdaptor&) = delete;
+    ManagerAdaptor(ManagerAdaptor&&) = delete;
+    ManagerAdaptor& operator=(ManagerAdaptor&&) = delete;
 
     ~ManagerAdaptor()
     {
@@ -49,6 +57,11 @@ public:
         registerAdaptor();
         emitInterfacesAddedSignal({sdbus::InterfaceName{org::sdbuscpp::ExampleManager::Planet1_adaptor::INTERFACE_NAME}});
     }
+
+    PlanetAdaptor(const PlanetAdaptor&) = delete;
+    PlanetAdaptor& operator=(const PlanetAdaptor&) = delete;
+    PlanetAdaptor(PlanetAdaptor&&) = delete;
+    PlanetAdaptor& operator=(PlanetAdaptor&&) = delete;
 
     ~PlanetAdaptor()
     {
@@ -78,16 +91,17 @@ void printCountDown(const std::string& message, int seconds)
         std::this_thread::sleep_for(std::chrono::seconds(1));
         std::cout << i << " " << std::flush;
     }
-    std::cout << std::endl;
+    std::cout << '\n';
 }
 
 int main()
 {
     auto connection = sdbus::createSessionBusConnection();
-    sdbus::ServiceName serviceName{"org.sdbuscpp.examplemanager"};
+    const sdbus::ServiceName serviceName{"org.sdbuscpp.examplemanager"};
     connection->requestName(serviceName);
     connection->enterEventLoopAsync();
 
+    // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
     auto manager = std::make_unique<ManagerAdaptor>(*connection, ObjectPath{"/org/sdbuscpp/examplemanager"});
     while (true)
     {
