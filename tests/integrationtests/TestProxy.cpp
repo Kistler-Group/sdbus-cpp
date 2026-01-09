@@ -25,16 +25,26 @@
  */
 
 #include "TestProxy.h"
-#include <thread>
+#include <sdbus-c++/sdbus-c++.h>
+#include "Defs.h"
+#include <string>
+#include <memory>
+#include <map>
+#include <cstdint>
+#include <optional>
+#include <functional>
+#include <future>
 #include <chrono>
 #include <atomic>
+#include <utility>
+#include <vector>
 
-namespace sdbus { namespace test {
+namespace sdbus::test {
 
 TestProxy::TestProxy(ServiceName destination, ObjectPath objectPath)
     : ProxyInterfaces(std::move(destination), std::move(objectPath))
 {
-    getProxy().uponSignal("signalWithoutRegistration").onInterface(sdbus::test::INTERFACE_NAME).call([this](const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& s){ this->onSignalWithoutRegistration(s); });
+    getProxy().uponSignal("signalWithoutRegistration").onInterface(sdbus::test::INTERFACE_NAME).call([this](const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& strct){ this->onSignalWithoutRegistration(strct); });
 
     registerProxy();
 }
@@ -49,7 +59,7 @@ TestProxy::TestProxy(ServiceName destination, ObjectPath objectPath, dont_run_ev
 TestProxy::TestProxy(sdbus::IConnection& connection, ServiceName destination, ObjectPath objectPath)
     : ProxyInterfaces(connection, std::move(destination), std::move(objectPath))
 {
-    getProxy().uponSignal("signalWithoutRegistration").onInterface(sdbus::test::INTERFACE_NAME).call([this](const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& s){ this->onSignalWithoutRegistration(s); });
+    getProxy().uponSignal("signalWithoutRegistration").onInterface(sdbus::test::INTERFACE_NAME).call([this](const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& strct){ this->onSignalWithoutRegistration(strct); });
 
     registerProxy();
 }
@@ -79,17 +89,17 @@ void TestProxy::onSignalWithVariant(const sdbus::Variant& aVariant)
     m_gotSignalWithVariant = true;
 }
 
-void TestProxy::onSignalWithoutRegistration(const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& s)
+void TestProxy::onSignalWithoutRegistration(const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& strct)
 {
     // Static cast to std::string is a workaround for gcc 11.4 false positive warning (which later gcc versions nor Clang emit)
-    m_signatureFromSignal[std::get<0>(s)] = static_cast<std::string>(std::get<0>(std::get<1>(s)));
+    m_signatureFromSignal[std::get<0>(strct)] = static_cast<std::string>(std::get<0>(std::get<1>(strct)));
     m_gotSignalWithSignature = true;
 }
 
-void TestProxy::onDoOperationReply(uint32_t returnValue, std::optional<sdbus::Error> error)
+void TestProxy::onDoOperationReply(uint32_t returnValue, std::optional<sdbus::Error> error) const
 {
     if (m_DoOperationClientSideAsyncReplyHandler)
-        m_DoOperationClientSideAsyncReplyHandler(returnValue, error);
+        m_DoOperationClientSideAsyncReplyHandler(returnValue, std::move(error));
 }
 
 void TestProxy::onPropertiesChanged( const sdbus::InterfaceName& interfaceName
@@ -108,7 +118,7 @@ void TestProxy::installDoOperationClientSideAsyncReplyHandler(std::function<void
 uint32_t TestProxy::doOperationWithTimeout(const std::chrono::microseconds &timeout, uint32_t param)
 {
     using namespace std::chrono_literals;
-    uint32_t result;
+    uint32_t result = 0;
     getProxy().callMethod("doOperation").onInterface(sdbus::test::INTERFACE_NAME).withTimeout(timeout).withArguments(param).storeResultsTo(result);
     return result;
 }
@@ -201,15 +211,15 @@ void TestProxy::doOperationClientSideAsyncWithTimeout(const std::chrono::microse
 
 int32_t TestProxy::callNonexistentMethod()
 {
-    int32_t result;
+    int32_t result = 0;
     getProxy().callMethod("callNonexistentMethod").onInterface(sdbus::test::INTERFACE_NAME).storeResultsTo(result);
     return result;
 }
 
 int32_t TestProxy::callMethodOnNonexistentInterface()
 {
-    sdbus::InterfaceName nonexistentInterfaceName{"sdbuscpp.interface.that.does.not.exist"};
-    int32_t result;
+    sdbus::InterfaceName const nonexistentInterfaceName{"sdbuscpp.interface.that.does.not.exist"};
+    int32_t result = 0;
     getProxy().callMethod("someMethod").onInterface(nonexistentInterfaceName).storeResultsTo(result);
     return result;
 }
@@ -219,4 +229,4 @@ void TestProxy::setStateProperty(const std::string& value)
     getProxy().setProperty("state").onInterface(sdbus::test::INTERFACE_NAME).toValue(value);
 }
 
-}}
+} // namespace sdbus::test

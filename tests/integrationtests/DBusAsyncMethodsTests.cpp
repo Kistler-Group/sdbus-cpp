@@ -25,27 +25,30 @@
  */
 
 #include "TestFixture.h"
-#include "TestAdaptor.h"
 #include "TestProxy.h"
-#include "sdbus-c++/sdbus-c++.h"
+#include "Defs.h"
+#include <sdbus-c++/sdbus-c++.h>
 
+#include <cstdint>
+#include <exception>
+#include <atomic>
+#include <cstddef>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <optional>
+#include <mutex>
+#include <map>
 #include <string>
 #include <thread>
-#include <tuple>
 #include <chrono>
-#include <fstream>
 #include <future>
-#include <unistd.h>
+#include <utility>
+#include <vector>
 
 using ::testing::Eq;
-using ::testing::DoubleEq;
-using ::testing::Gt;
 using ::testing::Le;
 using ::testing::AnyOf;
 using ::testing::ElementsAre;
-using ::testing::SizeIs;
 using namespace std::chrono_literals;
 using namespace sdbus::test;
 
@@ -100,14 +103,14 @@ TYPED_TEST(AsyncSdbusTestObject, RunsServerSideAsynchronousMethodAsynchronously)
         ++startedCount;
         while (!invoke) ;
         auto result = proxy.doOperationAsync(param);
-        std::lock_guard<std::mutex> guard(mtx);
+        std::lock_guard<std::mutex> const guard(mtx);
         results.push_back(result);
     };
 
     std::thread invocations[]{std::thread{call, 1500}, std::thread{call, 1000}, std::thread{call, 500}};
     while (startedCount != 3) ;
     invoke = true;
-    std::for_each(std::begin(invocations), std::end(invocations), [](auto& t){ t.join(); });
+    std::for_each(std::begin(invocations), std::end(invocations), [](auto& thread){ thread.join(); });
 
     ASSERT_THAT(results, ElementsAre(500, 1000, 1500));
 }
@@ -137,7 +140,7 @@ TYPED_TEST(AsyncSdbusTestObject, HandlesCorrectlyABulkOfParallelServerSideAsyncM
     std::thread invocations[]{std::thread{call}, std::thread{call}, std::thread{call}};
     while (startedCount != 3) ;
     invoke = true;
-    std::for_each(std::begin(invocations), std::end(invocations), [](auto& t){ t.join(); });
+    std::for_each(std::begin(invocations), std::end(invocations), [](auto& thread){ thread.join(); });
 
     ASSERT_THAT(resultCount, Eq(1500));
 }
@@ -203,7 +206,7 @@ TYPED_TEST(AsyncSdbusTestObject, InvokesMethodWithLargeDataAsynchronouslyOnClien
 
 TYPED_TEST(AsyncSdbusTestObject, AnswersThatAsyncCallIsPendingIfItIsInProgress)
 {
-    this->m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t /*res*/, std::optional<sdbus::Error> /*err*/){});
+    this->m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t /*res*/, const std::optional<sdbus::Error>& /*err*/){});
 
     auto call = this->m_proxy->doOperationClientSideAsync(100);
 
@@ -214,7 +217,7 @@ TYPED_TEST(AsyncSdbusTestObject, CancelsPendingAsyncCallOnClientSide)
 {
     std::promise<uint32_t> promise;
     auto future = promise.get_future();
-    this->m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t /*res*/, std::optional<sdbus::Error> /*err*/){ promise.set_value(1); });
+    this->m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t /*res*/, const std::optional<sdbus::Error>& /*err*/){ promise.set_value(1); });
     auto call = this->m_proxy->doOperationClientSideAsync(100);
 
     call.cancel();
@@ -226,7 +229,7 @@ TYPED_TEST(AsyncSdbusTestObject, CancelsPendingAsyncCallOnClientSideByDestroying
 {
     std::promise<uint32_t> promise;
     auto future = promise.get_future();
-    this->m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t /*res*/, std::optional<sdbus::Error> /*err*/){ promise.set_value(1); });
+    this->m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t /*res*/, const std::optional<sdbus::Error>& /*err*/){ promise.set_value(1); });
 
     {
         auto slot = this->m_proxy->doOperationClientSideAsync(100, sdbus::return_slot);
@@ -239,8 +242,7 @@ TYPED_TEST(AsyncSdbusTestObject, CancelsPendingAsyncCallOnClientSideByDestroying
 TYPED_TEST(AsyncSdbusTestObject, AnswersThatAsyncCallIsNotPendingAfterItHasBeenCancelled)
 {
     std::promise<uint32_t> promise;
-    auto future = promise.get_future();
-    this->m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t /*res*/, std::optional<sdbus::Error> /*err*/){ promise.set_value(1); });
+    this->m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t /*res*/, const std::optional<sdbus::Error>& /*err*/){ promise.set_value(1); });
     auto call = this->m_proxy->doOperationClientSideAsync(100);
 
     call.cancel();
@@ -252,7 +254,7 @@ TYPED_TEST(AsyncSdbusTestObject, AnswersThatAsyncCallIsNotPendingAfterItHasBeenC
 {
     std::promise<uint32_t> promise;
     auto future = promise.get_future();
-    this->m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t /*res*/, std::optional<sdbus::Error> /*err*/){ promise.set_value(1); });
+    this->m_proxy->installDoOperationClientSideAsyncReplyHandler([&](uint32_t /*res*/, const std::optional<sdbus::Error>& /*err*/){ promise.set_value(1); });
 
     auto call = this->m_proxy->doOperationClientSideAsync(0);
     (void) future.get(); // Wait for the call to finish
@@ -262,7 +264,7 @@ TYPED_TEST(AsyncSdbusTestObject, AnswersThatAsyncCallIsNotPendingAfterItHasBeenC
 
 TYPED_TEST(AsyncSdbusTestObject, AnswersThatDefaultConstructedAsyncCallIsNotPending)
 {
-    sdbus::PendingAsyncCall call;
+    sdbus::PendingAsyncCall const call;
 
     ASSERT_FALSE(call.isPending());
 }
@@ -276,7 +278,7 @@ TYPED_TEST(AsyncSdbusTestObject, SupportsAsyncCallCopyAssignment)
     ASSERT_TRUE(call.isPending());
 }
 
-TYPED_TEST(AsyncSdbusTestObject, ReturnsNonnullErrorWhenAsynchronousMethodCallFails)
+TYPED_TEST(AsyncSdbusTestObject, ReturnsNonnullErrorWhenAsynchronousMethodCallFails) // NOLINT(readability-function-cognitive-complexity)
 {
     std::promise<uint32_t> promise;
     auto future = promise.get_future();

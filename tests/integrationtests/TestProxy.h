@@ -85,7 +85,7 @@ protected:
     void onSignalWithVariant(const sdbus::Variant& aVariant) override;
 
     void onSignalWithoutRegistration(const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& s);
-    void onDoOperationReply(uint32_t returnValue, std::optional<sdbus::Error> error);
+    void onDoOperationReply(uint32_t returnValue, std::optional<sdbus::Error> error) const;
 
     // Signals of standard D-Bus interfaces
     void onPropertiesChanged( const sdbus::InterfaceName& interfaceName
@@ -115,7 +115,7 @@ public: // for tests
     std::atomic<bool> m_gotSignalWithMap{false};
     std::map<int32_t, std::string> m_mapFromSignal;
     std::atomic<bool> m_gotSignalWithVariant{false};
-    double m_variantFromSignal;
+    double m_variantFromSignal{};
     std::atomic<bool> m_gotSignalWithSignature{false};
     std::map<std::string, Signature> m_signatureFromSignal;
 

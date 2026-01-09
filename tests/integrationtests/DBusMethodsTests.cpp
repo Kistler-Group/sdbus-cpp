@@ -25,27 +25,24 @@
  */
 
 #include "TestFixture.h"
-#include "TestAdaptor.h"
 #include "TestProxy.h"
-#include "sdbus-c++/sdbus-c++.h"
+#include "Defs.h"
+#include <sdbus-c++/sdbus-c++.h>
 
+#include <cstdint>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <map>
+#include <memory>
 #include <string>
-#include <thread>
-#include <tuple>
 #include <chrono>
-#include <fstream>
-#include <future>
-#include <unistd.h>
+#include <vector>
+#include <variant>
 
 using ::testing::Eq;
-using ::testing::DoubleEq;
 using ::testing::Gt;
 using ::testing::Le;
 using ::testing::AnyOf;
-using ::testing::ElementsAre;
-using ::testing::SizeIs;
 using ::testing::NotNull;
 using namespace std::chrono_literals;
 using namespace std::string_literals;
@@ -54,15 +51,15 @@ using namespace sdbus::test;
 namespace my {
     struct Struct
     {
-        int i;
+        int i{};
         std::string s;
         std::vector<double> l;
 
         friend bool operator==(const Struct &lhs, const Struct &rhs) = default;
     };
-}
+} // namespace my
 
-SDBUSCPP_REGISTER_STRUCT(my::Struct, i, s, l);
+SDBUSCPP_REGISTER_STRUCT(my::Struct, i, s, l); // NOLINT(readability-identifier-length)
 
 /*-------------------------------------*/
 /* --          TEST CASES           -- */
@@ -91,36 +88,36 @@ TYPED_TEST(SdbusTestObject, CallsMethodsWithTuplesSuccessfully)
 
 TYPED_TEST(SdbusTestObject, CallsMethodsWithStructSuccessfully)
 {
-    sdbus::Struct<uint8_t, int16_t, double, std::string, std::vector<int16_t>> a{};
-    auto vectorRes = this->m_proxy->getInts16FromStruct(a);
+    sdbus::Struct<uint8_t, int16_t, double, std::string, std::vector<int16_t>> const strctA{};
+    auto vectorRes = this->m_proxy->getInts16FromStruct(strctA);
     ASSERT_THAT(vectorRes, Eq(std::vector<int16_t>{0})); // because second item is by default initialized to 0
 
-    sdbus::Struct<uint8_t, int16_t, double, std::string, std::vector<int16_t>> b{
+    sdbus::Struct<uint8_t, int16_t, double, std::string, std::vector<int16_t>> const strctB{
         UINT8_VALUE, INT16_VALUE, DOUBLE_VALUE, STRING_VALUE, {INT16_VALUE, -INT16_VALUE}
     };
-    vectorRes = this->m_proxy->getInts16FromStruct(b);
+    vectorRes = this->m_proxy->getInts16FromStruct(strctB);
     ASSERT_THAT(vectorRes, Eq(std::vector<int16_t>{INT16_VALUE, INT16_VALUE, -INT16_VALUE}));
 }
 
 TYPED_TEST(SdbusTestObject, CallsMethodWithVariantSuccessfully)
 {
-    sdbus::Variant v{DOUBLE_VALUE};
-    sdbus::Variant variantRes = this->m_proxy->processVariant(v);
+    sdbus::Variant const var{DOUBLE_VALUE};
+    sdbus::Variant const variantRes = this->m_proxy->processVariant(var);
     ASSERT_THAT(variantRes.get<int32_t>(), Eq(static_cast<int32_t>(DOUBLE_VALUE)));
 }
 
 TYPED_TEST(SdbusTestObject, CallsMethodWithStdVariantSuccessfully)
 {
-    std::variant<int32_t, double, std::string> v{DOUBLE_VALUE};
-    auto variantRes = this->m_proxy->processVariant(v);
+    std::variant<int32_t, double, std::string> const var{DOUBLE_VALUE};
+    auto variantRes = this->m_proxy->processVariant(var);
     ASSERT_THAT(std::get<int32_t>(variantRes), Eq(static_cast<int32_t>(DOUBLE_VALUE)));
 }
 
 TYPED_TEST(SdbusTestObject, CallsMethodWithStructVariantsAndGetMapSuccessfully)
 {
-    std::vector<int32_t> x{-2, 0, 2};
-    sdbus::Struct<sdbus::Variant, sdbus::Variant> y{false, true};
-    std::map<int32_t, sdbus::Variant> mapOfVariants = this->m_proxy->getMapOfVariants(x, y);
+    std::vector<int32_t> const vec{-2, 0, 2};
+    sdbus::Struct<sdbus::Variant, sdbus::Variant> const strct{false, true};
+    std::map<int32_t, sdbus::Variant> mapOfVariants = this->m_proxy->getMapOfVariants(vec, strct);
     decltype(mapOfVariants) res{ {-2, sdbus::Variant{false}}
                                , {0, sdbus::Variant{false}}
                                , {2, sdbus::Variant{true}}};
@@ -352,10 +349,10 @@ TYPED_TEST(SdbusTestObject, CanCallMethodSynchronouslyWithoutAnEventLoopThread)
 TYPED_TEST(SdbusTestObject, CanRegisterAdditionalVTableDynamicallyAtAnyTime)
 {
     auto& object = this->m_adaptor->getObject();
-    sdbus::InterfaceName interfaceName{"org.sdbuscpp.integrationtests2"};
+    sdbus::InterfaceName const interfaceName{"org.sdbuscpp.integrationtests2"};
     auto vtableSlot = object.addVTable( interfaceName
-                                      , { sdbus::registerMethod("add").implementedAs([](const int64_t& a, const double& b){ return a + b; })
-                                        , sdbus::registerMethod("subtract").implementedAs([](const int& a, const int& b){ return a - b; }) }
+                                      , { sdbus::registerMethod("add").implementedAs([](const double& lhs, const double& rhs){ return lhs + rhs; })
+                                        , sdbus::registerMethod("subtract").implementedAs([](const int& lhs, const int& rhs){ return lhs - rhs; }) }
                                       , sdbus::return_slot );
 
     // The new remote vtable is registered as long as we keep vtableSlot, so remote method calls now should pass
@@ -369,11 +366,11 @@ TYPED_TEST(SdbusTestObject, CanRegisterAdditionalVTableDynamicallyAtAnyTime)
 TYPED_TEST(SdbusTestObject, CanUnregisterAdditionallyRegisteredVTableAtAnyTime)
 {
     auto& object = this->m_adaptor->getObject();
-    sdbus::InterfaceName interfaceName{"org.sdbuscpp.integrationtests2"};
+    sdbus::InterfaceName const interfaceName{"org.sdbuscpp.integrationtests2"};
 
     auto vtableSlot = object.addVTable( interfaceName
-                                      , { sdbus::registerMethod("add").implementedAs([](const int64_t& a, const double& b){ return a + b; })
-                                        , sdbus::registerMethod("subtract").implementedAs([](const int& a, const int& b){ return a - b; }) }
+                                      , { sdbus::registerMethod("add").implementedAs([](const double& lhs, const double& rhs){ return lhs + rhs; })
+                                        , sdbus::registerMethod("subtract").implementedAs([](const int& lhs, const int& rhs){ return lhs - rhs; }) }
                                       , sdbus::return_slot );
     vtableSlot.reset(); // Letting the slot go means letting go the associated vtable registration
 

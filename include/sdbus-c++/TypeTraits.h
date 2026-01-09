@@ -447,6 +447,18 @@ namespace sdbus {
         static constexpr bool has_error_param = true;
     };
 
+    template <typename... _Args>
+    struct function_traits<void(std::optional<Error>&&, _Args...)> : function_traits_base<void, _Args...>
+    {
+        static constexpr bool has_error_param = true;
+    };
+
+    template <typename... _Args>
+    struct function_traits<void(const std::optional<Error>&, _Args...)> : function_traits_base<void, _Args...>
+    {
+        static constexpr bool has_error_param = true;
+    };
+
     template <typename... _Args, typename... _Results>
     struct function_traits<void(Result<_Results...>, _Args...)> : function_traits_base<std::tuple<_Results...>, _Args...>
     {

@@ -27,19 +27,17 @@
 #include "TestFixture.h"
 #include "TestAdaptor.h"
 #include "TestProxy.h"
-#include "sdbus-c++/sdbus-c++.h"
+#include "Defs.h"
+#include <sdbus-c++/sdbus-c++.h>
 
+#include <cstdint>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <map>
 #include <string>
-#include <chrono>
 
 using ::testing::Eq;
 using ::testing::DoubleEq;
-using ::testing::Gt;
-using ::testing::AnyOf;
-using ::testing::ElementsAre;
-using ::testing::SizeIs;
 using ::testing::NotNull;
 using namespace std::chrono_literals;
 using namespace sdbus::test;
@@ -69,7 +67,7 @@ TYPED_TEST(SdbusTestObject, EmitsSimpleSignalToMultipleProxiesSuccessfully)
 
 TYPED_TEST(SdbusTestObject, ProxyDoesNotReceiveSignalFromOtherBusName)
 {
-    sdbus::ServiceName otherBusName{SERVICE_NAME + "2"};
+    sdbus::ServiceName const otherBusName{SERVICE_NAME + "2"};
     auto connection2 = sdbus::createBusConnection(otherBusName);
     auto adaptor2 = std::make_unique<TestAdaptor>(*connection2, OBJECT_PATH);
 
@@ -101,11 +99,11 @@ TYPED_TEST(SdbusTestObject, EmitsSignalWithLargeMapSuccessfully)
 
 TYPED_TEST(SdbusTestObject, EmitsSignalWithVariantSuccessfully)
 {
-    double d = 3.14;
-    this->m_adaptor->emitSignalWithVariant(sdbus::Variant{d});
+    double const val = 3.14;
+    this->m_adaptor->emitSignalWithVariant(sdbus::Variant{val});
 
     ASSERT_TRUE(waitUntil(this->m_proxy->m_gotSignalWithVariant));
-    ASSERT_THAT(this->m_proxy->m_variantFromSignal, DoubleEq(d));
+    ASSERT_THAT(this->m_proxy->m_variantFromSignal, DoubleEq(val));
 }
 
 TYPED_TEST(SdbusTestObject, EmitsSignalWithoutRegistrationSuccessfully)
