@@ -25,10 +25,13 @@
  */
 
 #include "perftests-adaptor.h"
+#include <cstddef>
+#include <cstdint>
+#include <cstdlib>
+#include <ctime>
 #include <sdbus-c++/sdbus-c++.h>
-#include <vector>
+#include <utility>
 #include <string>
-#include <thread>
 #include <chrono>
 #include <algorithm>
 #include <iostream>
@@ -46,13 +49,18 @@ public:
         registerAdaptor();
     }
 
+    PerftestAdaptor(const PerftestAdaptor&) = delete;
+    PerftestAdaptor& operator=(const PerftestAdaptor&) = delete;
+    PerftestAdaptor(PerftestAdaptor&&) = delete;
+    PerftestAdaptor& operator=(PerftestAdaptor&&) = delete;
+
     ~PerftestAdaptor()
     {
         unregisterAdaptor();
     }
 
 protected:
-    virtual void sendDataSignals(const uint32_t& numberOfSignals, const uint32_t& signalMsgSize) override
+    void sendDataSignals(const uint32_t& numberOfSignals, const uint32_t& signalMsgSize) override // NOLINT(bugprone-easily-swappable-parameters)
     {
         auto data = createRandomString(signalMsgSize);
 
@@ -63,10 +71,10 @@ protected:
             emitDataSignal(data);
         }
         auto stop_time = std::chrono::steady_clock::now();
-        std::cout << "Server sent " << numberOfSignals << " signals in: " << std::chrono::duration_cast<std::chrono::milliseconds>(stop_time - start_time).count() << " ms" << std::endl;
+        std::cout << "Server sent " << numberOfSignals << " signals in: " << std::chrono::duration_cast<std::chrono::milliseconds>(stop_time - start_time).count() << " ms" << '\n';
     }
 
-    virtual std::string concatenateTwoStrings(const std::string& string1, const std::string& string2) override
+    std::string concatenateTwoStrings(const std::string& string1, const std::string& string2) override
     {
         return string1 + string2;
     }
@@ -81,8 +89,13 @@ std::string createRandomString(size_t length)
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         "abcdefghijklmnopqrstuvwxyz";
         const size_t max_index = (sizeof(charset) - 1);
-        return charset[ rand() % max_index ];
+        return charset[ random() % max_index ];
     };
+
+    struct timespec ts{};
+    (void)timespec_get(&ts, TIME_UTC);
+    srandom(ts.tv_nsec ^ ts.tv_sec);  /* Seed the PRNG */
+
     std::string str(length, 0);
     std::generate_n(str.begin(), length, randchar);
     return str;
@@ -92,11 +105,11 @@ std::string createRandomString(size_t length)
 //-----------------------------------------
 int main(int /*argc*/, char */*argv*/[])
 {
-    sdbus::ServiceName serviceName{"org.sdbuscpp.perftests"};
+    sdbus::ServiceName const serviceName{"org.sdbuscpp.perftests"};
     auto connection = sdbus::createSystemBusConnection(serviceName);
 
     sdbus::ObjectPath objectPath{"/org/sdbuscpp/perftests"};
-    PerftestAdaptor server(*connection, std::move(objectPath));
+    PerftestAdaptor server(*connection, std::move(objectPath)); // NOLINT(misc-const-correctness)
 
     connection->enterEventLoop();
 }

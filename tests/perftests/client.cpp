@@ -25,20 +25,22 @@
  */
 
 #include "perftests-proxy.h"
+#include <cstdint>
+#include <cstddef>
+#include <cstdlib>
+#include <ctime>
 #include <sdbus-c++/sdbus-c++.h>
-#include <vector>
+#include <utility>
 #include <string>
 #include <iostream>
-#include <unistd.h>
 #include <thread>
 #include <chrono>
 #include <cassert>
 #include <algorithm>
-#include <iostream>
 
 using namespace std::chrono_literals;
 
-uint64_t totalDuration = 0;
+uint64_t totalDuration = 0; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
 class PerftestProxy final : public sdbus::ProxyInterfaces<org::sdbuscpp::perftests_proxy>
 {
@@ -49,13 +51,18 @@ public:
         registerProxy();
     }
 
+    PerftestProxy(const PerftestProxy&) = delete;
+    PerftestProxy& operator=(const PerftestProxy&) = delete;
+    PerftestProxy(PerftestProxy&&) = delete;
+    PerftestProxy& operator=(PerftestProxy&&) = delete;
+
     ~PerftestProxy()
     {
         unregisterProxy();
     }
 
 protected:
-    virtual void onDataSignal([[maybe_unused]] const std::string& data) override
+    void onDataSignal([[maybe_unused]] const std::string& data) override
     {
         static unsigned int counter = 0;
         static std::chrono::time_point<std::chrono::steady_clock> startTime;
@@ -71,7 +78,7 @@ protected:
             auto stopTime = std::chrono::steady_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
             totalDuration += duration;
-            std::cout << "Received " << m_msgCount << " signals in: " << duration << " ms" << std::endl;
+            std::cout << "Received " << m_msgCount << " signals in: " << duration << " ms" << '\n';
             counter = 0;
         }
     }
@@ -90,8 +97,13 @@ std::string createRandomString(size_t length)
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         "abcdefghijklmnopqrstuvwxyz";
         const size_t max_index = (sizeof(charset) - 1);
-        return charset[ rand() % max_index ];
+        return charset[ random() % max_index ];
     };
+
+    struct timespec ts{};
+    (void)timespec_get(&ts, TIME_UTC);
+    srandom(ts.tv_nsec ^ ts.tv_sec);  /* Seed the PRNG */
+
     std::string str(length, 0);
     std::generate_n(str.begin(), length, randchar);
     return str;
@@ -106,44 +118,44 @@ int main(int /*argc*/, char */*argv*/[])
     PerftestProxy client(std::move(destination), std::move(objectPath));
 
     const unsigned int repetitions{20};
-    unsigned int msgCount = 1000;
+    unsigned int const msgCount = 1000;
     unsigned int msgSize{};
 
     msgSize = 20;
-    std::cout << "** Measuring signals of size " << msgSize << " bytes (" << repetitions << " repetitions)..." << std::endl << std::endl;
+    std::cout << "** Measuring signals of size " << msgSize << " bytes (" << repetitions << " repetitions)..." << '\n' << '\n';
     client.m_msgCount = msgCount; client.m_msgSize = msgSize;
-    for (unsigned int r = 0; r < repetitions; ++r)
+    for (unsigned int i = 0; i < repetitions; ++i)
     {
         client.sendDataSignals(msgCount, msgSize);
 
         std::this_thread::sleep_for(1000ms);
     }
 
-    std::cout << "AVERAGE: " << (totalDuration/repetitions) << " ms" << std::endl;
+    std::cout << "AVERAGE: " << (totalDuration/repetitions) << " ms" << '\n';
     totalDuration = 0;
 
     msgSize = 1000;
-    std::cout << std::endl << "** Measuring signals of size " << msgSize << " bytes (" << repetitions << " repetitions)..." << std::endl << std::endl;
+    std::cout << '\n' << "** Measuring signals of size " << msgSize << " bytes (" << repetitions << " repetitions)..." << '\n' << '\n';
     client.m_msgCount = msgCount; client.m_msgSize = msgSize;
-    for (unsigned int r = 0; r < repetitions; ++r)
+    for (unsigned int i = 0; i < repetitions; ++i)
     {
         client.sendDataSignals(msgCount, msgSize);
 
         std::this_thread::sleep_for(1000ms);
     }
 
-    std::cout << "AVERAGE: " << (totalDuration/repetitions) << " ms" << std::endl;
+    std::cout << "AVERAGE: " << (totalDuration/repetitions) << " ms" << '\n';
     totalDuration = 0;
 
     msgSize = 20;
-    std::cout << std::endl << "** Measuring method calls of size " << msgSize << " bytes (" << repetitions << " repetitions)..." << std::endl << std::endl;
-    for (unsigned int r = 0; r < repetitions; ++r)
+    std::cout << '\n' << "** Measuring method calls of size " << msgSize << " bytes (" << repetitions << " repetitions)..." << '\n' << '\n';
+    for (unsigned int i = 0; i < repetitions; ++i)
     {
         auto str1 = createRandomString(msgSize/2);
         auto str2 = createRandomString(msgSize/2);
 
         auto startTime = std::chrono::steady_clock::now();
-        for (unsigned int i = 0; i < msgCount; i++)
+        for (unsigned int j = 0; j < msgCount; j++)
         {
             auto result = client.concatenateTwoStrings(str1, str2);
 
@@ -153,23 +165,23 @@ int main(int /*argc*/, char */*argv*/[])
         auto stopTime = std::chrono::steady_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
         totalDuration += duration;
-        std::cout << "Called " << msgCount << " methods in: " << duration << " ms" << std::endl;
+        std::cout << "Called " << msgCount << " methods in: " << duration << " ms" << '\n';
 
         std::this_thread::sleep_for(1000ms);
     }
 
-    std::cout << "AVERAGE: " << (totalDuration/repetitions) << " ms" << std::endl;
+    std::cout << "AVERAGE: " << (totalDuration/repetitions) << " ms" << '\n';
     totalDuration = 0;
 
     msgSize = 1000;
-    std::cout << std::endl << "** Measuring method calls of size " << msgSize << " bytes (" << repetitions << " repetitions)..." << std::endl << std::endl;
-    for (unsigned int r = 0; r < repetitions; ++r)
+    std::cout << '\n' << "** Measuring method calls of size " << msgSize << " bytes (" << repetitions << " repetitions)..." << '\n' << '\n';
+    for (unsigned int i = 0; i < repetitions; ++i)
     {
         auto str1 = createRandomString(msgSize/2);
         auto str2 = createRandomString(msgSize/2);
 
         auto startTime = std::chrono::steady_clock::now();
-        for (unsigned int i = 0; i < msgCount; i++)
+        for (unsigned int j = 0; j < msgCount; j++)
         {
             auto result = client.concatenateTwoStrings(str1, str2);
 
@@ -179,12 +191,12 @@ int main(int /*argc*/, char */*argv*/[])
         auto stopTime = std::chrono::steady_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
         totalDuration += duration;
-        std::cout << "Called " << msgCount << " methods in: " << duration << " ms" << std::endl;
+        std::cout << "Called " << msgCount << " methods in: " << duration << " ms" << '\n';
 
         std::this_thread::sleep_for(1000ms);
     }
 
-    std::cout << "AVERAGE: " << (totalDuration/repetitions) << " ms" << std::endl;
+    std::cout << "AVERAGE: " << (totalDuration/repetitions) << " ms" << '\n';
     totalDuration = 0;
 
     return 0;
