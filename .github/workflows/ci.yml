@@ -93,7 +93,7 @@ jobs:
           sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++ 10
       - name: configure
         run: |
-          cmake -B _build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-O0 -g" -DCMAKE_VERBOSE_MAKEFILE=ON -DSDBUSCPP_CLANG_TIDY=ON -DSDBUSCPP_BUILD_TESTS=ON -DSDBUSCPP_BUILD_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON
+          cmake -B _build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-O0 -g" -DCMAKE_VERBOSE_MAKEFILE=ON -DSDBUSCPP_CLANG_TIDY=ON -DSDBUSCPP_BUILD_TESTS=ON -DSDBUSCPP_BUILD_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON -DSDBUSCPP_BUILD_EXAMPLES=ON
       - name: make
         run: |
           cmake --build _build -j4
