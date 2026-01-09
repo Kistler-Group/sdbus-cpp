@@ -126,12 +126,12 @@ namespace sdbus::internal {
         };
 
         VTable createInternalVTable(InterfaceName interfaceName, std::vector<VTableItem> vtable);
-        void writeInterfaceFlagsToVTable(InterfaceFlagsVTableItem flags, VTable& vtable);
-        void writeMethodRecordToVTable(MethodVTableItem method, VTable& vtable);
-        void writeSignalRecordToVTable(SignalVTableItem signal, VTable& vtable);
-        void writePropertyRecordToVTable(PropertyVTableItem property, VTable& vtable);
+        static void writeInterfaceFlagsToVTable(InterfaceFlagsVTableItem flags, VTable& vtable);
+        static void writeMethodRecordToVTable(MethodVTableItem method, VTable& vtable);
+        static void writeSignalRecordToVTable(SignalVTableItem signal, VTable& vtable);
+        static void writePropertyRecordToVTable(PropertyVTableItem property, VTable& vtable);
 
-        std::vector<sd_bus_vtable> createInternalSdBusVTable(const VTable& vtable);
+        static std::vector<sd_bus_vtable> createInternalSdBusVTable(const VTable& vtable);
         static void startSdBusVTable(const Flags& interfaceFlags, std::vector<sd_bus_vtable>& vtable);
         static void writeMethodRecordToSdBusVTable(const VTable::MethodItem& method, std::vector<sd_bus_vtable>& vtable);
         static void writeSignalRecordToSdBusVTable(const VTable::SignalItem& signal, std::vector<sd_bus_vtable>& vtable);

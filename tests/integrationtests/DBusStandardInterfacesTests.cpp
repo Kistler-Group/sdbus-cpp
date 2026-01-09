@@ -26,24 +26,25 @@
 
 #include "TestFixture.h"
 #include "TestAdaptor.h"
-#include "TestProxy.h"
-#include "sdbus-c++/sdbus-c++.h"
+#include "Defs.h"
+#include "integrationtests-adaptor.h"
+#include <sdbus-c++/sdbus-c++.h>
 
+#include <exception>
+#include <cstdint>
+#include <atomic>
+#include <cstddef>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <optional>
+#include <map>
 #include <string>
-#include <thread>
-#include <tuple>
-#include <chrono>
-#include <fstream>
 #include <future>
 #include <unistd.h>
+#include <utility>
+#include <vector>
 
 using ::testing::Eq;
-using ::testing::DoubleEq;
-using ::testing::Gt;
-using ::testing::AnyOf;
-using ::testing::ElementsAre;
 using ::testing::SizeIs;
 using namespace std::chrono_literals;
 using namespace sdbus::test;
@@ -82,7 +83,7 @@ TYPED_TEST(SdbusTestObject, GetsPropertyAsynchronouslyViaPropertiesInterface)
     std::promise<std::string> promise;
     auto future = promise.get_future();
 
-    this->m_proxy->GetAsync(INTERFACE_NAME, "state", [&](std::optional<sdbus::Error> err, sdbus::Variant value)
+    this->m_proxy->GetAsync(INTERFACE_NAME, "state", [&](std::optional<sdbus::Error> err, const sdbus::Variant& value)
     {
         if (!err)
            promise.set_value(value.get<std::string>());
@@ -102,7 +103,7 @@ TYPED_TEST(SdbusTestObject, GetsPropertyAsynchronouslyViaPropertiesInterfaceWith
 
 TYPED_TEST(SdbusTestObject, SetsPropertyViaPropertiesInterface)
 {
-    uint32_t newActionValue = 2345;
+    uint32_t const newActionValue = 2345;
 
     this->m_proxy->Set(INTERFACE_NAME, "action", sdbus::Variant{newActionValue});
 
@@ -111,7 +112,7 @@ TYPED_TEST(SdbusTestObject, SetsPropertyViaPropertiesInterface)
 
 TYPED_TEST(SdbusTestObject, SetsPropertyAsynchronouslyViaPropertiesInterface)
 {
-    uint32_t newActionValue = 2346;
+    uint32_t const newActionValue = 2346;
     std::promise<void> promise;
     auto future = promise.get_future();
 
@@ -129,7 +130,7 @@ TYPED_TEST(SdbusTestObject, SetsPropertyAsynchronouslyViaPropertiesInterface)
 
 TYPED_TEST(SdbusTestObject, CancelsAsynchronousPropertySettingViaPropertiesInterface)
 {
-    uint32_t newActionValue = 2346;
+    uint32_t const newActionValue = 2346;
     std::promise<void> promise;
     auto future = promise.get_future();
 
@@ -149,7 +150,7 @@ TYPED_TEST(SdbusTestObject, CancelsAsynchronousPropertySettingViaPropertiesInter
 
 TYPED_TEST(SdbusTestObject, SetsPropertyAsynchronouslyViaPropertiesInterfaceWithFuture)
 {
-    uint32_t newActionValue = 2347;
+    uint32_t const newActionValue = 2347;
 
     auto future = this->m_proxy->SetAsync(INTERFACE_NAME, "action", sdbus::Variant{newActionValue}, sdbus::with_future);
 
@@ -222,7 +223,7 @@ TYPED_TEST(SdbusTestObject, EmitsPropertyChangedSignalForSelectedProperties)
     ASSERT_TRUE(waitUntil(signalReceived));
 }
 
-TYPED_TEST(SdbusTestObject, EmitsPropertyChangedSignalForAllProperties)
+TYPED_TEST(SdbusTestObject, EmitsPropertyChangedSignalForAllProperties) // NOLINT(readability-function-cognitive-complexity)
 {
     std::atomic<bool> signalReceived{false};
     this->m_proxy->m_onPropertiesChangedHandler = [&signalReceived]( const sdbus::InterfaceName& interfaceName
@@ -270,7 +271,7 @@ TYPED_TEST(SdbusTestObject, GetsManagedObjectsAsynchronously)
     auto future = promise.get_future();
     auto adaptor2 = std::make_unique<TestAdaptor>(*this->s_adaptorConnection, OBJECT_PATH_2);
 
-    this->m_objectManagerProxy->GetManagedObjectsAsync([&](std::optional<sdbus::Error> /*err*/, const std::map<sdbus::ObjectPath, std::map<sdbus::InterfaceName, std::map<sdbus::PropertyName, sdbus::Variant>>>& objectsInterfacesAndProperties)
+    this->m_objectManagerProxy->GetManagedObjectsAsync([&](const std::optional<sdbus::Error>& /*err*/, const std::map<sdbus::ObjectPath, std::map<sdbus::InterfaceName, std::map<sdbus::PropertyName, sdbus::Variant>>>& objectsInterfacesAndProperties)
     {
         promise.set_value(objectsInterfacesAndProperties.size());
     });
@@ -284,7 +285,7 @@ TYPED_TEST(SdbusTestObject, GetsManagedObjectsAsynchronouslyViaSlotReturningOver
     auto future = promise.get_future();
     auto adaptor2 = std::make_unique<TestAdaptor>(*this->s_adaptorConnection, OBJECT_PATH_2);
 
-    auto slot = this->m_objectManagerProxy->GetManagedObjectsAsync([&](std::optional<sdbus::Error> /*err*/, const std::map<sdbus::ObjectPath, std::map<sdbus::InterfaceName, std::map<sdbus::PropertyName, sdbus::Variant>>>& objectsInterfacesAndProperties)
+    auto slot = this->m_objectManagerProxy->GetManagedObjectsAsync([&](const std::optional<sdbus::Error>& /*err*/, const std::map<sdbus::ObjectPath, std::map<sdbus::InterfaceName, std::map<sdbus::PropertyName, sdbus::Variant>>>& objectsInterfacesAndProperties)
     {
         promise.set_value(objectsInterfacesAndProperties.size());
     }, sdbus::return_slot);
@@ -301,9 +302,10 @@ TYPED_TEST(SdbusTestObject, GetsManagedObjectsAsynchronouslyViaFutureOverload)
     ASSERT_THAT(future.get().size(), Eq(2));
 }
 
-TYPED_TEST(SdbusTestObject, EmitsInterfacesAddedSignalForSelectedObjectInterfaces)
+TYPED_TEST(SdbusTestObject, EmitsInterfacesAddedSignalForSelectedObjectInterfaces) // NOLINT(readability-function-cognitive-complexity)
 {
-    std::atomic<bool> signalReceived{false};
+    std::atomic signalReceived{false};
+    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     this->m_objectManagerProxy->m_onInterfacesAddedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
                                                                               , const std::map<sdbus::InterfaceName, std::map<sdbus::PropertyName, sdbus::Variant>>& interfacesAndProperties )
     {
@@ -334,7 +336,7 @@ TYPED_TEST(SdbusTestObject, EmitsInterfacesAddedSignalForSelectedObjectInterface
     ASSERT_TRUE(waitUntil(signalReceived));
 }
 
-TYPED_TEST(SdbusTestObject, EmitsInterfacesAddedSignalForAllObjectInterfaces)
+TYPED_TEST(SdbusTestObject, EmitsInterfacesAddedSignalForAllObjectInterfaces) // NOLINT(readability-function-cognitive-complexity)
 {
     std::atomic<bool> signalReceived{false};
     this->m_objectManagerProxy->m_onInterfacesAddedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
