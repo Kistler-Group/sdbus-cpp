@@ -130,6 +130,8 @@ endif()
 
 find_package(Threads REQUIRED)
 
+include(cmake/clang-tidy.cmake) # Static analysis with clang-tidy
+
 #-------------------------------
 # SOURCE FILES CONFIGURATION
 #-------------------------------
@@ -263,26 +265,6 @@ endif()
 if(SDBUSCPP_BUILD_DOCS)
     message(STATUS "Building with documentation")
     add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/docs")
-endif()
-
-#----------------------------------
-# STATIC ANALYSIS
-#----------------------------------
-
-if(SDBUSCPP_CLANG_TIDY)
-    message(STATUS "Building with static analysis")
-    find_program(CLANG_TIDY NAMES clang-tidy)
-    if(NOT CLANG_TIDY)
-        message(WARNING "clang-tidy not found")
-    else()
-        message(STATUS "clang-tidy found: ${CLANG_TIDY}")
-        # TODO: Check what happens if the targets don't exist
-        set_target_properties(sdbus-c++-objlib PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY}")
-        set_target_properties(sdbus-c++ PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY}")
-        set_target_properties(sdbus-c++-unit-tests PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY}")
-        #set_target_properties(sdbus-c++-integration-tests PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY}")
-        set_target_properties(sdbus-c++-stress-tests PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY}")
-    endif()
 endif()
 
 #----------------------------------
