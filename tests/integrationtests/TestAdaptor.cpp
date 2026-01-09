@@ -25,11 +25,28 @@
  */
 
 #include "TestAdaptor.h"
+#include "sdbus-c++/IConnection.h"
+#include "sdbus-c++/Types.h"
+#include "sdbus-c++/AdaptorInterfaces.h"
+#include <cstdint>
+#include "integrationtests/Defs.h"
+#include <string>
+#include <map>
+#include <array>
+#include <memory>
+#include "sdbus-c++/Message.h"
+#include "sdbus-c++/MethodResult.h"
+#include "sdbus-c++/Error.h"
 #include <thread>
 #include <chrono>
 #include <atomic>
+#include <utility>
+#include <tuple>
+#include <vector>
+#include <variant>
+#include <unordered_map>
 
-namespace sdbus { namespace test {
+namespace sdbus::test {
 
 TestAdaptor::TestAdaptor(sdbus::IConnection& connection, sdbus::ObjectPath path) :
     AdaptorInterfaces(connection, std::move(path))
@@ -56,37 +73,37 @@ std::tuple<uint32_t, std::string> TestAdaptor::getTuple()
     return std::make_tuple(UINT32_VALUE, STRING_VALUE);
 }
 
-double TestAdaptor::multiply(const int64_t& a, const double& b)
+double TestAdaptor::multiply(const int64_t& lhs, const double& rhs)
 {
-    return a * b;
+    return lhs * rhs; // NOLINT(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
 }
 
-void TestAdaptor::multiplyWithNoReply(const int64_t& a, const double& b)
+void TestAdaptor::multiplyWithNoReply(const int64_t& lhs, const double& rhs)
 {
-    m_multiplyResult = a * b;
+    m_multiplyResult = lhs * rhs; // NOLINT(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
     m_wasMultiplyCalled = true;
 }
 
-std::vector<int16_t> TestAdaptor::getInts16FromStruct(const sdbus::Struct<uint8_t, int16_t, double, std::string, std::vector<int16_t>>& x)
+std::vector<int16_t> TestAdaptor::getInts16FromStruct(const sdbus::Struct<uint8_t, int16_t, double, std::string, std::vector<int16_t>>& strct)
 {
-    std::vector<int16_t> res{x.get<1>()};
-    auto y = std::get<std::vector<int16_t>>(x);
-    res.insert(res.end(), y.begin(), y.end());
+    std::vector res{strct.get<1>()};
+    auto vec = std::get<std::vector<int16_t>>(strct);
+    res.insert(res.end(), vec.begin(), vec.end());
     return res;
 }
 
-sdbus::Variant TestAdaptor::processVariant(const std::variant<int32_t, double, std::string>& v)
+sdbus::Variant TestAdaptor::processVariant(const std::variant<int32_t, double, std::string>& var)
 {
-    sdbus::Variant res{static_cast<int32_t>(std::get<double>(v))};
+    sdbus::Variant res{static_cast<int32_t>(std::get<double>(var))};
     return res;
 }
 
-std::map<int32_t, sdbus::Variant> TestAdaptor::getMapOfVariants(const std::vector<int32_t>& x, const sdbus::Struct<sdbus::Variant, sdbus::Variant>& y)
+std::map<int32_t, sdbus::Variant> TestAdaptor::getMapOfVariants(const std::vector<int32_t>& vec, const sdbus::Struct<sdbus::Variant, sdbus::Variant>& strct)
 {
     std::map<int32_t, sdbus::Variant> res;
-    for (auto item : x)
+    for (auto item : vec)
     {
-        res[item] = (item <= 0) ? std::get<0>(y) : std::get<1>(y);
+        res[item] = (item <= 0) ? std::get<0>(strct) : std::get<1>(strct);
     }
     return res;
 }
@@ -96,24 +113,24 @@ sdbus::Struct<std::string, sdbus::Struct<std::map<int32_t, int32_t>>> TestAdapto
     return sdbus::Struct{STRING_VALUE, sdbus::Struct{std::map<int32_t, int32_t>{{INT32_VALUE, INT32_VALUE}}}};
 }
 
-int32_t TestAdaptor::sumStructItems(const sdbus::Struct<uint8_t, uint16_t>& a, const sdbus::Struct<int32_t, int64_t>& b)
+int32_t TestAdaptor::sumStructItems(const sdbus::Struct<uint8_t, uint16_t>& strctA, const sdbus::Struct<int32_t, int64_t>& strctB)
 {
     int32_t res{0};
-    res += std::get<0>(a) + std::get<1>(a);
-    res += std::get<0>(b) + std::get<1>(b);
+    res += std::get<0>(strctA) + std::get<1>(strctA);
+    res += std::get<0>(strctB) + std::get<1>(strctB); // NOLINT(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
     return res;
 }
 
-uint32_t TestAdaptor::sumArrayItems(const std::vector<uint16_t>& a, const std::array<uint64_t, 3>& b)
+uint32_t TestAdaptor::sumArrayItems(const std::vector<uint16_t>& vec, const std::array<uint64_t, 3>& arr)
 {
     uint32_t res{0};
-    for (auto x : a)
+    for (auto elem : vec)
     {
-        res += x;
+        res += elem;
     }
-    for (auto x : b)
+    for (auto elem : arr)
     {
-        res += x;
+        res += elem;
     }
     return res;
 }
@@ -289,12 +306,12 @@ void TestAdaptor::blocking(const bool& value)
     m_blocking = value;
 }
 
-void TestAdaptor::emitSignalWithoutRegistration(const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& s)
+void TestAdaptor::emitSignalWithoutRegistration(const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& strct)
 {
-    getObject().emitSignal("signalWithoutRegistration").onInterface(sdbus::test::INTERFACE_NAME).withArguments(s);
+    getObject().emitSignal("signalWithoutRegistration").onInterface(sdbus::test::INTERFACE_NAME).withArguments(strct);
 }
 
-std::string TestAdaptor::getExpectedXmlApiDescription() const
+std::string TestAdaptor::getExpectedXmlApiDescription() 
 {
     return
 R"delimiter(<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
@@ -472,4 +489,4 @@ R"delimiter(
 )delimiter";
 }
 
-}}
+} // namespace sdbus::test

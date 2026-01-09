@@ -18,6 +18,7 @@ Checks: "*,\
          -readability-named-parameter,\
          -bugprone-macro-parentheses,\
          -google-readability-todo,\
+         -google-build-using-namespace,\
          -cppcoreguidelines-pro-type-reinterpret-cast,\
          -cppcoreguidelines-pro-bounds-array-to-pointer-decay,\
          -hicpp-no-array-decay,\
@@ -42,7 +43,7 @@ CheckOptions:
   - key:             hicpp-special-member-functions.AllowSoleDefaultDtor
     value:           '1'
   - key:             readability-identifier-length.IgnoredVariableNames
-    value:           'r|fd|id|ok|it|ts'
+    value:           'r|t|fd|id|ok|it|ts'
   - key:             readability-identifier-length.IgnoredParameterNames
     value:           'fd|id|b'
   - key:             performance-move-const-arg.CheckTriviallyCopyableMove
@@ -50,7 +51,7 @@ CheckOptions:
   - key:             hicpp-move-const-arg.CheckTriviallyCopyableMove
     value:           '0'
   - key:             misc-include-cleaner.IgnoreHeaders
-    value:           'systemd/.*|gtest/.*|gmock/.*|bits/chrono.h|bits/basic_string.h|time.h|poll.h|stdlib.h'
+    value:           'systemd/.*|sdbus-c\+\+/.*|gtest/.*|gmock/.*|bits/chrono.h|bits/basic_string.h|time.h|poll.h|stdlib.h'
   - key:             readability-simplify-boolean-expr.IgnoreMacros
     value:           '1'
   - key:             cppcoreguidelines-rvalue-reference-param-not-moved.IgnoreUnnamedParams
