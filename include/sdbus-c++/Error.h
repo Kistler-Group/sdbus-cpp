@@ -1,6 +1,6 @@
 /**
  * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
- * (C) 2016 - 2024 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
+ * (C) 2016 - 2026 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
  * @file Error.h
  *
@@ -27,7 +27,7 @@
 #ifndef SDBUS_CXX_ERROR_H_
 #define SDBUS_CXX_ERROR_H_
 
-#include <errno.h>
+#include <cerrno>
 #include <stdexcept>
 #include <string>
 
@@ -93,8 +93,9 @@ namespace sdbus {
     Error createError(int errNo, std::string customMsg = {});
 
     inline const Error::Name SDBUSCPP_ERROR_NAME{"org.sdbuscpp.Error"};
-}
+} // namespace sdbus
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define SDBUS_THROW_ERROR(_MSG, _ERRNO)                         \
     throw sdbus::createError((_ERRNO), (_MSG))                  \
     /**/
