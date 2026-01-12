@@ -35,7 +35,7 @@
 #include <future>
 #include <memory>
 
-namespace sdbus { namespace test {
+namespace sdbus::test {
 
 class ObjectManagerTestProxy final : public sdbus::ProxyInterfaces< sdbus::ObjectManager_proxy >
 {
@@ -45,6 +45,11 @@ public:
     {
         registerProxy();
     }
+
+    ObjectManagerTestProxy(const ObjectManagerTestProxy&) = delete;
+    ObjectManagerTestProxy& operator=(const ObjectManagerTestProxy&) = delete;
+    ObjectManagerTestProxy(ObjectManagerTestProxy&&) = delete;
+    ObjectManagerTestProxy& operator=(ObjectManagerTestProxy&&) = delete;
 
     ~ObjectManagerTestProxy()
     {
@@ -77,6 +82,10 @@ public:
     TestProxy(ServiceName destination, ObjectPath objectPath);
     TestProxy(ServiceName destination, ObjectPath objectPath, dont_run_event_loop_thread_t);
     TestProxy(sdbus::IConnection& connection, ServiceName destination, ObjectPath objectPath);
+    TestProxy(const TestProxy&) = delete;
+    TestProxy& operator=(const TestProxy&) = delete;
+    TestProxy(TestProxy&&) = delete;
+    TestProxy& operator=(TestProxy&&) = delete;
     ~TestProxy();
 
 protected:
@@ -84,7 +93,7 @@ protected:
     void onSignalWithMap(const std::map<int32_t, std::string>& aMap) override;
     void onSignalWithVariant(const sdbus::Variant& aVariant) override;
 
-    void onSignalWithoutRegistration(const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& s);
+    void onSignalWithoutRegistration(const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& strct);
     void onDoOperationReply(uint32_t returnValue, std::optional<sdbus::Error> error) const;
 
     // Signals of standard D-Bus interfaces
@@ -108,8 +117,7 @@ public:
     int32_t callMethodOnNonexistentInterface();
     void setStateProperty(const std::string& value);
 
-//private:
-public: // for tests
+//private: (Kept public for tests)
     int m_SimpleSignals = 0;
     std::atomic<bool> m_gotSimpleSignal{false};
     std::atomic<bool> m_gotSignalWithMap{false};
@@ -134,7 +142,7 @@ class DummyTestProxy final : public sdbus::ProxyInterfaces< org::sdbuscpp::integ
 {
 public:
     DummyTestProxy(ServiceName destination, ObjectPath objectPath)
-        : ProxyInterfaces(destination, objectPath)
+        : ProxyInterfaces(std::move(destination), std::move(objectPath))
     {
     }
 
@@ -144,12 +152,12 @@ protected:
     void onSignalWithVariant(const sdbus::Variant&) override {}
 
     void onSignalWithoutRegistration(const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>&) {}
-    void onDoOperationReply(uint32_t, std::optional<sdbus::Error>) {}
+    void onDoOperationReply(uint32_t, const std::optional<sdbus::Error>&) {}
 
     // Signals of standard D-Bus interfaces
     void onPropertiesChanged(const InterfaceName&, const std::map<PropertyName, sdbus::Variant>&, const std::vector<PropertyName>&) override {}
 };
 
-}}
+} // namespace sdbus::test
 
 #endif /* SDBUS_CPP_INTEGRATIONTESTS_TESTPROXY_H_ */

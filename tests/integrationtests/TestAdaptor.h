@@ -35,7 +35,7 @@
 #include <utility>
 #include <memory>
 
-namespace sdbus { namespace test {
+namespace sdbus::test {
 
 class ObjectManagerTestAdaptor final : public sdbus::AdaptorInterfaces< sdbus::ObjectManager_adaptor >
 {
@@ -45,6 +45,11 @@ public:
     {
         registerAdaptor();
     }
+
+    ObjectManagerTestAdaptor(const ObjectManagerTestAdaptor&) = delete;
+    ObjectManagerTestAdaptor& operator=(const ObjectManagerTestAdaptor&) = delete;
+    ObjectManagerTestAdaptor(ObjectManagerTestAdaptor&&) = delete;
+    ObjectManagerTestAdaptor& operator=(ObjectManagerTestAdaptor&&) = delete;
 
     ~ObjectManagerTestAdaptor()
     {
@@ -58,6 +63,10 @@ class TestAdaptor final : public sdbus::AdaptorInterfaces< org::sdbuscpp::integr
 {
 public:
     TestAdaptor(sdbus::IConnection& connection, sdbus::ObjectPath path);
+    TestAdaptor(const TestAdaptor&) = delete;
+    TestAdaptor& operator=(const TestAdaptor&) = delete;
+    TestAdaptor(TestAdaptor&&) = delete;
+    TestAdaptor& operator=(TestAdaptor&&) = delete;
     ~TestAdaptor();
 
 protected:
@@ -96,7 +105,7 @@ protected:
     std::string state() override;
 
 public:
-    void emitSignalWithoutRegistration(const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& s);
+    void emitSignalWithoutRegistration(const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& strct);
     static std::string getExpectedXmlApiDescription() ;
 
 private:
@@ -162,6 +171,6 @@ protected:
     std::string state() override { return {}; }
 };
 
-}}
+} // namespace sdbus::test
 
 #endif /* INTEGRATIONTESTS_TESTADAPTOR_H_ */

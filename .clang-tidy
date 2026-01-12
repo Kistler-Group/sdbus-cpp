@@ -13,7 +13,9 @@ Checks: "*,\
          -hicpp-braces-around-statements,\
          -hicpp-signed-bitwise,\
          -llvm-include-order,\
+         -llvm-header-guard,\
          -google-runtime-int,\
+         -google-default-arguments,\
          -hicpp-named-parameter,\
          -readability-named-parameter,\
          -bugprone-macro-parentheses,\
@@ -24,9 +26,11 @@ Checks: "*,\
          -hicpp-no-array-decay,\
          -cppcoreguidelines-avoid-c-arrays,\
          -hicpp-avoid-c-arrays,\
+         -cppcoreguidelines-non-private-member-variables-in-classes,\
+         -misc-non-private-member-variables-in-classes,\
          -modernize-avoid-c-arrays"
 
-HeaderFilterRegex: 'src|sdbus-c++'
+HeaderFilterRegex: '.*'
 FormatStyle: file
 WarningsAsErrors: "*"
 CheckOptions:

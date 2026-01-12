@@ -35,7 +35,7 @@
 // Forward declarations
 namespace sdbus {
     class IConnection;
-}
+} // namespace sdbus
 
 namespace sdbus {
 
@@ -51,19 +51,19 @@ namespace sdbus {
     class ProxyObjectHolder
     {
     protected:
-        ProxyObjectHolder(std::unique_ptr<IProxy>&& proxy)
+        explicit ProxyObjectHolder(std::unique_ptr<IProxy>&& proxy)
             : proxy_(std::move(proxy))
         {
             assert(proxy_ != nullptr);
         }
 
-        const IProxy& getProxy() const
+        [[nodiscard]] const IProxy& getProxy() const
         {
             assert(proxy_ != nullptr);
             return *proxy_;
         }
 
-        IProxy& getProxy()
+        [[nodiscard]] IProxy& getProxy()
         {
             assert(proxy_ != nullptr);
             return *proxy_;
@@ -89,12 +89,17 @@ namespace sdbus {
      * so that the signals are subscribed to and unsubscribed from at a proper time.
      *
      ***********************************************/
-    template <typename... _Interfaces>
+    template <typename... Interfaces>
     class ProxyInterfaces
         : protected ProxyObjectHolder
-        , public _Interfaces...
+        , public Interfaces...
     {
     public:
+        ProxyInterfaces(const ProxyInterfaces&) = delete;
+        ProxyInterfaces& operator=(const ProxyInterfaces&) = delete;
+        ProxyInterfaces(ProxyInterfaces&&) = delete;
+        ProxyInterfaces& operator=(ProxyInterfaces&&) = delete;
+
         /*!
          * @brief Creates native-like proxy object instance
          *
@@ -106,7 +111,7 @@ namespace sdbus {
          */
         ProxyInterfaces(ServiceName destination, ObjectPath objectPath)
             : ProxyObjectHolder(createProxy(std::move(destination), std::move(objectPath)))
-            , _Interfaces(getProxy())...
+            , Interfaces(getProxy())...
         {
         }
 
@@ -121,7 +126,7 @@ namespace sdbus {
          */
         ProxyInterfaces(ServiceName destination, ObjectPath objectPath, dont_run_event_loop_thread_t)
             : ProxyObjectHolder(createProxy(std::move(destination), std::move(objectPath), dont_run_event_loop_thread))
-            , _Interfaces(getProxy())...
+            , Interfaces(getProxy())...
         {
         }
 
@@ -137,7 +142,7 @@ namespace sdbus {
          */
         ProxyInterfaces(IConnection& connection, ServiceName destination, ObjectPath objectPath)
             : ProxyObjectHolder(createProxy(connection, std::move(destination), std::move(objectPath)))
-            , _Interfaces(getProxy())...
+            , Interfaces(getProxy())...
         {
         }
 
@@ -153,7 +158,7 @@ namespace sdbus {
          */
         ProxyInterfaces(std::unique_ptr<sdbus::IConnection>&& connection, ServiceName destination, ObjectPath objectPath)
             : ProxyObjectHolder(createProxy(std::move(connection), std::move(destination), std::move(objectPath)))
-            , _Interfaces(getProxy())...
+            , Interfaces(getProxy())...
         {
         }
 
@@ -168,8 +173,8 @@ namespace sdbus {
          * For more information on its behavior, consult @ref createProxy(std::unique_ptr<sdbus::IConnection>&&,std::string,std::string,sdbus::dont_run_event_loop_thread_t)
          */
         ProxyInterfaces(std::unique_ptr<sdbus::IConnection>&& connection, ServiceName destination, ObjectPath objectPath, dont_run_event_loop_thread_t)
-                : ProxyObjectHolder(createProxy(std::move(connection), std::move(destination), std::move(objectPath), dont_run_event_loop_thread))
-                , _Interfaces(getProxy())...
+            : ProxyObjectHolder(createProxy(std::move(connection), std::move(destination), std::move(objectPath), dont_run_event_loop_thread))
+            , Interfaces(getProxy())...
         {
         }
 
@@ -182,7 +187,7 @@ namespace sdbus {
          */
         void registerProxy()
         {
-            (_Interfaces::registerProxy(), ...);
+            (Interfaces::registerProxy(), ...);
         }
 
         /*!
@@ -205,13 +210,9 @@ namespace sdbus {
     protected:
         using base_type = ProxyInterfaces;
 
-        ProxyInterfaces(const ProxyInterfaces&) = delete;
-        ProxyInterfaces& operator=(const ProxyInterfaces&) = delete;
-        ProxyInterfaces(ProxyInterfaces&&) = delete;
-        ProxyInterfaces& operator=(ProxyInterfaces&&) = delete;
         ~ProxyInterfaces() = default;
     };
 
-}
+} // namespace sdbus
 
 #endif /* SDBUS_CXX_INTERFACES_H_ */

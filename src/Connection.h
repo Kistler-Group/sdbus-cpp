@@ -52,33 +52,33 @@ namespace sdbus {
     using MethodName = MemberName;
     using SignalName = MemberName;
     using PropertyName = MemberName;
-}
+} // namespace sdbus
 
 namespace sdbus::internal {
 
     class Connection final
-        : public sdbus::internal::IConnection
+        : public IConnection
     {
     public:
         // Bus type tags
         struct default_bus_t{};
-        inline static constexpr default_bus_t default_bus{};
+        static constexpr default_bus_t default_bus{};
         struct system_bus_t{};
-        inline static constexpr system_bus_t system_bus{};
+        static constexpr system_bus_t system_bus{};
         struct session_bus_t{};
-        inline static constexpr session_bus_t session_bus{};
+        static constexpr session_bus_t session_bus{};
         struct custom_session_bus_t{};
-        inline static constexpr custom_session_bus_t custom_session_bus{};
+        static constexpr custom_session_bus_t custom_session_bus{};
         struct remote_system_bus_t{};
-        inline static constexpr remote_system_bus_t remote_system_bus{};
+        static constexpr remote_system_bus_t remote_system_bus{};
         struct private_bus_t{};
-        inline static constexpr private_bus_t private_bus{};
+        static constexpr private_bus_t private_bus{};
         struct server_bus_t{};
-        inline static constexpr server_bus_t server_bus{};
+        static constexpr server_bus_t server_bus{};
         struct sdbus_bus_t{}; // A bus connection created directly from existing sd_bus instance
-        inline static constexpr sdbus_bus_t sdbus_bus{};
+        static constexpr sdbus_bus_t sdbus_bus{};
         struct pseudo_bus_t{}; // A bus connection that is not really established with D-Bus daemon
-        inline static constexpr pseudo_bus_t pseudo_bus{};
+        static constexpr pseudo_bus_t pseudo_bus{};
 
         Connection(std::unique_ptr<ISdBus>&& interface, default_bus_t);
         Connection(std::unique_ptr<ISdBus>&& interface, system_bus_t);
@@ -90,6 +90,10 @@ namespace sdbus::internal {
         Connection(std::unique_ptr<ISdBus>&& interface, server_bus_t, int fd);
         Connection(std::unique_ptr<ISdBus>&& interface, sdbus_bus_t, sd_bus *bus);
         Connection(std::unique_ptr<ISdBus>&& interface, pseudo_bus_t);
+        Connection(const Connection&) = delete;
+        Connection& operator=(const Connection&) = delete;
+        Connection(Connection&&) = delete;
+        Connection& operator=(Connection&&) = delete;
         ~Connection() override;
 
         void requestName(const ServiceName & name) override;
@@ -200,7 +204,7 @@ namespace sdbus::internal {
         static int sdbus_match_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
         static int sdbus_match_install_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
 
-    private:
+    
 #ifndef SDBUS_basu // sd_event integration is not supported if instead of libsystemd we are based on basu
         static Slot createSdEventSlot(sd_event *event);
         Slot createSdTimeEventSourceSlot(sd_event *event, int priority);
@@ -217,9 +221,13 @@ namespace sdbus::internal {
         struct EventFd
         {
             EventFd();
+            EventFd(const EventFd&) = delete;
+            EventFd& operator=(const EventFd&) = delete;
+            EventFd(EventFd&&) = delete;
+            EventFd& operator=(EventFd&&) = delete;
             ~EventFd();
-            void notify() const;
-            bool clear() const;
+            void notify();
+            bool clear();
 
             int fd{-1};
         };
@@ -228,7 +236,7 @@ namespace sdbus::internal {
         {
             message_handler callback;
             message_handler installCallback;
-            Connection& connection;
+            Connection& connection; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
             Slot slot;
         };
 
@@ -241,7 +249,6 @@ namespace sdbus::internal {
             Slot sdInternalEventSource;
         };
 
-    private:
         std::unique_ptr<ISdBus> sdbus_;
         BusPtr bus_;
         std::thread asyncLoopThread_;
@@ -251,6 +258,6 @@ namespace sdbus::internal {
         std::unique_ptr<SdEvent> sdEvent_; // Integration of systemd sd-event event loop implementation
     };
 
-}
+} // namespace sdbus::internal
 
 #endif /* SDBUS_CXX_INTERNAL_CONNECTION_H_ */

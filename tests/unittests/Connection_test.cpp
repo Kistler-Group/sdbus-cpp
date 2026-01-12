@@ -28,14 +28,13 @@
 #include "Connection.h"
 #include "sdbus-c++/Error.h"
 #include "sdbus-c++/Types.h"
-#include "unittests/mocks/SdBusMock.h"
+#include "mocks/SdBusMock.h"
 
 #include <gtest/gtest.h> // IWYU pragma: export
 #include <cerrno>
 #include <memory>
 #include <utility>
 
-// NOLINTBEGIN(cppcoreguidelines-non-private-member-variables-in-classes,misc-non-private-member-variables-in-classes)
 // NOLINTBEGIN(bugprone-reserved-identifier,cert-dcl37-c,cert-dcl51-cpp)
 
 using ::testing::_;
@@ -187,10 +186,10 @@ template<> void AConnectionNameRequest<Connection::pseudo_bus_t>::setUpBusOpenEx
     // `sd_bus_start` for pseudo connection shall return an error value, remember this is a fake connection...
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_start(fakeBusPtr_)).WillOnce(Return(-EINVAL));
 }
-template <typename _BusTypeTag>
-std::unique_ptr<Connection> AConnectionNameRequest<_BusTypeTag>::makeConnection()
+template <typename BusTypeTag>
+std::unique_ptr<Connection> AConnectionNameRequest<BusTypeTag>::makeConnection()
 {
-    return std::make_unique<Connection>(std::unique_ptr<NiceMock<SdBusMock>>(sdBusIntfMock_), _BusTypeTag{});
+    return std::make_unique<Connection>(std::unique_ptr<NiceMock<SdBusMock>>(sdBusIntfMock_), BusTypeTag{});
 }
 template<> std::unique_ptr<Connection> AConnectionNameRequest<Connection::custom_session_bus_t>::makeConnection()
 {
@@ -230,4 +229,3 @@ TYPED_TEST(AConnectionNameRequest, ThrowsOnFail)
 }
 
 // NOLINTEND(bugprone-reserved-identifier,cert-dcl37-c,cert-dcl51-cpp)
-// NOLINTEND(cppcoreguidelines-non-private-member-variables-in-classes,misc-non-private-member-variables-in-classes)

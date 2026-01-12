@@ -937,14 +937,14 @@ Connection::EventFd::~EventFd()
     close(fd);
 }
 
-void Connection::EventFd::notify() const
+void Connection::EventFd::notify() // NOLINT(readability-make-member-function-const)
 {
     assert(fd >= 0);
     auto r = eventfd_write(fd, 1);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to notify event descriptor", -errno);
 }
 
-bool Connection::EventFd::clear() const
+bool Connection::EventFd::clear() // NOLINT(readability-make-member-function-const)
 {
     assert(fd >= 0);
 

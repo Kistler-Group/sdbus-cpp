@@ -54,6 +54,7 @@ set(UNITTESTS_SRCS
     ${UNITTESTS_SOURCE_DIR}/mocks/SdBusMock.h)
 
 set(INTEGRATIONTESTS_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/integrationtests)
+set(INTEGRATIONTESTS_GENERATED_DIR ${INTEGRATIONTESTS_SOURCE_DIR}/dbus-api/gen-cpp)
 set(INTEGRATIONTESTS_SRCS
     ${INTEGRATIONTESTS_SOURCE_DIR}/DBusConnectionTests.cpp
     ${INTEGRATIONTESTS_SOURCE_DIR}/DBusGeneralTests.cpp
@@ -63,39 +64,35 @@ set(INTEGRATIONTESTS_SRCS
     ${INTEGRATIONTESTS_SOURCE_DIR}/DBusPropertiesTests.cpp
     ${INTEGRATIONTESTS_SOURCE_DIR}/DBusStandardInterfacesTests.cpp
     ${INTEGRATIONTESTS_SOURCE_DIR}/Defs.h
-    ${INTEGRATIONTESTS_SOURCE_DIR}/integrationtests-adaptor.h
-    ${INTEGRATIONTESTS_SOURCE_DIR}/integrationtests-proxy.h
     ${INTEGRATIONTESTS_SOURCE_DIR}/TestFixture.h
     ${INTEGRATIONTESTS_SOURCE_DIR}/TestFixture.cpp
     ${INTEGRATIONTESTS_SOURCE_DIR}/TestAdaptor.h
     ${INTEGRATIONTESTS_SOURCE_DIR}/TestAdaptor.cpp
     ${INTEGRATIONTESTS_SOURCE_DIR}/TestProxy.h
     ${INTEGRATIONTESTS_SOURCE_DIR}/TestProxy.cpp
-    ${INTEGRATIONTESTS_SOURCE_DIR}/sdbus-c++-integration-tests.cpp)
+    ${INTEGRATIONTESTS_SOURCE_DIR}/sdbus-c++-integration-tests.cpp
+    ${INTEGRATIONTESTS_GENERATED_DIR}/integrationtests-adaptor.h
+    ${INTEGRATIONTESTS_GENERATED_DIR}/integrationtests-proxy.h)
 
 set(PERFTESTS_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/perftests)
-set(STRESSTESTS_CLIENT_SRCS
+set(PERFTESTS_GENERATED_DIR ${PERFTESTS_SOURCE_DIR}/dbus-api/gen-cpp)
+set(PERFTESTS_CLIENT_SRCS
     ${PERFTESTS_SOURCE_DIR}/client.cpp
-    ${PERFTESTS_SOURCE_DIR}/perftests-proxy.h)
-set(STRESSTESTS_SERVER_SRCS
+    ${PERFTESTS_GENERATED_DIR}/perftests-proxy.h)
+set(PERFTESTS_SERVER_SRCS
     ${PERFTESTS_SOURCE_DIR}/server.cpp
-    ${PERFTESTS_SOURCE_DIR}/perftests-adaptor.h)
+    ${PERFTESTS_GENERATED_DIR}/perftests-adaptor.h)
 
 set(STRESSTESTS_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/stresstests)
+set(STRESSTESTS_GENERATED_DIR ${STRESSTESTS_SOURCE_DIR}/dbus-api/gen-cpp)
 set(STRESSTESTS_SRCS
     ${STRESSTESTS_SOURCE_DIR}/sdbus-c++-stress-tests.cpp
-    ${STRESSTESTS_SOURCE_DIR}/fahrenheit-thermometer-adaptor.h
-    ${STRESSTESTS_SOURCE_DIR}/fahrenheit-thermometer-proxy.h
-    ${STRESSTESTS_SOURCE_DIR}/celsius-thermometer-adaptor.h
-    ${STRESSTESTS_SOURCE_DIR}/celsius-thermometer-proxy.h
-    ${STRESSTESTS_SOURCE_DIR}/concatenator-adaptor.h
-    ${STRESSTESTS_SOURCE_DIR}/concatenator-proxy.h)
-
-#-------------------------------
-# GENERAL COMPILER CONFIGURATION
-#-------------------------------
-
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+    ${STRESSTESTS_GENERATED_DIR}/fahrenheit-thermometer-adaptor.h
+    ${STRESSTESTS_GENERATED_DIR}/fahrenheit-thermometer-proxy.h
+    ${STRESSTESTS_GENERATED_DIR}/celsius-thermometer-adaptor.h
+    ${STRESSTESTS_GENERATED_DIR}/celsius-thermometer-proxy.h
+    ${STRESSTESTS_GENERATED_DIR}/concatenator-adaptor.h
+    ${STRESSTESTS_GENERATED_DIR}/concatenator-proxy.h)
 
 #----------------------------------
 # BUILD INFORMATION
@@ -112,6 +109,7 @@ add_executable(sdbus-c++-integration-tests ${INTEGRATIONTESTS_SRCS})
 target_compile_definitions(sdbus-c++-integration-tests PRIVATE
     LIBSYSTEMD_VERSION=${SDBUSCPP_LIBSYSTEMD_VERSION}
     SDBUS_${SDBUS_IMPL})
+target_include_directories(sdbus-c++-integration-tests SYSTEM PRIVATE ${INTEGRATIONTESTS_GENERATED_DIR})
 if(NOT SDBUS_IMPL STREQUAL "basu")
     # Systemd::Libsystemd is included because integration tests use sd-event. Otherwise sdbus-c++ encapsulates and hides libsystemd.
     target_link_libraries(sdbus-c++-integration-tests sdbus-c++ Systemd::Libsystemd GTest::gmock)
@@ -126,15 +124,18 @@ if(SDBUSCPP_BUILD_PERF_TESTS OR SDBUSCPP_BUILD_STRESS_TESTS)
 
     if(SDBUSCPP_BUILD_PERF_TESTS)
         message(STATUS "Building with performance tests")
-        add_executable(sdbus-c++-perf-tests-client ${STRESSTESTS_CLIENT_SRCS})
+        add_executable(sdbus-c++-perf-tests-client ${PERFTESTS_CLIENT_SRCS})
+        target_include_directories(sdbus-c++-perf-tests-client SYSTEM PRIVATE ${PERFTESTS_GENERATED_DIR})
         target_link_libraries(sdbus-c++-perf-tests-client sdbus-c++ Threads::Threads)
-        add_executable(sdbus-c++-perf-tests-server ${STRESSTESTS_SERVER_SRCS})
+        add_executable(sdbus-c++-perf-tests-server ${PERFTESTS_SERVER_SRCS})
+        target_include_directories(sdbus-c++-perf-tests-server SYSTEM PRIVATE ${PERFTESTS_GENERATED_DIR})
         target_link_libraries(sdbus-c++-perf-tests-server sdbus-c++ Threads::Threads)
     endif()
 
     if(SDBUSCPP_BUILD_STRESS_TESTS)
         message(STATUS "Building with stress tests")
         add_executable(sdbus-c++-stress-tests ${STRESSTESTS_SRCS})
+        target_include_directories(sdbus-c++-stress-tests SYSTEM PRIVATE ${STRESSTESTS_GENERATED_DIR})
         target_link_libraries(sdbus-c++-stress-tests sdbus-c++ Threads::Threads)
     endif()
 endif()

@@ -41,26 +41,25 @@
 #include <thread>
 #include <chrono>
 #include <atomic>
-#include <chrono>
 
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/un.h>
 
-namespace sdbus { namespace test {
+namespace sdbus::test {
 
 inline const uint32_t ANY_UNSIGNED_NUMBER{123};
 
 class BaseTestFixture : public ::testing::Test
 {
 public:
-    static void SetUpTestCase()
+    static void SetUpTestSuite()
     {
         s_adaptorConnection->requestName(SERVICE_NAME);
     }
 
-    static void TearDownTestCase()
+    static void TearDownTestSuite()
     {
         s_adaptorConnection->releaseName(SERVICE_NAME);
     }
@@ -93,7 +92,7 @@ public:
 struct SdBusCppLoop{};
 struct SdEventLoop{};
 
-template <typename _EventLoop>
+template <typename EventLoop>
 class TestFixture : public BaseTestFixture{};
 
 // Fixture working upon internal sdbus-c++ event loop
@@ -101,17 +100,17 @@ template <>
 class TestFixture<SdBusCppLoop> : public BaseTestFixture
 {
 public:
-    static void SetUpTestCase()
+    static void SetUpTestSuite()
     {
-        BaseTestFixture::SetUpTestCase();
+        BaseTestFixture::SetUpTestSuite();
         s_proxyConnection->enterEventLoopAsync();
         s_adaptorConnection->enterEventLoopAsync();
         std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Give time for the proxy connection to start listening to signals
     }
 
-    static void TearDownTestCase()
+    static void TearDownTestSuite()
     {
-        BaseTestFixture::TearDownTestCase();
+        BaseTestFixture::TearDownTestSuite();
         s_adaptorConnection->leaveEventLoop();
         s_proxyConnection->leaveEventLoop();
     }
@@ -124,7 +123,7 @@ template <>
 class TestFixture<SdEventLoop> : public BaseTestFixture
 {
 public:
-    static void SetUpTestCase()
+    static void SetUpTestSuite()
     {
         sd_event_new(&s_adaptorSdEvent);
         sd_event_new(&s_proxySdEvent);
@@ -133,7 +132,7 @@ public:
         s_proxyConnection->attachSdEventLoop(s_proxySdEvent);
 
         s_eventExitFd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
-        auto exitHandler = [](sd_event_source *s, auto...){ return sd_event_exit(sd_event_source_get_event(s), 0); };
+        auto exitHandler = [](sd_event_source *src, auto...){ return sd_event_exit(sd_event_source_get_event(src), 0); };
         sd_event_add_io(s_adaptorSdEvent, nullptr, s_eventExitFd, EPOLLIN, exitHandler, nullptr);
         sd_event_add_io(s_proxySdEvent, nullptr, s_eventExitFd, EPOLLIN, exitHandler, nullptr);
 
@@ -146,11 +145,11 @@ public:
             sd_event_loop(s_proxySdEvent);
         });
 
-        BaseTestFixture::SetUpTestCase();
+        BaseTestFixture::SetUpTestSuite();
         std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Give time for the proxy connection to start listening to signals
     }
 
-    static void TearDownTestCase()
+    static void TearDownTestSuite()
     {
         (void)eventfd_write(s_eventExitFd, 1);
 
@@ -161,7 +160,7 @@ public:
         sd_event_unref(s_proxySdEvent);
         close(s_eventExitFd);
 
-        BaseTestFixture::TearDownTestCase();
+        BaseTestFixture::TearDownTestSuite();
     }
 
 private:
@@ -172,24 +171,24 @@ private:
     static int s_eventExitFd;
 };
 
-typedef ::testing::Types<SdBusCppLoop, SdEventLoop> EventLoopTags;
+using EventLoopTags = ::testing::Types<SdBusCppLoop, SdEventLoop>;
 
 #else // SDBUS_basu
-typedef ::testing::Types<SdBusCppLoop> EventLoopTags;
+using EventLoopTags = ::testing::Types<SdBusCppLoop>;
 #endif // SDBUS_basu
 
 TYPED_TEST_SUITE(TestFixture, EventLoopTags);
 
-template <typename _EventLoop>
-using SdbusTestObject = TestFixture<_EventLoop>;
+template <typename EventLoop>
+using SdbusTestObject = TestFixture<EventLoop>;
 TYPED_TEST_SUITE(SdbusTestObject, EventLoopTags);
 
-template <typename _EventLoop>
-using AsyncSdbusTestObject = TestFixture<_EventLoop>;
+template <typename EventLoop>
+using AsyncSdbusTestObject = TestFixture<EventLoop>;
 TYPED_TEST_SUITE(AsyncSdbusTestObject, EventLoopTags);
 
-template <typename _EventLoop>
-using AConnection = TestFixture<_EventLoop>;
+template <typename EventLoop>
+using AConnection = TestFixture<EventLoop>;
 TYPED_TEST_SUITE(AConnection, EventLoopTags);
 
 class TestFixtureWithDirectConnection : public ::testing::Test
@@ -197,7 +196,7 @@ class TestFixtureWithDirectConnection : public ::testing::Test
 private:
     void SetUp() override
     {
-        int sock = openUnixSocket();
+        const int sock = openUnixSocket();
         createClientAndServerConnections(sock);
         createAdaptorAndProxyObjects();
     }
@@ -212,18 +211,19 @@ private:
 
     static int openUnixSocket()
     {
-        int sock = socket(AF_UNIX, SOCK_STREAM|SOCK_CLOEXEC, 0);
+        const int sock = socket(AF_UNIX, SOCK_STREAM|SOCK_CLOEXEC, 0);
         assert(sock >= 0);
 
-        sockaddr_un sa;
-        memset(&sa, 0, sizeof(sa));
-        sa.sun_family = AF_UNIX;
-        snprintf(sa.sun_path, sizeof(sa.sun_path), "%s", DIRECT_CONNECTION_SOCKET_PATH.c_str());
+        sockaddr_un saddr{};
+        memset(&saddr, 0, sizeof(saddr));
+        saddr.sun_family = AF_UNIX;
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg,hicpp-vararg)
+        (void)snprintf(saddr.sun_path, sizeof(saddr.sun_path), "%s", DIRECT_CONNECTION_SOCKET_PATH.c_str());
 
         unlink(DIRECT_CONNECTION_SOCKET_PATH.c_str());
 
         umask(0000);
-        [[maybe_unused]] int r = bind(sock, (const sockaddr*) &sa, sizeof(sa.sun_path));
+        [[maybe_unused]] int r = bind(sock, reinterpret_cast<const sockaddr*>(&saddr), sizeof(saddr.sun_path));
         assert(r >= 0);
 
         r = listen(sock, 5);
@@ -236,7 +236,7 @@ private:
     {
         std::thread t([&]()
         {
-            auto fd = accept4(sock, NULL, NULL, /*SOCK_NONBLOCK|*/SOCK_CLOEXEC);
+            auto fd = accept4(sock, nullptr, nullptr, /*SOCK_NONBLOCK|*/SOCK_CLOEXEC);
             m_adaptorConnection = sdbus::createServerBus(fd);
             // This is necessary so that createDirectBusConnection() below does not block
             m_adaptorConnection->enterEventLoopAsync();
@@ -265,14 +265,14 @@ public:
     std::unique_ptr<TestProxy> m_proxy;
 };
 
-template <typename _Fnc>
-inline bool waitUntil(_Fnc&& fnc, std::chrono::milliseconds timeout = std::chrono::seconds(5))
+template <typename Fnc>
+inline bool waitUntil(const Fnc& fnc, std::chrono::milliseconds timeout = std::chrono::seconds(5))
 {
     using namespace std::chrono_literals;
 
     std::chrono::milliseconds elapsed{};
-    std::chrono::milliseconds step{5ms};
-    do {
+    const std::chrono::milliseconds step{5ms};
+    do { // NOLINT(cppcoreguidelines-avoid-do-while)
         std::this_thread::sleep_for(step);
         elapsed += step;
         if (elapsed > timeout)
@@ -287,6 +287,6 @@ inline bool waitUntil(std::atomic<bool>& flag, std::chrono::milliseconds timeout
     return waitUntil([&flag]() -> bool { return flag; }, timeout);
 }
 
-}}
+} // namespace sdbus::test
 
 #endif /* SDBUS_CPP_INTEGRATIONTESTS_TESTFIXTURE_H_ */

@@ -94,6 +94,6 @@ namespace sdbus {
         std::bitset<FLAG_COUNT> flags_;
     };
 
-}
+} // namespace sdbus
 
 #endif /* SDBUS_CXX_FLAGS_H_ */

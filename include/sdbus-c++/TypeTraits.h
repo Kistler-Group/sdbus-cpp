@@ -52,11 +52,11 @@
 // Forward declarations
 namespace sdbus {
     class Variant;
-    template <typename... _ValueTypes> class Struct;
+    template <typename... ValueTypes> class Struct;
     class ObjectPath;
     class Signature;
     class UnixFd;
-    template<typename _T1, typename _T2> using DictEntry = std::pair<_T1, _T2>;
+    template<typename T1, typename T2> using DictEntry = std::pair<T1, T2>;
     class BusName;
     class InterfaceName;
     class MemberName;
@@ -66,10 +66,10 @@ namespace sdbus {
     class Message;
     class PropertySetCall;
     class PropertyGetReply;
-    template <typename... _Results> class Result;
+    template <typename... Results> class Result;
     class Error;
-    template <typename _T, typename _Enable = void> struct signature_of;
-}
+    template <typename T, typename Enable = void> struct signature_of;
+} // namespace sdbus
 
 namespace sdbus {
 
@@ -111,17 +111,17 @@ namespace sdbus {
     inline constexpr embed_variant_t embed_variant{};
 
     // Helper for static assert
-    template <class... _T> constexpr bool always_false = false;
+    template <class... T> constexpr bool always_false = false;
 
     // Helper operator+ for concatenation of `std::array`s
-    template <typename _T, std::size_t _N1, std::size_t _N2>
-    constexpr std::array<_T, _N1 + _N2> operator+(std::array<_T, _N1> lhs, std::array<_T, _N2> rhs);
+    template <typename T, std::size_t N1, std::size_t N2>
+    constexpr std::array<T, N1 + N2> operator+(std::array<T, N1> lhs, std::array<T, N2> rhs);
 
     // Template specializations for getting D-Bus signatures from C++ types
-    template <typename _T>
-    constexpr auto signature_of_v = signature_of<_T>::value;
+    template <typename T>
+    constexpr auto signature_of_v = signature_of<T>::value;
 
-    template <typename _T, typename _Enable>
+    template <typename T, typename Enable>
     struct signature_of
     {
         static constexpr bool is_valid = false;
@@ -131,28 +131,28 @@ namespace sdbus {
         {
             // See using-sdbus-c++.md, section "Extending sdbus-c++ type system",
             // on how to teach sdbus-c++ about your custom types
-            static_assert(always_false<_T>, "Unsupported D-Bus type (specialize `signature_of` for your custom types)");
+            static_assert(always_false<T>, "Unsupported D-Bus type (specialize `signature_of` for your custom types)");
         };
     };
 
-    template <typename _T>
-    struct signature_of<const _T> : signature_of<_T>
+    template <typename T>
+    struct signature_of<const T> : signature_of<T>
     {};
 
-    template <typename _T>
-    struct signature_of<volatile _T> : signature_of<_T>
+    template <typename T>
+    struct signature_of<volatile T> : signature_of<T>
     {};
 
-    template <typename _T>
-    struct signature_of<const volatile _T> : signature_of<_T>
+    template <typename T>
+    struct signature_of<const volatile T> : signature_of<T>
     {};
 
-    template <typename _T>
-    struct signature_of<_T&> : signature_of<_T>
+    template <typename T>
+    struct signature_of<T&> : signature_of<T>
     {};
 
-    template <typename _T>
-    struct signature_of<_T&&> : signature_of<_T>
+    template <typename T>
+    struct signature_of<T&&> : signature_of<T>
     {};
 
     template <>
@@ -255,12 +255,12 @@ namespace sdbus {
     struct signature_of<const char*> : signature_of<std::string>
     {};
 
-    template <std::size_t _N>
-    struct signature_of<char[_N]> : signature_of<std::string>
+    template <std::size_t N>
+    struct signature_of<char[N]> : signature_of<std::string>
     {};
 
-    template <std::size_t _N>
-    struct signature_of<const char[_N]> : signature_of<std::string>
+    template <std::size_t N>
+    struct signature_of<const char[N]> : signature_of<std::string>
     {};
 
     template <>
@@ -275,10 +275,10 @@ namespace sdbus {
     struct signature_of<MemberName> : signature_of<std::string>
     {};
 
-    template <typename... _ValueTypes>
-    struct signature_of<Struct<_ValueTypes...>>
+    template <typename... ValueTypes>
+    struct signature_of<Struct<ValueTypes...>>
     {
-        static constexpr std::array contents = (signature_of_v<_ValueTypes> + ...);
+        static constexpr std::array contents = (signature_of_v<ValueTypes> + ...);
         static constexpr std::array value = std::array{'('} + contents + std::array{')'};
         static constexpr char type_value{'r'}; /* Not actually used in signatures on D-Bus, see specs */
         static constexpr bool is_valid = true;
@@ -321,93 +321,93 @@ namespace sdbus {
         static constexpr bool is_trivial_dbus_type = false;
     };
 
-    template <typename _T1, typename _T2>
-    struct signature_of<DictEntry<_T1, _T2>>
+    template <typename T1, typename T2>
+    struct signature_of<DictEntry<T1, T2>>
     {
-        static constexpr std::array value = std::array{'{'} + signature_of_v<std::tuple<_T1, _T2>> + std::array{'}'};
+        static constexpr std::array value = std::array{'{'} + signature_of_v<std::tuple<T1, T2>> + std::array{'}'};
         static constexpr char type_value{'e'}; /* Not actually used in signatures on D-Bus, see specs */
         static constexpr bool is_valid = true;
         static constexpr bool is_trivial_dbus_type = false;
     };
 
-    template <typename _Element, typename _Allocator>
-    struct signature_of<std::vector<_Element, _Allocator>>
+    template <typename Element, typename Allocator>
+    struct signature_of<std::vector<Element, Allocator>>
     {
-        static constexpr std::array value = std::array{'a'} + signature_of_v<_Element>;
+        static constexpr std::array value = std::array{'a'} + signature_of_v<Element>;
         static constexpr bool is_valid = true;
         static constexpr bool is_trivial_dbus_type = false;
     };
 
-    template <typename _Element, std::size_t _Size>
-    struct signature_of<std::array<_Element, _Size>> : signature_of<std::vector<_Element>>
+    template <typename Element, std::size_t Size>
+    struct signature_of<std::array<Element, Size>> : signature_of<std::vector<Element>>
     {
     };
 
 #ifdef __cpp_lib_span
-    template <typename _Element, std::size_t _Extent>
-    struct signature_of<std::span<_Element, _Extent>> : signature_of<std::vector<_Element>>
+    template <typename Element, std::size_t Extent>
+    struct signature_of<std::span<Element, Extent>> : signature_of<std::vector<Element>>
     {
     };
 #endif
 
-    template <typename _Enum> // is_const_v and is_volatile_v to avoid ambiguity conflicts with const and volatile specializations of signature_of
-    struct signature_of<_Enum, typename std::enable_if_t<std::is_enum_v<_Enum> && !std::is_const_v<_Enum> && !std::is_volatile_v<_Enum>>>
-        : signature_of<std::underlying_type_t<_Enum>>
+    template <typename Enum> // is_const_v and is_volatile_v to avoid ambiguity conflicts with const and volatile specializations of signature_of
+    struct signature_of<Enum, typename std::enable_if_t<std::is_enum_v<Enum> && !std::is_const_v<Enum> && !std::is_volatile_v<Enum>>>
+        : signature_of<std::underlying_type_t<Enum>>
     {};
 
-    template <typename _Key, typename _Value, typename _Compare, typename _Allocator>
-    struct signature_of<std::map<_Key, _Value, _Compare, _Allocator>>
+    template <typename Key, typename Value, typename Compare, typename Allocator>
+    struct signature_of<std::map<Key, Value, Compare, Allocator>>
     {
-        static constexpr std::array value = std::array{'a'} + signature_of_v<DictEntry<_Key, _Value>>;
+        static constexpr std::array value = std::array{'a'} + signature_of_v<DictEntry<Key, Value>>;
         static constexpr bool is_valid = true;
         static constexpr bool is_trivial_dbus_type = false;
     };
 
-    template <typename _Key, typename _Value, typename _Hash, typename _KeyEqual, typename _Allocator>
-    struct signature_of<std::unordered_map<_Key, _Value, _Hash, _KeyEqual, _Allocator>>
-        : signature_of<std::map<_Key, _Value>>
+    template <typename Key, typename Value, typename Hash, typename KeyEqual, typename Allocator>
+    struct signature_of<std::unordered_map<Key, Value, Hash, KeyEqual, Allocator>>
+        : signature_of<std::map<Key, Value>>
     {
     };
 
-    template <typename... _Types>
-    struct signature_of<std::tuple<_Types...>> // A simple concatenation of signatures of _Types
+    template <typename... Types>
+    struct signature_of<std::tuple<Types...>> // A simple concatenation of signatures of _Types
     {
-        static constexpr std::array value = (std::array<char, 0>{} + ... + signature_of_v<_Types>);
+        static constexpr std::array value = (std::array<char, 0>{} + ... + signature_of_v<Types>);
         static constexpr bool is_valid = false;
         static constexpr bool is_trivial_dbus_type = false;
     };
 
     // To simplify conversions of arrays to C strings
-    template <typename _T, std::size_t _N>
-    constexpr auto as_null_terminated(std::array<_T, _N> arr)
+    template <typename T, std::size_t N>
+    constexpr auto as_null_terminated(std::array<T, N> arr)
     {
-        return arr + std::array<_T, 1>{0};
+        return arr + std::array<T, 1>{0};
     }
 
     // Function traits implementation inspired by (c) kennytm,
     // https://github.com/kennytm/utils/blob/master/traits.hpp
-    template <typename _Type>
-    struct function_traits : function_traits<decltype(&_Type::operator())>
+    template <typename Type>
+    struct function_traits : function_traits<decltype(&Type::operator())>
     {};
 
-    template <typename _Type>
-    struct function_traits<const _Type> : function_traits<_Type>
+    template <typename Type>
+    struct function_traits<const Type> : function_traits<Type>
     {};
 
-    template <typename _Type>
-    struct function_traits<_Type&> : function_traits<_Type>
+    template <typename Type>
+    struct function_traits<Type&> : function_traits<Type>
     {};
 
-    template <typename _ReturnType, typename... _Args>
+    template <typename ReturnType, typename... Args>
     struct function_traits_base
     {
-        typedef _ReturnType result_type;
-        typedef std::tuple<_Args...> arguments_type;
-        typedef std::tuple<std::decay_t<_Args>...> decayed_arguments_type;
+        using result_type = ReturnType;
+        using arguments_type = std::tuple<Args...>;
+        using decayed_arguments_type = std::tuple<std::decay_t<Args>...>;
 
-        typedef _ReturnType function_type(_Args...);
+        using function_type = ReturnType (Args...);
 
-        static constexpr std::size_t arity = sizeof...(_Args);
+        static constexpr std::size_t arity = sizeof...(Args);
 
 //        template <size_t _Idx, typename _Enabled = void>
 //        struct arg;
@@ -424,187 +424,187 @@ namespace sdbus {
 //            typedef void type;
 //        };
 
-        template <size_t _Idx>
+        template <size_t Idx>
         struct arg
         {
-            typedef std::tuple_element_t<_Idx, std::tuple<_Args...>> type;
+            using type = std::tuple_element_t<Idx, std::tuple<Args...>>;
         };
 
-        template <size_t _Idx>
-        using arg_t = typename arg<_Idx>::type;
+        template <size_t Idx>
+        using arg_t = typename arg<Idx>::type;
     };
 
-    template <typename _ReturnType, typename... _Args>
-    struct function_traits<_ReturnType(_Args...)> : function_traits_base<_ReturnType, _Args...>
+    template <typename ReturnType, typename... Args>
+    struct function_traits<ReturnType(Args...)> : function_traits_base<ReturnType, Args...>
     {
         static constexpr bool is_async = false;
         static constexpr bool has_error_param = false;
     };
 
-    template <typename... _Args>
-    struct function_traits<void(std::optional<Error>, _Args...)> : function_traits_base<void, _Args...>
+    template <typename... Args>
+    struct function_traits<void(std::optional<Error>, Args...)> : function_traits_base<void, Args...>
     {
         static constexpr bool has_error_param = true;
     };
 
-    template <typename... _Args>
-    struct function_traits<void(std::optional<Error>&&, _Args...)> : function_traits_base<void, _Args...>
+    template <typename... Args>
+    struct function_traits<void(std::optional<Error>&&, Args...)> : function_traits_base<void, Args...>
     {
         static constexpr bool has_error_param = true;
     };
 
-    template <typename... _Args>
-    struct function_traits<void(const std::optional<Error>&, _Args...)> : function_traits_base<void, _Args...>
+    template <typename... Args>
+    struct function_traits<void(const std::optional<Error>&, Args...)> : function_traits_base<void, Args...>
     {
         static constexpr bool has_error_param = true;
     };
 
-    template <typename... _Args, typename... _Results>
-    struct function_traits<void(Result<_Results...>, _Args...)> : function_traits_base<std::tuple<_Results...>, _Args...>
+    template <typename... Args, typename... Results>
+    struct function_traits<void(Result<Results...>, Args...)> : function_traits_base<std::tuple<Results...>, Args...>
     {
         static constexpr bool is_async = true;
-        using async_result_t = Result<_Results...>;
+        using async_result_t = Result<Results...>;
     };
 
-    template <typename... _Args, typename... _Results>
-    struct function_traits<void(Result<_Results...>&&, _Args...)> : function_traits_base<std::tuple<_Results...>, _Args...>
+    template <typename... Args, typename... Results>
+    struct function_traits<void(Result<Results...>&&, Args...)> : function_traits_base<std::tuple<Results...>, Args...>
     {
         static constexpr bool is_async = true;
-        using async_result_t = Result<_Results...>;
+        using async_result_t = Result<Results...>;
     };
 
-    template <typename _ReturnType, typename... _Args>
-    struct function_traits<_ReturnType(*)(_Args...)> : function_traits<_ReturnType(_Args...)>
+    template <typename ReturnType, typename... Args>
+    struct function_traits<ReturnType(*)(Args...)> : function_traits<ReturnType(Args...)>
     {};
 
-    template <typename _ClassType, typename _ReturnType, typename... _Args>
-    struct function_traits<_ReturnType(_ClassType::*)(_Args...)> : function_traits<_ReturnType(_Args...)>
+    template <typename ClassType, typename ReturnType, typename... Args>
+    struct function_traits<ReturnType(ClassType::*)(Args...)> : function_traits<ReturnType(Args...)>
     {
-        typedef _ClassType& owner_type;
+        using owner_type = ClassType &;
     };
 
-    template <typename _ClassType, typename _ReturnType, typename... _Args>
-    struct function_traits<_ReturnType(_ClassType::*)(_Args...) const> : function_traits<_ReturnType(_Args...)>
+    template <typename ClassType, typename ReturnType, typename... Args>
+    struct function_traits<ReturnType(ClassType::*)(Args...) const> : function_traits<ReturnType(Args...)>
     {
-        typedef const _ClassType& owner_type;
+        using owner_type = const ClassType &;
     };
 
-    template <typename _ClassType, typename _ReturnType, typename... _Args>
-    struct function_traits<_ReturnType(_ClassType::*)(_Args...) volatile> : function_traits<_ReturnType(_Args...)>
+    template <typename ClassType, typename ReturnType, typename... Args>
+    struct function_traits<ReturnType(ClassType::*)(Args...) volatile> : function_traits<ReturnType(Args...)>
     {
-        typedef volatile _ClassType& owner_type;
+        using owner_type = volatile ClassType &;
     };
 
-    template <typename _ClassType, typename _ReturnType, typename... _Args>
-    struct function_traits<_ReturnType(_ClassType::*)(_Args...) const volatile> : function_traits<_ReturnType(_Args...)>
+    template <typename ClassType, typename ReturnType, typename... Args>
+    struct function_traits<ReturnType(ClassType::*)(Args...) const volatile> : function_traits<ReturnType(Args...)>
     {
-        typedef const volatile _ClassType& owner_type;
+        using owner_type = const volatile ClassType &;
     };
 
     template <typename FunctionType>
     struct function_traits<std::function<FunctionType>> : function_traits<FunctionType>
     {};
 
-    template <class _Function>
-    constexpr auto is_async_method_v = function_traits<_Function>::is_async;
+    template <class Function>
+    constexpr auto is_async_method_v = function_traits<Function>::is_async;
 
-    template <class _Function>
-    constexpr auto has_error_param_v = function_traits<_Function>::has_error_param;
+    template <class Function>
+    constexpr auto has_error_param_v = function_traits<Function>::has_error_param;
 
-    template <typename _FunctionType>
-    using function_arguments_t = typename function_traits<_FunctionType>::arguments_type;
+    template <typename FunctionType>
+    using function_arguments_t = typename function_traits<FunctionType>::arguments_type;
 
-    template <typename _FunctionType, size_t _Idx>
-    using function_argument_t = typename function_traits<_FunctionType>::template arg_t<_Idx>;
+    template <typename FunctionType, size_t Idx>
+    using function_argument_t = typename function_traits<FunctionType>::template arg_t<Idx>;
 
-    template <typename _FunctionType>
-    constexpr auto function_argument_count_v = function_traits<_FunctionType>::arity;
+    template <typename FunctionType>
+    constexpr auto function_argument_count_v = function_traits<FunctionType>::arity;
 
-    template <typename _FunctionType>
-    using function_result_t = typename function_traits<_FunctionType>::result_type;
+    template <typename FunctionType>
+    using function_result_t = typename function_traits<FunctionType>::result_type;
 
-    template <typename _Function>
+    template <typename Function>
     struct tuple_of_function_input_arg_types
     {
-        typedef typename function_traits<_Function>::decayed_arguments_type type;
+        using type = typename function_traits<Function>::decayed_arguments_type;
     };
 
-    template <typename _Function>
-    using tuple_of_function_input_arg_types_t = typename tuple_of_function_input_arg_types<_Function>::type;
+    template <typename Function>
+    using tuple_of_function_input_arg_types_t = typename tuple_of_function_input_arg_types<Function>::type;
 
-    template <typename _Function>
+    template <typename Function>
     struct tuple_of_function_output_arg_types
     {
-        typedef typename function_traits<_Function>::result_type type;
+        using type = typename function_traits<Function>::result_type;
     };
 
-    template <typename _Function>
-    using tuple_of_function_output_arg_types_t = typename tuple_of_function_output_arg_types<_Function>::type;
+    template <typename Function>
+    using tuple_of_function_output_arg_types_t = typename tuple_of_function_output_arg_types<Function>::type;
 
-    template <typename _Function>
-    struct signature_of_function_input_arguments : signature_of<tuple_of_function_input_arg_types_t<_Function>>
+    template <typename Function>
+    struct signature_of_function_input_arguments : signature_of<tuple_of_function_input_arg_types_t<Function>>
     {
         static std::string value_as_string()
         {
-            constexpr auto signature = as_null_terminated(signature_of_v<tuple_of_function_input_arg_types_t<_Function>>);
+            constexpr auto signature = as_null_terminated(signature_of_v<tuple_of_function_input_arg_types_t<Function>>);
             return signature.data();
         }
     };
 
-    template <typename _Function>
-    inline auto signature_of_function_input_arguments_v = signature_of_function_input_arguments<_Function>::value_as_string();
+    template <typename Function>
+    inline const auto signature_of_function_input_arguments_v = signature_of_function_input_arguments<Function>::value_as_string();
 
-    template <typename _Function>
-    struct signature_of_function_output_arguments : signature_of<tuple_of_function_output_arg_types_t<_Function>>
+    template <typename Function>
+    struct signature_of_function_output_arguments : signature_of<tuple_of_function_output_arg_types_t<Function>>
     {
         static std::string value_as_string()
         {
-            constexpr auto signature = as_null_terminated(signature_of_v<tuple_of_function_output_arg_types_t<_Function>>);
+            constexpr auto signature = as_null_terminated(signature_of_v<tuple_of_function_output_arg_types_t<Function>>);
             return signature.data();
         }
     };
 
-    template <typename _Function>
-    inline auto signature_of_function_output_arguments_v = signature_of_function_output_arguments<_Function>::value_as_string();
+    template <typename Function>
+    inline const auto signature_of_function_output_arguments_v = signature_of_function_output_arguments<Function>::value_as_string();
 
     // std::future stuff for return values of async calls
-    template <typename... _Args> struct future_return
+    template <typename... Args> struct future_return
     {
-        typedef std::tuple<_Args...> type;
+        using type = std::tuple<Args...>;
     };
 
     template <> struct future_return<>
     {
-        typedef void type;
+        using type = void;
     };
 
-    template <typename _Type> struct future_return<_Type>
+    template <typename Type> struct future_return<Type>
     {
-        typedef _Type type;
+        using type = Type;
     };
 
-    template <typename... _Args>
-    using future_return_t = typename future_return<_Args...>::type;
+    template <typename... Args>
+    using future_return_t = typename future_return<Args...>::type;
 
     // Credit: Piotr Skotnicki (https://stackoverflow.com/a/57639506)
     template <typename, typename>
     constexpr bool is_one_of_variants_types = false;
 
-    template <typename... _VariantTypes, typename _QueriedType>
-    constexpr bool is_one_of_variants_types<std::variant<_VariantTypes...>, _QueriedType>
-        = (std::is_same_v<_QueriedType, _VariantTypes> || ...);
+    template <typename... VariantTypes, typename QueriedType>
+    constexpr bool is_one_of_variants_types<std::variant<VariantTypes...>, QueriedType>
+        = (std::is_same_v<QueriedType, VariantTypes> || ...);
 
     // Wrapper (tag) denoting we want to serialize user-defined struct
     // into a D-Bus message as a dictionary of strings to variants.
-    template <typename _Struct>
+    template <typename Struct>
     struct as_dictionary
     {
-        explicit as_dictionary(const _Struct& s) : m_struct(s) {}
-        const _Struct& m_struct;
+        explicit as_dictionary(const Struct& strct) : m_struct(strct) {}
+        const Struct& m_struct; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     };
 
-    template <typename _Type>
-    const _Type& as_dictionary_if_struct(const _Type& object)
+    template <typename Type>
+    const Type& as_dictionary_if_struct(const Type& object)
     {
         return object; // identity in case _Type is not struct (user-defined structs shall provide an overload)
     }
@@ -613,7 +613,7 @@ namespace sdbus {
     // Strict means that every key of the deserialized dictionary must have its counterpart member in the struct, otherwise an exception is thrown.
     // Relaxed means that a key that does not have a matching struct member is silently ignored.
     // The behavior can be overridden for user-defined struct by specializing this variable template.
-    template <typename _Struct>
+    template <typename Struct>
     constexpr auto strict_dict_as_struct_deserialization_v = true;
 
     // By default, the struct-as-dict serialization strategy is single-level only (as opposed to nested).
@@ -621,94 +621,97 @@ namespace sdbus {
     // Nested means that the struct *and* its members that are structs are all serialized as a dictionary. If nested strategy is also
     // defined for the nested struct, then the same behavior applies for that struct, recursively.
     // The behavior can be overridden for user-defined struct by specializing this variable template.
-    template <typename _Struct>
+    template <typename Struct>
     constexpr auto nested_struct_as_dict_serialization_v = false;
 
     namespace detail
     {
-        template <class _Function, class _Tuple, typename... _Args, std::size_t... _I>
-        constexpr decltype(auto) apply_impl( _Function&& f
-                                           , Result<_Args...>&& r
-                                           , _Tuple&& t
-                                           , std::index_sequence<_I...> )
+        template <class Function, class Tuple, typename... Args, std::size_t... I>
+        constexpr decltype(auto) apply_impl( Function&& fun
+                                           , Result<Args...>&& res
+                                           , Tuple&& tuple
+                                           , std::index_sequence<I...> )
         {
-            return std::forward<_Function>(f)(std::move(r), std::get<_I>(std::forward<_Tuple>(t))...);
+            return std::forward<Function>(fun)(std::move(res), std::get<I>(std::forward<Tuple>(tuple))...);
         }
 
-        template <class _Function, class _Tuple, std::size_t... _I>
-        decltype(auto) apply_impl( _Function&& f
-                                 , std::optional<Error> e
-                                 , _Tuple&& t
-                                 , std::index_sequence<_I...> )
+        template <class Function, class Tuple, std::size_t... I>
+        decltype(auto) apply_impl( Function&& fun
+                                 , std::optional<Error> err
+                                 , Tuple&& tuple
+                                 , std::index_sequence<I...> )
         {
-            return std::forward<_Function>(f)(std::move(e), std::get<_I>(std::forward<_Tuple>(t))...);
+            return std::forward<Function>(fun)(std::move(err), std::get<I>(std::forward<Tuple>(tuple))...);
         }
 
         // For non-void returning functions, apply_impl simply returns function return value (a tuple of values).
         // For void-returning functions, apply_impl returns an empty tuple.
-        template <class _Function, class _Tuple, std::size_t... _I>
-        constexpr decltype(auto) apply_impl( _Function&& f
-                                           , _Tuple&& t
-                                           , std::index_sequence<_I...> )
+        template <class Function, class Tuple, std::size_t... I>
+        constexpr decltype(auto) apply_impl( Function&& fun
+                                           , Tuple&& tuple
+                                           , std::index_sequence<I...> )
         {
-            if constexpr (!std::is_void_v<function_result_t<_Function>>)
-                return std::forward<_Function>(f)(std::get<_I>(std::forward<_Tuple>(t))...);
+            if constexpr (!std::is_void_v<function_result_t<Function>>)
+                return std::forward<Function>(fun)(std::get<I>(std::forward<Tuple>(tuple))...);
             else
-                return std::forward<_Function>(f)(std::get<_I>(std::forward<_Tuple>(t))...), std::tuple<>{};
+                return std::forward<Function>(fun)(std::get<I>(std::forward<Tuple>(tuple))...), std::tuple<>{};
         }
+    } // namespace detail
+
+    // Convert tuple `t' of values into a list of arguments
+    // and invoke function `f' with those arguments.
+    template <class Function, class Tuple>
+    constexpr decltype(auto) apply(Function&& fun, Tuple&& tuple)
+    {
+        return detail::apply_impl( std::forward<Function>(fun)
+                                 , std::forward<Tuple>(tuple)
+                                 , std::make_index_sequence<std::tuple_size<std::decay_t<Tuple>>::value>{} );
     }
 
     // Convert tuple `t' of values into a list of arguments
     // and invoke function `f' with those arguments.
-    template <class _Function, class _Tuple>
-    constexpr decltype(auto) apply(_Function&& f, _Tuple&& t)
+    template <class Function, class Tuple, typename... Args>
+    constexpr decltype(auto) apply(Function&& fun, Result<Args...>&& res, Tuple&& tuple)
     {
-        return detail::apply_impl( std::forward<_Function>(f)
-                                 , std::forward<_Tuple>(t)
-                                 , std::make_index_sequence<std::tuple_size<std::decay_t<_Tuple>>::value>{} );
+        return detail::apply_impl( std::forward<Function>(fun)
+                                 , std::move(res)
+                                 , std::forward<Tuple>(tuple)
+                                 , std::make_index_sequence<std::tuple_size<std::decay_t<Tuple>>::value>{} );
     }
 
     // Convert tuple `t' of values into a list of arguments
     // and invoke function `f' with those arguments.
-    template <class _Function, class _Tuple, typename... _Args>
-    constexpr decltype(auto) apply(_Function&& f, Result<_Args...>&& r, _Tuple&& t)
+    template <class Function, class Tuple>
+    decltype(auto) apply(Function&& fun, std::optional<Error> err, Tuple&& tuple)
     {
-        return detail::apply_impl( std::forward<_Function>(f)
-                                 , std::move(r)
-                                 , std::forward<_Tuple>(t)
-                                 , std::make_index_sequence<std::tuple_size<std::decay_t<_Tuple>>::value>{} );
-    }
-
-    // Convert tuple `t' of values into a list of arguments
-    // and invoke function `f' with those arguments.
-    template <class _Function, class _Tuple>
-    decltype(auto) apply(_Function&& f, std::optional<Error> e, _Tuple&& t)
-    {
-        return detail::apply_impl( std::forward<_Function>(f)
-                                 , std::move(e)
-                                 , std::forward<_Tuple>(t)
-                                 , std::make_index_sequence<std::tuple_size<std::decay_t<_Tuple>>::value>{} );
+        return detail::apply_impl( std::forward<Function>(fun)
+                                 , std::move(err)
+                                 , std::forward<Tuple>(tuple)
+                                 , std::make_index_sequence<std::tuple_size<std::decay_t<Tuple>>::value>{} );
     }
 
     // Convenient concatenation of arrays
-    template <typename _T, std::size_t _N1, std::size_t _N2>
-    constexpr std::array<_T, _N1 + _N2> operator+(std::array<_T, _N1> lhs, std::array<_T, _N2> rhs)
+    template <typename T, std::size_t N1, std::size_t N2>
+    constexpr std::array<T, N1 + N2> operator+(std::array<T, N1> lhs, std::array<T, N2> rhs)
     {
-        std::array<_T, _N1 + _N2> result{};
-        std::size_t index = 0;
+        std::array<T, N1 + N2> result{};
 
-        for (auto& el : lhs) {
-            result[index] = std::move(el);
-            ++index;
-        }
-        for (auto& el : rhs) {
-            result[index] = std::move(el);
-            ++index;
-        }
+        std::move(lhs.begin(), lhs.end(), result.begin());
+        std::move(rhs.begin(), rhs.end(), result.begin() + N1);
+
+        // std::size_t index = 0;
+        // for (auto& item : lhs) {
+        //     result[index] = std::move(item);
+        //     ++index;
+        // }
+        // for (auto& item : rhs) {
+        //     result[index] = std::move(item);
+        //     ++index;
+        // }
 
         return result;
     }
 
-}
+} // namespace sdbus
 
 #endif /* SDBUS_CXX_TYPETRAITS_H_ */

@@ -53,7 +53,7 @@ namespace sdbus::internal {
         Slot addVTable(InterfaceName interfaceName, std::vector<VTableItem> vtable, return_slot_t) override;
         void unregister() override;
 
-        Signal createSignal(const InterfaceName& interfaceName, const SignalName& signalName) const override;
+        [[nodiscard]] Signal createSignal(const InterfaceName& interfaceName, const SignalName& signalName) const override;
         Signal createSignal(const char* interfaceName, const char* signalName) const override;
         void emitSignal(const sdbus::Signal& message) override;
         void emitPropertiesChangedSignal(const InterfaceName& interfaceName, const std::vector<PropertyName>& propNames) override;
@@ -159,13 +159,12 @@ namespace sdbus::internal {
                                               , void *userData
                                               , sd_bus_error *retError );
 
-    private:
-        sdbus::internal::IConnection& connection_;
+        IConnection& connection_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
         ObjectPath objectPath_;
         std::vector<Slot> vtables_;
         Slot objectManagerSlot_;
     };
 
-}
+} // namespace sdbus::internal
 
 #endif /* SDBUS_CXX_INTERNAL_OBJECT_H_ */

@@ -44,18 +44,18 @@ namespace sdbus::internal {
 
         virtual ~ISdBus() = default;
 
-        virtual sd_bus_message* sd_bus_message_ref(sd_bus_message *m) = 0;
-        virtual sd_bus_message* sd_bus_message_unref(sd_bus_message *m) = 0;
+        virtual sd_bus_message* sd_bus_message_ref(sd_bus_message *msg) = 0;
+        virtual sd_bus_message* sd_bus_message_unref(sd_bus_message *msg) = 0;
 
-        virtual int sd_bus_send(sd_bus *bus, sd_bus_message *m, uint64_t *cookie) = 0;
-        virtual int sd_bus_call(sd_bus *bus, sd_bus_message *m, uint64_t usec, sd_bus_error *ret_error, sd_bus_message **reply) = 0;
-        virtual int sd_bus_call_async(sd_bus *bus, sd_bus_slot **slot, sd_bus_message *m, sd_bus_message_handler_t callback, void *userdata, uint64_t usec) = 0;
+        virtual int sd_bus_send(sd_bus *bus, sd_bus_message *msg, uint64_t *cookie) = 0;
+        virtual int sd_bus_call(sd_bus *bus, sd_bus_message *msg, uint64_t usec, sd_bus_error *ret_error, sd_bus_message **reply) = 0;
+        virtual int sd_bus_call_async(sd_bus *bus, sd_bus_slot **slot, sd_bus_message *msg, sd_bus_message_handler_t callback, void *userdata, uint64_t usec) = 0;
 
-        virtual int sd_bus_message_new(sd_bus *bus, sd_bus_message **m, uint8_t type) = 0;
-        virtual int sd_bus_message_new_method_call(sd_bus *bus, sd_bus_message **m, const char *destination, const char *path, const char *interface, const char *member) = 0;
-        virtual int sd_bus_message_new_signal(sd_bus *bus, sd_bus_message **m, const char *path, const char *interface, const char *member) = 0;
-        virtual int sd_bus_message_new_method_return(sd_bus_message *call, sd_bus_message **m) = 0;
-        virtual int sd_bus_message_new_method_error(sd_bus_message *call, sd_bus_message **m, const sd_bus_error *e) = 0;
+        virtual int sd_bus_message_new(sd_bus *bus, sd_bus_message **msg, uint8_t type) = 0;
+        virtual int sd_bus_message_new_method_call(sd_bus *bus, sd_bus_message **msg, const char *destination, const char *path, const char *interface, const char *member) = 0;
+        virtual int sd_bus_message_new_signal(sd_bus *bus, sd_bus_message **msg, const char *path, const char *interface, const char *member) = 0;
+        virtual int sd_bus_message_new_method_return(sd_bus_message *call, sd_bus_message **msg) = 0;
+        virtual int sd_bus_message_new_method_error(sd_bus_message *call, sd_bus_message **msg, const sd_bus_error *err) = 0;
 
         virtual int sd_bus_set_method_call_timeout(sd_bus *bus, uint64_t usec) = 0;
         virtual int sd_bus_get_method_call_timeout(sd_bus *bus, uint64_t *ret) = 0;
@@ -87,7 +87,7 @@ namespace sdbus::internal {
         virtual int sd_bus_new(sd_bus **ret) = 0;
         virtual int sd_bus_start(sd_bus *bus) = 0;
 
-        virtual int sd_bus_process(sd_bus *bus, sd_bus_message **r) = 0;
+        virtual int sd_bus_process(sd_bus *bus, sd_bus_message **ret) = 0;
         virtual sd_bus_message* sd_bus_get_current_message(sd_bus *bus) = 0;
         virtual int sd_bus_get_poll_data(sd_bus *bus, PollData* data) = 0;
         virtual int sd_bus_get_n_queued(sd_bus *bus, uint64_t *read, uint64_t* write) = 0;
@@ -95,21 +95,21 @@ namespace sdbus::internal {
         virtual sd_bus *sd_bus_flush_close_unref(sd_bus *bus) = 0;
         virtual sd_bus *sd_bus_close_unref(sd_bus *bus) = 0;
 
-        virtual int sd_bus_message_set_destination(sd_bus_message *m, const char *destination) = 0;
+        virtual int sd_bus_message_set_destination(sd_bus_message *msg, const char *destination) = 0;
 
-        virtual int sd_bus_query_sender_creds(sd_bus_message *m, uint64_t mask, sd_bus_creds **c) = 0;
-        virtual sd_bus_creds* sd_bus_creds_ref(sd_bus_creds *c) = 0;
-        virtual sd_bus_creds* sd_bus_creds_unref(sd_bus_creds *c) = 0;
+        virtual int sd_bus_query_sender_creds(sd_bus_message *msg, uint64_t mask, sd_bus_creds **creds) = 0;
+        virtual sd_bus_creds* sd_bus_creds_ref(sd_bus_creds *creds) = 0;
+        virtual sd_bus_creds* sd_bus_creds_unref(sd_bus_creds *creds) = 0;
 
-        virtual int sd_bus_creds_get_pid(sd_bus_creds *c, pid_t *pid) = 0;
-        virtual int sd_bus_creds_get_uid(sd_bus_creds *c, uid_t *uid) = 0;
-        virtual int sd_bus_creds_get_euid(sd_bus_creds *c, uid_t *uid) = 0;
-        virtual int sd_bus_creds_get_gid(sd_bus_creds *c, gid_t *gid) = 0;
-        virtual int sd_bus_creds_get_egid(sd_bus_creds *c, gid_t *egid) = 0;
-        virtual int sd_bus_creds_get_supplementary_gids(sd_bus_creds *c, const gid_t **gids) = 0;
-        virtual int sd_bus_creds_get_selinux_context(sd_bus_creds *c, const char **label) = 0;
+        virtual int sd_bus_creds_get_pid(sd_bus_creds *creds, pid_t *pid) = 0;
+        virtual int sd_bus_creds_get_uid(sd_bus_creds *creds, uid_t *uid) = 0;
+        virtual int sd_bus_creds_get_euid(sd_bus_creds *creds, uid_t *uid) = 0;
+        virtual int sd_bus_creds_get_gid(sd_bus_creds *creds, gid_t *gid) = 0;
+        virtual int sd_bus_creds_get_egid(sd_bus_creds *creds, gid_t *egid) = 0;
+        virtual int sd_bus_creds_get_supplementary_gids(sd_bus_creds *creds, const gid_t **gids) = 0;
+        virtual int sd_bus_creds_get_selinux_context(sd_bus_creds *creds, const char **label) = 0;
     };
 
-}
+} // namespace sdbus::internal
 
 #endif //SDBUS_CXX_ISDBUS_H

@@ -22,8 +22,6 @@
 #include <string>
 #include <cstdint>
 
-using sdbus::ObjectPath;
-
 class ManagerAdaptor : public sdbus::AdaptorInterfaces<sdbus::ObjectManager_adaptor>
 {
 public:
@@ -55,7 +53,7 @@ public:
         , m_population(population)
     {
         registerAdaptor();
-        emitInterfacesAddedSignal({sdbus::InterfaceName{org::sdbuscpp::ExampleManager::Planet1_adaptor::INTERFACE_NAME}});
+        emitInterfacesAddedSignal({sdbus::InterfaceName{Planet1_adaptor::INTERFACE_NAME}});
     }
 
     PlanetAdaptor(const PlanetAdaptor&) = delete;
@@ -65,7 +63,7 @@ public:
 
     ~PlanetAdaptor()
     {
-        emitInterfacesRemovedSignal({sdbus::InterfaceName{org::sdbuscpp::ExampleManager::Planet1_adaptor::INTERFACE_NAME}});
+        emitInterfacesRemovedSignal({sdbus::InterfaceName{Planet1_adaptor::INTERFACE_NAME}});
         unregisterAdaptor();
     }
 
@@ -102,15 +100,15 @@ int main()
     connection->enterEventLoopAsync();
 
     // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
-    auto manager = std::make_unique<ManagerAdaptor>(*connection, ObjectPath{"/org/sdbuscpp/examplemanager"});
+    auto manager = std::make_unique<ManagerAdaptor>(*connection, sdbus::ObjectPath{"/org/sdbuscpp/examplemanager"});
     while (true)
     {
         printCountDown("Creating PlanetAdaptor in ", 5);
-        auto earth = std::make_unique<PlanetAdaptor>(*connection, ObjectPath{"/org/sdbuscpp/examplemanager/Planet1/Earth"}, "Earth", 7'874'965'825);
+        auto earth = std::make_unique<PlanetAdaptor>(*connection, sdbus::ObjectPath{"/org/sdbuscpp/examplemanager/Planet1/Earth"}, "Earth", 7'874'965'825);
         printCountDown("Creating PlanetAdaptor in ", 5);
-        auto trantor = std::make_unique<PlanetAdaptor>(*connection, ObjectPath{"/org/sdbuscpp/examplemanager/Planet1/Trantor"}, "Trantor", 40'000'000'000);
+        auto trantor = std::make_unique<PlanetAdaptor>(*connection, sdbus::ObjectPath{"/org/sdbuscpp/examplemanager/Planet1/Trantor"}, "Trantor", 40'000'000'000);
         printCountDown("Creating PlanetAdaptor in ", 5);
-        auto laconia = std::make_unique<PlanetAdaptor>(*connection, ObjectPath{"/org/sdbuscpp/examplemanager/Planet1/Laconia"}, "Laconia", 231'721);
+        auto laconia = std::make_unique<PlanetAdaptor>(*connection, sdbus::ObjectPath{"/org/sdbuscpp/examplemanager/Planet1/Laconia"}, "Laconia", 231'721);
         printCountDown("Removing PlanetAdaptor in ", 5);
         earth.reset();
         printCountDown("Removing PlanetAdaptor in ", 5);

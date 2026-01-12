@@ -34,7 +34,7 @@
 // Forward declarations
 namespace sdbus {
     class Error;
-}
+} // namespace sdbus
 
 namespace sdbus {
 
@@ -46,12 +46,12 @@ namespace sdbus {
      * by the method to either method return value or an error.
      *
      ***********************************************/
-    template <typename... _Results>
+    template <typename... Results>
     class Result
     {
     public:
         Result() = default;
-        Result(MethodCall call);
+        explicit Result(MethodCall call);
 
         Result(const Result&) = delete;
         Result& operator=(const Result&) = delete;
@@ -59,21 +59,23 @@ namespace sdbus {
         Result(Result&& other) = default;
         Result& operator=(Result&& other) = default;
 
-        void returnResults(const _Results&... results) const;
+        ~Result() = default;
+
+        void returnResults(const Results&... results) const;
         void returnError(const Error& error) const;
 
     private:
         MethodCall call_;
     };
 
-    template <typename... _Results>
-    inline Result<_Results...>::Result(MethodCall call)
+    template <typename... Results>
+    inline Result<Results...>::Result(MethodCall call)
         : call_(std::move(call))
     {
     }
 
-    template <typename... _Results>
-    inline void Result<_Results...>::returnResults(const _Results&... results) const
+    template <typename... Results>
+    inline void Result<Results...>::returnResults(const Results&... results) const
     {
         assert(call_.isValid());
         auto reply = call_.createReply();
@@ -81,13 +83,13 @@ namespace sdbus {
         reply.send();
     }
 
-    template <typename... _Results>
-    inline void Result<_Results...>::returnError(const Error& error) const
+    template <typename... Results>
+    inline void Result<Results...>::returnError(const Error& error) const
     {
         auto reply = call_.createErrorReply(error);
         reply.send();
     }
 
-}
+} // namespace sdbus
 
 #endif /* SDBUS_CXX_METHODRESULT_H_ */

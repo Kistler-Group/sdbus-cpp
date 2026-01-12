@@ -38,11 +38,11 @@ namespace sdbus {
 
     struct MethodVTableItem
     {
-        template <typename _Function> MethodVTableItem& implementedAs(_Function&& callback);
+        template <typename Function> MethodVTableItem& implementedAs(Function&& callback);
         MethodVTableItem& withInputParamNames(std::vector<std::string> names);
-        template <typename... _String> MethodVTableItem& withInputParamNames(_String... names);
+        template <typename... String> MethodVTableItem& withInputParamNames(String... names);
         MethodVTableItem& withOutputParamNames(std::vector<std::string> names);
-        template <typename... _String> MethodVTableItem& withOutputParamNames(_String... names);
+        template <typename... String> MethodVTableItem& withOutputParamNames(String... names);
         MethodVTableItem& markAsDeprecated();
         MethodVTableItem& markAsPrivileged();
         MethodVTableItem& withNoReply();
@@ -61,9 +61,9 @@ namespace sdbus {
 
     struct SignalVTableItem
     {
-        template <typename... _Args> SignalVTableItem& withParameters();
-        template <typename... _Args> SignalVTableItem& withParameters(std::vector<std::string> names);
-        template <typename... _Args, typename... _String> SignalVTableItem& withParameters(_String... names);
+        template <typename... Args> SignalVTableItem& withParameters();
+        template <typename... Args> SignalVTableItem& withParameters(std::vector<std::string> names);
+        template <typename... Args, typename... String> SignalVTableItem& withParameters(String... names);
         SignalVTableItem& markAsDeprecated();
 
         SignalName name;
@@ -77,8 +77,8 @@ namespace sdbus {
 
     struct PropertyVTableItem
     {
-        template <typename _Function> PropertyVTableItem& withGetter(_Function&& callback);
-        template <typename _Function> PropertyVTableItem& withSetter(_Function&& callback);
+        template <typename Function> PropertyVTableItem& withGetter(Function&& callback);
+        template <typename Function> PropertyVTableItem& withSetter(Function&& callback);
         PropertyVTableItem& markAsDeprecated();
         PropertyVTableItem& markAsPrivileged();
         PropertyVTableItem& withUpdateBehavior(Flags::PropertyUpdateBehaviorFlags behavior);

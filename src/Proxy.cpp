@@ -140,7 +140,7 @@ PendingAsyncCall Proxy::callMethodAsync(const MethodCall& message, async_reply_h
 
     floatingAsyncCallSlots_.push_back(std::move(asyncCallInfo));
 
-    return {asyncCallInfoWeakPtr};
+    return PendingAsyncCall{asyncCallInfoWeakPtr};
 }
 
 Slot Proxy::callMethodAsync(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout, return_slot_t)

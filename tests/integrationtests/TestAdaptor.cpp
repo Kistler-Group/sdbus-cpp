@@ -29,7 +29,7 @@
 #include "sdbus-c++/Types.h"
 #include "sdbus-c++/AdaptorInterfaces.h"
 #include <cstdint>
-#include "integrationtests/Defs.h"
+#include "Defs.h"
 #include <string>
 #include <map>
 #include <array>

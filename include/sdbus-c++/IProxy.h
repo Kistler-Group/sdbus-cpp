@@ -46,8 +46,8 @@ namespace sdbus {
     class PendingAsyncCall;
     namespace internal {
         class Proxy;
-    }
-}
+    } // namespace internal
+} // namespace sdbus
 
 namespace sdbus {
 
@@ -350,7 +350,7 @@ namespace sdbus {
          */
         virtual void unregister() = 0;
 
-    public: // Lower-level, message-based API
+    // Lower-level, message-based API
         /*!
          * @brief Creates a method call message
          *
@@ -430,8 +430,8 @@ namespace sdbus {
         /*!
          * @copydoc IProxy::callMethod(const MethodCall&,uint64_t)
          */
-        template <typename _Rep, typename _Period>
-        MethodReply callMethod(const MethodCall& message, const std::chrono::duration<_Rep, _Period>& timeout);
+        template <typename Rep, typename Period>
+        MethodReply callMethod(const MethodCall& message, const std::chrono::duration<Rep, Period>& timeout);
 
         /*!
          * @brief Calls method on the D-Bus object asynchronously
@@ -539,18 +539,18 @@ namespace sdbus {
         /*!
          * @copydoc IProxy::callMethod(const MethodCall&,async_reply_handler,uint64_t)
          */
-        template <typename _Rep, typename _Period>
+        template <typename Rep, typename Period>
         PendingAsyncCall callMethodAsync( const MethodCall& message
                                         , async_reply_handler asyncReplyCallback
-                                        , const std::chrono::duration<_Rep, _Period>& timeout );
+                                        , const std::chrono::duration<Rep, Period>& timeout );
 
         /*!
          * @copydoc IProxy::callMethod(const MethodCall&,async_reply_handler,uint64_t,return_slot_t)
          */
-        template <typename _Rep, typename _Period>
+        template <typename Rep, typename Period>
         [[nodiscard]] Slot callMethodAsync( const MethodCall& message
                                           , async_reply_handler asyncReplyCallback
-                                          , const std::chrono::duration<_Rep, _Period>& timeout
+                                          , const std::chrono::duration<Rep, Period>& timeout
                                           , return_slot_t );
 
         /*!
@@ -601,9 +601,9 @@ namespace sdbus {
         /*!
          * @copydoc IProxy::callMethod(const MethodCall&,uint64_t,with_future_t)
          */
-        template <typename _Rep, typename _Period>
+        template <typename Rep, typename Period>
         std::future<MethodReply> callMethodAsync( const MethodCall& message
-                                                , const std::chrono::duration<_Rep, _Period>& timeout
+                                                , const std::chrono::duration<Rep, Period>& timeout
                                                 , with_future_t );
 
         /*!
@@ -698,43 +698,42 @@ namespace sdbus {
 
     private:
         friend internal::Proxy;
-        PendingAsyncCall(std::weak_ptr<void> callInfo);
+        explicit PendingAsyncCall(std::weak_ptr<void> callInfo);
 
-    private:
         std::weak_ptr<void> callInfo_;
     };
 
     // Out-of-line member definitions
 
-    template <typename _Rep, typename _Period>
-    inline MethodReply IProxy::callMethod(const MethodCall& message, const std::chrono::duration<_Rep, _Period>& timeout)
+    template <typename Rep, typename Period>
+    inline MethodReply IProxy::callMethod(const MethodCall& message, const std::chrono::duration<Rep, Period>& timeout)
     {
         auto microsecs = std::chrono::duration_cast<std::chrono::microseconds>(timeout);
         return callMethod(message, microsecs.count());
     }
 
-    template <typename _Rep, typename _Period>
+    template <typename Rep, typename Period>
     inline PendingAsyncCall IProxy::callMethodAsync( const MethodCall& message
                                                    , async_reply_handler asyncReplyCallback
-                                                   , const std::chrono::duration<_Rep, _Period>& timeout )
+                                                   , const std::chrono::duration<Rep, Period>& timeout )
     {
         auto microsecs = std::chrono::duration_cast<std::chrono::microseconds>(timeout);
         return callMethodAsync(message, std::move(asyncReplyCallback), microsecs.count());
     }
 
-    template <typename _Rep, typename _Period>
+    template <typename Rep, typename Period>
     inline Slot IProxy::callMethodAsync( const MethodCall& message
                                        , async_reply_handler asyncReplyCallback
-                                       , const std::chrono::duration<_Rep, _Period>& timeout
+                                       , const std::chrono::duration<Rep, Period>& timeout
                                        , return_slot_t )
     {
         auto microsecs = std::chrono::duration_cast<std::chrono::microseconds>(timeout);
         return callMethodAsync(message, std::move(asyncReplyCallback), microsecs.count(), return_slot);
     }
 
-    template <typename _Rep, typename _Period>
+    template <typename Rep, typename Period>
     inline std::future<MethodReply> IProxy::callMethodAsync( const MethodCall& message
-                                                           , const std::chrono::duration<_Rep, _Period>& timeout
+                                                           , const std::chrono::duration<Rep, Period>& timeout
                                                            , with_future_t )
     {
         auto microsecs = std::chrono::duration_cast<std::chrono::microseconds>(timeout);
@@ -743,87 +742,87 @@ namespace sdbus {
 
     inline MethodInvoker IProxy::callMethod(const MethodName& methodName)
     {
-        return MethodInvoker(*this, methodName);
+        return {*this, methodName};
     }
 
     inline MethodInvoker IProxy::callMethod(const std::string& methodName)
     {
-        return MethodInvoker(*this, methodName.c_str());
+        return {*this, methodName.c_str()};
     }
 
     inline MethodInvoker IProxy::callMethod(const char* methodName)
     {
-        return MethodInvoker(*this, methodName);
+        return {*this, methodName};
     }
 
     inline AsyncMethodInvoker IProxy::callMethodAsync(const MethodName& methodName)
     {
-        return AsyncMethodInvoker(*this, methodName);
+        return {*this, methodName};
     }
 
     inline AsyncMethodInvoker IProxy::callMethodAsync(const std::string& methodName)
     {
-        return AsyncMethodInvoker(*this, methodName.c_str());
+        return {*this, methodName.c_str()};
     }
 
     inline AsyncMethodInvoker IProxy::callMethodAsync(const char* methodName)
     {
-        return AsyncMethodInvoker(*this, methodName);
+        return {*this, methodName};
     }
 
     inline SignalSubscriber IProxy::uponSignal(const SignalName& signalName)
     {
-        return SignalSubscriber(*this, signalName);
+        return {*this, signalName};
     }
 
     inline SignalSubscriber IProxy::uponSignal(const std::string& signalName)
     {
-        return SignalSubscriber(*this, signalName.c_str());
+        return {*this, signalName.c_str()};
     }
 
     inline SignalSubscriber IProxy::uponSignal(const char* signalName)
     {
-        return SignalSubscriber(*this, signalName);
+        return {*this, signalName};
     }
 
     inline PropertyGetter IProxy::getProperty(const PropertyName& propertyName)
     {
-        return PropertyGetter(*this, propertyName);
+        return {*this, propertyName};
     }
 
     inline PropertyGetter IProxy::getProperty(std::string_view propertyName)
     {
-        return PropertyGetter(*this, std::move(propertyName));
+        return {*this, std::move(propertyName)};
     }
 
     inline AsyncPropertyGetter IProxy::getPropertyAsync(const PropertyName& propertyName)
     {
-        return AsyncPropertyGetter(*this, propertyName);
+        return {*this, propertyName};
     }
 
     inline AsyncPropertyGetter IProxy::getPropertyAsync(std::string_view propertyName)
     {
-        return AsyncPropertyGetter(*this, std::move(propertyName));
+        return {*this, std::move(propertyName)};
     }
 
     inline PropertySetter IProxy::setProperty(const PropertyName& propertyName)
     {
-        return PropertySetter(*this, propertyName);
+        return {*this, propertyName};
     }
 
     inline PropertySetter IProxy::setProperty(std::string_view propertyName)
     {
-        return PropertySetter(*this, std::move(propertyName));
+        return {*this, std::move(propertyName)};
     }
 
     inline AsyncPropertySetter IProxy::setPropertyAsync(const PropertyName& propertyName)
     {
-        return AsyncPropertySetter(*this, propertyName);
+        return {*this, propertyName};
     }
 
     inline AsyncPropertySetter IProxy::setPropertyAsync(std::string_view propertyName)
     {
-        return AsyncPropertySetter(*this, std::move(propertyName));
+        return {*this, std::move(propertyName)};
     }
 
     inline AllPropertiesGetter IProxy::getAllProperties()
@@ -974,8 +973,8 @@ namespace sdbus {
      */
     [[nodiscard]] std::unique_ptr<sdbus::IProxy> createLightWeightProxy(ServiceName destination, ObjectPath objectPath);
 
-}
+} // namespace sdbus
 
-#include <sdbus-c++/ConvenienceApiClasses.inl>
+#include <sdbus-c++/ConvenienceApiClasses.inl> // NOLINT(misc-header-include-cycle)
 
 #endif /* SDBUS_CXX_IPROXY_H_ */

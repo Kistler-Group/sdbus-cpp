@@ -39,21 +39,21 @@ namespace sdbus {
     /***  Method VTable Item  ***/
     /*** -------------------- ***/
 
-    template <typename _Function>
-    MethodVTableItem& MethodVTableItem::implementedAs(_Function&& callback)
+    template <typename Function>
+    MethodVTableItem& MethodVTableItem::implementedAs(Function&& callback)
     {
-        inputSignature = signature_of_function_input_arguments_v<_Function>;
-        outputSignature = signature_of_function_output_arguments_v<_Function>;
-        callbackHandler = [callback = std::forward<_Function>(callback)](MethodCall call)
+        inputSignature = signature_of_function_input_arguments_v<Function>;
+        outputSignature = signature_of_function_output_arguments_v<Function>;
+        callbackHandler = [callback = std::forward<Function>(callback)](MethodCall call)
         {
             // Create a tuple of callback input arguments' types, which will be used
             // as a storage for the argument values deserialized from the message.
-            tuple_of_function_input_arg_types_t<_Function> inputArgs;
+            tuple_of_function_input_arg_types_t<Function> inputArgs;
 
             // Deserialize input arguments from the message into the tuple.
             call >> inputArgs;
 
-            if constexpr (!is_async_method_v<_Function>)
+            if constexpr (!is_async_method_v<Function>)
             {
                 // Invoke callback with input arguments from the tuple.
                 auto ret = sdbus::apply(callback, inputArgs);
@@ -66,7 +66,7 @@ namespace sdbus {
             else
             {
                 // Invoke callback with input arguments from the tuple and with result object to be set later
-                using AsyncResult = typename function_traits<_Function>::async_result_t;
+                using AsyncResult = typename function_traits<Function>::async_result_t;
                 sdbus::apply(callback, AsyncResult{std::move(call)}, std::move(inputArgs));
             }
         };
@@ -81,10 +81,10 @@ namespace sdbus {
         return *this;
     }
 
-    template <typename... _String>
-    inline MethodVTableItem& MethodVTableItem::withInputParamNames(_String... names)
+    template <typename... String>
+    inline MethodVTableItem& MethodVTableItem::withInputParamNames(String... names)
     {
-        static_assert(std::conjunction_v<std::is_convertible<_String, std::string>...>, "Parameter names must be (convertible to) strings");
+        static_assert(std::conjunction_v<std::is_convertible<String, std::string>...>, "Parameter names must be (convertible to) strings");
 
         return withInputParamNames({names...});
     }
@@ -96,10 +96,10 @@ namespace sdbus {
         return *this;
     }
 
-    template <typename... _String>
-    inline MethodVTableItem& MethodVTableItem::withOutputParamNames(_String... names)
+    template <typename... String>
+    inline MethodVTableItem& MethodVTableItem::withOutputParamNames(String... names)
     {
-        static_assert(std::conjunction_v<std::is_convertible<_String, std::string>...>, "Parameter names must be (convertible to) strings");
+        static_assert(std::conjunction_v<std::is_convertible<String, std::string>...>, "Parameter names must be (convertible to) strings");
 
         return withOutputParamNames({names...});
     }
@@ -139,29 +139,29 @@ namespace sdbus {
     /***  Signal VTable Item  ***/
     /*** -------------------- ***/
 
-    template <typename... _Args>
+    template <typename... Args>
     inline SignalVTableItem& SignalVTableItem::withParameters()
     {
-        signature = signature_of_function_input_arguments_v<void(_Args...)>;
+        signature = signature_of_function_input_arguments_v<void(Args...)>;
 
         return *this;
     }
 
-    template <typename... _Args>
+    template <typename... Args>
     inline SignalVTableItem& SignalVTableItem::withParameters(std::vector<std::string> names)
     {
         paramNames = std::move(names);
 
-        return withParameters<_Args...>();
+        return withParameters<Args...>();
     }
 
-    template <typename... _Args, typename... _String>
-    inline SignalVTableItem& SignalVTableItem::withParameters(_String... names)
+    template <typename... Args, typename... String>
+    inline SignalVTableItem& SignalVTableItem::withParameters(String... names)
     {
-        static_assert(std::conjunction_v<std::is_convertible<_String, std::string>...>, "Parameter names must be (convertible to) strings");
-        static_assert(sizeof...(_Args) == sizeof...(_String), "Numbers of signal parameters and their names don't match");
+        static_assert(std::conjunction_v<std::is_convertible<String, std::string>...>, "Parameter names must be (convertible to) strings");
+        static_assert(sizeof...(Args) == sizeof...(String), "Numbers of signal parameters and their names don't match");
 
-        return withParameters<_Args...>({names...});
+        return withParameters<Args...>({names...});
     }
 
     inline SignalVTableItem& SignalVTableItem::markAsDeprecated()
@@ -185,16 +185,16 @@ namespace sdbus {
     /*** Property VTable Item ***/
     /*** -------------------- ***/
 
-    template <typename _Function>
-    inline PropertyVTableItem& PropertyVTableItem::withGetter(_Function&& callback)
+    template <typename Function>
+    inline PropertyVTableItem& PropertyVTableItem::withGetter(Function&& callback)
     {
-        static_assert(function_argument_count_v<_Function> == 0, "Property getter function must not take any arguments");
-        static_assert(!std::is_void<function_result_t<_Function>>::value, "Property getter function must return property value");
+        static_assert(function_argument_count_v<Function> == 0, "Property getter function must not take any arguments");
+        static_assert(!std::is_void<function_result_t<Function>>::value, "Property getter function must return property value");
 
         if (signature.empty())
-            signature = signature_of_function_output_arguments_v<_Function>;
+            signature = signature_of_function_output_arguments_v<Function>;
 
-        getter = [callback = std::forward<_Function>(callback)](PropertyGetReply& reply)
+        getter = [callback = std::forward<Function>(callback)](PropertyGetReply& reply)
         {
             // Get the propety value and serialize it into the pre-constructed reply message
             reply << callback();
@@ -203,19 +203,19 @@ namespace sdbus {
         return *this;
     }
 
-    template <typename _Function>
-    inline PropertyVTableItem& PropertyVTableItem::withSetter(_Function&& callback)
+    template <typename Function>
+    inline PropertyVTableItem& PropertyVTableItem::withSetter(Function&& callback)
     {
-        static_assert(function_argument_count_v<_Function> == 1, "Property setter function must take one parameter - the property value");
-        static_assert(std::is_void<function_result_t<_Function>>::value, "Property setter function must not return any value");
+        static_assert(function_argument_count_v<Function> == 1, "Property setter function must take one parameter - the property value");
+        static_assert(std::is_void<function_result_t<Function>>::value, "Property setter function must not return any value");
 
         if (signature.empty())
-            signature = signature_of_function_input_arguments_v<_Function>;
+            signature = signature_of_function_input_arguments_v<Function>;
 
-        setter = [callback = std::forward<_Function>(callback)](PropertySetCall call)
+        setter = [callback = std::forward<Function>(callback)](PropertySetCall call)
         {
             // Default-construct property value
-            using property_type = function_argument_t<_Function, 0>;
+            using property_type = function_argument_t<Function, 0>;
             std::decay_t<property_type> property;
 
             // Deserialize property value from the incoming call message

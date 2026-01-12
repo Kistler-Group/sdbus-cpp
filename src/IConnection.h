@@ -54,8 +54,8 @@ namespace sdbus {
     class Error;
     namespace internal {
         class ISdBus;
-    }
-}
+    } // namespace internal
+} // namespace sdbus
 
 namespace sdbus::internal {
 
@@ -130,6 +130,6 @@ namespace sdbus::internal {
 
     [[nodiscard]] std::unique_ptr<sdbus::internal::IConnection> createPseudoConnection();
 
-}
+} // namespace sdbus::internal
 
 #endif /* SDBUS_CXX_INTERNAL_ICONNECTION_H_ */

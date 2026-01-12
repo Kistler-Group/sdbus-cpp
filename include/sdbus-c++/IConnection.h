@@ -43,7 +43,7 @@ namespace sdbus {
     class ObjectPath;
     class BusName;
     using ServiceName = BusName;
-}
+} // namespace sdbus
 
 namespace sdbus {
 
@@ -207,8 +207,8 @@ namespace sdbus {
         /*!
          * @copydoc IConnection::setMethodCallTimeout(uint64_t)
          */
-        template <typename _Rep, typename _Period>
-        void setMethodCallTimeout(const std::chrono::duration<_Rep, _Period>& timeout);
+        template <typename Rep, typename Period>
+        void setMethodCallTimeout(const std::chrono::duration<Rep, Period>& timeout);
 
         /*!
          * @brief Gets general method call timeout
@@ -426,8 +426,8 @@ namespace sdbus {
         };
     };
 
-    template <typename _Rep, typename _Period>
-    inline void IConnection::setMethodCallTimeout(const std::chrono::duration<_Rep, _Period>& timeout)
+    template <typename Rep, typename Period>
+    inline void IConnection::setMethodCallTimeout(const std::chrono::duration<Rep, Period>& timeout)
     {
         auto microsecs = std::chrono::duration_cast<std::chrono::microseconds>(timeout);
         return setMethodCallTimeout(microsecs.count());
@@ -579,6 +579,6 @@ namespace sdbus {
      * @endcode
      */
     [[nodiscard]] std::unique_ptr<IConnection> createBusConnection(sd_bus *bus);
-}
+} // namespace sdbus
 
 #endif /* SDBUS_CXX_ICONNECTION_H_ */
