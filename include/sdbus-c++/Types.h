@@ -466,7 +466,7 @@ struct std::tuple_size<sdbus::Struct<ValueTypes...>> // NOLINT(cert-dcl58-cpp): 
                                                                                                                                                         \
         template <>                                                                                                                                     \
         struct signature_of<STRUCT>                                                                                                                     \
-            : signature_of<sdbus::Struct<SDBUSCPP_STRUCT_MEMBER_TYPES(STRUCT, __VA_ARGS__)>>                                                            \
+            : signature_of<Struct<SDBUSCPP_STRUCT_MEMBER_TYPES(STRUCT, __VA_ARGS__)>>                                                                   \
         {};                                                                                                                                             \
                                                                                                                                                         \
         inline auto as_dictionary_if_struct(const STRUCT& object)                                                                                       \
@@ -474,9 +474,9 @@ struct std::tuple_size<sdbus::Struct<ValueTypes...>> // NOLINT(cert-dcl58-cpp): 
             return as_dictionary<STRUCT>(object);                                                                                                       \
         }                                                                                                                                               \
                                                                                                                                                         \
-        inline sdbus::Message& operator<<(sdbus::Message& msg, const STRUCT& items)                                                                     \
+        inline Message& operator<<(Message& msg, const STRUCT& items)                                                                                   \
         {                                                                                                                                               \
-            return msg << sdbus::Struct{std::forward_as_tuple(SDBUSCPP_STRUCT_MEMBERS(items, __VA_ARGS__))};                                            \
+            return msg << Struct{std::forward_as_tuple(SDBUSCPP_STRUCT_MEMBERS(items, __VA_ARGS__))};                                                   \
         }                                                                                                                                               \
                                                                                                                                                         \
         inline Message& operator<<(Message& msg, const as_dictionary<STRUCT>& s)                                                                        \

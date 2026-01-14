@@ -156,7 +156,7 @@ namespace sdbus {
          * The proxy created this way becomes an owner of the connection.
          * For more information on its behavior, consult @ref createProxy(std::unique_ptr<sdbus::IConnection>&&,std::string,std::string)
          */
-        ProxyInterfaces(std::unique_ptr<sdbus::IConnection>&& connection, ServiceName destination, ObjectPath objectPath)
+        ProxyInterfaces(std::unique_ptr<IConnection>&& connection, ServiceName destination, ObjectPath objectPath)
             : ProxyObjectHolder(createProxy(std::move(connection), std::move(destination), std::move(objectPath)))
             , Interfaces(getProxy())...
         {
@@ -172,7 +172,7 @@ namespace sdbus {
          * The proxy created this way becomes an owner of the connection.
          * For more information on its behavior, consult @ref createProxy(std::unique_ptr<sdbus::IConnection>&&,std::string,std::string,sdbus::dont_run_event_loop_thread_t)
          */
-        ProxyInterfaces(std::unique_ptr<sdbus::IConnection>&& connection, ServiceName destination, ObjectPath objectPath, dont_run_event_loop_thread_t)
+        ProxyInterfaces(std::unique_ptr<IConnection>&& connection, ServiceName destination, ObjectPath objectPath, dont_run_event_loop_thread_t)
             : ProxyObjectHolder(createProxy(std::move(connection), std::move(destination), std::move(objectPath), dont_run_event_loop_thread))
             , Interfaces(getProxy())...
         {

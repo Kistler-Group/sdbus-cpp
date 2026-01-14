@@ -278,7 +278,7 @@ namespace sdbus {
         [[nodiscard]] Slot send(void* callback, void* userData, uint64_t timeout, return_slot_t) const;
 
         MethodReply createReply() const;
-        MethodReply createErrorReply(const sdbus::Error& error) const;
+        MethodReply createErrorReply(const Error& error) const;
 
         void dontExpectReply();
         bool doesntExpectReply() const;
@@ -496,7 +496,7 @@ namespace sdbus {
         template <typename Element, typename... Elements>
         bool deserialize_variant(Message& msg, std::variant<Elements...>& value, const char* signature)
         {
-            constexpr auto elemSignature = as_null_terminated(sdbus::signature_of_v<Element>);
+            constexpr auto elemSignature = as_null_terminated(signature_of_v<Element>);
             if (std::strcmp(signature, elemSignature.data()) != 0)
                 return false;
 
@@ -578,7 +578,7 @@ namespace sdbus {
         size_t arraySize{};
         const ElementType* arrayPtr{};
 
-        constexpr auto signature = as_null_terminated(sdbus::signature_of_v<ElementType>);
+        constexpr auto signature = as_null_terminated(signature_of_v<ElementType>);
         readArray(*signature.data(), reinterpret_cast<const void**>(&arrayPtr), &arraySize);
 
         const size_t elementsInMsg = arraySize / sizeof(ElementType);
@@ -594,7 +594,7 @@ namespace sdbus {
         size_t arraySize{};
         const Element* arrayPtr{};
 
-        constexpr auto signature = as_null_terminated(sdbus::signature_of_v<Element>);
+        constexpr auto signature = as_null_terminated(signature_of_v<Element>);
         readArray(*signature.data(), reinterpret_cast<const void**>(&arrayPtr), &arraySize);
 
         // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)

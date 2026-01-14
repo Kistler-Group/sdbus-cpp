@@ -985,10 +985,10 @@ int IConnection::PollData::getPollTimeout() const
 
 namespace sdbus::internal {
 
-std::unique_ptr<sdbus::internal::IConnection> createPseudoConnection()
+std::unique_ptr<IConnection> createPseudoConnection()
 {
-    auto interface = std::make_unique<sdbus::internal::SdBus>();
-    return std::make_unique<sdbus::internal::Connection>(std::move(interface), Connection::pseudo_bus);
+    auto interface = std::make_unique<SdBus>();
+    return std::make_unique<Connection>(std::move(interface), Connection::pseudo_bus);
 }
 
 } // namespace sdbus::internal
@@ -997,81 +997,81 @@ namespace sdbus {
 
 using internal::Connection;
 
-std::unique_ptr<sdbus::IConnection> createBusConnection()
+std::unique_ptr<IConnection> createBusConnection()
 {
-    auto interface = std::make_unique<sdbus::internal::SdBus>();
-    return std::make_unique<sdbus::internal::Connection>(std::move(interface), Connection::default_bus);
+    auto interface = std::make_unique<internal::SdBus>();
+    return std::make_unique<internal::Connection>(std::move(interface), Connection::default_bus);
 }
 
-std::unique_ptr<sdbus::IConnection> createBusConnection(const ServiceName& name)
+std::unique_ptr<IConnection> createBusConnection(const ServiceName& name)
 {
     auto conn = createBusConnection();
     conn->requestName(name);
     return conn;
 }
 
-std::unique_ptr<sdbus::IConnection> createSystemBusConnection()
+std::unique_ptr<IConnection> createSystemBusConnection()
 {
-    auto interface = std::make_unique<sdbus::internal::SdBus>();
-    return std::make_unique<sdbus::internal::Connection>(std::move(interface), Connection::system_bus);
+    auto interface = std::make_unique<internal::SdBus>();
+    return std::make_unique<internal::Connection>(std::move(interface), Connection::system_bus);
 }
 
-std::unique_ptr<sdbus::IConnection> createSystemBusConnection(const ServiceName& name)
+std::unique_ptr<IConnection> createSystemBusConnection(const ServiceName& name)
 {
     auto conn = createSystemBusConnection();
     conn->requestName(name);
     return conn;
 }
 
-std::unique_ptr<sdbus::IConnection> createSessionBusConnection()
+std::unique_ptr<IConnection> createSessionBusConnection()
 {
-    auto interface = std::make_unique<sdbus::internal::SdBus>();
-    return std::make_unique<sdbus::internal::Connection>(std::move(interface), Connection::session_bus);
+    auto interface = std::make_unique<internal::SdBus>();
+    return std::make_unique<internal::Connection>(std::move(interface), Connection::session_bus);
 }
 
-std::unique_ptr<sdbus::IConnection> createSessionBusConnection(const ServiceName& name)
+std::unique_ptr<IConnection> createSessionBusConnection(const ServiceName& name)
 {
     auto conn = createSessionBusConnection();
     conn->requestName(name);
     return conn;
 }
 
-std::unique_ptr<sdbus::IConnection> createSessionBusConnectionWithAddress(const std::string &address)
+std::unique_ptr<IConnection> createSessionBusConnectionWithAddress(const std::string &address)
 {
-    auto interface = std::make_unique<sdbus::internal::SdBus>();
-    return std::make_unique<sdbus::internal::Connection>(std::move(interface), Connection::custom_session_bus, address);
+    auto interface = std::make_unique<internal::SdBus>();
+    return std::make_unique<internal::Connection>(std::move(interface), Connection::custom_session_bus, address);
 }
 
-std::unique_ptr<sdbus::IConnection> createRemoteSystemBusConnection(const std::string& host)
+std::unique_ptr<IConnection> createRemoteSystemBusConnection(const std::string& host)
 {
-    auto interface = std::make_unique<sdbus::internal::SdBus>();
-    return std::make_unique<sdbus::internal::Connection>(std::move(interface), Connection::remote_system_bus, host);
+    auto interface = std::make_unique<internal::SdBus>();
+    return std::make_unique<internal::Connection>(std::move(interface), Connection::remote_system_bus, host);
 }
 
-std::unique_ptr<sdbus::IConnection> createDirectBusConnection(const std::string& address)
+std::unique_ptr<IConnection> createDirectBusConnection(const std::string& address)
 {
-    auto interface = std::make_unique<sdbus::internal::SdBus>();
-    return std::make_unique<sdbus::internal::Connection>(std::move(interface), Connection::private_bus, address);
+    auto interface = std::make_unique<internal::SdBus>();
+    return std::make_unique<internal::Connection>(std::move(interface), Connection::private_bus, address);
 }
 
-std::unique_ptr<sdbus::IConnection> createDirectBusConnection(int fd)
+std::unique_ptr<IConnection> createDirectBusConnection(int fd)
 {
-    auto interface = std::make_unique<sdbus::internal::SdBus>();
-    return std::make_unique<sdbus::internal::Connection>(std::move(interface), Connection::private_bus, fd);
+    auto interface = std::make_unique<internal::SdBus>();
+    return std::make_unique<internal::Connection>(std::move(interface), Connection::private_bus, fd);
 }
 
-std::unique_ptr<sdbus::IConnection> createServerBus(int fd)
+std::unique_ptr<IConnection> createServerBus(int fd)
 {
-    auto interface = std::make_unique<sdbus::internal::SdBus>();
-    return std::make_unique<sdbus::internal::Connection>(std::move(interface), Connection::server_bus, fd);
+    auto interface = std::make_unique<internal::SdBus>();
+    return std::make_unique<internal::Connection>(std::move(interface), Connection::server_bus, fd);
 }
 
-std::unique_ptr<sdbus::IConnection> createBusConnection(sd_bus *bus)
+std::unique_ptr<IConnection> createBusConnection(sd_bus *bus)
 {
     SDBUS_THROW_ERROR_IF(bus == nullptr, "Invalid bus argument", EINVAL);
 
-    auto interface = std::make_unique<sdbus::internal::SdBus>();
-    return std::make_unique<sdbus::internal::Connection>(std::move(interface), Connection::sdbus_bus, bus);
+    auto interface = std::make_unique<internal::SdBus>();
+    return std::make_unique<internal::Connection>(std::move(interface), Connection::sdbus_bus, bus);
 }
 
 } // namespace sdbus

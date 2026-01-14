@@ -45,13 +45,13 @@ namespace sdbus::internal {
         : public IProxy
     {
     public:
-        Proxy( sdbus::internal::IConnection& connection
+        Proxy( IConnection& connection
              , ServiceName destination
              , ObjectPath objectPath );
-        Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
+        Proxy( std::unique_ptr<IConnection>&& connection
              , ServiceName destination
              , ObjectPath objectPath );
-        Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
+        Proxy( std::unique_ptr<IConnection>&& connection
              , ServiceName destination
              , ObjectPath objectPath
              , dont_run_event_loop_thread_t );
@@ -100,9 +100,7 @@ namespace sdbus::internal {
 
         friend PendingAsyncCall;
 
-        std::unique_ptr< sdbus::internal::IConnection
-                       , std::function<void(sdbus::internal::IConnection*)>
-                       > connection_;
+        std::unique_ptr<IConnection, std::function<void(IConnection*)>> connection_;
         ServiceName destination_;
         ObjectPath objectPath_;
 

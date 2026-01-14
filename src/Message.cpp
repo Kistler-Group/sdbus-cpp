@@ -904,9 +904,9 @@ constinit bool pseudoConnectionDestroyed{}; // NOLINT(cppcoreguidelines-avoid-no
 bool pseudoConnectionDestroyed{}; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 #endif
 
-std::unique_ptr<sdbus::internal::IConnection, void(*)(sdbus::internal::IConnection*)> createPseudoConnection()
+std::unique_ptr<internal::IConnection, void(*)(internal::IConnection*)> createPseudoConnection()
 {
-    auto deleter = [](sdbus::internal::IConnection* con)
+    auto deleter = [](internal::IConnection* con)
     {
         delete con; // NOLINT(cppcoreguidelines-owning-memory)
         pseudoConnectionDestroyed = true;
@@ -915,7 +915,7 @@ std::unique_ptr<sdbus::internal::IConnection, void(*)(sdbus::internal::IConnecti
     return {internal::createPseudoConnection().release(), std::move(deleter)};
 }
 
-sdbus::internal::IConnection& getPseudoConnectionInstance()
+internal::IConnection& getPseudoConnectionInstance()
 {
     static auto connection = createPseudoConnection();
 

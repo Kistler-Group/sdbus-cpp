@@ -427,7 +427,7 @@ namespace sdbus {
                 {
                     signal >> signalArgs;
                 }
-                catch (const sdbus::Error& e)
+                catch (const Error& e)
                 {
                     // Pass message deserialization exceptions to the client via callback error parameter,
                     // instead of propagating them up the message loop call stack.

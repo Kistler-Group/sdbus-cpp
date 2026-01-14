@@ -857,9 +857,9 @@ namespace sdbus {
      * auto proxy = sdbus::createProxy(connection, "com.kistler.foo", "/com/kistler/foo");
      * @endcode
      */
-    [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( sdbus::IConnection& connection
-                                                            , ServiceName destination
-                                                            , ObjectPath objectPath );
+    [[nodiscard]] std::unique_ptr<IProxy> createProxy( IConnection& connection
+                                                     , ServiceName destination
+                                                     , ObjectPath objectPath );
 
     /*!
      * @brief Creates a proxy object for a specific remote D-Bus object
@@ -883,9 +883,9 @@ namespace sdbus {
      * auto proxy = sdbus::createProxy(std::move(connection), "com.kistler.foo", "/com/kistler/foo");
      * @endcode
      */
-    [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( std::unique_ptr<sdbus::IConnection>&& connection
-                                                            , ServiceName destination
-                                                            , ObjectPath objectPath );
+    [[nodiscard]] std::unique_ptr<IProxy> createProxy( std::unique_ptr<IConnection>&& connection
+                                                     , ServiceName destination
+                                                     , ObjectPath objectPath );
 
     /*!
      * @brief Creates a light-weight proxy object for a specific remote D-Bus object
@@ -910,19 +910,19 @@ namespace sdbus {
      * auto proxy = sdbus::createProxy(std::move(connection), "com.kistler.foo", "/com/kistler/foo", sdbus::dont_run_event_loop_thread);
      * @endcode
      */
-    [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( std::unique_ptr<sdbus::IConnection>&& connection
-                                                            , ServiceName destination
-                                                            , ObjectPath objectPath
-                                                            , dont_run_event_loop_thread_t );
+    [[nodiscard]] std::unique_ptr<IProxy> createProxy( std::unique_ptr<IConnection>&& connection
+                                                     , ServiceName destination
+                                                     , ObjectPath objectPath
+                                                     , dont_run_event_loop_thread_t );
 
     /*!
      * @brief Creates a light-weight proxy object for a specific remote D-Bus object
      *
      * Does the same thing as createProxy(std::unique_ptr<sdbus::IConnection>&&, ServiceName, ObjectPath, dont_run_event_loop_thread_t);
      */
-    [[nodiscard]] std::unique_ptr<sdbus::IProxy> createLightWeightProxy( std::unique_ptr<sdbus::IConnection>&& connection
-                                                                       , ServiceName destination
-                                                                       , ObjectPath objectPath );
+    [[nodiscard]] std::unique_ptr<IProxy> createLightWeightProxy( std::unique_ptr<IConnection>&& connection
+                                                                , ServiceName destination
+                                                                , ObjectPath objectPath );
 
     /*!
      * @brief Creates a proxy object for a specific remote D-Bus object
@@ -941,8 +941,8 @@ namespace sdbus {
      * auto proxy = sdbus::createProxy("com.kistler.foo", "/com/kistler/foo");
      * @endcode
      */
-    [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( ServiceName destination
-                                                            , ObjectPath objectPath );
+    [[nodiscard]] std::unique_ptr<IProxy> createProxy( ServiceName destination
+                                                     , ObjectPath objectPath );
 
     /*!
      * @brief Creates a light-weight proxy object for a specific remote D-Bus object
@@ -962,16 +962,16 @@ namespace sdbus {
      * auto proxy = sdbus::createProxy("com.kistler.foo", "/com/kistler/foo", sdbus::dont_run_event_loop_thread );
      * @endcode
      */
-    [[nodiscard]] std::unique_ptr<sdbus::IProxy> createProxy( ServiceName destination
-                                                            , ObjectPath objectPath
-                                                            , dont_run_event_loop_thread_t );
+    [[nodiscard]] std::unique_ptr<IProxy> createProxy( ServiceName destination
+                                                     , ObjectPath objectPath
+                                                     , dont_run_event_loop_thread_t );
 
     /*!
      * @brief Creates a light-weight proxy object for a specific remote D-Bus object
      *
      * Does the same thing as createProxy(ServiceName, ObjectPath, dont_run_event_loop_thread_t);
      */
-    [[nodiscard]] std::unique_ptr<sdbus::IProxy> createLightWeightProxy(ServiceName destination, ObjectPath objectPath);
+    [[nodiscard]] std::unique_ptr<IProxy> createLightWeightProxy(ServiceName destination, ObjectPath objectPath);
 
 } // namespace sdbus
 

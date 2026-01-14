@@ -414,7 +414,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void emitSignal(const sdbus::Signal& message) = 0;
+        virtual void emitSignal(const Signal& message) = 0;
 
     protected: // Internal API for efficiency reasons used by high-level API helper classes
         friend SignalEmitter;
@@ -474,7 +474,7 @@ namespace sdbus {
      * auto proxy = sdbus::createObject(connection, "/com/kistler/foo");
      * @endcode
      */
-    [[nodiscard]] std::unique_ptr<sdbus::IObject> createObject(sdbus::IConnection& connection, ObjectPath objectPath);
+    [[nodiscard]] std::unique_ptr<IObject> createObject(IConnection& connection, ObjectPath objectPath);
 
 } // namespace sdbus
 

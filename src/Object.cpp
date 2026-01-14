@@ -51,7 +51,7 @@
 
 namespace sdbus::internal {
 
-Object::Object(sdbus::internal::IConnection& connection, ObjectPath objectPath)
+Object::Object(IConnection& connection, ObjectPath objectPath)
     : connection_(connection), objectPath_(std::move(objectPath))
 {
     SDBUS_CHECK_OBJECT_PATH(objectPath_.c_str());
@@ -101,7 +101,7 @@ Signal Object::createSignal(const char* interfaceName, const char* signalName) c
     return connection_.createSignal(objectPath_.c_str(), interfaceName, signalName);
 }
 
-void Object::emitSignal(const sdbus::Signal& message)
+void Object::emitSignal(const Signal& message)
 {
     SDBUS_THROW_ERROR_IF(!message.isValid(), "Invalid signal message provided", EINVAL);
 
@@ -401,12 +401,12 @@ int Object::sdbus_property_set_callback( sd_bus */*bus*/
 
 namespace sdbus {
 
-std::unique_ptr<sdbus::IObject> createObject(sdbus::IConnection& connection, ObjectPath objectPath)
+std::unique_ptr<IObject> createObject(IConnection& connection, ObjectPath objectPath)
 {
-    auto* sdbusConnection = dynamic_cast<sdbus::internal::IConnection*>(&connection);
+    auto* sdbusConnection = dynamic_cast<internal::IConnection*>(&connection);
     SDBUS_THROW_ERROR_IF(!sdbusConnection, "Connection is not a real sdbus-c++ connection", EINVAL);
 
-    return std::make_unique<sdbus::internal::Object>(*sdbusConnection, std::move(objectPath));
+    return std::make_unique<internal::Object>(*sdbusConnection, std::move(objectPath));
 }
 
 } // namespace sdbus

@@ -128,7 +128,7 @@ namespace sdbus::internal {
         virtual sd_bus_message* createErrorReplyMessage(sd_bus_message* sdbusMsg, const Error& error) = 0;
     };
 
-    [[nodiscard]] std::unique_ptr<sdbus::internal::IConnection> createPseudoConnection();
+    [[nodiscard]] std::unique_ptr<IConnection> createPseudoConnection();
 
 } // namespace sdbus::internal
 
