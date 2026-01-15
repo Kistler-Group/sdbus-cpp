@@ -103,6 +103,13 @@ namespace sdbus {
             return val;
         }
 
+        [[nodiscard]] std::string dumpToString() const
+        {
+            msg_.rewind(false);
+
+            return msg_.dumpToString(Message::DumpFlags::SubtreeOnly);
+        }
+
         // Only allow conversion operator for true D-Bus type representations in C++
         // NOLINTNEXTLINE(modernize-use-constraints): TODO for future: Use `requires signature_of<_ValueType>::is_valid` (when we stop supporting C++17 in public API)
         template <typename ValueType, typename = std::enable_if_t<signature_of<ValueType>::is_valid>>

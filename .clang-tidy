@@ -55,7 +55,7 @@ CheckOptions:
   - key:             hicpp-move-const-arg.CheckTriviallyCopyableMove
     value:           '0'
   - key:             misc-include-cleaner.IgnoreHeaders
-    value:           'systemd/.*|sdbus-c\+\+/.*|gtest/.*|gmock/.*|bits/chrono.h|bits/basic_string.h|time.h|poll.h|stdlib.h'
+    value:           'systemd/.*|sdbus-c\+\+/.*|gtest/.*|gmock/.*|bits/chrono.h|bits/basic_string.h|time.h|poll.h|stdlib.h|stdio.h'
   - key:             readability-simplify-boolean-expr.IgnoreMacros
     value:           '1'
   - key:             cppcoreguidelines-rvalue-reference-param-not-moved.IgnoreUnnamedParams
