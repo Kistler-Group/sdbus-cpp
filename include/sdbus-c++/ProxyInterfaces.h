@@ -29,7 +29,6 @@
 
 #include <sdbus-c++/IProxy.h>
 #include <cassert>
-#include <string>
 #include <memory>
 
 // Forward declarations
@@ -215,4 +214,4 @@ namespace sdbus {
 
 } // namespace sdbus
 
-#endif /* SDBUS_CXX_INTERFACES_H_ */
+#endif /* SDBUS_CXX_PROXYINTERFACES_H_ */

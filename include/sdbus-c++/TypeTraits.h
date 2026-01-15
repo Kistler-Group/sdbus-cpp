@@ -351,7 +351,7 @@ namespace sdbus {
 #endif
 
     template <typename Enum> // is_const_v and is_volatile_v to avoid ambiguity conflicts with const and volatile specializations of signature_of
-    struct signature_of<Enum, typename std::enable_if_t<std::is_enum_v<Enum> && !std::is_const_v<Enum> && !std::is_volatile_v<Enum>>>
+    struct signature_of<Enum, std::enable_if_t<std::is_enum_v<Enum> && !std::is_const_v<Enum> && !std::is_volatile_v<Enum>>>
         : signature_of<std::underlying_type_t<Enum>>
     {};
 
@@ -665,7 +665,7 @@ namespace sdbus {
     {
         return detail::apply_impl( std::forward<Function>(fun)
                                  , std::forward<Tuple>(tuple)
-                                 , std::make_index_sequence<std::tuple_size<std::decay_t<Tuple>>::value>{} );
+                                 , std::make_index_sequence<std::tuple_size_v<std::decay_t<Tuple>>>{} );
     }
 
     // Convert tuple `t' of values into a list of arguments
@@ -676,7 +676,7 @@ namespace sdbus {
         return detail::apply_impl( std::forward<Function>(fun)
                                  , std::move(res)
                                  , std::forward<Tuple>(tuple)
-                                 , std::make_index_sequence<std::tuple_size<std::decay_t<Tuple>>::value>{} );
+                                 , std::make_index_sequence<std::tuple_size_v<std::decay_t<Tuple>>>{} );
     }
 
     // Convert tuple `t' of values into a list of arguments
@@ -687,7 +687,7 @@ namespace sdbus {
         return detail::apply_impl( std::forward<Function>(fun)
                                  , std::move(err)
                                  , std::forward<Tuple>(tuple)
-                                 , std::make_index_sequence<std::tuple_size<std::decay_t<Tuple>>::value>{} );
+                                 , std::make_index_sequence<std::tuple_size_v<std::decay_t<Tuple>>>{} );
     }
 
     // Convenient concatenation of arrays

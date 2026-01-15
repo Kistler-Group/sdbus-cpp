@@ -33,7 +33,6 @@
 
 #include "IConnection.h"
 #include "ISdBus.h"
-#include "ScopeGuard.h"
 
 #include <memory>
 #include <string>

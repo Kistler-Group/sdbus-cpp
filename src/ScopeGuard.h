@@ -118,7 +118,7 @@ namespace sdbus::internal {
         ScopeGuard() = delete;
         ScopeGuard(const ScopeGuard&) = delete;
         ScopeGuard& operator=(const ScopeGuard&) = delete;
-        ScopeGuard(ScopeGuard&& rhs)  noexcept : fnc_(std::move(rhs.fnc_)), active_(rhs.active_), exceptions_(rhs.exceptions_)
+        ScopeGuard(ScopeGuard&& rhs)  noexcept : fnc_(std::move(rhs.fnc_)), exceptions_(rhs.exceptions_), active_(rhs.active_)
         {
             rhs.dismiss();
         }

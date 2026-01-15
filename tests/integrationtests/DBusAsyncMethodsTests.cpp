@@ -95,15 +95,15 @@ TYPED_TEST(AsyncSdbusTestObject, RunsServerSideAsynchronousMethodAsynchronously)
     // Yeah, this is kinda timing-dependent test, but times should be safe...
     std::mutex mtx;
     std::vector<uint32_t> results;
-    std::atomic<bool> invoke{};
-    std::atomic<int> startedCount{};
+    std::atomic invoke{false};
+    std::atomic startedCount{0};
     auto call = [&](uint32_t param)
     {
         TestProxy proxy{SERVICE_NAME, OBJECT_PATH};
         ++startedCount;
         while (!invoke) ;
         auto result = proxy.doOperationAsync(param);
-        std::lock_guard<std::mutex> const guard(mtx);
+        std::lock_guard const guard(mtx);
         results.push_back(result);
     };
 
@@ -118,8 +118,8 @@ TYPED_TEST(AsyncSdbusTestObject, RunsServerSideAsynchronousMethodAsynchronously)
 TYPED_TEST(AsyncSdbusTestObject, HandlesCorrectlyABulkOfParallelServerSideAsyncMethods)
 {
     std::atomic<size_t> resultCount{};
-    std::atomic<bool> invoke{};
-    std::atomic<int> startedCount{};
+    std::atomic invoke{false};
+    std::atomic startedCount{0};
     auto call = [&]()
     {
         TestProxy proxy{SERVICE_NAME, OBJECT_PATH};

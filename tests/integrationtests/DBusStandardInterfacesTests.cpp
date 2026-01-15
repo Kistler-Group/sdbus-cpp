@@ -205,7 +205,7 @@ TYPED_TEST(SdbusTestObject, GetsAllPropertiesAsynchronouslyViaPropertiesInterfac
 
 TYPED_TEST(SdbusTestObject, EmitsPropertyChangedSignalForSelectedProperties)
 {
-    std::atomic<bool> signalReceived{false};
+    std::atomic signalReceived{false};
     this->m_proxy->m_onPropertiesChangedHandler = [&signalReceived]( const sdbus::InterfaceName& interfaceName
                                                                    , const std::map<sdbus::PropertyName, sdbus::Variant>& changedProperties
                                                                    , const std::vector<sdbus::PropertyName>& /*invalidatedProperties*/ )
@@ -225,7 +225,7 @@ TYPED_TEST(SdbusTestObject, EmitsPropertyChangedSignalForSelectedProperties)
 
 TYPED_TEST(SdbusTestObject, EmitsPropertyChangedSignalForAllProperties) // NOLINT(readability-function-cognitive-complexity)
 {
-    std::atomic<bool> signalReceived{false};
+    std::atomic signalReceived{false};
     this->m_proxy->m_onPropertiesChangedHandler = [&signalReceived]( const sdbus::InterfaceName& interfaceName
                                                                    , const std::map<sdbus::PropertyName, sdbus::Variant>& changedProperties
                                                                    , const std::vector<sdbus::PropertyName>& invalidatedProperties )
@@ -338,7 +338,7 @@ TYPED_TEST(SdbusTestObject, EmitsInterfacesAddedSignalForSelectedObjectInterface
 
 TYPED_TEST(SdbusTestObject, EmitsInterfacesAddedSignalForAllObjectInterfaces) // NOLINT(readability-function-cognitive-complexity)
 {
-    std::atomic<bool> signalReceived{false};
+    std::atomic signalReceived{false};
     this->m_objectManagerProxy->m_onInterfacesAddedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
                                                                               , const std::map<sdbus::InterfaceName, std::map<sdbus::PropertyName, sdbus::Variant>>& interfacesAndProperties )
     {
@@ -376,7 +376,7 @@ TYPED_TEST(SdbusTestObject, EmitsInterfacesAddedSignalForAllObjectInterfaces) //
 
 TYPED_TEST(SdbusTestObject, EmitsInterfacesRemovedSignalForSelectedObjectInterfaces)
 {
-    std::atomic<bool> signalReceived{false};
+    std::atomic signalReceived{false};
     this->m_objectManagerProxy->m_onInterfacesRemovedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
                                                                                 , const std::vector<sdbus::InterfaceName>& interfaces )
     {
@@ -393,7 +393,7 @@ TYPED_TEST(SdbusTestObject, EmitsInterfacesRemovedSignalForSelectedObjectInterfa
 
 TYPED_TEST(SdbusTestObject, EmitsInterfacesRemovedSignalForAllObjectInterfaces)
 {
-    std::atomic<bool> signalReceived{false};
+    std::atomic signalReceived{false};
     this->m_objectManagerProxy->m_onInterfacesRemovedHandler = [&signalReceived]( const sdbus::ObjectPath& objectPath
                                                                                 , const std::vector<sdbus::InterfaceName>& interfaces )
     {

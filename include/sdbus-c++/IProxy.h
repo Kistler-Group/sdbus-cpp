@@ -557,7 +557,6 @@ namespace sdbus {
          * @brief Calls method on the D-Bus object asynchronously
          *
          * @param[in] message Message representing an async method call
-         * @param[in] Tag denoting a std::future-based overload
          * @return Future object providing access to the future method reply message
          *
          * This is a std::future-based way of asynchronously calling a remote D-Bus method.
@@ -579,7 +578,6 @@ namespace sdbus {
          *
          * @param[in] message Message representing an async method call
          * @param[in] timeout Method call timeout
-         * @param[in] Tag denoting a std::future-based overload
          * @return Future object providing access to the future method reply message
          *
          * This is a std::future-based way of asynchronously calling a remote D-Bus method.

@@ -115,7 +115,7 @@ TYPED_TEST(SdbusTestObject, CallsMethodWithStdVariantSuccessfully)
 
 TYPED_TEST(SdbusTestObject, CallsMethodWithStructVariantsAndGetMapSuccessfully)
 {
-    std::vector<int32_t> const vec{-2, 0, 2};
+    std::vector const vec{-2, 0, 2};
     sdbus::Struct<sdbus::Variant, sdbus::Variant> const strct{false, true};
     std::map<int32_t, sdbus::Variant> mapOfVariants = this->m_proxy->getMapOfVariants(vec, strct);
     decltype(mapOfVariants) res{ {-2, sdbus::Variant{false}}

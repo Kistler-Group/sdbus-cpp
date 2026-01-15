@@ -29,7 +29,6 @@
 
 #include "sdbus-c++/IObject.h"
 
-#include "IConnection.h"
 #include "sdbus-c++/Types.h"
 
 #include <cassert>
@@ -40,6 +39,14 @@
 #include <string_view>
 #include SDBUS_HEADER
 #include <vector>
+
+// Forward declarations
+namespace sdbus {
+    class IConnection;
+    namespace internal {
+        class IConnection;
+    } // namespace internal
+} // namespace sdbus
 
 namespace sdbus::internal {
 

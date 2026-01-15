@@ -36,7 +36,6 @@
 #include <string>
 #include <tuple>
 #include <type_traits>
-#include <typeinfo>
 #include <utility>
 
 namespace sdbus {
@@ -50,7 +49,7 @@ namespace sdbus {
      * Some const methods are conceptually const, but not physically const,
      * thus are not thread-safe. This is by design: normally, clients
      * should process a single Variant object in a single thread at a time.
-     * Otherwise they need to take care of synchronization by themselves.
+     * Otherwise, they need to take care of synchronization by themselves.
      *
      ***********************************************/
     class Variant
@@ -188,7 +187,7 @@ namespace sdbus {
     constexpr Struct<std::decay_t<Elements>...>
     make_struct(Elements&&... args)
     {
-        typedef Struct<std::decay_t<Elements>...> result_type;
+        using result_type = Struct<std::decay_t<Elements>...>;
         return result_type(std::forward<Elements>(args)...);
     }
 

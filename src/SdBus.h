@@ -107,4 +107,4 @@ private:
 
 } // namespace sdbus::internal
 
-#endif //SDBUS_C_SDBUS_H
+#endif // SDBUS_CXX_SDBUS_H

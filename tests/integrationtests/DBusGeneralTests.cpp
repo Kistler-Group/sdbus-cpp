@@ -76,7 +76,7 @@ TEST(AnAdaptor, DoesNotSupportMoveSemantics)
 TYPED_TEST(AConnection, WillCallCallbackHandlerForIncomingMessageMatchingMatchRule)
 {
     auto matchRule = "sender='" + SERVICE_NAME + "',path='" + OBJECT_PATH + "'";
-    std::atomic<bool> matchingMessageReceived{false};
+    std::atomic matchingMessageReceived{false};
     auto slot = this->s_proxyConnection->addMatch(matchRule, [&](const sdbus::Message& msg)
     {
         if(msg.getPath() == OBJECT_PATH)
@@ -91,8 +91,8 @@ TYPED_TEST(AConnection, WillCallCallbackHandlerForIncomingMessageMatchingMatchRu
 TYPED_TEST(AConnection, CanInstallMatchRuleAsynchronously)
 {
     auto matchRule = "sender='" + SERVICE_NAME + "',path='" + OBJECT_PATH + "'";
-    std::atomic<bool> matchingMessageReceived{false};
-    std::atomic<bool> matchRuleInstalled{false};
+    std::atomic matchingMessageReceived{false};
+    std::atomic matchRuleInstalled{false};
     auto slot = this->s_proxyConnection->addMatchAsync( matchRule
                                                       , [&](const sdbus::Message& msg)
                                                         {
@@ -115,7 +115,7 @@ TYPED_TEST(AConnection, CanInstallMatchRuleAsynchronously)
 TYPED_TEST(AConnection, WillUnsubscribeMatchRuleWhenClientDestroysTheAssociatedSlot)
 {
     auto matchRule = "sender='" + SERVICE_NAME + "',path='" + OBJECT_PATH + "'";
-    std::atomic<bool> matchingMessageReceived{false};
+    std::atomic matchingMessageReceived{false};
     auto slot = this->s_proxyConnection->addMatch(matchRule, [&](const sdbus::Message& msg)
     {
         if(msg.getPath() == OBJECT_PATH)
@@ -131,7 +131,7 @@ TYPED_TEST(AConnection, WillUnsubscribeMatchRuleWhenClientDestroysTheAssociatedS
 TYPED_TEST(AConnection, CanAddFloatingMatchRule)
 {
     auto matchRule = "sender='" + SERVICE_NAME + "',path='" + OBJECT_PATH + "'";
-    std::atomic<bool> matchingMessageReceived{false};
+    std::atomic matchingMessageReceived{false};
     auto con = sdbus::createBusConnection();
     con->enterEventLoopAsync();
     auto callback = [&](const sdbus::Message& msg)

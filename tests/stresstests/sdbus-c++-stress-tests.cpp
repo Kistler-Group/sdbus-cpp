@@ -158,7 +158,7 @@ public:
                         {
                             // Destroy existing delegate object
                             // Here we are testing dynamic removal of a D-Bus object in an async way
-                            const std::lock_guard<std::mutex> lock{childrenMutex_};
+                            const std::lock_guard lock{childrenMutex_};
                             children_.erase(request.delegateObjectPath);
                         }
                     }
@@ -406,7 +406,7 @@ int main(int argc, char *argv[]) // NOLINT(bugprone-exception-escape, readabilit
     std::atomic<uint32_t> concatenationSignalsReceived{0};
     std::atomic<uint32_t> thermometerCallsMade{0};
 
-    std::atomic<bool> exitLogger{};
+    std::atomic exitLogger{false};
     std::thread loggerThread([&]()
     {
         while (!exitLogger)
@@ -423,7 +423,7 @@ int main(int argc, char *argv[]) // NOLINT(bugprone-exception-escape, readabilit
         std::cout << "Entering loop " << loop+1 << '\n';
 
         auto service2Connection = sdbus::createSystemBusConnection(SERVICE_2_BUS_NAME);
-        std::atomic<bool> service2ThreadReady{};
+        std::atomic service2ThreadReady{false};
         std::thread service2Thread([&con = *service2Connection, &service2ThreadReady]()
         {
             // NOLINTNEXTLINE(misc-const-correctness)
@@ -433,7 +433,7 @@ int main(int argc, char *argv[]) // NOLINT(bugprone-exception-escape, readabilit
         });
 
         auto service1Connection = sdbus::createSystemBusConnection(SERVICE_1_BUS_NAME);
-        std::atomic<bool> service1ThreadReady{};
+        std::atomic service1ThreadReady{false};
         std::thread service1Thread([&con = *service1Connection, &service1ThreadReady]()
         {
             // NOLINTNEXTLINE(misc-const-correctness)
@@ -454,7 +454,7 @@ int main(int argc, char *argv[]) // NOLINT(bugprone-exception-escape, readabilit
         bool clientThreadExit{};
         std::thread clientThread([&, &con = *clientConnection]()
         {
-            std::atomic<bool> stopClients{false};
+            std::atomic stopClients{false};
 
             std::thread concatenatorThread([&]()
             {

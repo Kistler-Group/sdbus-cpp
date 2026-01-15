@@ -458,8 +458,8 @@ namespace sdbus {
      * will extend the resulting object adaptor with emitInterfacesAddedSignal()/emitInterfacesRemovedSignal()
      * according to org.freedesktop.DBus.ObjectManager.InterfacesAdded/.InterfacesRemoved.
      *
-     * Note that objects which implement this adaptor require an object manager (e.g via ObjectManager_adaptor) to be
-     * instantiated on one of it's parent object paths or the same path. InterfacesAdded/InterfacesRemoved
+     * Note that objects which implement this adaptor require an object manager (e.g., via ObjectManager_adaptor) to be
+     * instantiated on one of its parent object paths or the same path. InterfacesAdded/InterfacesRemoved
      * signals are sent from the closest object manager at either the same path or the closest parent path of an object.
      */
     class ManagedObject_adaptor

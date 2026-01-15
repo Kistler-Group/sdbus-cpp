@@ -92,7 +92,7 @@ namespace sdbus {
         virtual void leaveEventLoop() = 0;
 
         /*!
-         * @brief Attaches the bus connection to an sd-event event loop
+         * @brief Attaches the bus connection to a sd-event event loop
          *
          * @param[in] event sd-event event loop object
          * @param[in] priority Specified priority
@@ -104,7 +104,7 @@ namespace sdbus {
         virtual void attachSdEventLoop(sd_event *event, int priority = 0) = 0;
 
         /*!
-         * @brief Detaches the bus connection from an sd-event event loop
+         * @brief Detaches the bus connection from a sd-event event loop
          *
          * @throws sdbus::Error in case of failure
          */
@@ -144,7 +144,7 @@ namespace sdbus {
          * in a form that can be passed to poll(2).
          *
          * The bus connection conveniently integrates sd-event event loop.
-         * To attach the bus connection to an sd-event event loop, use
+         * To attach the bus connection to a sd-event event loop, use
          * attachSdEventLoop() function.
          *
          * @throws sdbus::Error in case of failure
@@ -168,7 +168,7 @@ namespace sdbus {
          * You don't need to directly call this method or getEventLoopPollData() method
          * when using convenient, internal bus connection event loops through
          * enterEventLoop() or enterEventLoopAsync() calls, or when the bus is
-         * connected to an sd-event event loop through attachSdEventLoop().
+         * connected to a sd-event event loop through attachSdEventLoop().
          * It is invoked automatically when necessary.
          *
          * @throws sdbus::Error in case of failure

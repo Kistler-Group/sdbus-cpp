@@ -189,7 +189,7 @@ namespace sdbus {
     inline PropertyVTableItem& PropertyVTableItem::withGetter(Function&& callback)
     {
         static_assert(function_argument_count_v<Function> == 0, "Property getter function must not take any arguments");
-        static_assert(!std::is_void<function_result_t<Function>>::value, "Property getter function must return property value");
+        static_assert(!std::is_void_v<function_result_t<Function>>, "Property getter function must return property value");
 
         if (signature.empty())
             signature = signature_of_function_output_arguments_v<Function>;
@@ -207,7 +207,7 @@ namespace sdbus {
     inline PropertyVTableItem& PropertyVTableItem::withSetter(Function&& callback)
     {
         static_assert(function_argument_count_v<Function> == 1, "Property setter function must take one parameter - the property value");
-        static_assert(std::is_void<function_result_t<Function>>::value, "Property setter function must not return any value");
+        static_assert(std::is_void_v<function_result_t<Function>>, "Property setter function must not return any value");
 
         if (signature.empty())
             signature = signature_of_function_input_arguments_v<Function>;

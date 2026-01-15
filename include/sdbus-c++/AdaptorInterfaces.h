@@ -126,7 +126,7 @@ namespace sdbus {
         }
 
         /*!
-         * @brief Unregisters adaptors's API and removes it from the bus
+         * @brief Unregisters adaptor's API and removes it from the bus
          *
          * This function must be called in the destructor of the final adaptor class that implements AdaptorInterfaces.
          *

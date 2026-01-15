@@ -31,9 +31,7 @@
 
 #include "sdbus-c++/TypeTraits.h"
 
-#include <functional>
 #include <memory>
-#include <string>
 #include SDBUS_HEADER
 #include <vector>
 
