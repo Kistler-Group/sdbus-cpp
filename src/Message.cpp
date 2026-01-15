@@ -35,7 +35,9 @@
 #include "ScopeGuard.h"
 
 #include <cassert>
+#include <cerrno>
 #include <cstdint> // int16_t, uint64_t, ...
+#include <cstdio>
 #include <cstdlib> // atexit
 #include <cstring>
 #include <string>
@@ -626,6 +628,28 @@ void Message::rewind(bool complete)
 {
     auto r = sd_bus_message_rewind(static_cast<sd_bus_message*>(msg_), complete); // NOLINT(readability-implicit-bool-conversion)
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to rewind the message", -r);
+}
+
+std::string Message::dumpToString(DumpFlags flags) const
+{
+#if LIBSYSTEMD_VERSION>=245 && !defined(SDBUS_basu)
+    char* buffer{};
+    SCOPE_EXIT{ free(buffer); }; // NOLINT(cppcoreguidelines-no-malloc,hicpp-no-malloc,cppcoreguidelines-owning-memory)
+    size_t size{};
+
+    const std::unique_ptr<FILE, int(*)(FILE*)> stream{open_memstream(&buffer, &size), fclose};
+    SDBUS_THROW_ERROR_IF(!stream, "Failed to open memory stream", errno);
+
+    auto r = sd_bus_message_dump(static_cast<sd_bus_message*>(msg_), stream.get(), static_cast<uint64_t>(flags));
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to dump the message", -r);
+
+    (void)fflush(stream.get());
+
+    return {buffer, size};
+#else
+    (void)flags;
+    throw Error(Error::Name{SD_BUS_ERROR_NOT_SUPPORTED}, "Dumping sd-bus message not supported by underlying version of libsystemd");
+#endif
 }
 
 const char* Message::getInterfaceName() const

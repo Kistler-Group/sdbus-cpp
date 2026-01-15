@@ -45,6 +45,7 @@
 
 using ::testing::Eq;
 using ::testing::Gt;
+using ::testing::HasSubstr;
 using namespace std::string_literals;
 
 namespace
@@ -148,6 +149,24 @@ TEST(ASimpleVariant, ReturnsTheSimpleValueWhenAsked)
     ASSERT_THAT(variant.get<int>(), Eq(value));
 }
 
+#ifndef SDBUS_basu // Dumping message or variant to a string is not supported on basu backend
+TEST(ASimpleVariant, CanBeDumpedToAString)
+{
+    const int value = 5;
+    const sdbus::Variant variant(value);
+
+    // This should produce something like:
+    // VARIANT "i" {
+    //     INT32 5;
+    // };
+    const auto str = variant.dumpToString();
+
+    EXPECT_THAT(str, ::HasSubstr("VARIANT \"i\""));
+    EXPECT_THAT(str, ::HasSubstr("INT32"));
+    EXPECT_THAT(str, ::HasSubstr("5"));
+}
+#endif // SDBUS_basu
+
 TEST(AComplexVariant, ReturnsTheComplexValueWhenAsked)
 {
     using ComplexType = std::map<uint64_t, std::vector<sdbus::Struct<std::string, double>>>;
@@ -157,6 +176,39 @@ TEST(AComplexVariant, ReturnsTheComplexValueWhenAsked)
 
     ASSERT_THAT(variant.get<ComplexType>(), Eq(value));
 }
+
+#ifndef SDBUS_basu // Dumping message or variant to a string is not supported on basu backend
+TEST(AComplexVariant, CanBeDumpedToAString)
+{
+    using ComplexType = std::map<uint64_t, std::vector<sdbus::Struct<std::string, double>>>;
+    const ComplexType value{ {ANY_UINT64, ComplexType::mapped_type{{"hello"s, ANY_DOUBLE}, {"world"s, ANY_DOUBLE}}} };
+    const sdbus::Variant variant(value);
+
+    // This should produce something like:
+    // VARIANT "a{ta(sd)}" {
+    //     ARRAY "{ta(sd)}" {
+    //         DICT_ENTRY "ta(sd)" {
+    //             UINT64 84578348354;
+    //             ARRAY "(sd)" {
+    //                 STRUCT "sd" {
+    //                     STRING "hello";
+    //                     DOUBLE 3.14;
+    //                 };
+    //                 STRUCT "sd" {
+    //                     STRING "world";
+    //                     DOUBLE 3.14;
+    //                 };
+    //             };
+    //         };
+    //     };
+    // };
+    const auto str = variant.dumpToString();
+
+    EXPECT_THAT(str, ::HasSubstr("VARIANT \"a{ta(sd)}\""));
+    EXPECT_THAT(str, ::HasSubstr("hello"));
+    EXPECT_THAT(str, ::HasSubstr("world"));
+}
+#endif // SDBUS_basu
 
 TEST(AVariant, HasConceptuallyNonmutableGetMethodWhichCanBeCalledXTimes)
 {

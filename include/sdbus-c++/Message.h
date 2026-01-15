@@ -228,6 +228,15 @@ namespace sdbus {
         void seal();
         void rewind(bool complete);
 
+        enum class DumpFlags : uint64_t // NOLINT(performance-enum-size): using size from sd-bus
+        {
+            Default               = 0ULL,
+            WithHeader            = 1ULL << 0,
+            SubtreeOnly           = 1ULL << 1,
+            SubtreeOnlyWithHeader = WithHeader | SubtreeOnly
+        };
+        [[nodiscard]] std::string dumpToString(DumpFlags flags) const;
+
         pid_t getCredsPid() const;
         uid_t getCredsUid() const;
         uid_t getCredsEuid() const;
@@ -260,7 +269,6 @@ namespace sdbus {
 
         friend Factory;
 
-    
         void* msg_{};
         internal::IConnection* connection_{};
         mutable bool ok_{true};
