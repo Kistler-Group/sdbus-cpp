@@ -1,6 +1,6 @@
 /**
  * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
- * (C) 2016 - 2024 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
+ * (C) 2016 - 2026 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
  * @file PollData_test.cpp
  *
@@ -42,84 +42,84 @@ using namespace std::chrono_literals;
 
 TEST(PollData, ReturnsZeroRelativeTimeoutForZeroAbsoluteTimeout)
 {
-    sdbus::IConnection::PollData pd;
-    pd.timeout = std::chrono::microseconds::zero();
+    sdbus::IConnection::PollData pollData{};
+    pollData.timeout = std::chrono::microseconds::zero();
 
-    auto relativeTimeout = pd.getRelativeTimeout();
+    auto relativeTimeout = pollData.getRelativeTimeout();
 
     EXPECT_THAT(relativeTimeout, Eq(std::chrono::microseconds::zero()));
 }
 
 TEST(PollData, ReturnsZeroPollTimeoutForZeroAbsoluteTimeout)
 {
-    sdbus::IConnection::PollData pd;
-    pd.timeout = std::chrono::microseconds::zero();
+    sdbus::IConnection::PollData pollData{};
+    pollData.timeout = std::chrono::microseconds::zero();
 
-    auto pollTimeout = pd.getPollTimeout();
+    auto pollTimeout = pollData.getPollTimeout();
 
     EXPECT_THAT(pollTimeout, Eq(0));
 }
 
 TEST(PollData, ReturnsInfiniteRelativeTimeoutForInfiniteAbsoluteTimeout)
 {
-    sdbus::IConnection::PollData pd;
-    pd.timeout = std::chrono::microseconds::max();
+    sdbus::IConnection::PollData pollData{};
+    pollData.timeout = std::chrono::microseconds::max();
 
-    auto relativeTimeout = pd.getRelativeTimeout();
+    auto relativeTimeout = pollData.getRelativeTimeout();
 
     EXPECT_THAT(relativeTimeout, Eq(std::chrono::microseconds::max()));
 }
 
 TEST(PollData, ReturnsNegativePollTimeoutForInfiniteAbsoluteTimeout)
 {
-    sdbus::IConnection::PollData pd;
-    pd.timeout = std::chrono::microseconds::max();
+    sdbus::IConnection::PollData pollData{};
+    pollData.timeout = std::chrono::microseconds::max();
 
-    auto pollTimeout = pd.getPollTimeout();
+    auto pollTimeout = pollData.getPollTimeout();
 
     EXPECT_THAT(pollTimeout, Eq(-1));
 }
 
 TEST(PollData, ReturnsZeroRelativeTimeoutForPastAbsoluteTimeout)
 {
-    sdbus::IConnection::PollData pd;
+    sdbus::IConnection::PollData pollData{};
     auto past = std::chrono::steady_clock::now() - 10s;
-    pd.timeout = std::chrono::duration_cast<std::chrono::microseconds>(past.time_since_epoch());
+    pollData.timeout = std::chrono::duration_cast<std::chrono::microseconds>(past.time_since_epoch());
 
-    auto relativeTimeout = pd.getRelativeTimeout();
+    auto relativeTimeout = pollData.getRelativeTimeout();
 
     EXPECT_THAT(relativeTimeout, Eq(0us));
 }
 
 TEST(PollData, ReturnsZeroPollTimeoutForPastAbsoluteTimeout)
 {
-    sdbus::IConnection::PollData pd;
+    sdbus::IConnection::PollData pollData{};
     auto past = std::chrono::steady_clock::now() - 10s;
-    pd.timeout = std::chrono::duration_cast<std::chrono::microseconds>(past.time_since_epoch());
+    pollData.timeout = std::chrono::duration_cast<std::chrono::microseconds>(past.time_since_epoch());
 
-    auto pollTimeout = pd.getPollTimeout();
+    auto pollTimeout = pollData.getPollTimeout();
 
     EXPECT_THAT(pollTimeout, Eq(0));
 }
 
 TEST(PollData, ReturnsCorrectRelativeTimeoutForFutureAbsoluteTimeout)
 {
-    sdbus::IConnection::PollData pd;
+    sdbus::IConnection::PollData pollData{};
     auto future = std::chrono::steady_clock::now() + 1s;
-    pd.timeout = std::chrono::duration_cast<std::chrono::microseconds>(future.time_since_epoch());
+    pollData.timeout = std::chrono::duration_cast<std::chrono::microseconds>(future.time_since_epoch());
 
-    auto relativeTimeout = pd.getRelativeTimeout();
+    auto relativeTimeout = pollData.getRelativeTimeout();
 
     EXPECT_THAT(relativeTimeout, AllOf(Ge(900ms), Le(1100ms)));
 }
 
 TEST(PollData, ReturnsCorrectPollTimeoutForFutureAbsoluteTimeout)
 {
-    sdbus::IConnection::PollData pd;
+    sdbus::IConnection::PollData pollData{};
     auto future = std::chrono::steady_clock::now() + 1s;
-    pd.timeout = std::chrono::duration_cast<std::chrono::microseconds>(future.time_since_epoch());
+    pollData.timeout = std::chrono::duration_cast<std::chrono::microseconds>(future.time_since_epoch());
 
-    auto pollTimeout = pd.getPollTimeout();
+    auto pollTimeout = pollData.getPollTimeout();
 
     EXPECT_THAT(pollTimeout, AllOf(Ge(900), Le(1100)));
 }

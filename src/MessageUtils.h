@@ -1,6 +1,6 @@
 /**
  * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
- * (C) 2016 - 2024 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
+ * (C) 2016 - 2026 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
  * @file MessageUtils.h
  *
@@ -34,30 +34,30 @@ namespace sdbus
     class Message::Factory
     {
     public:
-        template<typename _Msg>
-        static _Msg create()
+        template<typename Msg>
+        static Msg create()
         {
-            return _Msg{};
+            return Msg{};
         }
 
-        template<typename _Msg>
-        static _Msg create(void *msg)
+        template<typename Msg>
+        static Msg create(void *msg)
         {
-            return _Msg{msg};
+            return Msg{msg};
         }
 
-        template<typename _Msg>
-        static _Msg create(void *msg, internal::IConnection* connection)
+        template<typename Msg>
+        static Msg create(void *msg, internal::IConnection* connection)
         {
-            return _Msg{msg, connection};
+            return Msg{msg, connection};
         }
 
-        template<typename _Msg>
-        static _Msg create(void *msg, internal::IConnection* connection, adopt_message_t)
+        template<typename Msg>
+        static Msg create(void *msg, internal::IConnection* connection, adopt_message_t)
         {
-            return _Msg{msg, connection, adopt_message};
+            return Msg{msg, connection, adopt_message};
         }
     };
-}
+} // namespace sdbus
 
 #endif /* SDBUS_CXX_INTERNAL_MESSAGEUTILS_H_ */

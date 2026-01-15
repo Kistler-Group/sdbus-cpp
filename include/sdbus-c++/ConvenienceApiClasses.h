@@ -1,6 +1,6 @@
 /**
  * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
- * (C) 2016 - 2024 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
+ * (C) 2016 - 2026 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
  * @file ConvenienceApiClasses.h
  *
@@ -46,7 +46,7 @@ namespace sdbus {
     class IProxy;
     class Error;
     class PendingAsyncCall;
-}
+} // namespace sdbus
 
 namespace sdbus {
 
@@ -62,8 +62,7 @@ namespace sdbus {
         friend IObject;
         VTableAdder(IObject& object, std::vector<VTableItem> vtable);
 
-    private:
-        IObject& object_;
+        IObject& object_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
         std::vector<VTableItem> vtable_;
     };
 
@@ -73,9 +72,12 @@ namespace sdbus {
         SignalEmitter& onInterface(const InterfaceName& interfaceName);
         SignalEmitter& onInterface(const std::string& interfaceName);
         SignalEmitter& onInterface(const char* interfaceName);
-        template <typename... _Args> void withArguments(_Args&&... args);
+        template <typename... Args> void withArguments(Args&&... args);
 
+        SignalEmitter(const SignalEmitter&) = delete;
+        SignalEmitter& operator=(const SignalEmitter&) = delete;
         SignalEmitter(SignalEmitter&& other) = default;
+        SignalEmitter& operator=(SignalEmitter&&) = delete;
         ~SignalEmitter() noexcept(false);
 
     private:
@@ -83,8 +85,7 @@ namespace sdbus {
         SignalEmitter(IObject& object, const SignalName& signalName);
         SignalEmitter(IObject& object, const char* signalName);
 
-    private:
-        IObject& object_;
+        IObject& object_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
         const char* signalName_;
         Signal signal_;
         int exceptions_{}; // Number of active exceptions when SignalEmitter is constructed
@@ -97,13 +98,16 @@ namespace sdbus {
         MethodInvoker& onInterface(const std::string& interfaceName);
         MethodInvoker& onInterface(const char* interfaceName);
         MethodInvoker& withTimeout(uint64_t usec);
-        template <typename _Rep, typename _Period>
-        MethodInvoker& withTimeout(const std::chrono::duration<_Rep, _Period>& timeout);
-        template <typename... _Args> MethodInvoker& withArguments(_Args&&... args);
-        template <typename... _Args> void storeResultsTo(_Args&... args);
+        template <typename Rep, typename Period>
+        MethodInvoker& withTimeout(const std::chrono::duration<Rep, Period>& timeout);
+        template <typename... Args> MethodInvoker& withArguments(Args&&... args);
+        template <typename... Args> void storeResultsTo(Args&... args);
         void dontExpectReply();
 
+        MethodInvoker(const MethodInvoker&) = delete;
+        MethodInvoker& operator=(const MethodInvoker&) = delete;
         MethodInvoker(MethodInvoker&& other) = default;
+        MethodInvoker& operator=(MethodInvoker&&) = delete;
         ~MethodInvoker() noexcept(false);
 
     private:
@@ -111,8 +115,7 @@ namespace sdbus {
         MethodInvoker(IProxy& proxy, const MethodName& methodName);
         MethodInvoker(IProxy& proxy, const char* methodName);
 
-    private:
-        IProxy& proxy_;
+        IProxy& proxy_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
         const char* methodName_;
         uint64_t timeout_{};
         MethodCall method_;
@@ -127,24 +130,23 @@ namespace sdbus {
         AsyncMethodInvoker& onInterface(const std::string& interfaceName);
         AsyncMethodInvoker& onInterface(const char* interfaceName);
         AsyncMethodInvoker& withTimeout(uint64_t usec);
-        template <typename _Rep, typename _Period>
-        AsyncMethodInvoker& withTimeout(const std::chrono::duration<_Rep, _Period>& timeout);
-        template <typename... _Args> AsyncMethodInvoker& withArguments(_Args&&... args);
-        template <typename _Function> PendingAsyncCall uponReplyInvoke(_Function&& callback);
-        template <typename _Function> [[nodiscard]] Slot uponReplyInvoke(_Function&& callback, return_slot_t);
+        template <typename Rep, typename Period>
+        AsyncMethodInvoker& withTimeout(const std::chrono::duration<Rep, Period>& timeout);
+        template <typename... Args> AsyncMethodInvoker& withArguments(Args&&... args);
+        template <typename Function> PendingAsyncCall uponReplyInvoke(Function&& callback);
+        template <typename Function> [[nodiscard]] Slot uponReplyInvoke(Function&& callback, return_slot_t);
         // Returned future will be std::future<void> for no (void) D-Bus method return value
         //                      or std::future<T> for single D-Bus method return value
         //                      or std::future<std::tuple<...>> for multiple method return values
-        template <typename... _Args> std::future<future_return_t<_Args...>> getResultAsFuture();
+        template <typename... Args> std::future<future_return_t<Args...>> getResultAsFuture();
 
     private:
         friend IProxy;
         AsyncMethodInvoker(IProxy& proxy, const MethodName& methodName);
         AsyncMethodInvoker(IProxy& proxy, const char* methodName);
-        template <typename _Function> async_reply_handler makeAsyncReplyHandler(_Function&& callback);
+        template <typename Function> async_reply_handler makeAsyncReplyHandler(Function&& callback);
 
-    private:
-        IProxy& proxy_;
+        IProxy& proxy_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
         const char* methodName_;
         uint64_t timeout_{};
         MethodCall method_;
@@ -156,17 +158,16 @@ namespace sdbus {
         SignalSubscriber& onInterface(const InterfaceName& interfaceName);
         SignalSubscriber& onInterface(const std::string& interfaceName);
         SignalSubscriber& onInterface(const char* interfaceName);
-        template <typename _Function> void call(_Function&& callback);
-        template <typename _Function> [[nodiscard]] Slot call(_Function&& callback, return_slot_t);
+        template <typename Function> void call(Function&& callback);
+        template <typename Function> [[nodiscard]] Slot call(Function&& callback, return_slot_t);
 
     private:
         friend IProxy;
         SignalSubscriber(IProxy& proxy, const SignalName& signalName);
         SignalSubscriber(IProxy& proxy, const char* signalName);
-        template <typename _Function> signal_handler makeSignalHandler(_Function&& callback);
+        template <typename Function> signal_handler makeSignalHandler(Function&& callback);
 
-    private:
-        IProxy& proxy_;
+        IProxy& proxy_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
         const char* signalName_;
         const char* interfaceName_{};
     };
@@ -182,8 +183,7 @@ namespace sdbus {
 
         static constexpr const char* DBUS_PROPERTIES_INTERFACE_NAME = "org.freedesktop.DBus.Properties";
 
-    private:
-        IProxy& proxy_;
+        IProxy& proxy_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
         std::string_view propertyName_;
     };
 
@@ -191,8 +191,8 @@ namespace sdbus {
     {
     public:
         AsyncPropertyGetter& onInterface(std::string_view interfaceName);
-        template <typename _Function> PendingAsyncCall uponReplyInvoke(_Function&& callback);
-        template <typename _Function> [[nodiscard]] Slot uponReplyInvoke(_Function&& callback, return_slot_t);
+        template <typename Function> PendingAsyncCall uponReplyInvoke(Function&& callback);
+        template <typename Function> [[nodiscard]] Slot uponReplyInvoke(Function&& callback, return_slot_t);
         std::future<Variant> getResultAsFuture();
 
     private:
@@ -201,8 +201,7 @@ namespace sdbus {
 
         static constexpr const char* DBUS_PROPERTIES_INTERFACE_NAME = "org.freedesktop.DBus.Properties";
 
-    private:
-        IProxy& proxy_;
+        IProxy& proxy_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
         std::string_view propertyName_;
         std::string_view interfaceName_;
     };
@@ -211,8 +210,8 @@ namespace sdbus {
     {
     public:
         PropertySetter& onInterface(std::string_view interfaceName);
-        template <typename _Value> void toValue(const _Value& value);
-        template <typename _Value> void toValue(const _Value& value, dont_expect_reply_t);
+        template <typename Value> void toValue(const Value& value);
+        template <typename Value> void toValue(const Value& value, dont_expect_reply_t);
         void toValue(const Variant& value);
         void toValue(const Variant& value, dont_expect_reply_t);
 
@@ -222,8 +221,7 @@ namespace sdbus {
 
         static constexpr const char* DBUS_PROPERTIES_INTERFACE_NAME = "org.freedesktop.DBus.Properties";
 
-    private:
-        IProxy& proxy_;
+        IProxy& proxy_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
         std::string_view propertyName_;
         std::string_view interfaceName_;
     };
@@ -232,10 +230,10 @@ namespace sdbus {
     {
     public:
         AsyncPropertySetter& onInterface(std::string_view interfaceName);
-        template <typename _Value> AsyncPropertySetter& toValue(_Value&& value);
+        template <typename Value> AsyncPropertySetter& toValue(Value&& value);
         AsyncPropertySetter& toValue(Variant value);
-        template <typename _Function> PendingAsyncCall uponReplyInvoke(_Function&& callback);
-        template <typename _Function> [[nodiscard]] Slot uponReplyInvoke(_Function&& callback, return_slot_t);
+        template <typename Function> PendingAsyncCall uponReplyInvoke(Function&& callback);
+        template <typename Function> [[nodiscard]] Slot uponReplyInvoke(Function&& callback, return_slot_t);
         std::future<void> getResultAsFuture();
 
     private:
@@ -244,8 +242,7 @@ namespace sdbus {
 
         static constexpr const char* DBUS_PROPERTIES_INTERFACE_NAME = "org.freedesktop.DBus.Properties";
 
-    private:
-        IProxy& proxy_;
+        IProxy& proxy_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
         std::string_view propertyName_;
         std::string_view interfaceName_;
         Variant value_;
@@ -258,30 +255,28 @@ namespace sdbus {
 
     private:
         friend IProxy;
-        AllPropertiesGetter(IProxy& proxy);
+        explicit AllPropertiesGetter(IProxy& proxy);
 
         static constexpr const char* DBUS_PROPERTIES_INTERFACE_NAME = "org.freedesktop.DBus.Properties";
 
-    private:
-        IProxy& proxy_;
+        IProxy& proxy_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     };
 
     class AsyncAllPropertiesGetter
     {
     public:
         AsyncAllPropertiesGetter& onInterface(std::string_view interfaceName);
-        template <typename _Function> PendingAsyncCall uponReplyInvoke(_Function&& callback);
-        template <typename _Function> [[nodiscard]] Slot uponReplyInvoke(_Function&& callback, return_slot_t);
+        template <typename Function> PendingAsyncCall uponReplyInvoke(Function&& callback);
+        template <typename Function> [[nodiscard]] Slot uponReplyInvoke(Function&& callback, return_slot_t);
         std::future<std::map<PropertyName, Variant>> getResultAsFuture();
 
     private:
         friend IProxy;
-        AsyncAllPropertiesGetter(IProxy& proxy);
+        explicit AsyncAllPropertiesGetter(IProxy& proxy);
 
         static constexpr const char* DBUS_PROPERTIES_INTERFACE_NAME = "org.freedesktop.DBus.Properties";
 
-    private:
-        IProxy& proxy_;
+        IProxy& proxy_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
         std::string_view interfaceName_;
     };
 

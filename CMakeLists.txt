@@ -35,7 +35,7 @@ option(SDBUSCPP_BUILD_DOCS "Build documentation for sdbus-c++" ON)
 if(SDBUSCPP_BUILD_DOCS)
     option(SDBUSCPP_BUILD_DOXYGEN_DOCS "Build doxygen documentation for sdbus-c++ API" OFF)
 endif()
-#option(SDBUSCPP_CLANG_TIDY "Co-compile with clang-tidy static analyzer" OFF)
+option(SDBUSCPP_CLANG_TIDY "Co-compile with clang-tidy static analyzer" OFF)
 #option(SDBUSCPP_COVERAGE "Build sdbus-c++ with code coverage instrumentation" OFF)
 # We promote the BUILD_SHARED_LIBS flag to a (global) option only if we are the main project
 if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
@@ -129,6 +129,8 @@ else()
 endif()
 
 find_package(Threads REQUIRED)
+
+include(cmake/clang-tidy.cmake) # Static analysis with clang-tidy
 
 #-------------------------------
 # SOURCE FILES CONFIGURATION

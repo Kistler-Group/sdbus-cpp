@@ -1,6 +1,6 @@
 /**
  * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
- * (C) 2016 - 2024 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
+ * (C) 2016 - 2026 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
  * @file Object.cpp
  *
@@ -29,21 +29,29 @@
 #include "sdbus-c++/Error.h"
 #include "sdbus-c++/Flags.h"
 #include "sdbus-c++/IConnection.h"
+#include "sdbus-c++/IObject.h"
 #include "sdbus-c++/Message.h"
+#include "sdbus-c++/TypeTraits.h"
+#include "sdbus-c++/VTableItems.h"
 
 #include "IConnection.h"
 #include "MessageUtils.h"
-#include "ScopeGuard.h"
 #include "Utils.h"
 #include "VTableUtils.h"
 
+#include <algorithm>
 #include <cassert>
+#include <cerrno>
+#include <memory>
 #include SDBUS_HEADER
+#include <string_view>
 #include <utility>
+#include <variant>
+#include <vector>
 
 namespace sdbus::internal {
 
-Object::Object(sdbus::internal::IConnection& connection, ObjectPath objectPath)
+Object::Object(IConnection& connection, ObjectPath objectPath)
     : connection_(connection), objectPath_(std::move(objectPath))
 {
     SDBUS_CHECK_OBJECT_PATH(objectPath_.c_str());
@@ -69,12 +77,12 @@ Slot Object::addVTable(InterfaceName interfaceName, std::vector<VTableItem> vtab
     // 3rd step -- register the vtable with sd-bus
     internalVTable->slot = connection_.addObjectVTable( objectPath_
                                                       , internalVTable->interfaceName
-                                                      , &internalVTable->sdbusVTable[0]
+                                                      , internalVTable->sdbusVTable.data()
                                                       , internalVTable.get()
                                                       , return_slot );
 
     // Return vtable wrapped in a Slot object
-    return {internalVTable.release(), [](void *ptr){ delete static_cast<VTable*>(ptr); }};
+    return {internalVTable.release(), [](void *ptr){ delete static_cast<VTable*>(ptr); }}; // NOLINT(cppcoreguidelines-owning-memory)
 }
 
 void Object::unregister()
@@ -93,7 +101,7 @@ Signal Object::createSignal(const char* interfaceName, const char* signalName) c
     return connection_.createSignal(objectPath_.c_str(), interfaceName, signalName);
 }
 
-void Object::emitSignal(const sdbus::Signal& message)
+void Object::emitSignal(const Signal& message)
 {
     SDBUS_THROW_ERROR_IF(!message.isValid(), "Invalid signal message provided", EINVAL);
 
@@ -181,9 +189,9 @@ Object::VTable Object::createInternalVTable(InterfaceName interfaceName, std::ve
     }
 
     // Sort arrays so we can do fast searching for an item in sd-bus callback handlers
-    std::sort(internalVTable.methods.begin(), internalVTable.methods.end(), [](const auto& a, const auto& b){ return a.name < b.name; });
-    std::sort(internalVTable.signals.begin(), internalVTable.signals.end(), [](const auto& a, const auto& b){ return a.name < b.name; });
-    std::sort(internalVTable.properties.begin(), internalVTable.properties.end(), [](const auto& a, const auto& b){ return a.name < b.name; });
+    std::sort(internalVTable.methods.begin(), internalVTable.methods.end(), [](const auto& lhs, const auto& rhs){ return lhs.name < rhs.name; });
+    std::sort(internalVTable.signals.begin(), internalVTable.signals.end(), [](const auto& lhs, const auto& rhs){ return lhs.name < rhs.name; });
+    std::sort(internalVTable.properties.begin(), internalVTable.properties.end(), [](const auto& lhs, const auto& rhs){ return lhs.name < rhs.name; });
 
     internalVTable.object = this;
 
@@ -389,16 +397,16 @@ int Object::sdbus_property_set_callback( sd_bus */*bus*/
     return ok ? 1 : -1;
 }
 
-}
+} // namespace sdbus::internal
 
 namespace sdbus {
 
-std::unique_ptr<sdbus::IObject> createObject(sdbus::IConnection& connection, ObjectPath objectPath)
+std::unique_ptr<IObject> createObject(IConnection& connection, ObjectPath objectPath)
 {
-    auto* sdbusConnection = dynamic_cast<sdbus::internal::IConnection*>(&connection);
+    auto* sdbusConnection = dynamic_cast<internal::IConnection*>(&connection);
     SDBUS_THROW_ERROR_IF(!sdbusConnection, "Connection is not a real sdbus-c++ connection", EINVAL);
 
-    return std::make_unique<sdbus::internal::Object>(*sdbusConnection, std::move(objectPath));
+    return std::make_unique<internal::Object>(*sdbusConnection, std::move(objectPath));
 }
 
-}
+} // namespace sdbus

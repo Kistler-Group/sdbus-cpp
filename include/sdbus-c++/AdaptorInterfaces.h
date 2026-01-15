@@ -1,6 +1,6 @@
 /**
  * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
- * (C) 2016 - 2024 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
+ * (C) 2016 - 2026 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
  * @file AdaptorInterfaces.h
  *
@@ -35,7 +35,7 @@
 // Forward declarations
 namespace sdbus {
     class IConnection;
-}
+} // namespace sdbus
 
 namespace sdbus {
 
@@ -50,18 +50,18 @@ namespace sdbus {
     class ObjectHolder
     {
     protected:
-        ObjectHolder(std::unique_ptr<IObject>&& object)
+        explicit ObjectHolder(std::unique_ptr<IObject>&& object)
             : object_(std::move(object))
         {
         }
 
-        const IObject& getObject() const
+        [[nodiscard]] const IObject& getObject() const
         {
             assert(object_ != nullptr);
             return *object_;
         }
 
-        IObject& getObject()
+        [[nodiscard]] IObject& getObject()
         {
             assert(object_ != nullptr);
             return *object_;
@@ -88,12 +88,17 @@ namespace sdbus {
      * so that the object API vtable is registered and unregistered at the proper time.
      *
      ***********************************************/
-    template <typename... _Interfaces>
+    template <typename... Interfaces>
     class AdaptorInterfaces
         : protected ObjectHolder
-        , public _Interfaces...
+        , public Interfaces...
     {
     public:
+        AdaptorInterfaces(const AdaptorInterfaces&) = delete;
+        AdaptorInterfaces& operator=(const AdaptorInterfaces&) = delete;
+        AdaptorInterfaces(AdaptorInterfaces&&) = delete;
+        AdaptorInterfaces& operator=(AdaptorInterfaces&&) = delete;
+
         /*!
          * @brief Creates object instance
          *
@@ -104,7 +109,7 @@ namespace sdbus {
          */
         AdaptorInterfaces(IConnection& connection, ObjectPath objectPath)
             : ObjectHolder(createObject(connection, std::move(objectPath)))
-            , _Interfaces(getObject())...
+            , Interfaces(getObject())...
         {
         }
 
@@ -117,11 +122,11 @@ namespace sdbus {
          */
         void registerAdaptor()
         {
-            (_Interfaces::registerAdaptor(), ...);
+            (Interfaces::registerAdaptor(), ...);
         }
 
         /*!
-         * @brief Unregisters adaptors's API and removes it from the bus
+         * @brief Unregisters adaptor's API and removes it from the bus
          *
          * This function must be called in the destructor of the final adaptor class that implements AdaptorInterfaces.
          *
@@ -140,13 +145,9 @@ namespace sdbus {
     protected:
         using base_type = AdaptorInterfaces;
 
-        AdaptorInterfaces(const AdaptorInterfaces&) = delete;
-        AdaptorInterfaces& operator=(const AdaptorInterfaces&) = delete;
-        AdaptorInterfaces(AdaptorInterfaces&&) = delete;
-        AdaptorInterfaces& operator=(AdaptorInterfaces&&) = delete;
         ~AdaptorInterfaces() = default;
     };
 
-}
+} // namespace sdbus
 
 #endif /* SDBUS_CXX_ADAPTORINTERFACES_H_ */

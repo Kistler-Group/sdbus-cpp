@@ -1,6 +1,6 @@
 /**
  * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
- * (C) 2016 - 2024 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
+ * (C) 2016 - 2026 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
  * @file SdBusMock.h
  * @author Ardazishvili Roman (ardazishvili.roman@yandex.ru)
@@ -35,18 +35,18 @@
 class SdBusMock : public sdbus::internal::ISdBus
 {
 public:
-    MOCK_METHOD1(sd_bus_message_ref, sd_bus_message*(sd_bus_message *m));
-    MOCK_METHOD1(sd_bus_message_unref, sd_bus_message*(sd_bus_message *m));
+    MOCK_METHOD1(sd_bus_message_ref, sd_bus_message*(sd_bus_message *msg));
+    MOCK_METHOD1(sd_bus_message_unref, sd_bus_message*(sd_bus_message *msg));
 
-    MOCK_METHOD3(sd_bus_send, int(sd_bus *bus, sd_bus_message *m, uint64_t *cookie));
-    MOCK_METHOD5(sd_bus_call, int(sd_bus *bus, sd_bus_message *m, uint64_t usec, sd_bus_error *ret_error, sd_bus_message **reply));
-    MOCK_METHOD6(sd_bus_call_async, int(sd_bus *bus, sd_bus_slot **slot, sd_bus_message *m, sd_bus_message_handler_t callback, void *userdata, uint64_t usec));
+    MOCK_METHOD3(sd_bus_send, int(sd_bus *bus, sd_bus_message *msg, uint64_t *cookie));
+    MOCK_METHOD5(sd_bus_call, int(sd_bus *bus, sd_bus_message *msg, uint64_t usec, sd_bus_error *ret_error, sd_bus_message **reply));
+    MOCK_METHOD6(sd_bus_call_async, int(sd_bus *bus, sd_bus_slot **slot, sd_bus_message *msg, sd_bus_message_handler_t callback, void *userdata, uint64_t usec));
 
-    MOCK_METHOD3(sd_bus_message_new, int(sd_bus *bus, sd_bus_message **m, uint8_t type));
-    MOCK_METHOD6(sd_bus_message_new_method_call, int(sd_bus *bus, sd_bus_message **m, const char *destination, const char *path, const char *interface, const char *member));
-    MOCK_METHOD5(sd_bus_message_new_signal, int(sd_bus *bus, sd_bus_message **m, const char *path, const char *interface, const char *member));
-    MOCK_METHOD2(sd_bus_message_new_method_return, int(sd_bus_message *call, sd_bus_message **m));
-    MOCK_METHOD3(sd_bus_message_new_method_error, int(sd_bus_message *call, sd_bus_message **m, const sd_bus_error *e));
+    MOCK_METHOD3(sd_bus_message_new, int(sd_bus *bus, sd_bus_message **msg, uint8_t type));
+    MOCK_METHOD6(sd_bus_message_new_method_call, int(sd_bus *bus, sd_bus_message **msg, const char *destination, const char *path, const char *interface, const char *member));
+    MOCK_METHOD5(sd_bus_message_new_signal, int(sd_bus *bus, sd_bus_message **msg, const char *path, const char *interface, const char *member));
+    MOCK_METHOD2(sd_bus_message_new_method_return, int(sd_bus_message *call, sd_bus_message **msg));
+    MOCK_METHOD3(sd_bus_message_new_method_error, int(sd_bus_message *call, sd_bus_message **msg, const sd_bus_error *err));
 
     MOCK_METHOD2(sd_bus_set_method_call_timeout, int(sd_bus *bus, uint64_t usec));
     MOCK_METHOD2(sd_bus_get_method_call_timeout, int(sd_bus *bus, uint64_t *ret));
@@ -78,7 +78,7 @@ public:
     MOCK_METHOD1(sd_bus_new, int(sd_bus **ret));
     MOCK_METHOD1(sd_bus_start, int(sd_bus *bus));
 
-    MOCK_METHOD2(sd_bus_process, int(sd_bus *bus, sd_bus_message **r));
+    MOCK_METHOD2(sd_bus_process, int(sd_bus *bus, sd_bus_message **ret));
     MOCK_METHOD1(sd_bus_get_current_message, sd_bus_message*(sd_bus *bus));
     MOCK_METHOD2(sd_bus_get_poll_data, int(sd_bus *bus, PollData* data));
     MOCK_METHOD3(sd_bus_get_n_queued, int(sd_bus *bus, uint64_t *read, uint64_t* write));
@@ -86,7 +86,7 @@ public:
     MOCK_METHOD1(sd_bus_flush_close_unref, sd_bus *(sd_bus *bus));
     MOCK_METHOD1(sd_bus_close_unref, sd_bus *(sd_bus *bus));
 
-    MOCK_METHOD2(sd_bus_message_set_destination, int(sd_bus_message *m, const char *destination));
+    MOCK_METHOD2(sd_bus_message_set_destination, int(sd_bus_message *msg, const char *destination));
 
     MOCK_METHOD3(sd_bus_query_sender_creds, int(sd_bus_message *, uint64_t, sd_bus_creds **));
     MOCK_METHOD1(sd_bus_creds_ref, sd_bus_creds*(sd_bus_creds *));

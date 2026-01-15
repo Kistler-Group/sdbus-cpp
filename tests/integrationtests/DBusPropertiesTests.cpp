@@ -1,6 +1,6 @@
 /**
  * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
- * (C) 2016 - 2024 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
+ * (C) 2016 - 2026 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
  * @file DBusPropertiesTests.cpp
  *
@@ -25,26 +25,15 @@
  */
 
 #include "TestFixture.h"
-#include "TestAdaptor.h"
-#include "TestProxy.h"
-#include "sdbus-c++/sdbus-c++.h"
+#include "Defs.h"
+#include <sdbus-c++/sdbus-c++.h>
 
+#include <cstdint>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <string>
-#include <thread>
-#include <tuple>
-#include <chrono>
-#include <fstream>
-#include <future>
-#include <unistd.h>
 
 using ::testing::Eq;
-using ::testing::DoubleEq;
-using ::testing::Gt;
-using ::testing::AnyOf;
-using ::testing::ElementsAre;
-using ::testing::SizeIs;
 using ::testing::NotNull;
 using ::testing::Not;
 using ::testing::IsEmpty;
@@ -67,7 +56,7 @@ TYPED_TEST(SdbusTestObject, FailsWritingToReadOnlyProperty)
 
 TYPED_TEST(SdbusTestObject, WritesAndReadsReadWritePropertySuccessfully)
 {
-    uint32_t newActionValue = 5678;
+    uint32_t const newActionValue = 5678;
 
     this->m_proxy->action(newActionValue);
 
@@ -84,7 +73,7 @@ TYPED_TEST(SdbusTestObject, CanAccessAssociatedPropertySetMessageInPropertySetHa
 
 TYPED_TEST(SdbusTestObject, WritesAndReadsReadWriteVariantPropertySuccessfully)
 {
-    sdbus::Variant newActionValue{5678};
+    sdbus::Variant const newActionValue{5678};
 
     this->m_proxy->actionVariant(newActionValue);
 

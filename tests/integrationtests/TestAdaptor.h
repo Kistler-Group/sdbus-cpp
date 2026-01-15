@@ -1,6 +1,6 @@
 /**
  * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
- * (C) 2016 - 2024 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
+ * (C) 2016 - 2026 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
  * @file TestAdaptor.h
  *
@@ -35,7 +35,7 @@
 #include <utility>
 #include <memory>
 
-namespace sdbus { namespace test {
+namespace sdbus::test {
 
 class ObjectManagerTestAdaptor final : public sdbus::AdaptorInterfaces< sdbus::ObjectManager_adaptor >
 {
@@ -45,6 +45,11 @@ public:
     {
         registerAdaptor();
     }
+
+    ObjectManagerTestAdaptor(const ObjectManagerTestAdaptor&) = delete;
+    ObjectManagerTestAdaptor& operator=(const ObjectManagerTestAdaptor&) = delete;
+    ObjectManagerTestAdaptor(ObjectManagerTestAdaptor&&) = delete;
+    ObjectManagerTestAdaptor& operator=(ObjectManagerTestAdaptor&&) = delete;
 
     ~ObjectManagerTestAdaptor()
     {
@@ -58,24 +63,28 @@ class TestAdaptor final : public sdbus::AdaptorInterfaces< org::sdbuscpp::integr
 {
 public:
     TestAdaptor(sdbus::IConnection& connection, sdbus::ObjectPath path);
+    TestAdaptor(const TestAdaptor&) = delete;
+    TestAdaptor& operator=(const TestAdaptor&) = delete;
+    TestAdaptor(TestAdaptor&&) = delete;
+    TestAdaptor& operator=(TestAdaptor&&) = delete;
     ~TestAdaptor();
 
 protected:
     void noArgNoReturn() override;
     int32_t getInt() override;
     std::tuple<uint32_t, std::string> getTuple() override;
-    double multiply(const int64_t& a, const double& b) override;
-    void multiplyWithNoReply(const int64_t& a, const double& b) override;
-    std::vector<int16_t> getInts16FromStruct(const sdbus::Struct<uint8_t, int16_t, double, std::string, std::vector<int16_t>>& arg0) override;
+    double multiply(const int64_t& lhs, const double& rhs) override;
+    void multiplyWithNoReply(const int64_t& lhs, const double& rhs) override;
+    std::vector<int16_t> getInts16FromStruct(const sdbus::Struct<uint8_t, int16_t, double, std::string, std::vector<int16_t>>& strct) override;
     sdbus::Variant processVariant(const std::variant<int32_t, double, std::string>& variant) override;
-    std::map<int32_t, sdbus::Variant> getMapOfVariants(const std::vector<int32_t>& x, const sdbus::Struct<sdbus::Variant, sdbus::Variant>& y) override;
+    std::map<int32_t, sdbus::Variant> getMapOfVariants(const std::vector<int32_t>& vec, const sdbus::Struct<sdbus::Variant, sdbus::Variant>& strct) override;
     sdbus::Struct<std::string, sdbus::Struct<std::map<int32_t, int32_t>>> getStructInStruct() override;
-    int32_t sumStructItems(const sdbus::Struct<uint8_t, uint16_t>& arg0, const sdbus::Struct<int32_t, int64_t>& arg1) override;
-    uint32_t sumArrayItems(const std::vector<uint16_t>& arg0, const std::array<uint64_t, 3>& arg1) override;
-    uint32_t doOperation(const uint32_t& arg0) override;
+    int32_t sumStructItems(const sdbus::Struct<uint8_t, uint16_t>& strctA, const sdbus::Struct<int32_t, int64_t>& strctB) override;
+    uint32_t sumArrayItems(const std::vector<uint16_t>& vec, const std::array<uint64_t, 3>& arr) override;
+    uint32_t doOperation(const uint32_t& param) override;
     std::map<int32_t, std::string> doOperationWithLargeData(const std::map<int32_t, std::string>& largeParam) override;
-    void doOperationAsync(sdbus::Result<uint32_t>&& result, uint32_t arg0) override;
-    void doOperationAsyncWithLargeData(sdbus::Result<std::map<int32_t, std::string>>&& result, uint32_t arg0, const std::map<int32_t, std::string>& largeParam) override;
+    void doOperationAsync(sdbus::Result<uint32_t>&& result, uint32_t param) override;
+    void doOperationAsyncWithLargeData(sdbus::Result<std::map<int32_t, std::string>>&& result, uint32_t param, const std::map<int32_t, std::string>& largeMap) override;
     sdbus::Signature getSignature() override;
     sdbus::ObjectPath getObjPath() override;
     sdbus::UnixFd getUnixFd() override;
@@ -96,8 +105,8 @@ protected:
     std::string state() override;
 
 public:
-    void emitSignalWithoutRegistration(const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& s);
-    std::string getExpectedXmlApiDescription() const;
+    void emitSignalWithoutRegistration(const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& strct);
+    static std::string getExpectedXmlApiDescription() ;
 
 private:
     const std::string m_state{DEFAULT_STATE_VALUE};
@@ -162,6 +171,6 @@ protected:
     std::string state() override { return {}; }
 };
 
-}}
+} // namespace sdbus::test
 
 #endif /* INTEGRATIONTESTS_TESTADAPTOR_H_ */

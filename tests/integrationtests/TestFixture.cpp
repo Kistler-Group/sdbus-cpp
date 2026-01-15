@@ -1,6 +1,6 @@
 /**
  * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
- * (C) 2016 - 2024 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
+ * (C) 2016 - 2026 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
  * @file TestFixture.cpp
  *
@@ -25,8 +25,11 @@
  */
 
 #include "TestFixture.h"
+#include <memory>
+#include "sdbus-c++/IConnection.h"
+#include <thread>
 
-namespace sdbus { namespace test {
+namespace sdbus::test {
 
 std::unique_ptr<sdbus::IConnection> BaseTestFixture::s_adaptorConnection = sdbus::createBusConnection();
 std::unique_ptr<sdbus::IConnection> BaseTestFixture::s_proxyConnection = sdbus::createBusConnection();
@@ -41,4 +44,4 @@ int TestFixture<SdEventLoop>::s_eventExitFd{-1};
 
 #endif // SDBUS_basu
 
-}}
+} // namespace sdbus::test

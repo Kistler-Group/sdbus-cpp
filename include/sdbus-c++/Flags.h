@@ -1,6 +1,6 @@
 /**
  * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
- * (C) 2016 - 2024 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
+ * (C) 2016 - 2026 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
  * @file Flags.h
  *
@@ -94,6 +94,6 @@ namespace sdbus {
         std::bitset<FLAG_COUNT> flags_;
     };
 
-}
+} // namespace sdbus
 
 #endif /* SDBUS_CXX_FLAGS_H_ */

@@ -1,6 +1,6 @@
 /**
  * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
- * (C) 2016 - 2024 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
+ * (C) 2016 - 2026 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
  * @file Defs.h
  *
@@ -32,7 +32,7 @@
 #include <ostream>
 #include <filesystem>
 
-namespace sdbus { namespace test {
+namespace sdbus::test {
 
 const InterfaceName INTERFACE_NAME{"org.sdbuscpp.integrationtests"};
 const ServiceName SERVICE_NAME{"org.sdbuscpp.integrationtests"};
@@ -64,18 +64,19 @@ const bool DEFAULT_BLOCKING_VALUE{true};
 
 constexpr const double DOUBLE_VALUE{3.24L};
 
-}}
+} // namespace sdbus::test
 
 namespace testing::internal {
 
 // Printer for std::chrono::duration types.
 // This is a workaround, since it's not a good thing to add this to std namespace.
-template< class Rep, class Period >
-void PrintTo(const ::std::chrono::duration<Rep, Period>& d, ::std::ostream* os) {
-    auto seconds = std::chrono::duration_cast<std::chrono::duration<double>>(d);
-    *os << seconds.count() << "s";
+template<class Rep, class Period>
+void PrintTo(const ::std::chrono::duration<Rep, Period>& duration, ::std::ostream* stream)
+{
+    auto seconds = std::chrono::duration_cast<std::chrono::duration<double>>(duration);
+    *stream << seconds.count() << "s";
 }
 
-}
+} // namespace testing::internal
 
 #endif /* SDBUS_CPP_INTEGRATIONTESTS_DEFS_H_ */

@@ -1,6 +1,6 @@
 /**
  * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
- * (C) 2016 - 2024 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
+ * (C) 2016 - 2026 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
  * @file ScopeGuard.h
  *
@@ -29,6 +29,8 @@
 
 #include <exception>
 #include <utility>
+
+// NOLINTBEGIN(cppcoreguidelines-macro-usage)
 
 // Straightforward, modern, easy-to-use RAII utility to perform work on scope exit in an exception-safe manner.
 //
@@ -105,21 +107,22 @@ namespace sdbus::internal {
         }
     };
 
-    template <class _Fun, typename _Tag>
+    template <class Fun, typename Tag>
     class ScopeGuard
     {
     public:
-        ScopeGuard(_Fun f) : fnc_(std::move(f))
+        explicit ScopeGuard(Fun fun) : fnc_(std::move(fun))
         {
         }
 
         ScopeGuard() = delete;
         ScopeGuard(const ScopeGuard&) = delete;
         ScopeGuard& operator=(const ScopeGuard&) = delete;
-        ScopeGuard(ScopeGuard&& rhs) : fnc_(std::move(rhs.fnc_)), active_(rhs.active_), exceptions_(rhs.exceptions_)
+        ScopeGuard(ScopeGuard&& rhs)  noexcept : fnc_(std::move(rhs.fnc_)), exceptions_(rhs.exceptions_), active_(rhs.active_)
         {
             rhs.dismiss();
         }
+        ScopeGuard& operator=(ScopeGuard&&) = delete;
 
         void dismiss()
         {
@@ -128,35 +131,35 @@ namespace sdbus::internal {
 
         ~ScopeGuard()
         {
-            if (active_ && _Tag::holds(exceptions_))
+            if (active_ && Tag::holds(exceptions_))
                 fnc_();
         }
 
     private:
-        _Fun fnc_;
+        Fun fnc_;
         int exceptions_{std::uncaught_exceptions()};
         bool active_{true};
     };
 
-    template <typename _Fun>
-    ScopeGuard<_Fun, ScopeGuardOnExitTag> operator+(ScopeGuardOnExitTag, _Fun&& fnc)
+    template <typename Fun>
+    ScopeGuard<Fun, ScopeGuardOnExitTag> operator+(ScopeGuardOnExitTag, Fun&& fnc)
     {
-        return ScopeGuard<_Fun, ScopeGuardOnExitTag>(std::forward<_Fun>(fnc));
+        return ScopeGuard<Fun, ScopeGuardOnExitTag>(std::forward<Fun>(fnc));
     }
 
-    template <typename _Fun>
-    ScopeGuard<_Fun, ScopeGuardOnExitSuccessTag> operator+(ScopeGuardOnExitSuccessTag, _Fun&& fnc)
+    template <typename Fun>
+    ScopeGuard<Fun, ScopeGuardOnExitSuccessTag> operator+(ScopeGuardOnExitSuccessTag, Fun&& fnc)
     {
-        return ScopeGuard<_Fun, ScopeGuardOnExitSuccessTag>(std::forward<_Fun>(fnc));
+        return ScopeGuard<Fun, ScopeGuardOnExitSuccessTag>(std::forward<Fun>(fnc));
     }
 
-    template <typename _Fun>
-    ScopeGuard<_Fun, ScopeGuardOnExitFailureTag> operator+(ScopeGuardOnExitFailureTag, _Fun&& fnc)
+    template <typename Fun>
+    ScopeGuard<Fun, ScopeGuardOnExitFailureTag> operator+(ScopeGuardOnExitFailureTag, Fun&& fnc)
     {
-        return ScopeGuard<_Fun, ScopeGuardOnExitFailureTag>(std::forward<_Fun>(fnc));
+        return ScopeGuard<Fun, ScopeGuardOnExitFailureTag>(std::forward<Fun>(fnc));
     }
 
-}
+} // namespace sdbus::internal
 
 #define CONCATENATE_IMPL(s1, s2) s1##s2
 #define CONCATENATE(s1, s2) CONCATENATE_IMPL(s1, s2)
@@ -166,5 +169,7 @@ namespace sdbus::internal {
 #else
 #define ANONYMOUS_VARIABLE(str) CONCATENATE(str, __LINE__)
 #endif
+
+// NOLINTEND(cppcoreguidelines-macro-usage)
 
 #endif /* SDBUS_CPP_INTERNAL_SCOPEGUARD_H_ */

@@ -1,6 +1,6 @@
 /**
  * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
- * (C) 2016 - 2024 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
+ * (C) 2016 - 2026 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
  * @file Types.cpp
  *
@@ -24,11 +24,9 @@
  * along with sdbus-c++. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "sdbus-c++/Types.h"
-
 #include "sdbus-c++/Error.h"
-
-#include "MessageUtils.h"
+#include "sdbus-c++/Message.h"
+#include "sdbus-c++/Types.h"
 
 #include <cerrno>
 #include <system_error>
@@ -82,7 +80,7 @@ int UnixFd::checkedDup(int fd)
         return fd;
     }
 
-    int ret = ::dup(fd); // NOLINT(android-cloexec-dup) // TODO: verify
+    const int ret = ::dup(fd); // NOLINT(android-cloexec-dup) // TODO: verify
     if (ret < 0)
     {
         throw std::system_error(errno, std::generic_category(), "dup failed");

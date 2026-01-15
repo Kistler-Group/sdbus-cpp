@@ -1,6 +1,6 @@
 /**
  * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
- * (C) 2016 - 2024 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
+ * (C) 2016 - 2026 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
  * @file DBusConnectionTests.cpp
  *
@@ -33,13 +33,10 @@
 
 // gmock
 #include <gtest/gtest.h>
-#include <gmock/gmock.h>
 
 // STL
 #include <thread>
-#include <chrono>
 
-using ::testing::Eq;
 using namespace sdbus::test;
 
 /*-------------------------------------*/
@@ -63,7 +60,7 @@ TEST(Connection, CanRequestName)
 TEST(SystemBusConnection, CannotRequestNonregisteredDbusName)
 {
     auto connection = sdbus::createSystemBusConnection();
-    sdbus::ServiceName notSupportedBusName{"some.random.not.supported.dbus.name"};
+    sdbus::ServiceName const notSupportedBusName{"some.random.not.supported.dbus.name"};
 
     ASSERT_THROW(connection->requestName(notSupportedBusName), sdbus::Error);
 }
@@ -79,7 +76,7 @@ TEST(Connection, CanReleaseRequestedName)
 TEST(Connection, CannotReleaseNonrequestedName)
 {
     auto connection = sdbus::createBusConnection();
-    sdbus::ServiceName notAcquiredBusName{"some.random.unacquired.name"};
+    sdbus::ServiceName const notAcquiredBusName{"some.random.unacquired.name"};
 
     ASSERT_THROW(connection->releaseName(notAcquiredBusName), sdbus::Error);
 }

@@ -1,6 +1,6 @@
 /**
  * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
- * (C) 2016 - 2024 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
+ * (C) 2016 - 2026 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
  * @file ConvenienceApiClasses.inl
  *
@@ -28,8 +28,8 @@
 #define SDBUS_CPP_CONVENIENCEAPICLASSES_INL_
 
 #include <sdbus-c++/Error.h>
-#include <sdbus-c++/IObject.h>
-#include <sdbus-c++/IProxy.h>
+#include <sdbus-c++/IObject.h> // NOLINT(misc-header-include-cycle)
+#include <sdbus-c++/IProxy.h> // NOLINT(misc-header-include-cycle)
 #include <sdbus-c++/Message.h>
 #include <sdbus-c++/MethodResult.h>
 #include <sdbus-c++/TypeTraits.h>
@@ -124,12 +124,12 @@ namespace sdbus {
         return *this;
     }
 
-    template <typename... _Args>
-    inline void SignalEmitter::withArguments(_Args&&... args)
+    template <typename... Args>
+    inline void SignalEmitter::withArguments(Args&&... args)
     {
         assert(signal_.isValid()); // onInterface() must be placed/called prior to withArguments()
 
-        detail::serialize_pack(signal_, std::forward<_Args>(args)...);
+        detail::serialize_pack(signal_, std::forward<Args>(args)...);
     }
 
     /*** ------------- ***/
@@ -191,25 +191,25 @@ namespace sdbus {
         return *this;
     }
 
-    template <typename _Rep, typename _Period>
-    inline MethodInvoker& MethodInvoker::withTimeout(const std::chrono::duration<_Rep, _Period>& timeout)
+    template <typename Rep, typename Period>
+    inline MethodInvoker& MethodInvoker::withTimeout(const std::chrono::duration<Rep, Period>& timeout)
     {
         auto microsecs = std::chrono::duration_cast<std::chrono::microseconds>(timeout);
         return withTimeout(microsecs.count());
     }
 
-    template <typename... _Args>
-    inline MethodInvoker& MethodInvoker::withArguments(_Args&&... args)
+    template <typename... Args>
+    inline MethodInvoker& MethodInvoker::withArguments(Args&&... args)
     {
         assert(method_.isValid()); // onInterface() must be placed/called prior to this function
 
-        detail::serialize_pack(method_, std::forward<_Args>(args)...);
+        detail::serialize_pack(method_, std::forward<Args>(args)...);
 
         return *this;
     }
 
-    template <typename... _Args>
-    inline void MethodInvoker::storeResultsTo(_Args&... args)
+    template <typename... Args>
+    inline void MethodInvoker::storeResultsTo(Args&... args)
     {
         assert(method_.isValid()); // onInterface() must be placed/called prior to this function
 
@@ -265,50 +265,50 @@ namespace sdbus {
         return *this;
     }
 
-    template <typename _Rep, typename _Period>
-    inline AsyncMethodInvoker& AsyncMethodInvoker::withTimeout(const std::chrono::duration<_Rep, _Period>& timeout)
+    template <typename Rep, typename Period>
+    inline AsyncMethodInvoker& AsyncMethodInvoker::withTimeout(const std::chrono::duration<Rep, Period>& timeout)
     {
         auto microsecs = std::chrono::duration_cast<std::chrono::microseconds>(timeout);
         return withTimeout(microsecs.count());
     }
 
-    template <typename... _Args>
-    inline AsyncMethodInvoker& AsyncMethodInvoker::withArguments(_Args&&... args)
+    template <typename... Args>
+    inline AsyncMethodInvoker& AsyncMethodInvoker::withArguments(Args&&... args)
     {
         assert(method_.isValid()); // onInterface() must be placed/called prior to this function
 
-        detail::serialize_pack(method_, std::forward<_Args>(args)...);
+        detail::serialize_pack(method_, std::forward<Args>(args)...);
 
         return *this;
     }
 
-    template <typename _Function>
-    PendingAsyncCall AsyncMethodInvoker::uponReplyInvoke(_Function&& callback)
+    template <typename Function>
+    PendingAsyncCall AsyncMethodInvoker::uponReplyInvoke(Function&& callback)
     {
         assert(method_.isValid()); // onInterface() must be placed/called prior to this function
 
-        return proxy_.callMethodAsync(method_, makeAsyncReplyHandler(std::forward<_Function>(callback)), timeout_);
+        return proxy_.callMethodAsync(method_, makeAsyncReplyHandler(std::forward<Function>(callback)), timeout_);
     }
 
-    template <typename _Function>
-    [[nodiscard]] Slot AsyncMethodInvoker::uponReplyInvoke(_Function&& callback, return_slot_t)
+    template <typename Function>
+    [[nodiscard]] Slot AsyncMethodInvoker::uponReplyInvoke(Function&& callback, return_slot_t)
     {
         assert(method_.isValid()); // onInterface() must be placed/called prior to this function
 
         return proxy_.callMethodAsync( method_
-                                     , makeAsyncReplyHandler(std::forward<_Function>(callback))
+                                     , makeAsyncReplyHandler(std::forward<Function>(callback))
                                      , timeout_
                                      , return_slot );
     }
 
-    template <typename _Function>
-    inline async_reply_handler AsyncMethodInvoker::makeAsyncReplyHandler(_Function&& callback)
+    template <typename Function>
+    inline async_reply_handler AsyncMethodInvoker::makeAsyncReplyHandler(Function&& callback)
     {
-        return [callback = std::forward<_Function>(callback)](MethodReply reply, std::optional<Error> error)
+        return [callback = std::forward<Function>(callback)](MethodReply reply, std::optional<Error> error)
         {
             // Create a tuple of callback input arguments' types, which will be used
             // as a storage for the argument values deserialized from the message.
-            tuple_of_function_input_arg_types_t<_Function> args;
+            tuple_of_function_input_arg_types_t<Function> args;
 
             // Deserialize input arguments from the message into the tuple (if no error occurred).
             if (!error)
@@ -331,16 +331,16 @@ namespace sdbus {
         };
     }
 
-    template <typename... _Args>
-    std::future<future_return_t<_Args...>> AsyncMethodInvoker::getResultAsFuture()
+    template <typename... Args>
+    std::future<future_return_t<Args...>> AsyncMethodInvoker::getResultAsFuture()
     {
-        auto promise = std::make_shared<std::promise<future_return_t<_Args...>>>();
+        auto promise = std::make_shared<std::promise<future_return_t<Args...>>>();
         auto future = promise->get_future();
 
-        uponReplyInvoke([promise = std::move(promise)](std::optional<Error> error, _Args... args)
+        uponReplyInvoke([promise = std::move(promise)](std::optional<Error> error, Args... args)
         {
             if (!error)
-                if constexpr (!std::is_void_v<future_return_t<_Args...>>)
+                if constexpr (!std::is_void_v<future_return_t<Args...>>)
                     promise->set_value({std::move(args)...});
                 else
                     promise->set_value();
@@ -386,48 +386,48 @@ namespace sdbus {
         return *this;
     }
 
-    template <typename _Function>
-    inline void SignalSubscriber::call(_Function&& callback)
+    template <typename Function>
+    inline void SignalSubscriber::call(Function&& callback)
     {
         assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
 
         proxy_.registerSignalHandler( interfaceName_
                                     , signalName_
-                                    , makeSignalHandler(std::forward<_Function>(callback)) );
+                                    , makeSignalHandler(std::forward<Function>(callback)) );
     }
 
-    template <typename _Function>
-    [[nodiscard]] inline Slot SignalSubscriber::call(_Function&& callback, return_slot_t)
+    template <typename Function>
+    [[nodiscard]] inline Slot SignalSubscriber::call(Function&& callback, return_slot_t)
     {
         assert(interfaceName_ != nullptr); // onInterface() must be placed/called prior to this function
 
         return proxy_.registerSignalHandler( interfaceName_
                                            , signalName_
-                                           , makeSignalHandler(std::forward<_Function>(callback))
+                                           , makeSignalHandler(std::forward<Function>(callback))
                                            , return_slot );
     }
 
-    template <typename _Function>
-    inline signal_handler SignalSubscriber::makeSignalHandler(_Function&& callback)
+    template <typename Function>
+    inline signal_handler SignalSubscriber::makeSignalHandler(Function&& callback)
     {
-        return [callback = std::forward<_Function>(callback)](Signal signal)
+        return [callback = std::forward<Function>(callback)](Signal signal)
         {
             // Create a tuple of callback input arguments' types, which will be used
             // as a storage for the argument values deserialized from the signal message.
-            tuple_of_function_input_arg_types_t<_Function> signalArgs;
+            tuple_of_function_input_arg_types_t<Function> signalArgs;
 
             // The signal handler can take pure signal parameters only, or an additional `std::optional<Error>` as its first
             // parameter. In the former case, if the deserialization fails (e.g. due to signature mismatch),
             // the failure is ignored (and signal simply dropped). In the latter case, the deserialization failure
             // will be communicated to the client's signal handler as a valid Error object inside the std::optional parameter.
-            if constexpr (has_error_param_v<_Function>)
+            if constexpr (has_error_param_v<Function>)
             {
                 // Deserialize input arguments from the signal message into the tuple
                 try
                 {
                     signal >> signalArgs;
                 }
-                catch (const sdbus::Error& e)
+                catch (const Error& e)
                 {
                     // Pass message deserialization exceptions to the client via callback error parameter,
                     // instead of propagating them up the message loop call stack.
@@ -486,10 +486,10 @@ namespace sdbus {
         return *this;
     }
 
-    template <typename _Function>
-    PendingAsyncCall AsyncPropertyGetter::uponReplyInvoke(_Function&& callback)
+    template <typename Function>
+    PendingAsyncCall AsyncPropertyGetter::uponReplyInvoke(Function&& callback)
     {
-        static_assert( std::is_invocable_r_v<void, _Function, std::optional<Error>, Variant>
+        static_assert( std::is_invocable_r_v<void, Function, std::optional<Error>, Variant>
                      , "Property get callback function must accept std::optional<Error> and property value as Variant" );
 
         assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
@@ -497,13 +497,13 @@ namespace sdbus {
         return proxy_.callMethodAsync("Get")
                      .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
                      .withArguments(interfaceName_, propertyName_)
-                     .uponReplyInvoke(std::forward<_Function>(callback));
+                     .uponReplyInvoke(std::forward<Function>(callback));
     }
 
-    template <typename _Function>
-    [[nodiscard]] Slot AsyncPropertyGetter::uponReplyInvoke(_Function&& callback, return_slot_t)
+    template <typename Function>
+    [[nodiscard]] Slot AsyncPropertyGetter::uponReplyInvoke(Function&& callback, return_slot_t)
     {
-        static_assert( std::is_invocable_r_v<void, _Function, std::optional<Error>, Variant>
+        static_assert( std::is_invocable_r_v<void, Function, std::optional<Error>, Variant>
                      , "Property get callback function must accept std::optional<Error> and property value as Variant" );
 
         assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
@@ -511,7 +511,7 @@ namespace sdbus {
         return proxy_.callMethodAsync("Get")
                      .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
                      .withArguments(interfaceName_, propertyName_)
-                     .uponReplyInvoke(std::forward<_Function>(callback), return_slot);
+                     .uponReplyInvoke(std::forward<Function>(callback), return_slot);
     }
 
     inline std::future<Variant> AsyncPropertyGetter::getResultAsFuture()
@@ -541,14 +541,14 @@ namespace sdbus {
         return *this;
     }
 
-    template <typename _Value>
-    inline void PropertySetter::toValue(const _Value& value)
+    template <typename Value>
+    inline void PropertySetter::toValue(const Value& value)
     {
         PropertySetter::toValue(Variant{value});
     }
 
-    template <typename _Value>
-    inline void PropertySetter::toValue(const _Value& value, dont_expect_reply_t)
+    template <typename Value>
+    inline void PropertySetter::toValue(const Value& value, dont_expect_reply_t)
     {
         PropertySetter::toValue(Variant{value}, dont_expect_reply);
     }
@@ -589,10 +589,10 @@ namespace sdbus {
         return *this;
     }
 
-    template <typename _Value>
-    inline AsyncPropertySetter& AsyncPropertySetter::toValue(_Value&& value)
+    template <typename Value>
+    inline AsyncPropertySetter& AsyncPropertySetter::toValue(Value&& value)
     {
-        return AsyncPropertySetter::toValue(Variant{std::forward<_Value>(value)});
+        return AsyncPropertySetter::toValue(Variant{std::forward<Value>(value)});
     }
 
     inline AsyncPropertySetter& AsyncPropertySetter::toValue(Variant value)
@@ -602,10 +602,10 @@ namespace sdbus {
         return *this;
     }
 
-    template <typename _Function>
-    PendingAsyncCall AsyncPropertySetter::uponReplyInvoke(_Function&& callback)
+    template <typename Function>
+    PendingAsyncCall AsyncPropertySetter::uponReplyInvoke(Function&& callback)
     {
-        static_assert( std::is_invocable_r_v<void, _Function, std::optional<Error>>
+        static_assert( std::is_invocable_r_v<void, Function, std::optional<Error>>
                      , "Property set callback function must accept std::optional<Error> only" );
 
         assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
@@ -613,13 +613,13 @@ namespace sdbus {
         return proxy_.callMethodAsync("Set")
                      .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
                      .withArguments(interfaceName_, propertyName_, std::move(value_))
-                     .uponReplyInvoke(std::forward<_Function>(callback));
+                     .uponReplyInvoke(std::forward<Function>(callback));
     }
 
-    template <typename _Function>
-    [[nodiscard]] Slot AsyncPropertySetter::uponReplyInvoke(_Function&& callback, return_slot_t)
+    template <typename Function>
+    [[nodiscard]] Slot AsyncPropertySetter::uponReplyInvoke(Function&& callback, return_slot_t)
     {
-        static_assert( std::is_invocable_r_v<void, _Function, std::optional<Error>>
+        static_assert( std::is_invocable_r_v<void, Function, std::optional<Error>>
                      , "Property set callback function must accept std::optional<Error> only" );
 
         assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
@@ -627,7 +627,7 @@ namespace sdbus {
         return proxy_.callMethodAsync("Set")
                      .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
                      .withArguments(interfaceName_, propertyName_, std::move(value_))
-                     .uponReplyInvoke(std::forward<_Function>(callback), return_slot);
+                     .uponReplyInvoke(std::forward<Function>(callback), return_slot);
     }
 
     inline std::future<void> AsyncPropertySetter::getResultAsFuture()
@@ -675,10 +675,10 @@ namespace sdbus {
         return *this;
     }
 
-    template <typename _Function>
-    PendingAsyncCall AsyncAllPropertiesGetter::uponReplyInvoke(_Function&& callback)
+    template <typename Function>
+    PendingAsyncCall AsyncAllPropertiesGetter::uponReplyInvoke(Function&& callback)
     {
-        static_assert( std::is_invocable_r_v<void, _Function, std::optional<Error>, std::map<PropertyName, Variant>>
+        static_assert( std::is_invocable_r_v<void, Function, std::optional<Error>, std::map<PropertyName, Variant>>
                      , "All properties get callback function must accept std::optional<Error> and a map of property names to their values" );
 
         assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
@@ -686,13 +686,13 @@ namespace sdbus {
         return proxy_.callMethodAsync("GetAll")
                      .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
                      .withArguments(interfaceName_)
-                     .uponReplyInvoke(std::forward<_Function>(callback));
+                     .uponReplyInvoke(std::forward<Function>(callback));
     }
 
-    template <typename _Function>
-    [[nodiscard]] Slot AsyncAllPropertiesGetter::uponReplyInvoke(_Function&& callback, return_slot_t)
+    template <typename Function>
+    [[nodiscard]] Slot AsyncAllPropertiesGetter::uponReplyInvoke(Function&& callback, return_slot_t)
     {
-        static_assert( std::is_invocable_r_v<void, _Function, std::optional<Error>, std::map<PropertyName, Variant>>
+        static_assert( std::is_invocable_r_v<void, Function, std::optional<Error>, std::map<PropertyName, Variant>>
                      , "All properties get callback function must accept std::optional<Error> and a map of property names to their values" );
 
         assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
@@ -700,7 +700,7 @@ namespace sdbus {
         return proxy_.callMethodAsync("GetAll")
                      .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
                      .withArguments(interfaceName_)
-                     .uponReplyInvoke(std::forward<_Function>(callback), return_slot);
+                     .uponReplyInvoke(std::forward<Function>(callback), return_slot);
     }
 
     inline std::future<std::map<PropertyName, Variant>> AsyncAllPropertiesGetter::getResultAsFuture()

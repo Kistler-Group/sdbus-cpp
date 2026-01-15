@@ -36,6 +36,7 @@ set(SDBUSCPP_XML2CPP_SRCS
 #-------------------------------
 
 set(CMAKE_CXX_STANDARD 14)
+unset(CMAKE_CXX_CLANG_TIDY) # Do not propagate clang-tidy to tools
 
 #----------------------------------
 # EXECUTABLE BUILD INFORMATION

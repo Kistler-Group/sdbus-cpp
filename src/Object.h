@@ -1,6 +1,6 @@
 /**
  * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
- * (C) 2016 - 2024 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
+ * (C) 2016 - 2026 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
  * @file Object.h
  *
@@ -29,7 +29,6 @@
 
 #include "sdbus-c++/IObject.h"
 
-#include "IConnection.h"
 #include "sdbus-c++/Types.h"
 
 #include <cassert>
@@ -41,21 +40,29 @@
 #include SDBUS_HEADER
 #include <vector>
 
+// Forward declarations
+namespace sdbus {
+    class IConnection;
+    namespace internal {
+        class IConnection;
+    } // namespace internal
+} // namespace sdbus
+
 namespace sdbus::internal {
 
     class Object
         : public IObject
     {
     public:
-        Object(sdbus::internal::IConnection& connection, ObjectPath objectPath);
+        Object(IConnection& connection, ObjectPath objectPath);
 
         void addVTable(InterfaceName interfaceName, std::vector<VTableItem> vtable) override;
         Slot addVTable(InterfaceName interfaceName, std::vector<VTableItem> vtable, return_slot_t) override;
         void unregister() override;
 
-        Signal createSignal(const InterfaceName& interfaceName, const SignalName& signalName) const override;
+        [[nodiscard]] Signal createSignal(const InterfaceName& interfaceName, const SignalName& signalName) const override;
         Signal createSignal(const char* interfaceName, const char* signalName) const override;
-        void emitSignal(const sdbus::Signal& message) override;
+        void emitSignal(const Signal& message) override;
         void emitPropertiesChangedSignal(const InterfaceName& interfaceName, const std::vector<PropertyName>& propNames) override;
         void emitPropertiesChangedSignal(const char* interfaceName, const std::vector<PropertyName>& propNames) override;
         void emitPropertiesChangedSignal(const InterfaceName& interfaceName) override;
@@ -126,12 +133,12 @@ namespace sdbus::internal {
         };
 
         VTable createInternalVTable(InterfaceName interfaceName, std::vector<VTableItem> vtable);
-        void writeInterfaceFlagsToVTable(InterfaceFlagsVTableItem flags, VTable& vtable);
-        void writeMethodRecordToVTable(MethodVTableItem method, VTable& vtable);
-        void writeSignalRecordToVTable(SignalVTableItem signal, VTable& vtable);
-        void writePropertyRecordToVTable(PropertyVTableItem property, VTable& vtable);
+        static void writeInterfaceFlagsToVTable(InterfaceFlagsVTableItem flags, VTable& vtable);
+        static void writeMethodRecordToVTable(MethodVTableItem method, VTable& vtable);
+        static void writeSignalRecordToVTable(SignalVTableItem signal, VTable& vtable);
+        static void writePropertyRecordToVTable(PropertyVTableItem property, VTable& vtable);
 
-        std::vector<sd_bus_vtable> createInternalSdBusVTable(const VTable& vtable);
+        static std::vector<sd_bus_vtable> createInternalSdBusVTable(const VTable& vtable);
         static void startSdBusVTable(const Flags& interfaceFlags, std::vector<sd_bus_vtable>& vtable);
         static void writeMethodRecordToSdBusVTable(const VTable::MethodItem& method, std::vector<sd_bus_vtable>& vtable);
         static void writeSignalRecordToSdBusVTable(const VTable::SignalItem& signal, std::vector<sd_bus_vtable>& vtable);
@@ -159,13 +166,12 @@ namespace sdbus::internal {
                                               , void *userData
                                               , sd_bus_error *retError );
 
-    private:
-        sdbus::internal::IConnection& connection_;
+        IConnection& connection_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
         ObjectPath objectPath_;
         std::vector<Slot> vtables_;
         Slot objectManagerSlot_;
     };
 
-}
+} // namespace sdbus::internal
 
 #endif /* SDBUS_CXX_INTERNAL_OBJECT_H_ */

@@ -1,6 +1,6 @@
 /**
  * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
- * (C) 2016 - 2024 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
+ * (C) 2016 - 2026 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
  * @file sdbus-c++-stress-tests.cpp
  *
@@ -34,16 +34,22 @@
 #include <vector>
 #include <string>
 #include <iostream>
-#include <unistd.h>
 #include <thread>
 #include <chrono>
 #include <cassert>
 #include <cstdlib>
+#include <cstdint>
+#include <cstddef>
 #include <atomic>
 #include <sstream>
 #include <mutex>
 #include <condition_variable>
 #include <queue>
+#include <memory>
+#include <utility>
+#include <map>
+#include <optional>
+#include <stdexcept>
 
 using namespace std::chrono_literals;
 
@@ -62,13 +68,18 @@ public:
         registerAdaptor();
     }
 
+    CelsiusThermometerAdaptor(const CelsiusThermometerAdaptor&) = delete;
+    CelsiusThermometerAdaptor& operator=(const CelsiusThermometerAdaptor&) = delete;
+    CelsiusThermometerAdaptor(CelsiusThermometerAdaptor&&) = delete;
+    CelsiusThermometerAdaptor& operator=(CelsiusThermometerAdaptor&&) = delete;
+
     ~CelsiusThermometerAdaptor()
     {
         unregisterAdaptor();
     }
 
 protected:
-    virtual uint32_t getCurrentTemperature() override
+    uint32_t getCurrentTemperature() override
     {
         return m_currentTemperature++;
     }
@@ -85,6 +96,11 @@ public:
     {
         registerProxy();
     }
+
+    CelsiusThermometerProxy(const CelsiusThermometerProxy&) = delete;
+    CelsiusThermometerProxy& operator=(const CelsiusThermometerProxy&) = delete;
+    CelsiusThermometerProxy(CelsiusThermometerProxy&&) = delete;
+    CelsiusThermometerProxy& operator=(CelsiusThermometerProxy&&) = delete;
 
     ~CelsiusThermometerProxy()
     {
@@ -142,7 +158,7 @@ public:
                         {
                             // Destroy existing delegate object
                             // Here we are testing dynamic removal of a D-Bus object in an async way
-                            std::lock_guard<std::mutex> lock{childrenMutex_};
+                            const std::lock_guard lock{childrenMutex_};
                             children_.erase(request.delegateObjectPath);
                         }
                     }
@@ -151,6 +167,11 @@ public:
 
         registerAdaptor();
     }
+
+    FahrenheitThermometerAdaptor(const FahrenheitThermometerAdaptor&) = delete;
+    FahrenheitThermometerAdaptor& operator=(const FahrenheitThermometerAdaptor&) = delete;
+    FahrenheitThermometerAdaptor(FahrenheitThermometerAdaptor&&) = delete;
+    FahrenheitThermometerAdaptor& operator=(FahrenheitThermometerAdaptor&&) = delete;
 
     ~FahrenheitThermometerAdaptor()
     {
@@ -163,13 +184,13 @@ public:
     }
 
 protected:
-    virtual uint32_t getCurrentTemperature() override
+    uint32_t getCurrentTemperature() override
     {
         // In this D-Bus call, make yet another D-Bus call to another service over the same connection
         return static_cast<uint32_t>(celsiusProxy_.getCurrentTemperature() * 1.8 + 32.);
     }
 
-    virtual void createDelegateObject(sdbus::Result<sdbus::ObjectPath>&& result) override
+    void createDelegateObject(sdbus::Result<sdbus::ObjectPath>&& result) override
     {
         static size_t objectCounter{};
         objectCounter++;
@@ -180,7 +201,7 @@ protected:
         cond_.notify_one();
     }
 
-    virtual void destroyDelegateObject(sdbus::Result<>&& /*result*/, sdbus::ObjectPath delegate) override
+    void destroyDelegateObject(sdbus::Result<>&& /*result*/, sdbus::ObjectPath delegate) override
     {
         std::unique_lock<std::mutex> lock(mutex_);
         requests_.push(WorkItem{0, std::move(delegate), {}});
@@ -203,7 +224,7 @@ private:
     std::condition_variable cond_;
     std::queue<WorkItem> requests_;
     std::vector<std::thread> workers_;
-    std::atomic<bool> exit_{};
+    std::atomic<bool> exit_;
 };
 
 class FahrenheitThermometerProxy : public sdbus::ProxyInterfaces< org::sdbuscpp::stresstests::fahrenheit::thermometer_proxy
@@ -215,6 +236,11 @@ public:
     {
         registerProxy();
     }
+
+    FahrenheitThermometerProxy(const FahrenheitThermometerProxy&) = delete;
+    FahrenheitThermometerProxy& operator=(const FahrenheitThermometerProxy&) = delete;
+    FahrenheitThermometerProxy(FahrenheitThermometerProxy&&) = delete;
+    FahrenheitThermometerProxy& operator=(FahrenheitThermometerProxy&&) = delete;
 
     ~FahrenheitThermometerProxy()
     {
@@ -262,6 +288,11 @@ public:
         registerAdaptor();
     }
 
+    ConcatenatorAdaptor(const ConcatenatorAdaptor&) = delete;
+    ConcatenatorAdaptor& operator=(const ConcatenatorAdaptor&) = delete;
+    ConcatenatorAdaptor(ConcatenatorAdaptor&&) = delete;
+    ConcatenatorAdaptor& operator=(ConcatenatorAdaptor&&) = delete;
+
     ~ConcatenatorAdaptor()
     {
         exit_ = true;
@@ -273,7 +304,7 @@ public:
     }
 
 protected:
-    virtual void concatenate(sdbus::Result<std::string>&& result, std::map<std::string, sdbus::Variant> params) override
+    void concatenate(sdbus::Result<std::string>&& result, std::map<std::string, sdbus::Variant> params) override
     {
         std::unique_lock<std::mutex> lock(mutex_);
         requests_.push(WorkItem{std::move(params), std::move(result)});
@@ -291,7 +322,7 @@ private:
     std::condition_variable cond_;
     std::queue<WorkItem> requests_;
     std::vector<std::thread> workers_;
-    std::atomic<bool> exit_{};
+    std::atomic<bool> exit_;
 };
 
 class ConcatenatorProxy final : public sdbus::ProxyInterfaces<org::sdbuscpp::stresstests::concatenator_proxy>
@@ -303,13 +334,18 @@ public:
         registerProxy();
     }
 
+    ConcatenatorProxy(const ConcatenatorProxy&) = delete;
+    ConcatenatorProxy& operator=(const ConcatenatorProxy&) = delete;
+    ConcatenatorProxy(ConcatenatorProxy&&) = delete;
+    ConcatenatorProxy& operator=(ConcatenatorProxy&&) = delete;
+
     ~ConcatenatorProxy()
     {
         unregisterProxy();
     }
 
 private:
-    virtual void onConcatenateReply(const std::string& result, [[maybe_unused]] std::optional<sdbus::Error> error) override
+    void onConcatenateReply(const std::string& result, [[maybe_unused]] std::optional<sdbus::Error> error) override
     {
         assert(error == std::nullopt);
 
@@ -318,21 +354,21 @@ private:
         str >> aString;
         assert(aString == "sdbus-c++-stress-tests");
 
-        uint32_t aNumber;
+        uint32_t aNumber{};
         str >> aNumber;
         assert(aNumber > 0);
 
         ++repliesReceived_;
     }
 
-    virtual void onConcatenatedSignal(const std::string& concatenatedString) override
+    void onConcatenatedSignal(const std::string& concatenatedString) override
     {
         std::stringstream str(concatenatedString);
         std::string aString;
         str >> aString;
         assert(aString == "sdbus-c++-stress-tests");
 
-        uint32_t aNumber;
+        uint32_t aNumber{};
         str >> aNumber;
         assert(aNumber > 0);
 
@@ -340,15 +376,15 @@ private:
     }
 
 public:
-    std::atomic<uint32_t> repliesReceived_{};
-    std::atomic<uint32_t> signalsReceived_{};
+    std::atomic<uint32_t> repliesReceived_;
+    std::atomic<uint32_t> signalsReceived_;
 };
 
 //-----------------------------------------
-int main(int argc, char *argv[])
+int main(int argc, char *argv[]) // NOLINT(bugprone-exception-escape, readability-function-cognitive-complexity)
 {
-    long loops;
-    long loopDuration;
+    long loops{};
+    long loopDuration{};
 
     if (argc == 1)
     {
@@ -357,49 +393,52 @@ int main(int argc, char *argv[])
     }
     else if (argc == 3)
     {
-        loops = std::atol(argv[1]);
-        loopDuration = std::atol(argv[2]);
+        loops = std::atol(argv[1]); // NOLINT(cert-err34-c, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        loopDuration = std::atol(argv[2]); // NOLINT(cert-err34-c, cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
     else
         throw std::runtime_error("Wrong program options");
 
-    std::cout << "Going on with " << loops << " loops and " << loopDuration << "ms loop duration" << std::endl;
+    std::cout << "Going on with " << loops << " loops and " << loopDuration << "ms loop duration\n";
 
     std::atomic<uint32_t> concatenationCallsMade{0};
     std::atomic<uint32_t> concatenationRepliesReceived{0};
     std::atomic<uint32_t> concatenationSignalsReceived{0};
     std::atomic<uint32_t> thermometerCallsMade{0};
 
-    std::atomic<bool> exitLogger{};
+    std::atomic exitLogger{false};
     std::thread loggerThread([&]()
     {
         while (!exitLogger)
         {
             std::this_thread::sleep_for(1s);
 
-            std::cout << "Made " << concatenationCallsMade << " concatenation calls, received " << concatenationRepliesReceived << " replies and " << concatenationSignalsReceived << " signals so far." << std::endl;
-            std::cout << "Made " << thermometerCallsMade << " thermometer calls so far." << std::endl << std::endl;
+            std::cout << "Made " << concatenationCallsMade << " concatenation calls, received " << concatenationRepliesReceived << " replies and " << concatenationSignalsReceived << " signals so far.\n";
+            std::cout << "Made " << thermometerCallsMade << " thermometer calls so far.\n\n";
         }
     });
 
     for (long loop = 0; loop < loops; ++loop)
     {
-        std::cout << "Entering loop " << loop+1 << std::endl;
+        std::cout << "Entering loop " << loop+1 << '\n';
 
         auto service2Connection = sdbus::createSystemBusConnection(SERVICE_2_BUS_NAME);
-        std::atomic<bool> service2ThreadReady{};
+        std::atomic service2ThreadReady{false};
         std::thread service2Thread([&con = *service2Connection, &service2ThreadReady]()
         {
+            // NOLINTNEXTLINE(misc-const-correctness)
             CelsiusThermometerAdaptor thermometer(con, CELSIUS_THERMOMETER_OBJECT_PATH);
             service2ThreadReady = true;
             con.enterEventLoop();
         });
 
         auto service1Connection = sdbus::createSystemBusConnection(SERVICE_1_BUS_NAME);
-        std::atomic<bool> service1ThreadReady{};
+        std::atomic service1ThreadReady{false};
         std::thread service1Thread([&con = *service1Connection, &service1ThreadReady]()
         {
+            // NOLINTNEXTLINE(misc-const-correctness)
             ConcatenatorAdaptor concatenator(con, CONCATENATOR_OBJECT_PATH);
+            // NOLINTNEXTLINE(misc-const-correctness)
             FahrenheitThermometerAdaptor thermometer(con, FAHRENHEIT_THERMOMETER_OBJECT_PATH, false);
             service1ThreadReady = true;
             con.enterEventLoop();
@@ -415,7 +454,7 @@ int main(int argc, char *argv[])
         bool clientThreadExit{};
         std::thread clientThread([&, &con = *clientConnection]()
         {
-            std::atomic<bool> stopClients{false};
+            std::atomic stopClients{false};
 
             std::thread concatenatorThread([&]()
             {
@@ -442,8 +481,8 @@ int main(int argc, char *argv[])
 
                         // Update statistics
                         concatenationCallsMade = localCounter;
-                        concatenationRepliesReceived = (uint32_t)concatenator.repliesReceived_;
-                        concatenationSignalsReceived = (uint32_t)concatenator.signalsReceived_;
+                        concatenationRepliesReceived = static_cast<uint32_t>(concatenator.repliesReceived_);
+                        concatenationSignalsReceived = static_cast<uint32_t>(concatenator.signalsReceived_);
                     }
                 }
             });

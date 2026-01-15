@@ -1,6 +1,6 @@
 /**
  * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
- * (C) 2016 - 2024 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
+ * (C) 2016 - 2026 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
  * @file Utils.h
  *
@@ -30,6 +30,8 @@
 #include <sdbus-c++/Error.h>
 #include SDBUS_HEADER
 
+// NOLINTBEGIN(cppcoreguidelines-macro-usage)
+
 #if LIBSYSTEMD_VERSION>=246
 #define SDBUS_CHECK_OBJECT_PATH(_PATH)                                                                                                          \
     SDBUS_THROW_ERROR_IF(!sd_bus_object_path_is_valid(_PATH), std::string("Invalid object path '") + _PATH + "' provided", EINVAL)              \
@@ -50,10 +52,12 @@
 #define SDBUS_CHECK_MEMBER_NAME(_NAME)
 #endif
 
+// NOLINTEND(cppcoreguidelines-macro-usage)
+
 namespace sdbus::internal {
 
-    template <typename _Callable>
-    bool invokeHandlerAndCatchErrors(_Callable callable, sd_bus_error *retError)
+    template <typename Callable>
+    bool invokeHandlerAndCatchErrors(Callable callable, sd_bus_error *retError)
     {
         try
         {
@@ -93,6 +97,6 @@ namespace sdbus::internal {
     template <class... Ts> struct overload : Ts... { using Ts::operator()...; };
     template <class... Ts> overload(Ts...) -> overload<Ts...>;
 
-}
+} // namespace sdbus::internal
 
 #endif /* SDBUS_CXX_INTERNAL_UTILS_H_ */

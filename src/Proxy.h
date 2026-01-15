@@ -1,6 +1,6 @@
 /**
  * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
- * (C) 2016 - 2024 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
+ * (C) 2016 - 2026 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
  * @file Proxy.h
  *
@@ -45,19 +45,19 @@ namespace sdbus::internal {
         : public IProxy
     {
     public:
-        Proxy( sdbus::internal::IConnection& connection
+        Proxy( IConnection& connection
              , ServiceName destination
              , ObjectPath objectPath );
-        Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
+        Proxy( std::unique_ptr<IConnection>&& connection
              , ServiceName destination
              , ObjectPath objectPath );
-        Proxy( std::unique_ptr<sdbus::internal::IConnection>&& connection
+        Proxy( std::unique_ptr<IConnection>&& connection
              , ServiceName destination
              , ObjectPath objectPath
              , dont_run_event_loop_thread_t );
 
-        MethodCall createMethodCall(const InterfaceName& interfaceName, const MethodName& methodName) const override;
-        MethodCall createMethodCall(const char* interfaceName, const char* methodName) const override;
+        [[nodiscard]] MethodCall createMethodCall(const InterfaceName& interfaceName, const MethodName& methodName) const override;
+        [[nodiscard]] MethodCall createMethodCall(const char* interfaceName, const char* methodName) const override;
         MethodReply callMethod(const MethodCall& message) override;
         MethodReply callMethod(const MethodCall& message, uint64_t timeout) override;
         PendingAsyncCall callMethodAsync(const MethodCall& message, async_reply_handler asyncReplyCallback) override;
@@ -98,12 +98,9 @@ namespace sdbus::internal {
         static int sdbus_signal_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
         static int sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
 
-    private:
         friend PendingAsyncCall;
 
-        std::unique_ptr< sdbus::internal::IConnection
-                       , std::function<void(sdbus::internal::IConnection*)>
-                       > connection_;
+        std::unique_ptr<IConnection, std::function<void(IConnection*)>> connection_;
         ServiceName destination_;
         ObjectPath objectPath_;
 
@@ -112,15 +109,15 @@ namespace sdbus::internal {
         struct SignalInfo
         {
             signal_handler callback;
-            Proxy& proxy;
+            Proxy& proxy; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
             Slot slot;
         };
 
         struct AsyncCallInfo
         {
             async_reply_handler callback;
-            Proxy& proxy;
-            Slot slot{};
+            Proxy& proxy; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+            Slot slot;
             bool finished{false};
             bool floating;
         };
@@ -129,7 +126,13 @@ namespace sdbus::internal {
         class FloatingAsyncCallSlots
         {
         public:
+            FloatingAsyncCallSlots() = default;
+            FloatingAsyncCallSlots(const FloatingAsyncCallSlots&) = delete;
+            FloatingAsyncCallSlots& operator=(const FloatingAsyncCallSlots&) = delete;
+            FloatingAsyncCallSlots(FloatingAsyncCallSlots&& other) = delete;
+            FloatingAsyncCallSlots& operator=(FloatingAsyncCallSlots&&) = delete;
             ~FloatingAsyncCallSlots();
+
             void push_back(std::shared_ptr<AsyncCallInfo> asyncCallInfo);
             void erase(AsyncCallInfo* info);
             void clear();
@@ -142,6 +145,6 @@ namespace sdbus::internal {
         FloatingAsyncCallSlots floatingAsyncCallSlots_;
     };
 
-}
+} // namespace sdbus::internal
 
 #endif /* SDBUS_CXX_INTERNAL_PROXY_H_ */

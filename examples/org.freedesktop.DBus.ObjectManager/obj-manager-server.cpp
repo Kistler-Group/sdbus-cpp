@@ -18,8 +18,9 @@
 #include <memory>
 #include <thread>
 #include <chrono>
-
-using sdbus::ObjectPath;
+#include <utility>
+#include <string>
+#include <cstdint>
 
 class ManagerAdaptor : public sdbus::AdaptorInterfaces<sdbus::ObjectManager_adaptor>
 {
@@ -29,6 +30,11 @@ public:
     {
         registerAdaptor();
     }
+
+    ManagerAdaptor(const ManagerAdaptor&) = delete;
+    ManagerAdaptor& operator=(const ManagerAdaptor&) = delete;
+    ManagerAdaptor(ManagerAdaptor&&) = delete;
+    ManagerAdaptor& operator=(ManagerAdaptor&&) = delete;
 
     ~ManagerAdaptor()
     {
@@ -47,12 +53,17 @@ public:
         , m_population(population)
     {
         registerAdaptor();
-        emitInterfacesAddedSignal({sdbus::InterfaceName{org::sdbuscpp::ExampleManager::Planet1_adaptor::INTERFACE_NAME}});
+        emitInterfacesAddedSignal({sdbus::InterfaceName{Planet1_adaptor::INTERFACE_NAME}});
     }
+
+    PlanetAdaptor(const PlanetAdaptor&) = delete;
+    PlanetAdaptor& operator=(const PlanetAdaptor&) = delete;
+    PlanetAdaptor(PlanetAdaptor&&) = delete;
+    PlanetAdaptor& operator=(PlanetAdaptor&&) = delete;
 
     ~PlanetAdaptor()
     {
-        emitInterfacesRemovedSignal({sdbus::InterfaceName{org::sdbuscpp::ExampleManager::Planet1_adaptor::INTERFACE_NAME}});
+        emitInterfacesRemovedSignal({sdbus::InterfaceName{Planet1_adaptor::INTERFACE_NAME}});
         unregisterAdaptor();
     }
 
@@ -78,25 +89,26 @@ void printCountDown(const std::string& message, int seconds)
         std::this_thread::sleep_for(std::chrono::seconds(1));
         std::cout << i << " " << std::flush;
     }
-    std::cout << std::endl;
+    std::cout << '\n';
 }
 
 int main()
 {
     auto connection = sdbus::createSessionBusConnection();
-    sdbus::ServiceName serviceName{"org.sdbuscpp.examplemanager"};
+    const sdbus::ServiceName serviceName{"org.sdbuscpp.examplemanager"};
     connection->requestName(serviceName);
     connection->enterEventLoopAsync();
 
-    auto manager = std::make_unique<ManagerAdaptor>(*connection, ObjectPath{"/org/sdbuscpp/examplemanager"});
+    // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
+    auto manager = std::make_unique<ManagerAdaptor>(*connection, sdbus::ObjectPath{"/org/sdbuscpp/examplemanager"});
     while (true)
     {
         printCountDown("Creating PlanetAdaptor in ", 5);
-        auto earth = std::make_unique<PlanetAdaptor>(*connection, ObjectPath{"/org/sdbuscpp/examplemanager/Planet1/Earth"}, "Earth", 7'874'965'825);
+        auto earth = std::make_unique<PlanetAdaptor>(*connection, sdbus::ObjectPath{"/org/sdbuscpp/examplemanager/Planet1/Earth"}, "Earth", 7'874'965'825);
         printCountDown("Creating PlanetAdaptor in ", 5);
-        auto trantor = std::make_unique<PlanetAdaptor>(*connection, ObjectPath{"/org/sdbuscpp/examplemanager/Planet1/Trantor"}, "Trantor", 40'000'000'000);
+        auto trantor = std::make_unique<PlanetAdaptor>(*connection, sdbus::ObjectPath{"/org/sdbuscpp/examplemanager/Planet1/Trantor"}, "Trantor", 40'000'000'000);
         printCountDown("Creating PlanetAdaptor in ", 5);
-        auto laconia = std::make_unique<PlanetAdaptor>(*connection, ObjectPath{"/org/sdbuscpp/examplemanager/Planet1/Laconia"}, "Laconia", 231'721);
+        auto laconia = std::make_unique<PlanetAdaptor>(*connection, sdbus::ObjectPath{"/org/sdbuscpp/examplemanager/Planet1/Laconia"}, "Laconia", 231'721);
         printCountDown("Removing PlanetAdaptor in ", 5);
         earth.reset();
         printCountDown("Removing PlanetAdaptor in ", 5);

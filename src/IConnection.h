@@ -1,6 +1,6 @@
 /**
  * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
- * (C) 2016 - 2024 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
+ * (C) 2016 - 2026 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
  * @file IConnection.h
  *
@@ -31,9 +31,7 @@
 
 #include "sdbus-c++/TypeTraits.h"
 
-#include <functional>
 #include <memory>
-#include <string>
 #include SDBUS_HEADER
 #include <vector>
 
@@ -54,8 +52,8 @@ namespace sdbus {
     class Error;
     namespace internal {
         class ISdBus;
-    }
-}
+    } // namespace internal
+} // namespace sdbus
 
 namespace sdbus::internal {
 
@@ -128,8 +126,8 @@ namespace sdbus::internal {
         virtual sd_bus_message* createErrorReplyMessage(sd_bus_message* sdbusMsg, const Error& error) = 0;
     };
 
-    [[nodiscard]] std::unique_ptr<sdbus::internal::IConnection> createPseudoConnection();
+    [[nodiscard]] std::unique_ptr<IConnection> createPseudoConnection();
 
-}
+} // namespace sdbus::internal
 
 #endif /* SDBUS_CXX_INTERNAL_ICONNECTION_H_ */

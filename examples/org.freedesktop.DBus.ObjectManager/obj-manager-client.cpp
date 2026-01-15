@@ -12,16 +12,25 @@
 #include "examplemanager-planet1-client-glue.h"
 #include <sdbus-c++/sdbus-c++.h>
 #include <iostream>
-#include <thread>
+#include <utility>
+#include <map>
+#include <string>
+#include <vector>
+#include <memory>
 
 class PlanetProxy final : public sdbus::ProxyInterfaces< org::sdbuscpp::ExampleManager::Planet1_proxy >
 {
 public:
     PlanetProxy(sdbus::IConnection& connection, sdbus::ServiceName destination, sdbus::ObjectPath path)
-    : ProxyInterfaces(connection, std::move(destination), std::move(path))
+        : ProxyInterfaces(connection, std::move(destination), std::move(path))
     {
         registerProxy();
     }
+
+    PlanetProxy(const PlanetProxy&) = delete;
+    PlanetProxy& operator=(const PlanetProxy&) = delete;
+    PlanetProxy(PlanetProxy&&) = delete;
+    PlanetProxy& operator=(PlanetProxy&&) = delete;
 
     ~PlanetProxy()
     {
@@ -35,10 +44,15 @@ public:
     ManagerProxy(sdbus::IConnection& connection, sdbus::ServiceName destination, sdbus::ObjectPath path)
         : ProxyInterfaces(connection, destination, std::move(path))
         , m_connection(connection)
-        , m_destination(destination)
+        , m_destination(std::move(destination))
     {
         registerProxy();
     }
+
+    ManagerProxy(const ManagerProxy&) = delete;
+    ManagerProxy& operator=(const ManagerProxy&) = delete;
+    ManagerProxy(ManagerProxy&&) = delete;
+    ManagerProxy& operator=(ManagerProxy&&) = delete;
 
     ~ManagerProxy()
     {
@@ -61,7 +75,7 @@ private:
         for (const auto& [interface, _] : interfacesAndProperties) {
             std::cout << interface << " ";
         }
-        std::cout << std::endl;
+        std::cout << '\n';
 
         // Parse and print some more info
         auto planetInterface = interfacesAndProperties.find(sdbus::InterfaceName{org::sdbuscpp::ExampleManager::Planet1_proxy::INTERFACE_NAME});
@@ -73,7 +87,7 @@ private:
         const auto& name = properties.at(sdbus::PropertyName{"Name"}).get<std::string>();
         // or create a proxy instance to the newly added object.
         PlanetProxy planet(m_connection, m_destination, objectPath);
-        std::cout << name << " has a population of " << planet.GetPopulation() << ".\n" << std::endl;
+        std::cout << name << " has a population of " << planet.GetPopulation() << ".\n" << '\n';
     }
 
     void onInterfacesRemoved( const sdbus::ObjectPath& objectPath
@@ -83,7 +97,7 @@ private:
         for (const auto& interface : interfaces) {
             std::cout << interface << " ";
         }
-        std::cout << std::endl;
+        std::cout << '\n';
     }
 
     sdbus::IConnection& m_connection;
@@ -102,7 +116,7 @@ int main()
     }
     catch (const sdbus::Error& e) {
         if (e.getName() == "org.freedesktop.DBus.Error.ServiceUnknown") {
-            std::cout << "Waiting for server to start ..." << std::endl;
+            std::cout << "Waiting for server to start ..." << '\n';
         }
     }
 

@@ -1,6 +1,6 @@
 /**
  * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
- * (C) 2016 - 2024 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
+ * (C) 2016 - 2026 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
  * @file IObject.h
  *
@@ -42,7 +42,7 @@ namespace sdbus {
     class Signal;
     class IConnection;
     class ObjectPath;
-}
+} // namespace sdbus
 
 namespace sdbus {
 
@@ -129,7 +129,7 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         template < typename... VTableItems
-                 , typename = std::enable_if_t<(is_one_of_variants_types<VTableItem, std::decay_t<VTableItems>> && ...)> >
+                 , typename = std::enable_if_t<(is_one_of_variants_types<VTableItem, std::decay_t<VTableItems>> && ...)> > // NOLINT(modernize-use-constraints): We are C++17 compatible at the moment
         [[nodiscard]] VTableAdder addVTable(VTableItems&&... items);
 
         /*!
@@ -309,7 +309,7 @@ namespace sdbus {
          */
         virtual void unregister() = 0;
 
-    public: // Lower-level, message-based API
+    // Lower-level, message-based API
         /*!
          * @brief Adds a declaration of methods, properties and signals of the object at a given interface
          *
@@ -414,7 +414,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void emitSignal(const sdbus::Signal& message) = 0;
+        virtual void emitSignal(const Signal& message) = 0;
 
     protected: // Internal API for efficiency reasons used by high-level API helper classes
         friend SignalEmitter;
@@ -426,17 +426,17 @@ namespace sdbus {
 
     inline SignalEmitter IObject::emitSignal(const SignalName& signalName)
     {
-        return SignalEmitter(*this, signalName);
+        return {*this, signalName};
     }
 
     inline SignalEmitter IObject::emitSignal(const std::string& signalName)
     {
-        return SignalEmitter(*this, signalName.c_str());
+        return {*this, signalName.c_str()};
     }
 
     inline SignalEmitter IObject::emitSignal(const char* signalName)
     {
-        return SignalEmitter(*this, signalName);
+        return {*this, signalName};
     }
 
     template <typename... VTableItems, typename>
@@ -453,7 +453,7 @@ namespace sdbus {
 
     inline VTableAdder IObject::addVTable(std::vector<VTableItem> vtable)
     {
-        return VTableAdder(*this, std::move(vtable));
+        return {*this, std::move(vtable)};
     }
 
     /*!
@@ -474,11 +474,11 @@ namespace sdbus {
      * auto proxy = sdbus::createObject(connection, "/com/kistler/foo");
      * @endcode
      */
-    [[nodiscard]] std::unique_ptr<sdbus::IObject> createObject(sdbus::IConnection& connection, ObjectPath objectPath);
+    [[nodiscard]] std::unique_ptr<IObject> createObject(IConnection& connection, ObjectPath objectPath);
 
-}
+} // namespace sdbus
 
-#include <sdbus-c++/ConvenienceApiClasses.inl>
+#include <sdbus-c++/ConvenienceApiClasses.inl> // NOLINT(misc-header-include-cycle)
 #include <sdbus-c++/VTableItems.inl>
 
 #endif /* SDBUS_CXX_IOBJECT_H_ */

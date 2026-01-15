@@ -1,6 +1,6 @@
 /**
  * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
- * (C) 2016 - 2024 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
+ * (C) 2016 - 2026 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
  * @file Types.h
  *
@@ -36,7 +36,6 @@
 #include <string>
 #include <tuple>
 #include <type_traits>
-#include <typeinfo>
 #include <utility>
 
 namespace sdbus {
@@ -50,7 +49,7 @@ namespace sdbus {
      * Some const methods are conceptually const, but not physically const,
      * thus are not thread-safe. This is by design: normally, clients
      * should process a single Variant object in a single thread at a time.
-     * Otherwise they need to take care of synchronization by themselves.
+     * Otherwise, they need to take care of synchronization by themselves.
      *
      ***********************************************/
     class Variant
@@ -58,10 +57,10 @@ namespace sdbus {
     public:
         Variant();
 
-        template <typename _ValueType>
-        explicit Variant(const _ValueType& value) : Variant()
+        template <typename ValueType>
+        explicit Variant(const ValueType& value) : Variant()
         {
-            msg_.openVariant<_ValueType>();
+            msg_.openVariant<ValueType>();
             msg_ << value;
             msg_.closeVariant();
             msg_.seal();
@@ -75,8 +74,8 @@ namespace sdbus {
             msg_.seal();
         }
 
-        template <typename _Struct>
-        explicit Variant(const as_dictionary<_Struct>& value) : Variant()
+        template <typename Struct>
+        explicit Variant(const as_dictionary<Struct>& value) : Variant()
         {
             msg_.openVariant<std::map<std::string, Variant>>();
             msg_ << as_dictionary(value.m_struct);
@@ -84,46 +83,47 @@ namespace sdbus {
             msg_.seal();
         }
 
-        template <typename... _Elements>
-        Variant(const std::variant<_Elements...>& value)
+        template <typename... Elements>
+        Variant(const std::variant<Elements...>& value) // NOLINT(google-explicit-constructor,hicpp-explicit-conversions): implicit conversion intentional
             : Variant()
         {
             msg_ << value;
             msg_.seal();
         }
 
-        template <typename _ValueType>
-        _ValueType get() const
+        template <typename ValueType>
+        ValueType get() const
         {
             msg_.rewind(false);
 
-            msg_.enterVariant<_ValueType>();
-            _ValueType val;
+            msg_.enterVariant<ValueType>();
+            ValueType val;
             msg_ >> val;
             msg_.exitVariant();
             return val;
         }
 
         // Only allow conversion operator for true D-Bus type representations in C++
-        template <typename _ValueType, typename = std::enable_if_t<signature_of<_ValueType>::is_valid>>
-        explicit operator _ValueType() const
+        // NOLINTNEXTLINE(modernize-use-constraints): TODO for future: Use `requires signature_of<_ValueType>::is_valid` (when we stop supporting C++17 in public API)
+        template <typename ValueType, typename = std::enable_if_t<signature_of<ValueType>::is_valid>>
+        explicit operator ValueType() const
         {
-            return get<_ValueType>();
+            return get<ValueType>();
         }
 
-        template <typename... _Elements>
-        operator std::variant<_Elements...>() const
+        template <typename... Elements>
+        operator std::variant<Elements...>() const // NOLINT(google-explicit-constructor,hicpp-explicit-conversions): implicit conversion intentional
         {
-            std::variant<_Elements...> result;
+            std::variant<Elements...> result;
             msg_.rewind(false);
             msg_ >> result;
             return result;
         }
 
-        template <typename _Type>
+        template <typename Type>
         bool containsValueOfType() const
         {
-            constexpr auto signature = as_null_terminated(signature_of_v<_Type>);
+            constexpr auto signature = as_null_terminated(signature_of_v<Type>);
             return std::strcmp(signature.data(), peekValueType()) == 0;
         }
 
@@ -134,7 +134,7 @@ namespace sdbus {
         const char* peekValueType() const;
 
     private:
-        mutable PlainMessage msg_{};
+        mutable PlainMessage msg_;
     };
 
     /********************************************//**
@@ -147,48 +147,48 @@ namespace sdbus {
      * std::tuple_size and in structured bindings.
      *
      ***********************************************/
-    template <typename... _ValueTypes>
+    template <typename... ValueTypes>
     class Struct
-        : public std::tuple<_ValueTypes...>
+        : public std::tuple<ValueTypes...>
     {
     public:
-        using std::tuple<_ValueTypes...>::tuple;
+        using std::tuple<ValueTypes...>::tuple;
 
         Struct() = default;
 
-        explicit Struct(const std::tuple<_ValueTypes...>& t)
-            : std::tuple<_ValueTypes...>(t)
+        explicit Struct(const std::tuple<ValueTypes...>& tuple)
+            : std::tuple<ValueTypes...>(tuple)
         {
         }
 
-        template <std::size_t _I>
-        auto& get()
+        template <std::size_t I>
+        [[nodiscard]] auto& get()
         {
-            return std::get<_I>(*this);
+            return std::get<I>(*this);
         }
 
-        template <std::size_t _I>
-        const auto& get() const
+        template <std::size_t I>
+        [[nodiscard]] const auto& get() const
         {
-            return std::get<_I>(*this);
+            return std::get<I>(*this);
         }
     };
 
-    template <typename... _Elements>
-    Struct(_Elements...) -> Struct<_Elements...>;
+    template <typename... Elements>
+    Struct(Elements...) -> Struct<Elements...>;
 
-    template <typename... _Elements>
-    Struct(const std::tuple<_Elements...>&) -> Struct<_Elements...>;
+    template <typename... Elements>
+    Struct(const std::tuple<Elements...>&) -> Struct<Elements...>;
 
-    template <typename... _Elements>
-    Struct(std::tuple<_Elements...>&&) -> Struct<_Elements...>;
+    template <typename... Elements>
+    Struct(std::tuple<Elements...>&&) -> Struct<Elements...>;
 
-    template<typename... _Elements>
-    constexpr Struct<std::decay_t<_Elements>...>
-    make_struct(_Elements&&... args)
+    template<typename... Elements>
+    constexpr Struct<std::decay_t<Elements>...>
+    make_struct(Elements&&... args)
     {
-        typedef Struct<std::decay_t<_Elements>...> result_type;
-        return result_type(std::forward<_Elements>(args)...);
+        using result_type = Struct<std::decay_t<Elements>...>;
+        return result_type(std::forward<Elements>(args)...);
     }
 
     /********************************************//**
@@ -340,12 +340,12 @@ namespace sdbus {
             return *this;
         }
 
-        UnixFd(UnixFd&& other)
+        UnixFd(UnixFd&& other) noexcept
         {
             *this = std::move(other);
         }
 
-        UnixFd& operator=(UnixFd&& other)
+        UnixFd& operator=(UnixFd&& other) noexcept
         {
             if (this == &other)
             {
@@ -404,20 +404,22 @@ namespace sdbus {
      * value_type in STL(-like) associative containers.
      *
      ***********************************************/
-    template<typename _T1, typename _T2>
-    using DictEntry = std::pair<_T1, _T2>;
+    template<typename T1, typename T2>
+    using DictEntry = std::pair<T1, T2>;
 
-}
+} // namespace sdbus
 
 // Making sdbus::Struct implement the tuple-protocol, i.e. be a tuple-like type
-template <size_t _I, typename... _ValueTypes>
-struct std::tuple_element<_I, sdbus::Struct<_ValueTypes...>>
-    : std::tuple_element<_I, std::tuple<_ValueTypes...>>
+template <size_t I, typename... ValueTypes>
+struct std::tuple_element<I, sdbus::Struct<ValueTypes...>> // NOLINT(cert-dcl58-cpp): specialization in std namespace allowed in this case
+    : std::tuple_element<I, std::tuple<ValueTypes...>>
 {};
-template <typename... _ValueTypes>
-struct std::tuple_size<sdbus::Struct<_ValueTypes...>>
-    : std::tuple_size<std::tuple<_ValueTypes...>>
+template <typename... ValueTypes>
+struct std::tuple_size<sdbus::Struct<ValueTypes...>> // NOLINT(cert-dcl58-cpp): specialization in std namespace allowed in this case
+    : std::tuple_size<std::tuple<ValueTypes...>>
 {};
+
+// NOLINTBEGIN(cppcoreguidelines-macro-usage)
 
 /********************************************//**
  * @name SDBUSCPP_REGISTER_STRUCT
@@ -463,7 +465,7 @@ struct std::tuple_size<sdbus::Struct<_ValueTypes...>>
                                                                                                                                                         \
         template <>                                                                                                                                     \
         struct signature_of<STRUCT>                                                                                                                     \
-            : signature_of<sdbus::Struct<SDBUSCPP_STRUCT_MEMBER_TYPES(STRUCT, __VA_ARGS__)>>                                                            \
+            : signature_of<Struct<SDBUSCPP_STRUCT_MEMBER_TYPES(STRUCT, __VA_ARGS__)>>                                                                   \
         {};                                                                                                                                             \
                                                                                                                                                         \
         inline auto as_dictionary_if_struct(const STRUCT& object)                                                                                       \
@@ -471,9 +473,9 @@ struct std::tuple_size<sdbus::Struct<_ValueTypes...>>
             return as_dictionary<STRUCT>(object);                                                                                                       \
         }                                                                                                                                               \
                                                                                                                                                         \
-        inline sdbus::Message& operator<<(sdbus::Message& msg, const STRUCT& items)                                                                     \
+        inline Message& operator<<(Message& msg, const STRUCT& items)                                                                                   \
         {                                                                                                                                               \
-            return msg << sdbus::Struct{std::forward_as_tuple(SDBUSCPP_STRUCT_MEMBERS(items, __VA_ARGS__))};                                            \
+            return msg << Struct{std::forward_as_tuple(SDBUSCPP_STRUCT_MEMBERS(items, __VA_ARGS__))};                                                   \
         }                                                                                                                                               \
                                                                                                                                                         \
         inline Message& operator<<(Message& msg, const as_dictionary<STRUCT>& s)                                                                        \
@@ -599,5 +601,7 @@ struct std::tuple_size<sdbus::Struct<_ValueTypes...>>
 
 #define SDBUSCPP_PP_COMMA ,
 #define SDBUSCPP_PP_SPACE
+
+// NOLINTEND(cppcoreguidelines-macro-usage)
 
 #endif /* SDBUS_CXX_TYPES_H_ */

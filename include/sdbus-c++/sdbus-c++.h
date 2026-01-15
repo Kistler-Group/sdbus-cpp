@@ -1,6 +1,6 @@
 /**
  * (C) 2016 - 2021 KISTLER INSTRUMENTE AG, Winterthur, Switzerland
- * (C) 2016 - 2024 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
+ * (C) 2016 - 2026 Stanislav Angelovic <stanislav.angelovic@protonmail.com>
  *
  * @file sdbus-c++.h
  *
@@ -24,6 +24,7 @@
  * along with sdbus-c++. If not, see <http://www.gnu.org/licenses/>.
  */
 
+// IWYU pragma: begin_exports
 #include <sdbus-c++/IConnection.h>
 #include <sdbus-c++/IObject.h>
 #include <sdbus-c++/IProxy.h>
@@ -36,3 +37,4 @@
 #include <sdbus-c++/TypeTraits.h>
 #include <sdbus-c++/Error.h>
 #include <sdbus-c++/Flags.h>
+// IWYU pragma: end_exports
