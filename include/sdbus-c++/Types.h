@@ -178,10 +178,10 @@ namespace sdbus {
     Struct(_Elements...) -> Struct<_Elements...>;
 
     template <typename... _Elements>
-    Struct(const std::tuple<_Elements...>&) -> Struct<std::decay_t<_Elements>...>;
+    Struct(const std::tuple<_Elements...>&) -> Struct<_Elements...>;
 
     template <typename... _Elements>
-    Struct(std::tuple<_Elements...>&&) -> Struct<std::decay_t<_Elements>...>;
+    Struct(std::tuple<_Elements...>&&) -> Struct<_Elements...>;
 
     template<typename... _Elements>
     constexpr Struct<std::decay_t<_Elements>...>
