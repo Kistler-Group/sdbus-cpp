@@ -173,6 +173,11 @@ namespace sdbus {
             return m_proxy.getPropertyAsync(propertyName).onInterface(interfaceName).getResultAsFuture();
         }
 
+        Awaitable<Variant> GetAsync(const InterfaceName& interfaceName, const PropertyName& propertyName, with_awaitable_t)
+        {
+            return m_proxy.getPropertyAsync(propertyName).onInterface(interfaceName).getResultAsAwaitable();
+        }
+
         template <typename Function>
         PendingAsyncCall GetAsync(std::string_view interfaceName, std::string_view propertyName, Function&& callback)
         {
@@ -188,6 +193,11 @@ namespace sdbus {
         std::future<Variant> GetAsync(std::string_view interfaceName, std::string_view propertyName, with_future_t)
         {
             return m_proxy.getPropertyAsync(propertyName).onInterface(interfaceName).getResultAsFuture();
+        }
+
+        Awaitable<Variant> GetAsync(std::string_view interfaceName, std::string_view propertyName, with_awaitable_t)
+        {
+            return m_proxy.getPropertyAsync(propertyName).onInterface(interfaceName).getResultAsAwaitable();
         }
 
         void Set(const InterfaceName& interfaceName, const PropertyName& propertyName, const Variant& value)
@@ -227,6 +237,11 @@ namespace sdbus {
             return m_proxy.setPropertyAsync(propertyName).onInterface(interfaceName).toValue(value).getResultAsFuture();
         }
 
+        Awaitable<void> SetAsync(const InterfaceName& interfaceName, const PropertyName& propertyName, const Variant& value, with_awaitable_t)
+        {
+            return m_proxy.setPropertyAsync(propertyName).onInterface(interfaceName).toValue(value).getResultAsAwaitable();
+        }
+
         template <typename Function>
         PendingAsyncCall SetAsync(std::string_view interfaceName, std::string_view propertyName, const Variant& value, Function&& callback)
         {
@@ -242,6 +257,11 @@ namespace sdbus {
         std::future<void> SetAsync(std::string_view interfaceName, std::string_view propertyName, const Variant& value, with_future_t)
         {
             return m_proxy.setPropertyAsync(propertyName).onInterface(interfaceName).toValue(value).getResultAsFuture();
+        }
+
+        Awaitable<void> SetAsync(std::string_view interfaceName, std::string_view propertyName, const Variant& value, with_awaitable_t)
+        {
+            return m_proxy.setPropertyAsync(propertyName).onInterface(interfaceName).toValue(value).getResultAsAwaitable();
         }
 
         std::map<PropertyName, Variant> GetAll(const InterfaceName& interfaceName)
@@ -271,6 +291,11 @@ namespace sdbus {
             return m_proxy.getAllPropertiesAsync().onInterface(interfaceName).getResultAsFuture();
         }
 
+        Awaitable<std::map<PropertyName, Variant>> GetAllAsync(const InterfaceName& interfaceName, with_awaitable_t)
+        {
+            return m_proxy.getAllPropertiesAsync().onInterface(interfaceName).getResultAsAwaitable();
+        }
+
         template <typename Function>
         PendingAsyncCall GetAllAsync(std::string_view interfaceName, Function&& callback)
         {
@@ -286,6 +311,11 @@ namespace sdbus {
         std::future<std::map<PropertyName, Variant>> GetAllAsync(std::string_view interfaceName, with_future_t)
         {
             return m_proxy.getAllPropertiesAsync().onInterface(interfaceName).getResultAsFuture();
+        }
+
+        Awaitable<std::map<PropertyName, Variant>> GetAllAsync(std::string_view interfaceName, with_awaitable_t)
+        {
+            return m_proxy.getAllPropertiesAsync().onInterface(interfaceName).getResultAsAwaitable();
         }
 
     private:
@@ -359,6 +389,11 @@ namespace sdbus {
         std::future<std::map<ObjectPath, std::map<InterfaceName, std::map<PropertyName, Variant>>>> GetManagedObjectsAsync(with_future_t)
         {
             return m_proxy.callMethodAsync("GetManagedObjects").onInterface(INTERFACE_NAME).getResultAsFuture<std::map<ObjectPath, std::map<InterfaceName, std::map<PropertyName, Variant>>>>();
+        }
+
+        Awaitable<std::map<ObjectPath, std::map<InterfaceName, std::map<PropertyName, Variant>>>> GetManagedObjectsAsync(with_awaitable_t)
+        {
+            return m_proxy.callMethodAsync("GetManagedObjects").onInterface(INTERFACE_NAME).getResultAsAwaitable<std::map<ObjectPath, std::map<InterfaceName, std::map<PropertyName, Variant>>>>();
         }
 
     private:
