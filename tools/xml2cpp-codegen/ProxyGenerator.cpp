@@ -43,7 +43,7 @@ using sdbuscpp::xml::Node;
 using sdbuscpp::xml::Nodes;
 
 // Possible implementation backends of async methods
-enum class AsyncImpl { Callback, Future };
+enum class AsyncImpl { Callback, Future, Awaitable };
 
 /**
  * Generate proxy code - client glue
@@ -183,6 +183,8 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes&
                     asyncImpl = AsyncImpl::Callback;
                 else if (annotationName == "org.freedesktop.DBus.Method.Async.ClientImpl" && (annotationValue == "future" || annotationValue == "std::future"))
                     asyncImpl = AsyncImpl::Future;
+                else if (annotationName == "org.freedesktop.DBus.Method.Async.ClientImpl" && (annotationValue == "awaitable" || annotationValue == "coroutine"))
+                    asyncImpl = AsyncImpl::Awaitable;
             }
             if (annotationName == "org.freedesktop.DBus.Method.Timeout")
                 timeoutValue = annotationValue;
@@ -214,9 +216,26 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes&
         std::string outArgStr, outArgTypeStr;
         std::tie(outArgStr, outArgTypeStr, std::ignore, std::ignore) = argsToNamesAndTypes(outArgs);
 
-        const std::string realRetType = (asyncImpl.has_value() && !dontExpectReply
-            ? (*asyncImpl == AsyncImpl::Future ? "std::future<" + retType + ">" : "sdbus::PendingAsyncCall")
-            : asyncImpl.has_value() ? "void" : retType);
+        // Determine return type based on async implementation
+        std::string realRetType;
+        if (asyncImpl.has_value() && !dontExpectReply)
+        {
+            if (*asyncImpl == AsyncImpl::Future)
+                realRetType = "std::future<" + retType + ">";
+            else if (*asyncImpl == AsyncImpl::Awaitable)
+                realRetType = "sdbus::Awaitable<" + retType + ">";
+            else // Callback
+                realRetType = "sdbus::PendingAsyncCall";
+        }
+        else if (asyncImpl.has_value())
+        {
+            realRetType = "void";
+        }
+        else
+        {
+            realRetType = retType;
+        }
+
         definitionSS << tab << realRetType << " " << nameSafe << "(" << inArgTypeStr << ")" << endl
                 << tab << "{" << endl;
 
@@ -250,11 +269,15 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes&
             auto nameBigFirst = name;
             nameBigFirst[0] = islower(nameBigFirst[0]) ? nameBigFirst[0] + 'A' - 'a' : nameBigFirst[0];
 
-            if (*asyncImpl == AsyncImpl::Future) // Async methods implemented through future
+            if (*asyncImpl == AsyncImpl::Future)
             {
                 definitionSS << ".getResultAsFuture<" << retTypeBare << ">()";
             }
-            else // Async methods implemented through callbacks
+            else if (*asyncImpl == AsyncImpl::Awaitable)
+            {
+                definitionSS << ".getResultAsAwaitable<" << retTypeBare << ">()";
+            }
+            else // Callback
             {
                 definitionSS << ".uponReplyInvoke([this](std::optional<sdbus::Error> error" << (outArgTypeStr.empty() ? "" : ", ") << outArgTypeStr << ")"
                                                  "{ this->on" << nameBigFirst << "Reply(" << outArgStr << (outArgStr.empty() ? "" : ", ") << "std::move(error)); })";
@@ -335,17 +358,35 @@ std::tuple<std::string, std::string> ProxyGenerator::processProperties(const Nod
                 asyncImplGet = AsyncImpl::Callback;
             else if (annotationName == "org.freedesktop.DBus.Property.Get.Async.ClientImpl" && (annotationValue == "future" || annotationValue == "std::future"))
                 asyncImplGet = AsyncImpl::Future;
+            else if (annotationName == "org.freedesktop.DBus.Property.Get.Async.ClientImpl" && (annotationValue == "awaitable" || annotationValue == "coroutine"))
+                asyncImplGet = AsyncImpl::Awaitable;
             else if (annotationName == "org.freedesktop.DBus.Property.Set.Async" && annotationValue == "client") // Server-side not supported (may be in the future)
                 asyncImplSet = AsyncImpl::Callback; // Default to callback
             else if (annotationName == "org.freedesktop.DBus.Property.Set.Async.ClientImpl" && annotationValue == "callback")
                 asyncImplSet = AsyncImpl::Callback;
             else if (annotationName == "org.freedesktop.DBus.Property.Set.Async.ClientImpl" && (annotationValue == "future" || annotationValue == "std::future"))
                 asyncImplSet = AsyncImpl::Future;
+            else if (annotationName == "org.freedesktop.DBus.Property.Set.Async.ClientImpl" && (annotationValue == "awaitable" || annotationValue == "coroutine"))
+                asyncImplSet = AsyncImpl::Awaitable;
         }
 
         if (propertyAccess == "read" || propertyAccess == "readwrite")
         {
-            const std::string realRetType = (asyncImplGet.has_value() ? (*asyncImplGet == AsyncImpl::Future ? "std::future<sdbus::Variant>" : "sdbus::PendingAsyncCall") : propertyType);
+            // Determine return type based on async implementation
+            std::string realRetType;
+            if (asyncImplGet.has_value())
+            {
+                if (*asyncImplGet == AsyncImpl::Future)
+                    realRetType = "std::future<sdbus::Variant>";
+                else if (*asyncImplGet == AsyncImpl::Awaitable)
+                    realRetType = "sdbus::Awaitable<sdbus::Variant>";
+                else // Callback
+                    realRetType = "sdbus::PendingAsyncCall";
+            }
+            else
+            {
+                realRetType = propertyType;
+            }
 
             propertySS << tab << realRetType << " " << propertyNameSafe << "()" << endl
                     << tab << "{" << endl;
@@ -360,11 +401,15 @@ std::tuple<std::string, std::string> ProxyGenerator::processProperties(const Nod
                 auto nameBigFirst = propertyName;
                 nameBigFirst[0] = islower(nameBigFirst[0]) ? nameBigFirst[0] + 'A' - 'a' : nameBigFirst[0];
 
-                if (*asyncImplGet == AsyncImpl::Future) // Async methods implemented through future
+                if (*asyncImplGet == AsyncImpl::Future)
                 {
                     propertySS << ".getResultAsFuture()";
                 }
-                else // Async methods implemented through callbacks
+                else if (*asyncImplGet == AsyncImpl::Awaitable)
+                {
+                    propertySS << ".getResultAsAwaitable()";
+                }
+                else // Callback
                 {
                     propertySS << ".uponReplyInvoke([this](std::optional<sdbus::Error> error, const sdbus::Variant& value)"
                                                    "{ this->on" << nameBigFirst << "PropertyGetReply(value.get<" << propertyType << ">(), std::move(error)); })";
@@ -381,7 +426,21 @@ std::tuple<std::string, std::string> ProxyGenerator::processProperties(const Nod
             if (propertySignature == "v")
                 propertyArg = "{" + propertyArg + ", sdbus::embed_variant}";
 
-            const std::string realRetType = (asyncImplSet.has_value() ? (*asyncImplSet == AsyncImpl::Future ? "std::future<void>" : "sdbus::PendingAsyncCall") : "void");
+            // Determine return type based on async implementation
+            std::string realRetType;
+            if (asyncImplSet.has_value())
+            {
+                if (*asyncImplSet == AsyncImpl::Future)
+                    realRetType = "std::future<void>";
+                else if (*asyncImplSet == AsyncImpl::Awaitable)
+                    realRetType = "sdbus::Awaitable<void>";
+                else // Callback
+                    realRetType = "sdbus::PendingAsyncCall";
+            }
+            else
+            {
+                realRetType = "void";
+            }
 
             propertySS << tab << realRetType << " " << propertyNameSafe << "(" << propertyTypeArg << ")" << endl
                        << tab << "{" << endl;
@@ -395,11 +454,15 @@ std::tuple<std::string, std::string> ProxyGenerator::processProperties(const Nod
                 auto nameBigFirst = propertyName;
                 nameBigFirst[0] = islower(nameBigFirst[0]) ? nameBigFirst[0] + 'A' - 'a' : nameBigFirst[0];
 
-                if (*asyncImplSet == AsyncImpl::Future) // Async methods implemented through future
+                if (*asyncImplSet == AsyncImpl::Future)
                 {
                     propertySS << ".getResultAsFuture()";
                 }
-                else // Async methods implemented through callbacks
+                else if (*asyncImplSet == AsyncImpl::Awaitable)
+                {
+                    propertySS << ".getResultAsAwaitable()";
+                }
+                else // Callback
                 {
                     propertySS << ".uponReplyInvoke([this](std::optional<sdbus::Error> error)"
                                   "{ this->on" << nameBigFirst << "PropertySetReply(std::move(error)); })";
