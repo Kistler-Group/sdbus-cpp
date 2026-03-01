@@ -60,6 +60,7 @@ set(INTEGRATIONTESTS_SRCS
     ${INTEGRATIONTESTS_SOURCE_DIR}/DBusGeneralTests.cpp
     ${INTEGRATIONTESTS_SOURCE_DIR}/DBusMethodsTests.cpp
     ${INTEGRATIONTESTS_SOURCE_DIR}/DBusAsyncMethodsTests.cpp
+    ${INTEGRATIONTESTS_SOURCE_DIR}/DBusAwaitableMethodsTests.cpp
     ${INTEGRATIONTESTS_SOURCE_DIR}/DBusSignalsTests.cpp
     ${INTEGRATIONTESTS_SOURCE_DIR}/DBusPropertiesTests.cpp
     ${INTEGRATIONTESTS_SOURCE_DIR}/DBusStandardInterfacesTests.cpp
