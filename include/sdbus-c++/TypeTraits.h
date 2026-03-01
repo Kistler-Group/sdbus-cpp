@@ -589,6 +589,11 @@ namespace sdbus {
     template <typename... Args>
     using future_return_t = typename future_return<Args...>::type;
 
+    // For awaitable return types, the same scheme from futures can be reused
+    // so just provide an alias for visual distinction between the two
+    template <typename... Args>
+    using awaitable_return_t = typename future_return<Args...>::type;
+
     // Credit: Piotr Skotnicki (https://stackoverflow.com/a/57639506)
     template <typename, typename>
     constexpr bool is_one_of_variants_types = false;

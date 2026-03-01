@@ -354,6 +354,39 @@ namespace sdbus {
         return future;
     }
 
+    template <typename... Args>
+    Awaitable<awaitable_return_t<Args...>> AsyncMethodInvoker::getResultAsAwaitable()
+    {
+        auto data = std::make_shared<AwaitableData<awaitable_return_t<Args...>>>();
+        uponReplyInvoke(
+            [data](std::optional<Error> error, Args... args)
+            {
+                if (error)
+                {
+                    data->exception = std::make_exception_ptr(*std::move(error));
+                }
+                else
+                {
+                    if constexpr (!std::is_void_v<awaitable_return_t<Args...>>)
+                    {
+                        data->result.emplace(std::move(args)...);
+                    }
+                    else
+                    {
+                        data->result = std::monostate{};
+                    }
+                }
+
+                auto previous = data->status.exchange(AwaitableState::Completed, std::memory_order_acq_rel);
+                if (previous == AwaitableState::Waiting)
+                {
+                    data->handle.resume();
+                }
+            });
+
+        return Awaitable<awaitable_return_t<Args...>>(data);
+    }
+
     /*** ---------------- ***/
     /*** SignalSubscriber ***/
     /*** ---------------- ***/
@@ -524,6 +557,16 @@ namespace sdbus {
                      .getResultAsFuture<Variant>();
     }
 
+    inline Awaitable<Variant> AsyncPropertyGetter::getResultAsAwaitable()
+    {
+        assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
+
+        return proxy_.callMethodAsync("Get")
+                     .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
+                     .withArguments(interfaceName_, propertyName_)
+                     .getResultAsAwaitable<Variant>();
+    }
+
     /*** -------------- ***/
     /*** PropertySetter ***/
     /*** -------------- ***/
@@ -640,6 +683,16 @@ namespace sdbus {
                      .getResultAsFuture<>();
     }
 
+    inline Awaitable<void> AsyncPropertySetter::getResultAsAwaitable()
+    {
+        assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
+
+        return proxy_.callMethodAsync("Set")
+                     .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
+                     .withArguments(interfaceName_, propertyName_, std::move(value_))
+                     .getResultAsAwaitable<>();
+    }
+
     /*** ------------------- ***/
     /*** AllPropertiesGetter ***/
     /*** ------------------- ***/
@@ -711,6 +764,16 @@ namespace sdbus {
                      .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
                      .withArguments(interfaceName_)
                      .getResultAsFuture<std::map<PropertyName, Variant>>();
+    }
+
+    inline Awaitable<std::map<PropertyName, Variant>> AsyncAllPropertiesGetter::getResultAsAwaitable()
+    {
+        assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
+
+        return proxy_.callMethodAsync("GetAll")
+                     .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
+                     .withArguments(interfaceName_)
+                     .getResultAsAwaitable<std::map<PropertyName, Variant>>();
     }
 
 } // namespace sdbus

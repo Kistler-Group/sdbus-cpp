@@ -27,6 +27,7 @@
 #ifndef SDBUS_CXX_CONVENIENCEAPICLASSES_H_
 #define SDBUS_CXX_CONVENIENCEAPICLASSES_H_
 
+#include <sdbus-c++/Awaitable.h>
 #include <sdbus-c++/Message.h>
 #include <sdbus-c++/TypeTraits.h>
 #include <sdbus-c++/Types.h>
@@ -139,6 +140,7 @@ namespace sdbus {
         //                      or std::future<T> for single D-Bus method return value
         //                      or std::future<std::tuple<...>> for multiple method return values
         template <typename... Args> std::future<future_return_t<Args...>> getResultAsFuture();
+        template <typename... Args> Awaitable<awaitable_return_t<Args...>> getResultAsAwaitable();
 
     private:
         friend IProxy;
@@ -194,6 +196,7 @@ namespace sdbus {
         template <typename Function> PendingAsyncCall uponReplyInvoke(Function&& callback);
         template <typename Function> [[nodiscard]] Slot uponReplyInvoke(Function&& callback, return_slot_t);
         std::future<Variant> getResultAsFuture();
+        Awaitable<Variant> getResultAsAwaitable();
 
     private:
         friend IProxy;
@@ -235,6 +238,7 @@ namespace sdbus {
         template <typename Function> PendingAsyncCall uponReplyInvoke(Function&& callback);
         template <typename Function> [[nodiscard]] Slot uponReplyInvoke(Function&& callback, return_slot_t);
         std::future<void> getResultAsFuture();
+        Awaitable<void> getResultAsAwaitable();
 
     private:
         friend IProxy;
@@ -269,6 +273,7 @@ namespace sdbus {
         template <typename Function> PendingAsyncCall uponReplyInvoke(Function&& callback);
         template <typename Function> [[nodiscard]] Slot uponReplyInvoke(Function&& callback, return_slot_t);
         std::future<std::map<PropertyName, Variant>> getResultAsFuture();
+        Awaitable<std::map<PropertyName, Variant>> getResultAsAwaitable();
 
     private:
         friend IProxy;
