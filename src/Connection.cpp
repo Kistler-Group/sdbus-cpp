@@ -466,8 +466,8 @@ void Connection::deleteSdEventSource(sd_event_source *source)
 #if LIBSYSTEMD_VERSION>=243
     sd_event_source_disable_unref(source);
 #else
-    sd_event_source_set_enabled(s, SD_EVENT_OFF);
-    sd_event_source_unref(s);
+    sd_event_source_set_enabled(source, SD_EVENT_OFF);
+    sd_event_source_unref(source);
 #endif
 }
 
