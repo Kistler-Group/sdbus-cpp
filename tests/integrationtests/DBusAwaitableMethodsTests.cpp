@@ -31,7 +31,6 @@
 #include <future>
 #include <map>
 #include <string>
-#include <type_traits>
 #include <utility>
 
 #include <sdbus-c++/sdbus-c++.h>
@@ -40,7 +39,6 @@
 
 #include "TestFixture.h"
 #include "TestProxy.h"
-#include "Defs.h"
 
 using ::testing::Eq;
 using namespace std::chrono_literals;
@@ -82,14 +80,14 @@ struct Task {
             return {};
         }
 
-        void return_value(T v) { value = std::move(v); }
+        void return_value(T val) { value = std::move(val); }
         void unhandled_exception() { exception = std::current_exception(); }
     };
 
     std::coroutine_handle<promise_type> handle;
 
     // Ctor and rule of 5 for proper handle management
-    explicit Task(std::coroutine_handle<promise_type> h) : handle(h) {}
+    explicit Task(std::coroutine_handle<promise_type> hnd) : handle(hnd) {}
     Task(Task&& other) noexcept : handle(std::exchange(other.handle, {})) {}
     Task& operator=(Task&& other) noexcept {
         if (this != &other) {
@@ -121,7 +119,7 @@ struct Task<void> {
             return Task{std::coroutine_handle<promise_type>::from_promise(*this)};
         }
 
-        std::suspend_always initial_suspend() noexcept { return {}; }
+        std::suspend_always initial_suspend() noexcept { return {}; } // NOLINT(readability-convert-member-functions-to-static)
 
         std::suspend_always final_suspend() noexcept
         {
@@ -142,7 +140,7 @@ struct Task<void> {
 
     std::coroutine_handle<promise_type> handle;
 
-    explicit Task(std::coroutine_handle<promise_type> h) : handle(h) {}
+    explicit Task(std::coroutine_handle<promise_type> hnd) : handle(hnd) {}
     Task(Task&& other) noexcept : handle(std::exchange(other.handle, {})) {}
     Task& operator=(Task&& other) noexcept {
         if (this != &other) {
@@ -156,8 +154,8 @@ struct Task<void> {
 
     ~Task() { if (handle) handle.destroy(); }
 
-    void resume() { if (handle && !handle.done()) handle.resume(); }
-    void get() { handle.promise().future.get(); }
+    void resume() { if (handle && !handle.done()) handle.resume(); } // NOLINT(readability-make-member-function-const)
+    void get() { handle.promise().future.get(); } // NOLINT(readability-make-member-function-const)
 };
 
 /*-------------------------------------*/
@@ -195,9 +193,11 @@ TYPED_TEST(AsyncSdbusTestObject, InvokesMethodWithLargeDataAsynchronouslyOnClien
     for (int32_t i = 0; i < 40'000; ++i)
         largeMap.emplace(i, "This is string nr. " + std::to_string(i+1));
 
-    auto task = [&largeMap, this]() -> Task<std::map<int32_t, std::string>> {
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-capturing-lambda-coroutines) -- lambda closure has guaranteed lifetime
+    auto lambda = [&largeMap, this]() -> Task<std::map<int32_t, std::string>> {
         co_return co_await this->m_proxy->doOperationWithLargeDataClientSideAsync(largeMap, sdbus::with_awaitable);
-    }();
+    };
+    auto task = lambda();
 
     task.resume();
 

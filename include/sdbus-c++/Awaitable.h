@@ -126,7 +126,7 @@ namespace sdbus {
         }
 
         // Called when the coroutine is resumed. Returns the result or throws the exception.
-        T await_resume() const
+        [[nodiscard]] T await_resume() const
         {
             if (auto* exception = std::get_if<std::exception_ptr>(&data_->result); exception != nullptr)
                 std::rethrow_exception(*exception);
