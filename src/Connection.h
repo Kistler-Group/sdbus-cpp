@@ -182,7 +182,7 @@ namespace sdbus::internal {
 
     private:
         using BusFactory = std::move_only_function<int(sd_bus**)>;
-        using BusPtr = std::unique_ptr<sd_bus, std::function<sd_bus*(sd_bus*)>>;
+        using BusPtr = std::unique_ptr<sd_bus, std::move_only_function<sd_bus*(sd_bus*)>>;
         Connection(std::unique_ptr<ISdBus>&& interface, BusFactory&& busFactory);
 
         BusPtr openBus(std::move_only_function<int(sd_bus**)>&& busFactory);
