@@ -82,7 +82,7 @@ namespace sdbus {
     using property_get_callback = std::function<void(PropertyGetReply& reply)>;
 
     // Type-erased RAII-style handle to callbacks/subscriptions registered to sdbus-c++
-    using Slot = std::unique_ptr<void, std::function<void(void*)>>;
+    using Slot = std::unique_ptr<void, std::move_only_function<void(void*)>>;
 
     // Tag specifying that an owning handle (so-called slot) of the logical resource shall be provided to the client
     struct return_slot_t { explicit return_slot_t() = default; };
