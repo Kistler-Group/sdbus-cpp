@@ -75,7 +75,7 @@ namespace sdbus {
 
     // Callbacks from sdbus-c++
     using method_callback = std::function<void(MethodCall msg)>;
-    using async_reply_handler = std::function<void(MethodReply reply, std::optional<Error> error)>;
+    using async_reply_handler = std::move_only_function<void(MethodReply reply, std::optional<Error> error)>;
     using signal_handler = std::function<void(Signal signal)>;
     using message_handler = std::function<void(Message msg)>;
     using property_set_callback = std::function<void(PropertySetCall msg)>;
@@ -380,6 +380,9 @@ namespace sdbus {
         static constexpr bool is_trivial_dbus_type = false;
     };
 
+    template <typename... Types>
+    concept valid_signature = signature_of<Types...>::is_valid;
+
     // To simplify conversions of arrays to C strings
     template <typename T, std::size_t N>
     constexpr auto as_null_terminated(std::array<T, N> arr)
@@ -506,6 +509,10 @@ namespace sdbus {
 
     template <typename FunctionType>
     struct function_traits<std::function<FunctionType>> : function_traits<FunctionType>
+    {};
+
+    template <typename FunctionType>
+    struct function_traits<std::move_only_function<FunctionType>> : function_traits<FunctionType>
     {};
 
     template <class Function>

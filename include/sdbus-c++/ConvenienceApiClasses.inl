@@ -304,7 +304,7 @@ namespace sdbus {
     template <typename Function>
     inline async_reply_handler AsyncMethodInvoker::makeAsyncReplyHandler(Function&& callback)
     {
-        return [callback = std::forward<Function>(callback)](MethodReply reply, std::optional<Error> error)
+        return [callback = std::forward<Function>(callback)](MethodReply reply, std::optional<Error> error) mutable
         {
             // Create a tuple of callback input arguments' types, which will be used
             // as a storage for the argument values deserialized from the message.
