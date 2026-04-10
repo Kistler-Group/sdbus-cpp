@@ -58,9 +58,9 @@
 
 namespace sdbus::internal {
 
-Connection::Connection(std::unique_ptr<ISdBus>&& interface, const BusFactory& busFactory)
+Connection::Connection(std::unique_ptr<ISdBus>&& interface, BusFactory&& busFactory)
     : sdbus_(std::move(interface))
-    , bus_(openBus(busFactory))
+    , bus_(openBus(std::move(busFactory)))
 {
     assert(sdbus_ != nullptr);
 }
@@ -739,7 +739,7 @@ sd_bus_message* Connection::createErrorReplyMessage(sd_bus_message* sdbusMsg, co
     return sdbusErrorReply;
 }
 
-Connection::BusPtr Connection::openBus(const BusFactory& busFactory)
+Connection::BusPtr Connection::openBus(BusFactory&& busFactory)
 {
     sd_bus* bus{};
     const int r = busFactory(&bus);

@@ -181,11 +181,11 @@ namespace sdbus::internal {
         sd_bus_message* createErrorReplyMessage(sd_bus_message* sdbusMsg, const Error& error) override;
 
     private:
-        using BusFactory = std::function<int(sd_bus**)>;
+        using BusFactory = std::move_only_function<int(sd_bus**)>;
         using BusPtr = std::unique_ptr<sd_bus, std::function<sd_bus*(sd_bus*)>>;
-        Connection(std::unique_ptr<ISdBus>&& interface, const BusFactory& busFactory);
+        Connection(std::unique_ptr<ISdBus>&& interface, BusFactory&& busFactory);
 
-        BusPtr openBus(const std::function<int(sd_bus**)>& busFactory);
+        BusPtr openBus(std::move_only_function<int(sd_bus**)>&& busFactory);
         BusPtr openPseudoBus();
         void finishHandshake(sd_bus* bus);
         bool waitForNextEvent();
