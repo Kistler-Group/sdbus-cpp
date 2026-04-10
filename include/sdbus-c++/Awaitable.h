@@ -47,109 +47,109 @@ namespace sdbus {
         class Proxy;
     } // namespace internal
 
-/********************************************//**
- * @enum AwaitableState
- *
- * Represents the lifecycle state of an asynchronous
- * operation in the coroutine awaitable protocol.
- * Used for atomic coordination between the coroutine
- * and the D-Bus callback thread.
- *
- ***********************************************/
-enum class AwaitableState : uint8_t
-{
-    NotReady, // Initial state: callback hasn't fired yet
-    Waiting,  // Coroutine is suspended and waiting for callback
-    Completed // Callback completed, result is ready
-};
+    /********************************************//**
+     * @enum AwaitableState
+     *
+     * Represents the lifecycle state of an asynchronous
+     * operation in the coroutine awaitable protocol.
+     * Used for atomic coordination between the coroutine
+     * and the D-Bus callback thread.
+     *
+     ***********************************************/
+    enum class AwaitableState : uint8_t
+    {
+        NotReady, // Initial state: callback hasn't fired yet
+        Waiting,  // Coroutine is suspended and waiting for callback
+        Completed // Callback completed, result is ready
+    };
 
-// Shared data
-template <typename T>
-struct AwaitableData
-{
-    using result_type = std::conditional_t<std::is_void_v<T>, std::monostate, T>;
-    std::variant<result_type, std::exception_ptr> result;
+    // Shared data
+    template <typename T>
+    struct AwaitableData
+    {
+        using result_type = std::conditional_t<std::is_void_v<T>, std::monostate, T>;
+        std::variant<result_type, std::exception_ptr> result;
 #ifdef __cpp_lib_coroutine
-    std::coroutine_handle<> handle;
+        std::coroutine_handle<> handle;
 #endif // __cpp_lib_coroutine
-    std::atomic<AwaitableState> status{AwaitableState::NotReady};
+        std::atomic<AwaitableState> status{AwaitableState::NotReady};
 
-    void resumeCoroutine()
+        void resumeCoroutine()
+        {
+#ifdef __cpp_lib_coroutine
+            handle.resume();
+#endif // __cpp_lib_coroutine
+        }
+    };
+
+    /********************************************//**
+     * @class Awaitable
+     *
+     * A C++20 coroutine awaitable that represents an asynchronous
+     * operation. Allows suspending a coroutine until a D-Bus method
+     * call completes, then resuming with the result or exception.
+     *
+     * This is not a full-fledged coroutine type, but a simple awaitable
+     * that can be used with `co_await` to retrieve results of async D-Bus calls.
+     * This is independent of any specific coroutine framework or scheduler,
+     * as it relies on the D-Bus callback mechanism to resume the coroutine.
+     *
+     * You most likely don't need to use this class directly. Instead, use the
+     * respective low-level or high-level API functions that return an Awaitable
+     * instance, such as IProxy::callMethodAsync with with_awaitable_t tag,
+     * or the .getResultAsAwaitable() methods of the high-level API.
+     *
+     * The class represents nothing, i.e. is a simple placeholder class, if the API
+     * is used as C++17 or with a standard library not supporting coroutines.
+     *
+     ***********************************************/
+    template <typename T>
+    class Awaitable
     {
 #ifdef __cpp_lib_coroutine
-        handle.resume();
-#endif // __cpp_lib_coroutine
-    }
-};
+    public:
+        // Called when the coroutine is co_await'ed. Returns true if the coroutine should be suspended.
+        [[nodiscard]] bool await_ready() const noexcept
+        {
+            return data_->status.load(std::memory_order_acquire) == AwaitableState::Completed;
+        }
 
-/********************************************//**
- * @class Awaitable
- *
- * A C++20 coroutine awaitable that represents an asynchronous
- * operation. Allows suspending a coroutine until a D-Bus method
- * call completes, then resuming with the result or exception.
- *
- * This is not a full-fledged coroutine type, but a simple awaitable
- * that can be used with `co_await` to retrieve results of async D-Bus calls.
- * This is independent of any specific coroutine framework or scheduler,
- * as it relies on the D-Bus callback mechanism to resume the coroutine.
- *
- * You most likely don't need to use this class directly. Instead, use the
- * respective low-level or high-level API functions that return an Awaitable
- * instance, such as IProxy::callMethodAsync with with_awaitable_t tag,
- * or the .getResultAsAwaitable() methods of the high-level API.
- *
- * The class represents nothing, i.e. is a simple placeholder class, if the API
- * is used as C++17 or with a standard library not supporting coroutines.
- *
- ***********************************************/
-template <typename T>
-class Awaitable
-{
-#ifdef __cpp_lib_coroutine
-public:
-    // Called when the coroutine is co_await'ed. Returns true if the coroutine should be suspended.
-    [[nodiscard]] bool await_ready() const noexcept
-    {
-        return data_->status.load(std::memory_order_acquire) == AwaitableState::Completed;
-    }
+        // Called when the coroutine is suspended, returning false here will immediately
+        // resume the coroutine.
+        bool await_suspend(std::coroutine_handle<> handle) noexcept
+        {
+            data_->handle = handle;
 
-    // Called when the coroutine is suspended, returning false here will immediately
-    // resume the coroutine.
-    bool await_suspend(std::coroutine_handle<> handle) noexcept
-    {
-        data_->handle = handle;
+            // Attempt transition from NotReady to Waiting.
+            AwaitableState expected = AwaitableState::NotReady;
+            return data_->status.compare_exchange_strong(expected, AwaitableState::Waiting, std::memory_order_acq_rel);
+        }
 
-        // Attempt transition from NotReady to Waiting.
-        AwaitableState expected = AwaitableState::NotReady;
-        return data_->status.compare_exchange_strong(expected, AwaitableState::Waiting, std::memory_order_acq_rel);
-    }
+        // Called when the coroutine is resumed. Returns the result or throws the exception.
+        T await_resume() const
+        {
+            if (auto* exception = std::get_if<std::exception_ptr>(&data_->result); exception != nullptr)
+                std::rethrow_exception(*exception);
 
-    // Called when the coroutine is resumed. Returns the result or throws the exception.
-    T await_resume() const
-    {
-        if (auto* exception = std::get_if<std::exception_ptr>(&data_->result); exception != nullptr)
-            std::rethrow_exception(*exception);
-
-        if constexpr (std::is_void_v<T>)
-            return;
-        else
-            return std::get<T>(std::move(data_->result));
-    }
+            if constexpr (std::is_void_v<T>)
+                return;
+            else
+                return std::get<T>(std::move(data_->result));
+        }
 #endif // __cpp_lib_coroutine
 
-private:
-    friend internal::Proxy;
-    friend AsyncMethodInvoker;
+    private:
+        friend internal::Proxy;
+        friend AsyncMethodInvoker;
 
-    explicit Awaitable(std::shared_ptr<AwaitableData<T>> data)
-        : data_(std::move(data))
-    {
-        assert(data_ != nullptr);
-    }
+        explicit Awaitable(std::shared_ptr<AwaitableData<T>> data)
+            : data_(std::move(data))
+        {
+            assert(data_ != nullptr);
+        }
 
-    std::shared_ptr<AwaitableData<T>> data_;
-};
+        std::shared_ptr<AwaitableData<T>> data_;
+    };
 
 } // namespace sdbus
 
