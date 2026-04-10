@@ -29,7 +29,9 @@
 #define SDBUS_CXX_AWAITABLE_H_
 
 #include <atomic>
+#if __has_include(<coroutine>)
 #include <coroutine>
+#endif
 #include <cstdint>
 #include <exception>
 #include <memory>
@@ -61,8 +63,17 @@ struct AwaitableData
 {
     using result_type = std::conditional_t<std::is_void_v<T>, std::monostate, T>;
     std::variant<result_type, std::exception_ptr> result;
+#ifdef __cpp_lib_coroutine
     std::coroutine_handle<> handle;
+#endif // __cpp_lib_coroutine
     std::atomic<AwaitableState> status{AwaitableState::NotReady};
+
+    void resumeCoroutine()
+    {
+#ifdef __cpp_lib_coroutine
+        handle.resume();
+#endif // __cpp_lib_coroutine
+    }
 };
 
 /********************************************//**
@@ -82,6 +93,9 @@ struct AwaitableData
  * instance, such as IProxy::callMethodAsync with with_awaitable_t tag,
  * or the .getResultAsAwaitable() methods of the high-level API.
  *
+ * The class represents nothing, i.e. is a simple placeholder class, if the API
+ * is used as C++17 or with a standard library not supporting coroutines.
+ *
  ***********************************************/
 template <typename T>
 class Awaitable
@@ -91,6 +105,8 @@ public:
         : data_(std::move(data))
     {
     }
+
+#ifdef __cpp_lib_coroutine
 
     // Called when the coroutine is co_await'ed. Returns true if the coroutine should be suspended.
     [[nodiscard]] bool await_ready() const noexcept
@@ -120,6 +136,8 @@ public:
         else
             return std::get<T>(std::move(data_->result));
     }
+
+#endif // __cpp_lib_coroutine
 
 private:
     std::shared_ptr<AwaitableData<T>> data_;

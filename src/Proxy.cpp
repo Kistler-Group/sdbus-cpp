@@ -199,7 +199,7 @@ Awaitable<MethodReply> Proxy::callMethodAsync(const MethodCall& message, uint64_
 
         auto previous = data->status.exchange(AwaitableState::Completed, std::memory_order_acq_rel);
         if (previous == AwaitableState::Waiting)
-            data->handle.resume();
+            data->resumeCoroutine();
     };
 
     (void)Proxy::callMethodAsync(message, std::move(asyncReplyCallback), timeout);

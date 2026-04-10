@@ -374,7 +374,7 @@ namespace sdbus {
 
             auto previous = data->status.exchange(AwaitableState::Completed, std::memory_order_acq_rel);
             if (previous == AwaitableState::Waiting)
-                data->handle.resume();
+                data->resumeCoroutine();
         });
 
         return Awaitable(data);
