@@ -182,7 +182,8 @@ std::future<MethodReply> Proxy::callMethodAsync(const MethodCall& message, uint6
     return future;
 }
 
-Awaitable<MethodReply> Proxy::callMethodAsync(const MethodCall& message, with_awaitable_t) {
+Awaitable<MethodReply> Proxy::callMethodAsync(const MethodCall& message, with_awaitable_t)
+{
     return Proxy::callMethodAsync(message, /*timeout*/ 0, with_awaitable);
 }
 
@@ -192,24 +193,18 @@ Awaitable<MethodReply> Proxy::callMethodAsync(const MethodCall& message, uint64_
     async_reply_handler asyncReplyCallback = [data](MethodReply reply, std::optional<Error> error) noexcept
     {
         if (!error)
-        {
             data->result = std::move(reply);
-        }
         else
-        {
-            data->exception = std::make_exception_ptr(*std::move(error));
-        }
+            data->result = std::make_exception_ptr(*std::move(error));
 
         auto previous = data->status.exchange(AwaitableState::Completed, std::memory_order_acq_rel);
         if (previous == AwaitableState::Waiting)
-        {
             data->handle.resume();
-        }
     };
 
     (void)Proxy::callMethodAsync(message, std::move(asyncReplyCallback), timeout);
 
-    return Awaitable<MethodReply>{data};
+    return Awaitable{data};
 }
 
 void Proxy::registerSignalHandler( const InterfaceName& interfaceName

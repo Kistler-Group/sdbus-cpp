@@ -33,7 +33,6 @@
 #include <cstdint>
 #include <exception>
 #include <memory>
-#include <optional>
 #include <type_traits>
 #include <variant>
 
@@ -61,8 +60,7 @@ template <typename T>
 struct AwaitableData
 {
     using result_type = std::conditional_t<std::is_void_v<T>, std::monostate, T>;
-    std::optional<result_type> result;
-    std::optional<std::exception_ptr> exception;
+    std::variant<result_type, std::exception_ptr> result;
     std::coroutine_handle<> handle;
     std::atomic<AwaitableState> status{AwaitableState::NotReady};
 };
@@ -89,7 +87,10 @@ template <typename T>
 class Awaitable
 {
 public:
-    explicit Awaitable(std::shared_ptr<AwaitableData<T>> data) : data_(std::move(data)) {};
+    explicit Awaitable(std::shared_ptr<AwaitableData<T>> data)
+        : data_(std::move(data))
+    {
+    }
 
     // Called when the coroutine is co_await'ed. Returns true if the coroutine should be suspended.
     [[nodiscard]] bool await_ready() const noexcept
@@ -111,19 +112,13 @@ public:
     // Called when the coroutine is resumed. Returns the result or throws the exception.
     T await_resume() const
     {
-        if (data_->exception)
-        {
-            std::rethrow_exception(*data_->exception);
-        }
+        if (auto* exception = std::get_if<std::exception_ptr>(&data_->result); exception != nullptr)
+            std::rethrow_exception(*exception);
 
         if constexpr (std::is_void_v<T>)
-        {
             return;
-        }
         else
-        {
-            return std::move(*data_->result);
-        }
+            return std::get<T>(std::move(data_->result));
     }
 
 private:

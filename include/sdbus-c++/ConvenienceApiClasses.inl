@@ -357,34 +357,27 @@ namespace sdbus {
     template <typename... Args>
     Awaitable<awaitable_return_t<Args...>> AsyncMethodInvoker::getResultAsAwaitable()
     {
+        // awaitable_return_t<Args...> will be void for no D-Bus method return value
+        //                                  or T for single D-Bus method return value
+        //                                  or std::tuple<...> for multiple method return values
         auto data = std::make_shared<AwaitableData<awaitable_return_t<Args...>>>();
-        uponReplyInvoke(
-            [data](std::optional<Error> error, Args... args)
-            {
-                if (error)
-                {
-                    data->exception = std::make_exception_ptr(*std::move(error));
-                }
+
+        uponReplyInvoke([data](std::optional<Error> error, Args... args)
+        {
+            if (!error)
+                if constexpr (!std::is_void_v<awaitable_return_t<Args...>>)
+                    data->result = {std::move(args)...};
                 else
-                {
-                    if constexpr (!std::is_void_v<awaitable_return_t<Args...>>)
-                    {
-                        data->result.emplace(std::move(args)...);
-                    }
-                    else
-                    {
-                        data->result = std::monostate{};
-                    }
-                }
+                    data->result = std::monostate{};
+            else
+                data->result = std::make_exception_ptr(*std::move(error));
 
-                auto previous = data->status.exchange(AwaitableState::Completed, std::memory_order_acq_rel);
-                if (previous == AwaitableState::Waiting)
-                {
-                    data->handle.resume();
-                }
-            });
+            auto previous = data->status.exchange(AwaitableState::Completed, std::memory_order_acq_rel);
+            if (previous == AwaitableState::Waiting)
+                data->handle.resume();
+        });
 
-        return Awaitable<awaitable_return_t<Args...>>(data);
+        return Awaitable(data);
     }
 
     /*** ---------------- ***/
