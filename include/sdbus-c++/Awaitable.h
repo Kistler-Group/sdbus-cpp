@@ -29,6 +29,7 @@
 #define SDBUS_CXX_AWAITABLE_H_
 
 #include <atomic>
+#include <cassert>
 #if __has_include(<coroutine>)
 #include <coroutine>
 #endif
@@ -38,8 +39,13 @@
 #include <type_traits>
 #include <variant>
 
-namespace sdbus
-{
+namespace sdbus {
+
+    // Forward declarations
+    class AsyncMethodInvoker;
+    namespace internal {
+        class Proxy;
+    } // namespace internal
 
 /********************************************//**
  * @enum AwaitableState
@@ -100,14 +106,8 @@ struct AwaitableData
 template <typename T>
 class Awaitable
 {
-public:
-    explicit Awaitable(std::shared_ptr<AwaitableData<T>> data)
-        : data_(std::move(data))
-    {
-    }
-
 #ifdef __cpp_lib_coroutine
-
+public:
     // Called when the coroutine is co_await'ed. Returns true if the coroutine should be suspended.
     [[nodiscard]] bool await_ready() const noexcept
     {
@@ -136,10 +136,18 @@ public:
         else
             return std::get<T>(std::move(data_->result));
     }
-
 #endif // __cpp_lib_coroutine
 
 private:
+    friend internal::Proxy;
+    friend AsyncMethodInvoker;
+
+    explicit Awaitable(std::shared_ptr<AwaitableData<T>> data)
+        : data_(std::move(data))
+    {
+        assert(data_ != nullptr);
+    }
+
     std::shared_ptr<AwaitableData<T>> data_;
 };
 
