@@ -104,7 +104,7 @@ namespace sdbus::internal {
 
         friend PendingAsyncCall;
 
-        std::unique_ptr<IConnection, std::function<void(IConnection*)>> connection_;
+        std::unique_ptr<IConnection, std::move_only_function<void(IConnection*)>> connection_;
         ServiceName destination_;
         ObjectPath objectPath_;
 
