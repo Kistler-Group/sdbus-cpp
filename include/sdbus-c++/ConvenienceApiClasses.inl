@@ -334,18 +334,18 @@ namespace sdbus {
     template <typename... Args>
     std::future<future_return_t<Args...>> AsyncMethodInvoker::getResultAsFuture()
     {
-        auto promise = std::make_shared<std::promise<future_return_t<Args...>>>();
-        auto future = promise->get_future();
+        std::promise<future_return_t<Args...>> promise{};
+        auto future = promise.get_future();
 
-        uponReplyInvoke([promise = std::move(promise)](std::optional<Error> error, Args... args)
+        uponReplyInvoke([promise = std::move(promise)](std::optional<Error> error, Args... args) mutable
         {
             if (!error)
                 if constexpr (!std::is_void_v<future_return_t<Args...>>)
-                    promise->set_value({std::move(args)...});
+                    promise.set_value({std::move(args)...});
                 else
-                    promise->set_value();
+                    promise.set_value();
             else
-                promise->set_exception(std::make_exception_ptr(*std::move(error)));
+                promise.set_exception(std::make_exception_ptr(*std::move(error)));
         });
 
         // Will be std::future<void> for no D-Bus method return value
