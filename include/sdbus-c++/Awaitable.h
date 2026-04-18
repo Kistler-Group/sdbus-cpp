@@ -69,10 +69,12 @@ namespace sdbus {
     {
         using result_type = std::conditional_t<std::is_void_v<T>, std::monostate, T>;
         std::variant<result_type, std::exception_ptr> result;
+        std::atomic<AwaitableState> status{AwaitableState::NotReady};
 #ifdef __cpp_lib_coroutine
+        // Keep the handle as the last member to mainting ABI compatibility
+        // with clients without coroutine support.
         std::coroutine_handle<> handle;
 #endif // __cpp_lib_coroutine
-        std::atomic<AwaitableState> status{AwaitableState::NotReady};
 
         void resumeCoroutine()
         {
