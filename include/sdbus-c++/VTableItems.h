@@ -30,6 +30,7 @@
 #include <sdbus-c++/Types.h>
 #include <sdbus-c++/TypeTraits.h>
 
+#include <concepts>
 #include <string>
 #include <variant>
 #include <vector>
@@ -40,9 +41,9 @@ namespace sdbus {
     {
         template <typename Function> MethodVTableItem& implementedAs(Function&& callback);
         MethodVTableItem& withInputParamNames(std::vector<std::string> names);
-        template <typename... String> MethodVTableItem& withInputParamNames(String... names);
+        template <std::convertible_to<std::string>... String> MethodVTableItem& withInputParamNames(String... names);
         MethodVTableItem& withOutputParamNames(std::vector<std::string> names);
-        template <typename... String> MethodVTableItem& withOutputParamNames(String... names);
+        template <std::convertible_to<std::string>... String> MethodVTableItem& withOutputParamNames(String... names);
         MethodVTableItem& markAsDeprecated();
         MethodVTableItem& markAsPrivileged();
         MethodVTableItem& withNoReply();
@@ -63,7 +64,9 @@ namespace sdbus {
     {
         template <typename... Args> SignalVTableItem& withParameters();
         template <typename... Args> SignalVTableItem& withParameters(std::vector<std::string> names);
-        template <typename... Args, typename... String> SignalVTableItem& withParameters(String... names);
+        template <typename... Args, std::convertible_to<std::string>... String>
+        requires(sizeof...(Args) == sizeof...(String))
+        SignalVTableItem& withParameters(String... names);
         SignalVTableItem& markAsDeprecated();
 
         SignalName name;
