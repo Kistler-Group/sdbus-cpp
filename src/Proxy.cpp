@@ -117,17 +117,17 @@ MethodReply Proxy::callMethod(const MethodCall& message, uint64_t timeout)
     return message.send(timeout);
 }
 
-PendingAsyncCall Proxy::callMethodAsync(const MethodCall& message, async_reply_handler asyncReplyCallback)
+PendingAsyncCall Proxy::callMethodAsync(const MethodCall& message, async_reply_handler&& asyncReplyCallback)
 {
     return Proxy::callMethodAsync(message, std::move(asyncReplyCallback), /*timeout*/ 0);
 }
 
-Slot Proxy::callMethodAsync(const MethodCall& message, async_reply_handler asyncReplyCallback, return_slot_t)
+Slot Proxy::callMethodAsync(const MethodCall& message, async_reply_handler&& asyncReplyCallback, return_slot_t)
 {
     return Proxy::callMethodAsync(message, std::move(asyncReplyCallback), /*timeout*/ 0, return_slot);
 }
 
-PendingAsyncCall Proxy::callMethodAsync(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout)
+PendingAsyncCall Proxy::callMethodAsync(const MethodCall& message, async_reply_handler&& asyncReplyCallback, uint64_t timeout)
 {
     SDBUS_THROW_ERROR_IF(!message.isValid(), "Invalid async method call message provided", EINVAL);
 
@@ -145,7 +145,7 @@ PendingAsyncCall Proxy::callMethodAsync(const MethodCall& message, async_reply_h
     return PendingAsyncCall{asyncCallInfoWeakPtr};
 }
 
-Slot Proxy::callMethodAsync(const MethodCall& message, async_reply_handler asyncReplyCallback, uint64_t timeout, return_slot_t)
+Slot Proxy::callMethodAsync(const MethodCall& message, async_reply_handler&& asyncReplyCallback, uint64_t timeout, return_slot_t)
 {
     SDBUS_THROW_ERROR_IF(!message.isValid(), "Invalid async method call message provided", EINVAL);
 
@@ -209,14 +209,14 @@ Awaitable<MethodReply> Proxy::callMethodAsync(const MethodCall& message, uint64_
 
 void Proxy::registerSignalHandler( const InterfaceName& interfaceName
                                  , const SignalName& signalName
-                                 , signal_handler signalHandler )
+                                 , signal_handler&& signalHandler )
 {
     Proxy::registerSignalHandler(interfaceName.c_str(), signalName.c_str(), std::move(signalHandler));
 }
 
 void Proxy::registerSignalHandler( const char* interfaceName
                                  , const char* signalName
-                                 , signal_handler signalHandler )
+                                 , signal_handler&& signalHandler )
 {
     auto slot = Proxy::registerSignalHandler(interfaceName, signalName, std::move(signalHandler), return_slot);
 
@@ -225,7 +225,7 @@ void Proxy::registerSignalHandler( const char* interfaceName
 
 Slot Proxy::registerSignalHandler( const InterfaceName& interfaceName
                                  , const SignalName& signalName
-                                 , signal_handler signalHandler
+                                 , signal_handler&& signalHandler
                                  , return_slot_t )
 {
     return Proxy::registerSignalHandler(interfaceName.c_str(), signalName.c_str(), std::move(signalHandler), return_slot);
@@ -233,7 +233,7 @@ Slot Proxy::registerSignalHandler( const InterfaceName& interfaceName
 
 Slot Proxy::registerSignalHandler( const char* interfaceName
                                  , const char* signalName
-                                 , signal_handler signalHandler
+                                 , signal_handler&& signalHandler
                                  , return_slot_t )
 {
     SDBUS_CHECK_INTERFACE_NAME(interfaceName);
@@ -296,12 +296,12 @@ int Proxy::sdbus_async_reply_handler(sd_bus_message *sdbusMessage, void *userDat
         const auto* error = sd_bus_message_get_error(sdbusMessage);
         if (error == nullptr)
         {
-            asyncCallInfo->callback(std::move(message), {});
+            std::move(asyncCallInfo->callback)(std::move(message), {});
         }
         else
         {
             Error exception(Error::Name{error->name}, error->message);
-            asyncCallInfo->callback(std::move(message), std::move(exception));
+            std::move(asyncCallInfo->callback)(std::move(message), std::move(exception));
         }
     }, retError);
 

@@ -455,7 +455,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual PendingAsyncCall callMethodAsync(const MethodCall& message, async_reply_handler asyncReplyCallback) = 0;
+        virtual PendingAsyncCall callMethodAsync(const MethodCall& message, async_reply_handler&& asyncReplyCallback) = 0;
 
         /*!
          * @brief Calls method on the D-Bus object asynchronously
@@ -480,7 +480,7 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         [[nodiscard]] virtual Slot callMethodAsync( const MethodCall& message
-                                                  , async_reply_handler asyncReplyCallback
+                                                  , async_reply_handler&& asyncReplyCallback
                                                   , return_slot_t ) = 0;
 
         /*!
@@ -506,7 +506,7 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         virtual PendingAsyncCall callMethodAsync( const MethodCall& message
-                                                , async_reply_handler asyncReplyCallback
+                                                , async_reply_handler&& asyncReplyCallback
                                                 , uint64_t timeout ) = 0;
 
         /*!
@@ -533,7 +533,7 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         [[nodiscard]] virtual Slot callMethodAsync( const MethodCall& message
-                                                  , async_reply_handler asyncReplyCallback
+                                                  , async_reply_handler&& asyncReplyCallback
                                                   , uint64_t timeout
                                                   , return_slot_t ) = 0;
 
@@ -542,7 +542,7 @@ namespace sdbus {
          */
         template <typename Rep, typename Period>
         PendingAsyncCall callMethodAsync( const MethodCall& message
-                                        , async_reply_handler asyncReplyCallback
+                                        , async_reply_handler&& asyncReplyCallback
                                         , const std::chrono::duration<Rep, Period>& timeout );
 
         /*!
@@ -550,7 +550,7 @@ namespace sdbus {
          */
         template <typename Rep, typename Period>
         [[nodiscard]] Slot callMethodAsync( const MethodCall& message
-                                          , async_reply_handler asyncReplyCallback
+                                          , async_reply_handler&& asyncReplyCallback
                                           , const std::chrono::duration<Rep, Period>& timeout
                                           , return_slot_t );
 
@@ -669,7 +669,7 @@ namespace sdbus {
          */
         virtual void registerSignalHandler( const InterfaceName& interfaceName
                                           , const SignalName& signalName
-                                          , signal_handler signalHandler ) = 0;
+                                          , signal_handler&& signalHandler ) = 0;
 
         /*!
          * @brief Registers a handler for the desired signal emitted by the D-Bus object
@@ -689,7 +689,7 @@ namespace sdbus {
          */
         [[nodiscard]] virtual Slot registerSignalHandler( const InterfaceName& interfaceName
                                                         , const SignalName& signalName
-                                                        , signal_handler signalHandler
+                                                        , signal_handler&& signalHandler
                                                         , return_slot_t ) = 0;
 
     protected: // Internal API for efficiency reasons used by high-level API helper classes
@@ -700,10 +700,10 @@ namespace sdbus {
         [[nodiscard]] virtual MethodCall createMethodCall(const char* interfaceName, const char* methodName) const = 0;
         virtual void registerSignalHandler( const char* interfaceName
                                           , const char* signalName
-                                          , signal_handler signalHandler ) = 0;
+                                          , signal_handler&& signalHandler ) = 0;
         [[nodiscard]] virtual Slot registerSignalHandler( const char* interfaceName
                                                         , const char* signalName
-                                                        , signal_handler signalHandler
+                                                        , signal_handler&& signalHandler
                                                         , return_slot_t ) = 0;
     };
 
@@ -759,7 +759,7 @@ namespace sdbus {
 
     template <typename Rep, typename Period>
     inline PendingAsyncCall IProxy::callMethodAsync( const MethodCall& message
-                                                   , async_reply_handler asyncReplyCallback
+                                                   , async_reply_handler&& asyncReplyCallback
                                                    , const std::chrono::duration<Rep, Period>& timeout )
     {
         auto microsecs = std::chrono::duration_cast<std::chrono::microseconds>(timeout);
@@ -768,7 +768,7 @@ namespace sdbus {
 
     template <typename Rep, typename Period>
     inline Slot IProxy::callMethodAsync( const MethodCall& message
-                                       , async_reply_handler asyncReplyCallback
+                                       , async_reply_handler&& asyncReplyCallback
                                        , const std::chrono::duration<Rep, Period>& timeout
                                        , return_slot_t )
     {

@@ -238,12 +238,12 @@ uint64_t Connection::getMethodCallTimeout() const
     return timeout;
 }
 
-void Connection::addMatch(const std::string& match, message_handler callback)
+void Connection::addMatch(const std::string& match, message_handler&& callback)
 {
     floatingMatchRules_.push_back(addMatch(match, std::move(callback), return_slot));
 }
 
-Slot Connection::addMatch(const std::string& match, message_handler callback, return_slot_t)
+Slot Connection::addMatch(const std::string& match, message_handler&& callback, return_slot_t)
 {
     SDBUS_THROW_ERROR_IF(!callback, "Invalid match callback handler provided", EINVAL);
 
@@ -258,14 +258,14 @@ Slot Connection::addMatch(const std::string& match, message_handler callback, re
     return {matchInfo.release(), [](void *ptr){ delete static_cast<MatchInfo*>(ptr); }}; // NOLINT(cppcoreguidelines-owning-memory)
 }
 
-void Connection::addMatchAsync(const std::string& match, message_handler callback, message_handler installCallback)
+void Connection::addMatchAsync(const std::string& match, message_handler&& callback, match_install_handler&& installCallback)
 {
     floatingMatchRules_.push_back(addMatchAsync(match, std::move(callback), std::move(installCallback), return_slot));
 }
 
 Slot Connection::addMatchAsync( const std::string& match
-                              , message_handler callback
-                              , message_handler installCallback
+                              , message_handler&& callback
+                              , match_install_handler&& installCallback
                               , return_slot_t )
 {
     SDBUS_THROW_ERROR_IF(!callback, "Invalid match callback handler provided", EINVAL);
@@ -920,7 +920,7 @@ int Connection::sdbus_match_install_callback(sd_bus_message *sdbusMessage, void 
 
     auto message = Message::Factory::create<PlainMessage>(sdbusMessage, &matchInfo->connection);
 
-    auto ok = invokeHandlerAndCatchErrors([&](){ matchInfo->installCallback(std::move(message)); }, retError);
+    auto ok = invokeHandlerAndCatchErrors([&](){ std::move(matchInfo->installCallback)(std::move(message)); }, retError);
 
     return ok ? 0 : -1;
 }

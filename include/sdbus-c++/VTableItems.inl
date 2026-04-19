@@ -40,7 +40,7 @@ namespace sdbus {
     /*** -------------------- ***/
 
     template <typename Function>
-    MethodVTableItem& MethodVTableItem::implementedAs(Function&& callback)
+    MethodVTableItem&& MethodVTableItem::implementedAs(Function&& callback) &&
     {
         inputSignature = signature_of_function_input_arguments_v<Function>;
         outputSignature = signature_of_function_output_arguments_v<Function>;
@@ -71,58 +71,58 @@ namespace sdbus {
             }
         };
 
-        return *this;
+        return std::move(*this);
     }
 
-    inline MethodVTableItem& MethodVTableItem::withInputParamNames(std::vector<std::string> names)
+    inline MethodVTableItem&& MethodVTableItem::withInputParamNames(std::vector<std::string> names) &&
     {
         inputParamNames = std::move(names);
 
-        return *this;
+        return std::move(*this);
     }
 
     template <typename... String>
-    inline MethodVTableItem& MethodVTableItem::withInputParamNames(String... names)
+    inline MethodVTableItem&& MethodVTableItem::withInputParamNames(String... names) &&
     {
         static_assert(std::conjunction_v<std::is_convertible<String, std::string>...>, "Parameter names must be (convertible to) strings");
 
-        return withInputParamNames({names...});
+        return std::move(*this).withInputParamNames({names...});
     }
 
-    inline MethodVTableItem& MethodVTableItem::withOutputParamNames(std::vector<std::string> names)
+    inline MethodVTableItem&& MethodVTableItem::withOutputParamNames(std::vector<std::string> names) &&
     {
         outputParamNames = std::move(names);
 
-        return *this;
+        return std::move(*this);
     }
 
     template <typename... String>
-    inline MethodVTableItem& MethodVTableItem::withOutputParamNames(String... names)
+    inline MethodVTableItem&& MethodVTableItem::withOutputParamNames(String... names) &&
     {
         static_assert(std::conjunction_v<std::is_convertible<String, std::string>...>, "Parameter names must be (convertible to) strings");
 
-        return withOutputParamNames({names...});
+        return std::move(*this).withOutputParamNames({names...});
     }
 
-    inline MethodVTableItem& MethodVTableItem::markAsDeprecated()
+    inline MethodVTableItem&& MethodVTableItem::markAsDeprecated() &&
     {
         flags.set(Flags::DEPRECATED);
 
-        return *this;
+        return std::move(*this);
     }
 
-    inline MethodVTableItem& MethodVTableItem::markAsPrivileged()
+    inline MethodVTableItem&& MethodVTableItem::markAsPrivileged() &&
     {
         flags.set(Flags::PRIVILEGED);
 
-        return *this;
+        return std::move(*this);
     }
 
-    inline MethodVTableItem& MethodVTableItem::withNoReply()
+    inline MethodVTableItem&& MethodVTableItem::withNoReply() &&
     {
         flags.set(Flags::METHOD_NO_REPLY);
 
-        return *this;
+        return std::move(*this);
     }
 
     inline MethodVTableItem registerMethod(MethodName methodName)
@@ -140,35 +140,35 @@ namespace sdbus {
     /*** -------------------- ***/
 
     template <typename... Args>
-    inline SignalVTableItem& SignalVTableItem::withParameters()
+    inline SignalVTableItem&& SignalVTableItem::withParameters() &&
     {
         signature = signature_of_function_input_arguments_v<void(Args...)>;
 
-        return *this;
+        return std::move(*this);
     }
 
     template <typename... Args>
-    inline SignalVTableItem& SignalVTableItem::withParameters(std::vector<std::string> names)
+    inline SignalVTableItem&& SignalVTableItem::withParameters(std::vector<std::string> names) &&
     {
         paramNames = std::move(names);
 
-        return withParameters<Args...>();
+        return std::move(*this).template withParameters<Args...>();
     }
 
     template <typename... Args, typename... String>
-    inline SignalVTableItem& SignalVTableItem::withParameters(String... names)
+    inline SignalVTableItem&& SignalVTableItem::withParameters(String... names) &&
     {
         static_assert(std::conjunction_v<std::is_convertible<String, std::string>...>, "Parameter names must be (convertible to) strings");
         static_assert(sizeof...(Args) == sizeof...(String), "Numbers of signal parameters and their names don't match");
 
-        return withParameters<Args...>({names...});
+        return std::move(*this).template withParameters<Args...>({names...});
     }
 
-    inline SignalVTableItem& SignalVTableItem::markAsDeprecated()
+    inline SignalVTableItem&& SignalVTableItem::markAsDeprecated() &&
     {
         flags.set(Flags::DEPRECATED);
 
-        return *this;
+        return std::move(*this);
     }
 
     inline SignalVTableItem registerSignal(SignalName signalName)
@@ -186,7 +186,7 @@ namespace sdbus {
     /*** -------------------- ***/
 
     template <typename Function>
-    inline PropertyVTableItem& PropertyVTableItem::withGetter(Function&& callback)
+    inline PropertyVTableItem&& PropertyVTableItem::withGetter(Function&& callback) &&
     {
         static_assert(function_argument_count_v<Function> == 0, "Property getter function must not take any arguments");
         static_assert(!std::is_void_v<function_result_t<Function>>, "Property getter function must return property value");
@@ -200,11 +200,11 @@ namespace sdbus {
             reply << callback();
         };
 
-        return *this;
+        return std::move(*this);
     }
 
     template <typename Function>
-    inline PropertyVTableItem& PropertyVTableItem::withSetter(Function&& callback)
+    inline PropertyVTableItem&& PropertyVTableItem::withSetter(Function&& callback) &&
     {
         static_assert(function_argument_count_v<Function> == 1, "Property setter function must take one parameter - the property value");
         static_assert(std::is_void_v<function_result_t<Function>>, "Property setter function must not return any value");
@@ -225,28 +225,28 @@ namespace sdbus {
             callback(property);
         };
 
-        return *this;
+        return std::move(*this);
     }
 
-    inline PropertyVTableItem& PropertyVTableItem::markAsDeprecated()
+    inline PropertyVTableItem&& PropertyVTableItem::markAsDeprecated() &&
     {
         flags.set(Flags::DEPRECATED);
 
-        return *this;
+        return std::move(*this);
     }
 
-    inline PropertyVTableItem& PropertyVTableItem::markAsPrivileged()
+    inline PropertyVTableItem&& PropertyVTableItem::markAsPrivileged() &&
     {
         flags.set(Flags::PRIVILEGED);
 
-        return *this;
+        return std::move(*this);
     }
 
-    inline PropertyVTableItem& PropertyVTableItem::withUpdateBehavior(Flags::PropertyUpdateBehaviorFlags behavior)
+    inline PropertyVTableItem&& PropertyVTableItem::withUpdateBehavior(Flags::PropertyUpdateBehaviorFlags behavior) &&
     {
         flags.set(behavior);
 
-        return *this;
+        return std::move(*this);
     }
 
     inline PropertyVTableItem registerProperty(PropertyName propertyName)
@@ -263,32 +263,32 @@ namespace sdbus {
     /*** Interface Flags VTable Item ***/
     /*** --------------------------- ***/
 
-    inline InterfaceFlagsVTableItem& InterfaceFlagsVTableItem::markAsDeprecated()
+    inline InterfaceFlagsVTableItem&& InterfaceFlagsVTableItem::markAsDeprecated() &&
     {
         flags.set(Flags::DEPRECATED);
 
-        return *this;
+        return std::move(*this);
     }
 
-    inline InterfaceFlagsVTableItem& InterfaceFlagsVTableItem::markAsPrivileged()
+    inline InterfaceFlagsVTableItem&& InterfaceFlagsVTableItem::markAsPrivileged() &&
     {
         flags.set(Flags::PRIVILEGED);
 
-        return *this;
+        return std::move(*this);
     }
 
-    inline InterfaceFlagsVTableItem& InterfaceFlagsVTableItem::withNoReplyMethods()
+    inline InterfaceFlagsVTableItem&& InterfaceFlagsVTableItem::withNoReplyMethods() &&
     {
         flags.set(Flags::METHOD_NO_REPLY);
 
-        return *this;
+        return std::move(*this);
     }
 
-    inline InterfaceFlagsVTableItem& InterfaceFlagsVTableItem::withPropertyUpdateBehavior(Flags::PropertyUpdateBehaviorFlags behavior)
+    inline InterfaceFlagsVTableItem&& InterfaceFlagsVTableItem::withPropertyUpdateBehavior(Flags::PropertyUpdateBehaviorFlags behavior) &&
     {
         flags.set(behavior);
 
-        return *this;
+        return std::move(*this);
     }
 
     inline InterfaceFlagsVTableItem setInterfaceFlags()

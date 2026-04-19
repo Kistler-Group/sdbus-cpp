@@ -436,7 +436,7 @@ namespace sdbus {
     template <typename Function>
     inline signal_handler SignalSubscriber::makeSignalHandler(Function&& callback)
     {
-        return [callback = std::forward<Function>(callback)](Signal signal)
+        return [callback = std::forward<Function>(callback)](Signal signal) mutable
         {
             // Create a tuple of callback input arguments' types, which will be used
             // as a storage for the argument values deserialized from the signal message.

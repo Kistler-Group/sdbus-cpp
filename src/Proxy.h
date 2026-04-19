@@ -60,15 +60,15 @@ namespace sdbus::internal {
         [[nodiscard]] MethodCall createMethodCall(const char* interfaceName, const char* methodName) const override;
         MethodReply callMethod(const MethodCall& message) override;
         MethodReply callMethod(const MethodCall& message, uint64_t timeout) override;
-        PendingAsyncCall callMethodAsync(const MethodCall& message, async_reply_handler asyncReplyCallback) override;
+        PendingAsyncCall callMethodAsync(const MethodCall& message, async_reply_handler&& asyncReplyCallback) override;
         Slot callMethodAsync( const MethodCall& message
-                            , async_reply_handler asyncReplyCallback
+                            , async_reply_handler&& asyncReplyCallback
                             , return_slot_t ) override;
         PendingAsyncCall callMethodAsync( const MethodCall& message
-                                        , async_reply_handler asyncReplyCallback
+                                        , async_reply_handler&& asyncReplyCallback
                                         , uint64_t timeout ) override;
         Slot callMethodAsync( const MethodCall& message
-                            , async_reply_handler asyncReplyCallback
+                            , async_reply_handler&& asyncReplyCallback
                             , uint64_t timeout
                             , return_slot_t ) override;
         std::future<MethodReply> callMethodAsync(const MethodCall& message, with_future_t) override;
@@ -80,17 +80,17 @@ namespace sdbus::internal {
 
         void registerSignalHandler( const InterfaceName& interfaceName
                                   , const SignalName& signalName
-                                  , signal_handler signalHandler ) override;
+                                  , signal_handler&& signalHandler ) override;
         void registerSignalHandler( const char* interfaceName
                                   , const char* signalName
-                                  , signal_handler signalHandler ) override;
+                                  , signal_handler&& signalHandler ) override;
         Slot registerSignalHandler( const InterfaceName& interfaceName
                                   , const SignalName& signalName
-                                  , signal_handler signalHandler
+                                  , signal_handler&& signalHandler
                                   , return_slot_t ) override;
         Slot registerSignalHandler( const char* interfaceName
                                   , const char* signalName
-                                  , signal_handler signalHandler
+                                  , signal_handler&& signalHandler
                                   , return_slot_t ) override;
         void unregister() override;
 

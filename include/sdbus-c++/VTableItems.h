@@ -38,14 +38,14 @@ namespace sdbus {
 
     struct MethodVTableItem
     {
-        template <typename Function> MethodVTableItem& implementedAs(Function&& callback);
-        MethodVTableItem& withInputParamNames(std::vector<std::string> names);
-        template <typename... String> MethodVTableItem& withInputParamNames(String... names);
-        MethodVTableItem& withOutputParamNames(std::vector<std::string> names);
-        template <typename... String> MethodVTableItem& withOutputParamNames(String... names);
-        MethodVTableItem& markAsDeprecated();
-        MethodVTableItem& markAsPrivileged();
-        MethodVTableItem& withNoReply();
+        template <typename Function> MethodVTableItem&& implementedAs(Function&& callback) &&;
+        MethodVTableItem&& withInputParamNames(std::vector<std::string> names) &&;
+        template <typename... String> MethodVTableItem&& withInputParamNames(String... names) &&;
+        MethodVTableItem&& withOutputParamNames(std::vector<std::string> names) &&;
+        template <typename... String> MethodVTableItem&& withOutputParamNames(String... names) &&;
+        MethodVTableItem&& markAsDeprecated() &&;
+        MethodVTableItem&& markAsPrivileged() &&;
+        MethodVTableItem&& withNoReply() &&;
 
         MethodName name;
         Signature inputSignature;
@@ -61,10 +61,10 @@ namespace sdbus {
 
     struct SignalVTableItem
     {
-        template <typename... Args> SignalVTableItem& withParameters();
-        template <typename... Args> SignalVTableItem& withParameters(std::vector<std::string> names);
-        template <typename... Args, typename... String> SignalVTableItem& withParameters(String... names);
-        SignalVTableItem& markAsDeprecated();
+        template <typename... Args> SignalVTableItem&& withParameters() &&;
+        template <typename... Args> SignalVTableItem&& withParameters(std::vector<std::string> names) &&;
+        template <typename... Args, typename... String> SignalVTableItem&& withParameters(String... names) &&;
+        SignalVTableItem&& markAsDeprecated() &&;
 
         SignalName name;
         Signature signature;
@@ -77,11 +77,11 @@ namespace sdbus {
 
     struct PropertyVTableItem
     {
-        template <typename Function> PropertyVTableItem& withGetter(Function&& callback);
-        template <typename Function> PropertyVTableItem& withSetter(Function&& callback);
-        PropertyVTableItem& markAsDeprecated();
-        PropertyVTableItem& markAsPrivileged();
-        PropertyVTableItem& withUpdateBehavior(Flags::PropertyUpdateBehaviorFlags behavior);
+        template <typename Function> PropertyVTableItem&& withGetter(Function&& callback) &&;
+        template <typename Function> PropertyVTableItem&& withSetter(Function&& callback) &&;
+        PropertyVTableItem&& markAsDeprecated() &&;
+        PropertyVTableItem&& markAsPrivileged() &&;
+        PropertyVTableItem&& withUpdateBehavior(Flags::PropertyUpdateBehaviorFlags behavior) &&;
 
         PropertyName name;
         Signature signature;
@@ -95,10 +95,10 @@ namespace sdbus {
 
     struct InterfaceFlagsVTableItem
     {
-        InterfaceFlagsVTableItem& markAsDeprecated();
-        InterfaceFlagsVTableItem& markAsPrivileged();
-        InterfaceFlagsVTableItem& withNoReplyMethods();
-        InterfaceFlagsVTableItem& withPropertyUpdateBehavior(Flags::PropertyUpdateBehaviorFlags behavior);
+        InterfaceFlagsVTableItem&& markAsDeprecated() &&;
+        InterfaceFlagsVTableItem&& markAsPrivileged() &&;
+        InterfaceFlagsVTableItem&& withNoReplyMethods() &&;
+        InterfaceFlagsVTableItem&& withPropertyUpdateBehavior(Flags::PropertyUpdateBehaviorFlags behavior) &&;
 
         Flags flags;
     };

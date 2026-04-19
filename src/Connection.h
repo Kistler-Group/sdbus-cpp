@@ -111,12 +111,12 @@ namespace sdbus::internal {
         void setMethodCallTimeout(uint64_t timeout) override;
         [[nodiscard]] uint64_t getMethodCallTimeout() const override;
 
-        void addMatch(const std::string& match, message_handler callback) override;
-        [[nodiscard]] Slot addMatch(const std::string& match, message_handler callback, return_slot_t) override;
-        void addMatchAsync(const std::string& match, message_handler callback, message_handler installCallback) override;
+        void addMatch(const std::string& match, message_handler&& callback) override;
+        [[nodiscard]] Slot addMatch(const std::string& match, message_handler&& callback, return_slot_t) override;
+        void addMatchAsync(const std::string& match, message_handler&& callback, match_install_handler&& installCallback) override;
         [[nodiscard]] Slot addMatchAsync( const std::string& match
-                                        , message_handler callback
-                                        , message_handler installCallback
+                                        , message_handler&& callback
+                                        , match_install_handler&& installCallback
                                         , return_slot_t ) override;
 
         void attachSdEventLoop(sd_event *event, int priority) override;
@@ -233,8 +233,8 @@ namespace sdbus::internal {
 
         struct MatchInfo
         {
-            message_handler callback;
-            message_handler installCallback;
+            message_handler&& callback;
+            match_install_handler&& installCallback;
             Connection& connection; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
             Slot slot;
         };
