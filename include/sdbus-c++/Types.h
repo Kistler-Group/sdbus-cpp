@@ -111,8 +111,7 @@ namespace sdbus {
         }
 
         // Only allow conversion operator for true D-Bus type representations in C++
-        // NOLINTNEXTLINE(modernize-use-constraints): TODO for future: Use `requires signature_of<_ValueType>::is_valid` (when we stop supporting C++17 in public API)
-        template <typename ValueType, typename = std::enable_if_t<signature_of<ValueType>::is_valid>>
+        template <valid_dbus_type ValueType>
         explicit operator ValueType() const
         {
             return get<ValueType>();

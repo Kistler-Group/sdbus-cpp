@@ -387,7 +387,7 @@ namespace sdbus {
     };
 
     template <typename... Types>
-    concept valid_signature = signature_of<Types...>::is_valid;
+    concept valid_dbus_type = signature_of<Types...>::is_valid;
 
     // To simplify conversions of arrays to C strings
     template <typename T, std::size_t N>
