@@ -109,6 +109,9 @@ namespace sdbus {
     // Tag denoting that the variant shall embed the other variant as its value, instead of creating a copy
     struct embed_variant_t { explicit embed_variant_t() = default; };
     inline constexpr embed_variant_t embed_variant{};
+    // Tag denoting an asynchronous call that returns an awaitable as a handle
+    struct with_awaitable_t { explicit with_awaitable_t() = default; };
+    inline constexpr with_awaitable_t with_awaitable{};
 
     // Helper for static assert
     template <class... T> constexpr bool always_false = false;
@@ -585,6 +588,11 @@ namespace sdbus {
 
     template <typename... Args>
     using future_return_t = typename future_return<Args...>::type;
+
+    // For awaitable return types, the same scheme from futures can be reused
+    // so just provide an alias for visual distinction between the two
+    template <typename... Args>
+    using awaitable_return_t = typename future_return<Args...>::type;
 
     // Credit: Piotr Skotnicki (https://stackoverflow.com/a/57639506)
     template <typename, typename>

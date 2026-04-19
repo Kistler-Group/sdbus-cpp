@@ -16,6 +16,9 @@ tests/run-test-on-device.sh
 .settings
 *.log
 
+# vscode
+.vscode/
+
 #autotools
 sdbus-cpp.pc
 *Makefile

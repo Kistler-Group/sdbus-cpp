@@ -38,6 +38,7 @@
 #include "Utils.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cassert>
 #include <cerrno>
 #include <cstdint>
@@ -179,6 +180,31 @@ std::future<MethodReply> Proxy::callMethodAsync(const MethodCall& message, uint6
     (void)Proxy::callMethodAsync(message, std::move(asyncReplyCallback), timeout);
 
     return future;
+}
+
+Awaitable<MethodReply> Proxy::callMethodAsync(const MethodCall& message, with_awaitable_t)
+{
+    return Proxy::callMethodAsync(message, /*timeout*/ 0, with_awaitable);
+}
+
+Awaitable<MethodReply> Proxy::callMethodAsync(const MethodCall& message, uint64_t timeout, with_awaitable_t)
+{
+    auto data = std::make_shared<AwaitableData<MethodReply>>();
+    async_reply_handler asyncReplyCallback = [data](MethodReply reply, std::optional<Error> error) noexcept
+    {
+        if (!error)
+            data->result = std::move(reply);
+        else
+            data->result = std::make_exception_ptr(*std::move(error));
+
+        auto previous = data->status.exchange(AwaitableState::Completed, std::memory_order_acq_rel);
+        if (previous == AwaitableState::Waiting)
+            data->resumeCoroutine();
+    };
+
+    (void)Proxy::callMethodAsync(message, std::move(asyncReplyCallback), timeout);
+
+    return Awaitable{data};
 }
 
 void Proxy::registerSignalHandler( const InterfaceName& interfaceName

@@ -164,6 +164,7 @@ set(SDBUSCPP_HDR_SRCS
     ${SDBUSCPP_SOURCE_DIR}/ISdBus.h)
 
 set(SDBUSCPP_PUBLIC_HDRS
+    ${SDBUSCPP_INCLUDE_DIR}/Awaitable.h
     ${SDBUSCPP_INCLUDE_DIR}/ConvenienceApiClasses.h
     ${SDBUSCPP_INCLUDE_DIR}/ConvenienceApiClasses.inl
     ${SDBUSCPP_INCLUDE_DIR}/VTableItems.h

@@ -111,6 +111,10 @@ public:
     std::future<std::map<int32_t, std::string>> doOperationWithLargeDataClientSideAsync(const std::map<int32_t, std::string>& largeParam, with_future_t);
     std::future<MethodReply> doOperationClientSideAsyncOnBasicAPILevel(uint32_t param);
     std::future<void> doErroneousOperationClientSideAsync(with_future_t);
+    sdbus::Awaitable<uint32_t> doOperationClientSideAsync(uint32_t param, sdbus::with_awaitable_t);
+    sdbus::Awaitable<std::map<int32_t, std::string>> doOperationWithLargeDataClientSideAsync(const std::map<int32_t, std::string>& largeParam, sdbus::with_awaitable_t);
+    sdbus::Awaitable<MethodReply> doOperationClientSideAsyncOnBasicAPILevel(uint32_t param, sdbus::with_awaitable_t);
+    sdbus::Awaitable<void> doErroneousOperationClientSideAsync(sdbus::with_awaitable_t);
     void doErroneousOperationClientSideAsync();
     void doOperationClientSideAsyncWithTimeout(const std::chrono::microseconds &timeout, uint32_t param);
     int32_t callNonexistentMethod();

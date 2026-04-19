@@ -73,6 +73,10 @@ namespace sdbus::internal {
                             , return_slot_t ) override;
         std::future<MethodReply> callMethodAsync(const MethodCall& message, with_future_t) override;
         std::future<MethodReply> callMethodAsync(const MethodCall& message, uint64_t timeout, with_future_t) override;
+        Awaitable<MethodReply> callMethodAsync(const MethodCall& message, with_awaitable_t) override;
+        Awaitable<MethodReply> callMethodAsync( const MethodCall& message
+                                              , uint64_t timeout
+                                              , with_awaitable_t ) override;
 
         void registerSignalHandler( const InterfaceName& interfaceName
                                   , const SignalName& signalName

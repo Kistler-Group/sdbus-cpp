@@ -759,7 +759,7 @@ private:
 
 Analogously to the adaptor classes described above, there is one proxy class generated for one interface in the XML IDL file. The class is de facto a proxy to the concrete single interface of a remote object. For each D-Bus signal there is a pure virtual member function whose body must be provided in a child class. For each method, there is a public function member that calls the method remotely.
 
-Generated proxy classes are not copyable and not moveable by design. One can create them on the heap and manage them in e.g. a `std::unique_ptr` if move semantics is needed (for example, when they are stored in a container). 
+Generated proxy classes are not copyable and not moveable by design. One can create them on the heap and manage them in e.g. a `std::unique_ptr` if move semantics is needed (for example, when they are stored in a container).
 
 ```cpp
 /*
@@ -1130,11 +1130,11 @@ For a real example of a server-side asynchronous D-Bus method, please look at sd
 Asynchronous client-side methods
 --------------------------------
 
-sdbus-c++ also supports asynchronous approach at the client (the proxy) side. With this approach, we can issue a D-Bus method call without blocking current thread's execution while waiting for the reply. We go on doing other things, and when the reply comes, either a given callback handler will be invoked within the context of the event loop thread, or a future object returned by the async call will be set the returned value.6
+sdbus-c++ also supports asynchronous approach at the client (the proxy) side. With this approach, we can issue a D-Bus method call without blocking current thread's execution while waiting for the reply. We go on doing other things, and when the reply comes, either a given callback handler will be invoked within the context of the event loop thread, a future object returned by the async call will be set the returned value, or (with C++20) an awaitable can be `co_await`ed in a coroutine.
 
 ### Lower-level API
 
-Considering the Concatenator example based on lower-level API, if we wanted to call `concatenate` in an async way, we have two options: We either pass a callback to the proxy when issuing the call, and that callback gets invoked when the reply arrives:
+Considering the Concatenator example based on lower-level API, if we wanted to call `concatenate` in an async way, we have several options. We can pass a callback to the proxy when issuing the call, and that callback gets invoked when the reply arrives:
 
 ```c++
 int main(int argc, char *argv[])
@@ -1204,6 +1204,18 @@ Another option is to use `std::future`-based overload of the `IProxy::callMethod
     }
 ```
 
+A third option, available with C++20, is to use `sdbus::with_awaitable` to get an `Awaitable<MethodReply>` that can be `co_await`ed in a coroutine:
+
+```c++
+    // In a coroutine context:
+    auto method = concatenatorProxy->createMethodCall(interfaceName, concatenate);
+    method << numbers << separator;
+    auto reply = co_await concatenatorProxy->callMethod(method, sdbus::with_awaitable);
+    std::string result;
+    reply >> result;
+    // If an error occurs, sdbus::Error is thrown when co_await completes
+```
+
 ### Convenience API
 
 On the convenience API level, the call statement starts with `callMethodAsync()`, and one option is to finish the statement with `uponReplyInvoke()` that takes a callback handler. The callback is a void-returning function that takes at least one argument: `std::optional<sdbus::Error>`. All subsequent arguments shall exactly reflect the D-Bus method output arguments. A concatenator example:
@@ -1264,6 +1276,18 @@ The future object will contain void for a void-returning D-Bus method, a single 
         ...
 ```
 
+A third option, available with C++20, is to finish the async call statement with `getResultAsAwaitable<ReturnTypes...>()`, which returns an `Awaitable<T>` that can be `co_await`ed in a coroutine. The template arguments are the D-Bus method return types (empty for void-returning methods). The awaitable returns `void`, a single value, or a `std::tuple` for multiple return values:
+
+```c++
+        // In a coroutine context:
+        auto result = co_await concatenatorProxy->callMethodAsync("concatenate")
+                                                 .onInterface(interfaceName)
+                                                 .withArguments(numbers, separator)
+                                                 .getResultAsAwaitable<std::string>();
+        std::cout << "Got concatenate result: " << result << std::endl;
+        // If an error occurs, sdbus::Error is thrown when co_await completes
+```
+
 ### Marking client-side async methods in the IDL
 
 sdbus-c++-xml2cpp can generate C++ code for client-side async methods. We just need to annotate the method with `org.freedesktop.DBus.Method.Async`. The annotation element value must be either `client` (async on the client-side only) or `client-server` (async method on both client- and server-side):
@@ -1286,7 +1310,7 @@ sdbus-c++-xml2cpp can generate C++ code for client-side async methods. We just n
 </node>
 ```
 
-An asynchronous method can be generated as a callback-based method or `std::future`-based method. This can optionally be customized through an additional `org.freedesktop.DBus.Method.Async.ClientImpl` annotation. Its supported values are `callback` and `std::future`. The default behavior is callback-based method.
+An asynchronous method can be generated as a callback-based method, `std::future`-based method, or C++20 awaitable-based method. This can optionally be customized through an additional `org.freedesktop.DBus.Method.Async.ClientImpl` annotation. Its supported values are `callback`, `future` and `awaitable`. The default behavior is callback-based method.
 
 #### Generating callback-based async methods
 
@@ -1294,11 +1318,31 @@ For each client-side async method, a corresponding `on<MethodName>Reply` pure vi
 
 So in the specific example above, the tool will generate a `Concatenator_proxy` class similar to one shown in a [dedicated section above](#concatenator-client-glueh), with the difference that it will also generate an additional `virtual void onConcatenateReply(std::optional<sdbus::Error> error, const std::string& concatenatedString);` method, which we shall override in the derived `ConcatenatorProxy`.
 
-#### Generating std:future-based async methods
+#### Generating std::future-based async methods
 
 In this case, a `std::future` is returned by the method, which will later, when the reply arrives, get set to contain the return value. Or if the call returns an error, `sdbus::Error` will be thrown by `std::future::get()`.
 
-For a real example of a client-side asynchronous D-Bus methods, please look at sdbus-c++ [stress tests](/tests/stresstests).
+#### Generating awaitable-based async methods
+
+> **_Note_:** This requires C++20 support. The generated code uses `sdbus::Awaitable<T>` which requires compiling with C++20 or newer.
+
+When using `awaitable` as the `ClientImpl` annotation value, the generated method returns an `sdbus::Awaitable<T>` that can be used with C++20 coroutines. The return type `T` is `void` for void-returning D-Bus methods, a single type for single-value methods, or `std::tuple<Types...>` for multi-value methods.
+
+Example annotation:
+
+```xml
+<method name="concatenate">
+    <annotation name="org.freedesktop.DBus.Method.Async" value="client" />
+    <annotation name="org.freedesktop.DBus.Method.Async.ClientImpl" value="awaitable" />
+    <arg type="ai" name="numbers" direction="in" />
+    <arg type="s" name="separator" direction="in" />
+    <arg type="s" name="concatenatedString" direction="out" />
+</method>
+```
+
+This generates a method that can be `co_await`ed: `std::string result = co_await proxy.concatenate({1, 2, 3}, ":");`
+
+For a real example of a client-side asynchronous D-Bus methods, please look at sdbus-c++ [stress tests](/tests/stresstests) and [integration tests](/tests/integrationtests).
 
 ## Method call timeout
 
@@ -1338,7 +1382,7 @@ We read property value easily through `IProxy::getProperty()` method:
 uint32_t status = proxy->getProperty("status").onInterface("org.sdbuscpp.Concatenator");
 ```
 
-Getting a property in asynchronous manner is also possible, in both callback-based and future-based way, by calling `IProxy::getPropertyAsync()` method:
+Getting a property in asynchronous manner is also possible, in callback-based, future-based, or (with C++20) awaitable way, by calling `IProxy::getPropertyAsync()` method:
 
 ```c++
 // Callback-based method:
@@ -1347,10 +1391,15 @@ auto callback = [](std::optional<sdbus::Error> /*error*/, sdbus::Variant value)
     std::cout << "Got property value: " << value.get<uint32_t>() << std::endl;
 };
 uint32_t status = proxy->getPropertyAsync("status").onInterface("org.sdbuscpp.Concatenator").uponReplyInvoke(std::move(callback));
+
 // Future-based method:
 std::future<sdbus::Variant> statusFuture = object.getPropertyAsync("status").onInterface("org.sdbuscpp.Concatenator").getResultAsFuture();
 ...
 std::cout << "Got property value: " << statusFuture.get().get<uint32_t>() << std::endl;
+
+// Awaitable method (C++20):
+auto value = co_await proxy->getPropertyAsync("status").onInterface("org.sdbuscpp.Concatenator").getResultAsAwaitable();
+std::cout << "Got property value: " << value.get<uint32_t>() << std::endl;
 ```
 
 More information on an `error` callback handler parameter, on behavior of `future` in erroneous situations, can be found in section [Asynchronous client-side methods](#asynchronous-client-side-methods).
@@ -1364,14 +1413,18 @@ uint32_t status = ...;
 proxy->setProperty("status").onInterface("org.sdbuscpp.Concatenator").toValue(status);
 ```
 
-Setting a property in asynchronous manner is also possible, in both callback-based and future-based way, by calling `IProxy::setPropertyAsync()` method:
+Setting a property in asynchronous manner is also possible, in callback-based, future-based, or awaitable way, by calling `IProxy::setPropertyAsync()` method:
 
 ```c++
 // Callback-based method:
 auto callback = [](std::optional<sdbus::Error> error { /*... Error handling in case error contains a value...*/ };
 uint32_t status = proxy->setPropertyAsync("status").onInterface("org.sdbuscpp.Concatenator").toValue(status).uponReplyInvoke(std::move(callback));
+
 // Future-based method:
 std::future<void> statusFuture = object.setPropertyAsync("status").onInterface("org.sdbuscpp.Concatenator").getResultAsFuture();
+
+// Awaitable method (C++20):
+co_await proxy->setPropertyAsync("status").onInterface("org.sdbuscpp.Concatenator").toValue(status).getResultAsAwaitable();
 ```
 
 More information on `error` callback handler parameter, on behavior of `future` in erroneous situations, can be found in section [Asynchronous client-side methods](#asynchronous-client-side-methods).
@@ -1468,7 +1521,7 @@ When implementing the adaptor, we simply need to provide the body for the `statu
 
 We can mark the property so that the generator generates either asynchronous variant of getter method, or asynchronous variant of setter method, or both. Annotations names are `org.freedesktop.DBus.Property.Get.Async`, or `org.freedesktop.DBus.Property.Set.Async`, respectively. Their values must be set to `client`.
 
-In addition, we can choose through annotations `org.freedesktop.DBus.Property.Get.Async.ClientImpl`, or `org.freedesktop.DBus.Property.Set.Async.ClientImpl`, respectively, whether a callback-based or future-based variant will be generated. The concept is analogous to the one for asynchronous D-Bus methods described above in this document.
+In addition, we can choose through annotations `org.freedesktop.DBus.Property.Get.Async.ClientImpl`, or `org.freedesktop.DBus.Property.Set.Async.ClientImpl`, respectively, whether a callback-based, future-based, or awaitable variant will be generated. Supported values are `callback`, `future`, and `awaitable`. The concept is analogous to the one for asynchronous D-Bus methods described above in this document.
 
 The callback-based method will generate a pure virtual function `On<PropertyName>Property[Get|Set]Reply()`, which must be overridden by the derived class.
 
@@ -1679,7 +1732,7 @@ The macro must be placed in the global namespace. The first argument is the stru
 
 This is described in detail in the following sections.
 
-> **_Note_:** The macro supports **max 16 struct members**. If you need more, feel free to open an issue, or implement the teaching code yourself :o) 
+> **_Note_:** The macro supports **max 16 struct members**. If you need more, feel free to open an issue, or implement the teaching code yourself :o)
 
 > **_Another note_:** You may have noticed one of `my::Struct` members is `std::list`. Thanks to the custom support for `std::list` implemented higher above, it's now automatically accepted by sdbus-c++ as a D-Bus array representation.
 

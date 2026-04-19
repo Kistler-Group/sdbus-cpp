@@ -196,6 +196,38 @@ std::future<void> TestProxy::doErroneousOperationClientSideAsync(with_future_t)
                      .getResultAsFuture<>();
 }
 
+sdbus::Awaitable<uint32_t> TestProxy::doOperationClientSideAsync(uint32_t param, sdbus::with_awaitable_t)
+{
+    return getProxy().callMethodAsync("doOperation")
+                     .onInterface(sdbus::test::INTERFACE_NAME)
+                     .withArguments(param)
+                     .getResultAsAwaitable<uint32_t>();
+}
+
+sdbus::Awaitable<std::map<int32_t, std::string>> TestProxy::doOperationWithLargeDataClientSideAsync(const std::map<int32_t, std::string>& largeParam, sdbus::with_awaitable_t)
+{
+    return getProxy().callMethodAsync("doOperationWithLargeData")
+                     .onInterface(sdbus::test::INTERFACE_NAME)
+                     .withArguments(largeParam)
+                     .getResultAsAwaitable<std::map<int32_t, std::string>>();
+}
+
+sdbus::Awaitable<MethodReply> TestProxy::doOperationClientSideAsyncOnBasicAPILevel(uint32_t param, sdbus::with_awaitable_t)
+{
+    auto methodCall = getProxy().createMethodCall(sdbus::test::INTERFACE_NAME, sdbus::MethodName{"doOperation"});
+    methodCall << param;
+
+    return getProxy().callMethodAsync(methodCall, sdbus::with_awaitable);
+}
+
+
+sdbus::Awaitable<void> TestProxy::doErroneousOperationClientSideAsync(sdbus::with_awaitable_t)
+{
+    return getProxy().callMethodAsync("throwError")
+                     .onInterface(sdbus::test::INTERFACE_NAME)
+                     .getResultAsAwaitable<>();
+}
+
 void TestProxy::doOperationClientSideAsyncWithTimeout(const std::chrono::microseconds &timeout, uint32_t param)
 {
     using namespace std::chrono_literals;
