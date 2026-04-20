@@ -166,15 +166,15 @@ std::future<MethodReply> Proxy::callMethodAsync(const MethodCall& message, with_
 
 std::future<MethodReply> Proxy::callMethodAsync(const MethodCall& message, uint64_t timeout, with_future_t)
 {
-    auto promise = std::make_shared<std::promise<MethodReply>>();
-    auto future = promise->get_future();
+    std::promise<MethodReply> promise;
+    auto future = promise.get_future();
 
-    async_reply_handler asyncReplyCallback = [promise = std::move(promise)](MethodReply reply, std::optional<Error> error) noexcept
+    async_reply_handler asyncReplyCallback = [promise = std::move(promise)](MethodReply reply, std::optional<Error> error) mutable noexcept
     {
         if (!error)
-            promise->set_value(std::move(reply));
+            promise.set_value(std::move(reply));
         else
-            promise->set_exception(std::make_exception_ptr(*std::move(error)));
+            promise.set_exception(std::make_exception_ptr(*std::move(error)));
     };
 
     (void)Proxy::callMethodAsync(message, std::move(asyncReplyCallback), timeout);
