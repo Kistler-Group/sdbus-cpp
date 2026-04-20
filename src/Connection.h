@@ -181,11 +181,11 @@ namespace sdbus::internal {
         sd_bus_message* createErrorReplyMessage(sd_bus_message* sdbusMsg, const Error& error) override;
 
     private:
-        using BusFactory = std::move_only_function<int(sd_bus**)>;
+        using BusFactory = std::move_only_function<int(sd_bus**) &&>;
         using BusPtr = std::unique_ptr<sd_bus, std::move_only_function<sd_bus*(sd_bus*)>>;
         Connection(std::unique_ptr<ISdBus>&& interface, BusFactory&& busFactory);
 
-        BusPtr openBus(std::move_only_function<int(sd_bus**)>&& busFactory);
+        BusPtr openBus(BusFactory&& busFactory);
         BusPtr openPseudoBus();
         void finishHandshake(sd_bus* bus);
         bool waitForNextEvent();
@@ -233,8 +233,8 @@ namespace sdbus::internal {
 
         struct MatchInfo
         {
-            message_handler&& callback;
-            match_install_handler&& installCallback;
+            message_handler callback;
+            match_install_handler installCallback;
             Connection& connection; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
             Slot slot;
         };

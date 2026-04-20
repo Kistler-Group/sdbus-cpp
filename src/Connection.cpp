@@ -742,7 +742,7 @@ sd_bus_message* Connection::createErrorReplyMessage(sd_bus_message* sdbusMsg, co
 Connection::BusPtr Connection::openBus(BusFactory&& busFactory)
 {
     sd_bus* bus{};
-    const int r = busFactory(&bus);
+    const int r = std::move(busFactory)(&bus);
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to open bus", -r);
 
     BusPtr busPtr{bus, [this](sd_bus* bus){ return sdbus_->sd_bus_flush_close_unref(bus); }};
