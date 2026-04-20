@@ -61,7 +61,7 @@ jobs:
     - name: verify
       run: |
         sudo cmake --build _build --target install
-        ctest --output-on-failure
+        ctest --output-on-failure --test-dir _build
     - name: pack
       if: matrix.build == 'shared-libsystemd'
       run: |
