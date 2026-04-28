@@ -350,10 +350,9 @@ TYPED_TEST(SdbusTestObject, CanRegisterAdditionalVTableDynamicallyAtAnyTime)
 {
     auto& object = this->m_adaptor->getObject();
     sdbus::InterfaceName const interfaceName{"org.sdbuscpp.integrationtests2"};
-    auto vtableSlot = object.addVTable( interfaceName
-                                      , { sdbus::registerMethod("add").implementedAs([](const double& lhs, const double& rhs){ return lhs + rhs; })
-                                        , sdbus::registerMethod("subtract").implementedAs([](const int& lhs, const int& rhs){ return lhs - rhs; }) }
-                                      , sdbus::return_slot );
+    auto vtableSlot = object.addVTable( sdbus::registerMethod("add").implementedAs([](const double& lhs, const double& rhs){ return lhs + rhs; })
+                                      , sdbus::registerMethod("subtract").implementedAs([](const int& lhs, const int& rhs){ return lhs - rhs; })
+                                      ).forInterface(interfaceName, sdbus::return_slot);
 
     // The new remote vtable is registered as long as we keep vtableSlot, so remote method calls now should pass
     auto proxy = sdbus::createLightWeightProxy(SERVICE_NAME, OBJECT_PATH);
@@ -367,11 +366,10 @@ TYPED_TEST(SdbusTestObject, CanUnregisterAdditionallyRegisteredVTableAtAnyTime)
 {
     auto& object = this->m_adaptor->getObject();
     sdbus::InterfaceName const interfaceName{"org.sdbuscpp.integrationtests2"};
+    auto vtableSlot = object.addVTable( sdbus::registerMethod("add").implementedAs([](const double& lhs, const double& rhs){ return lhs + rhs; })
+                                      , sdbus::registerMethod("subtract").implementedAs([](const int& lhs, const int& rhs){ return lhs - rhs; })
+                                      ).forInterface(interfaceName, sdbus::return_slot);
 
-    auto vtableSlot = object.addVTable( interfaceName
-                                      , { sdbus::registerMethod("add").implementedAs([](const double& lhs, const double& rhs){ return lhs + rhs; })
-                                        , sdbus::registerMethod("subtract").implementedAs([](const int& lhs, const int& rhs){ return lhs - rhs; }) }
-                                      , sdbus::return_slot );
     vtableSlot.reset(); // Letting the slot go means letting go the associated vtable registration
 
     // No such remote D-Bus method under given interface exists anymore...

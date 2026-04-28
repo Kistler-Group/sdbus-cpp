@@ -111,12 +111,12 @@ namespace sdbus::internal {
         void setMethodCallTimeout(uint64_t timeout) override;
         [[nodiscard]] uint64_t getMethodCallTimeout() const override;
 
-        void addMatch(const std::string& match, message_handler callback) override;
-        [[nodiscard]] Slot addMatch(const std::string& match, message_handler callback, return_slot_t) override;
-        void addMatchAsync(const std::string& match, message_handler callback, message_handler installCallback) override;
+        void addMatch(const std::string& match, message_handler&& callback) override;
+        [[nodiscard]] Slot addMatch(const std::string& match, message_handler&& callback, return_slot_t) override;
+        void addMatchAsync(const std::string& match, message_handler&& callback, match_install_handler&& installCallback) override;
         [[nodiscard]] Slot addMatchAsync( const std::string& match
-                                        , message_handler callback
-                                        , message_handler installCallback
+                                        , message_handler&& callback
+                                        , match_install_handler&& installCallback
                                         , return_slot_t ) override;
 
         void attachSdEventLoop(sd_event *event, int priority) override;
@@ -181,11 +181,11 @@ namespace sdbus::internal {
         sd_bus_message* createErrorReplyMessage(sd_bus_message* sdbusMsg, const Error& error) override;
 
     private:
-        using BusFactory = std::function<int(sd_bus**)>;
-        using BusPtr = std::unique_ptr<sd_bus, std::function<sd_bus*(sd_bus*)>>;
-        Connection(std::unique_ptr<ISdBus>&& interface, const BusFactory& busFactory);
+        using BusFactory = std::move_only_function<int(sd_bus**) &&>;
+        using BusPtr = std::unique_ptr<sd_bus, std::move_only_function<sd_bus*(sd_bus*)>>;
+        Connection(std::unique_ptr<ISdBus>&& interface, BusFactory&& busFactory);
 
-        BusPtr openBus(const std::function<int(sd_bus**)>& busFactory);
+        BusPtr openBus(BusFactory&& busFactory);
         BusPtr openPseudoBus();
         void finishHandshake(sd_bus* bus);
         bool waitForNextEvent();
@@ -234,7 +234,7 @@ namespace sdbus::internal {
         struct MatchInfo
         {
             message_handler callback;
-            message_handler installCallback;
+            match_install_handler installCallback;
             Connection& connection; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
             Slot slot;
         };

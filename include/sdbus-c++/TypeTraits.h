@@ -74,15 +74,21 @@ namespace sdbus {
 namespace sdbus {
 
     // Callbacks from sdbus-c++
-    using method_callback = std::function<void(MethodCall msg)>;
-    using async_reply_handler = std::function<void(MethodReply reply, std::optional<Error> error)>;
-    using signal_handler = std::function<void(Signal signal)>;
-    using message_handler = std::function<void(Message msg)>;
-    using property_set_callback = std::function<void(PropertySetCall msg)>;
-    using property_get_callback = std::function<void(PropertyGetReply& reply)>;
+    // Repeatable server-side and client-side callbacks
+    using method_callback = std::move_only_function<void(MethodCall msg)>;
+    using property_set_callback = std::move_only_function<void(PropertySetCall msg)>;
+    using property_get_callback = std::move_only_function<void(PropertyGetReply& reply)>;
+    using signal_handler = std::move_only_function<void(Signal signal)>;
+    using message_handler = std::move_only_function<void(Message msg)>;
+
+    // One-shot callbacks: invoked exactly once (async reply arrives / match rule installed).
+    // Rvalue-qualified so the library must std::move to invoke, making the call-once contract
+    // visible at the call site and letting handlers move-consume captured resources.
+    using async_reply_handler = std::move_only_function<void(MethodReply reply, std::optional<Error> error) &&>;
+    using match_install_handler = std::move_only_function<void(Message msg) &&>;
 
     // Type-erased RAII-style handle to callbacks/subscriptions registered to sdbus-c++
-    using Slot = std::unique_ptr<void, std::function<void(void*)>>;
+    using Slot = std::unique_ptr<void, std::move_only_function<void(void*)>>;
 
     // Tag specifying that an owning handle (so-called slot) of the logical resource shall be provided to the client
     struct return_slot_t { explicit return_slot_t() = default; };
@@ -380,6 +386,9 @@ namespace sdbus {
         static constexpr bool is_trivial_dbus_type = false;
     };
 
+    template <typename... Types>
+    concept valid_signature = signature_of<Types...>::is_valid;
+
     // To simplify conversions of arrays to C strings
     template <typename T, std::size_t N>
     constexpr auto as_null_terminated(std::array<T, N> arr)
@@ -506,6 +515,10 @@ namespace sdbus {
 
     template <typename FunctionType>
     struct function_traits<std::function<FunctionType>> : function_traits<FunctionType>
+    {};
+
+    template <typename FunctionType>
+    struct function_traits<std::move_only_function<FunctionType>> : function_traits<FunctionType>
     {};
 
     template <class Function>

@@ -300,7 +300,7 @@ void Object::finalizeSdBusVTable(std::vector<sd_bus_vtable>& vtable)
     vtable.push_back(createSdBusVTableEndItem());
 }
 
-const Object::VTable::MethodItem* Object::findMethod(const VTable& vtable, std::string_view methodName)
+Object::VTable::MethodItem* Object::findMethod(VTable& vtable, std::string_view methodName)
 {
     auto it = std::lower_bound(vtable.methods.begin(), vtable.methods.end(), methodName, [](const auto& methodItem, const auto& methodName)
     {
@@ -310,7 +310,7 @@ const Object::VTable::MethodItem* Object::findMethod(const VTable& vtable, std::
     return it != vtable.methods.end() && it->name == methodName ? &*it : nullptr;
 }
 
-const Object::VTable::PropertyItem* Object::findProperty(const VTable& vtable, std::string_view propertyName)
+Object::VTable::PropertyItem* Object::findProperty(VTable& vtable, std::string_view propertyName)
 {
     auto it = std::lower_bound(vtable.properties.begin(), vtable.properties.end(), propertyName, [](const auto& propertyItem, const auto& propertyName)
     {
@@ -336,11 +336,11 @@ int Object::sdbus_method_callback(sd_bus_message *sdbusMessage, void *userData, 
 
     auto message = Message::Factory::create<MethodCall>(sdbusMessage, &vtable->object->connection_);
 
-    const auto* methodItem = findMethod(*vtable, message.getMemberName());
+    auto* methodItem = findMethod(*vtable, message.getMemberName());
     assert(methodItem != nullptr);
     assert(methodItem->callback);
 
-    auto ok = invokeHandlerAndCatchErrors([&](){ methodItem->callback(std::move(message)); }, retError);
+    auto ok = invokeHandlerAndCatchErrors([&] { methodItem->callback(std::move(message)); }, retError);
 
     return ok ? 1 : -1;
 }
@@ -357,7 +357,7 @@ int Object::sdbus_property_get_callback( sd_bus */*bus*/
     assert(vtable != nullptr);
     assert(vtable->object != nullptr);
 
-    const auto* propertyItem = findProperty(*vtable, property);
+    auto* propertyItem = findProperty(*vtable, property);
     assert(propertyItem != nullptr);
 
     // Getter may be empty - the case of "write-only" property
@@ -369,7 +369,7 @@ int Object::sdbus_property_get_callback( sd_bus */*bus*/
 
     auto reply = Message::Factory::create<PropertyGetReply>(sdbusReply, &vtable->object->connection_);
 
-    auto ok = invokeHandlerAndCatchErrors([&](){ propertyItem->getCallback(reply); }, retError);
+    auto ok = invokeHandlerAndCatchErrors([&] { propertyItem->getCallback(reply); }, retError);
 
     return ok ? 1 : -1;
 }
@@ -386,13 +386,13 @@ int Object::sdbus_property_set_callback( sd_bus */*bus*/
     assert(vtable != nullptr);
     assert(vtable->object != nullptr);
 
-    const auto* propertyItem = findProperty(*vtable, property);
+    auto* propertyItem = findProperty(*vtable, property);
     assert(propertyItem != nullptr);
     assert(propertyItem->setCallback);
 
     auto value = Message::Factory::create<PropertySetCall>(sdbusValue, &vtable->object->connection_);
 
-    auto ok = invokeHandlerAndCatchErrors([&](){ propertyItem->setCallback(std::move(value)); }, retError);
+    auto ok = invokeHandlerAndCatchErrors([&] { propertyItem->setCallback(std::move(value)); }, retError);
 
     return ok ? 1 : -1;
 }

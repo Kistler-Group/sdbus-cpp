@@ -1,0 +1,3 @@
+# TODO: Introduce common clang-format rule set
+DisableFormat: true
+SortIncludes: false
