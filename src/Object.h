@@ -145,8 +145,8 @@ namespace sdbus::internal {
         static void writePropertyRecordToSdBusVTable(const VTable::PropertyItem& property, std::vector<sd_bus_vtable>& vtable);
         static void finalizeSdBusVTable(std::vector<sd_bus_vtable>& vtable);
 
-        static const VTable::MethodItem* findMethod(const VTable& vtable, std::string_view methodName);
-        static const VTable::PropertyItem* findProperty(const VTable& vtable, std::string_view propertyName);
+        static VTable::MethodItem* findMethod(VTable& vtable, std::string_view methodName);
+        static VTable::PropertyItem* findProperty(VTable& vtable, std::string_view propertyName);
 
         static std::string paramNamesToString(const std::vector<std::string>& paramNames);
 

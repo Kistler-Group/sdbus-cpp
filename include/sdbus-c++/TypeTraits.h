@@ -74,14 +74,10 @@ namespace sdbus {
 namespace sdbus {
 
     // Callbacks from sdbus-c++
-    // Server-side vtable entries: looked up through a const vtable, so invocation is const.
-    // Handlers should be pure w.r.t. their own state (capture shared state by ref/shared_ptr).
-    using method_callback = std::move_only_function<void(MethodCall msg) const>;
-    using property_set_callback = std::move_only_function<void(PropertySetCall msg) const>;
-    using property_get_callback = std::move_only_function<void(PropertyGetReply& reply) const>;
-
-    // Client-side reactive handlers: stored non-const, stateful captures are permitted
-    // (counters, rolling averages, debouncers).
+    // Repeatable server-side and client-side callbacks
+    using method_callback = std::move_only_function<void(MethodCall msg)>;
+    using property_set_callback = std::move_only_function<void(PropertySetCall msg)>;
+    using property_get_callback = std::move_only_function<void(PropertyGetReply& reply)>;
     using signal_handler = std::move_only_function<void(Signal signal)>;
     using message_handler = std::move_only_function<void(Message msg)>;
 

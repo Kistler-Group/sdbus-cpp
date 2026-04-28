@@ -57,11 +57,11 @@
 namespace sdbus::internal {
 
     template <typename Callable>
-    bool invokeHandlerAndCatchErrors(const Callable& callable, sd_bus_error *retError)
+    bool invokeHandlerAndCatchErrors(Callable&& callable, sd_bus_error *retError)
     {
         try
         {
-            callable();
+            std::forward<Callable>(callable)();
         }
         catch (const Error& e)
         {

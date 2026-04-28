@@ -44,7 +44,7 @@ namespace sdbus {
     {
         inputSignature = signature_of_function_input_arguments_v<Function>;
         outputSignature = signature_of_function_output_arguments_v<Function>;
-        callbackHandler = [callback = std::forward<Function>(callback)](MethodCall call)
+        callbackHandler = [callback = std::forward<Function>(callback)](MethodCall call) mutable
         {
             // Create a tuple of callback input arguments' types, which will be used
             // as a storage for the argument values deserialized from the message.
@@ -194,7 +194,7 @@ namespace sdbus {
         if (signature.empty())
             signature = signature_of_function_output_arguments_v<Function>;
 
-        getter = [callback = std::forward<Function>(callback)](PropertyGetReply& reply)
+        getter = [callback = std::forward<Function>(callback)](PropertyGetReply& reply) mutable
         {
             // Get the propety value and serialize it into the pre-constructed reply message
             reply << callback();
@@ -212,7 +212,7 @@ namespace sdbus {
         if (signature.empty())
             signature = signature_of_function_input_arguments_v<Function>;
 
-        setter = [callback = std::forward<Function>(callback)](PropertySetCall call)
+        setter = [callback = std::forward<Function>(callback)](PropertySetCall call) mutable
         {
             // Default-construct property value
             using property_type = function_argument_t<Function, 0>;
