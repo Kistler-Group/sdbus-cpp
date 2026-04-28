@@ -442,13 +442,23 @@ namespace sdbus {
     template <typename... VTableItems, typename>
     void IObject::addVTable(InterfaceName interfaceName, VTableItems&&... items)
     {
-        addVTable(std::move(interfaceName), {std::forward<VTableItems>(items)...});
+        // Built via emplace_back rather than a braced initializer_list: items hold move-only
+        // callbacks, and initializer_list elements are const (copy-only).
+        std::vector<VTableItem> vtable;
+        vtable.reserve(sizeof...(items));
+        (vtable.emplace_back(std::forward<VTableItems>(items)), ...);
+        addVTable(std::move(interfaceName), std::move(vtable));
     }
 
     template <typename... VTableItems, typename>
     VTableAdder IObject::addVTable(VTableItems&&... items)
     {
-        return addVTable(std::vector<VTableItem>{std::forward<VTableItems>(items)...});
+        // Built via emplace_back rather than a braced initializer_list: items hold move-only
+        // callbacks, and initializer_list elements are const (copy-only).
+        std::vector<VTableItem> vtable;
+        vtable.reserve(sizeof...(items));
+        (vtable.emplace_back(std::forward<VTableItems>(items)), ...);
+        return addVTable(std::move(vtable));
     }
 
     inline VTableAdder IObject::addVTable(std::vector<VTableItem> vtable)

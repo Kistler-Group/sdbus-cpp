@@ -277,7 +277,7 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void addMatch(const std::string& match, message_handler callback) = 0;
+        virtual void addMatch(const std::string& match, message_handler&& callback) = 0;
 
         /*!
          * @brief Installs a match rule for messages received on this bus connection
@@ -300,14 +300,14 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        [[nodiscard]] virtual Slot addMatch(const std::string& match, message_handler callback, return_slot_t) = 0;
+        [[nodiscard]] virtual Slot addMatch(const std::string& match, message_handler&& callback, return_slot_t) = 0;
 
         /*!
          * @brief Asynchronously installs a floating match rule for messages received on this bus connection
          *
          * @param[in] match Match expression to filter incoming D-Bus message
          * @param[in] callback Callback handler to be called upon processing an inbound D-Bus message matching the rule
-         * @param[in] installCallback Callback handler to be called upon processing an inbound D-Bus message matching the rule
+         * @param[in] installCallback One-shot handler invoked once with the broker's response to the install request
          *
          * This method operates the same as `addMatch()` above, just that it installs the match rule asynchronously,
          * in a non-blocking fashion. A request is sent to the broker, but the call does not wait for a response.
@@ -323,14 +323,14 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        virtual void addMatchAsync(const std::string& match, message_handler callback, message_handler installCallback) = 0;
+        virtual void addMatchAsync(const std::string& match, message_handler&& callback, match_install_handler&& installCallback) = 0;
 
         /*!
          * @brief Asynchronously installs a match rule for messages received on this bus connection
          *
          * @param[in] match Match expression to filter incoming D-Bus message
          * @param[in] callback Callback handler to be called upon processing an inbound D-Bus message matching the rule
-         * @param[in] installCallback Callback handler to be called upon processing an inbound D-Bus message matching the rule
+         * @param[in] installCallback One-shot handler invoked once with the broker's response to the install request
          * @return RAII-style slot handle representing the ownership of the subscription
          *
          * This method operates the same as `addMatch()` above, just that it installs the match rule asynchronously,
@@ -347,8 +347,8 @@ namespace sdbus {
          * @throws sdbus::Error in case of failure
          */
         [[nodiscard]] virtual Slot addMatchAsync( const std::string& match
-                                                , message_handler callback
-                                                , message_handler installCallback
+                                                , message_handler&& callback
+                                                , match_install_handler&& installCallback
                                                 , return_slot_t ) = 0;
 
         /*!
