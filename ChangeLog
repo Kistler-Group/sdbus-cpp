@@ -315,3 +315,10 @@ v2.2.0
 v2.2.1
 - Fix component names in CPack configuration
 - Generate correct, expected DEB package names
+
+v2.3.0
+- Add coroutine support for client-side async calls
+- Add support for dumping variant to string
+- Introduce clang-tidy for static analysis and fix issues
+- Add deduction guides for Struct from std::tuple
+- Other fixes and improvements
