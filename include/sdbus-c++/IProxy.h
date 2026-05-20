@@ -606,44 +606,6 @@ namespace sdbus {
                                                 , with_future_t );
 
         /*!
-         * @brief Calls method on the D-Bus object asynchronously
-         *
-         * @param[in] message Message representing a D-Bus method call
-         * @return An awaitable object that can be co_await'ed to retrieve the result
-         *
-         * This function call the remote D-Bus object asynchronously and return
-         * an awaitable that can be used with `co_await` to suspend a coroutine
-         * until the result is available.
-         *
-         * The call itself is non-blocking: the method call is performed and the method
-         * returns. The awaitable should be used to retrieve the result.
-         *
-         * The coroutine continuation (code after `co_await`) runs on the context of
-         * the bus connection I/O event loop thread.
-         *
-         * The default D-Bus method call timeout is used. See IConnection::getMethodCallTimeout().
-         *
-         * @throws sdbus::Error in case of failure (propagated when awaited)
-         */
-        virtual Awaitable<MethodReply> callMethodAsync(const MethodCall& message, with_awaitable_t) = 0;
-
-        /*!
-         * @brief Calls method on the D-Bus object asynchronously, with custom timeout
-         *
-         * @param[in] message Message representing a D-Bus method call
-         * @param[in] timeout Timeout for the method call in microseconds
-         * @return An awaitable object that can be co_await'ed to retrieve the result
-         *
-         * This behaves the same as IProxy::callMethodAsync(const MethodCall&, with_awaitable_t),
-         * but with a custom timeout for the method call. If timeout is zero, the behavior is identical.
-         *
-         * @throws sdbus::Error in case of failure (propagated when awaited)
-         */
-        virtual Awaitable<MethodReply> callMethodAsync( const MethodCall& message
-                                                      , uint64_t timeout
-                                                      , with_awaitable_t ) = 0;
-
-        /*!
          * @copydoc IProxy::callMethodAsync(const MethodCall&,uint64_t,with_awaitable_t)
          */
         template <typename Rep, typename Period>
@@ -705,6 +667,45 @@ namespace sdbus {
                                                         , const char* signalName
                                                         , signal_handler signalHandler
                                                         , return_slot_t ) = 0;
+
+    public: // New virtual functions in sdbus-c++ v2, for ABI compatibility
+        /*!
+         * @brief Calls method on the D-Bus object asynchronously
+         *
+         * @param[in] message Message representing a D-Bus method call
+         * @return An awaitable object that can be co_await'ed to retrieve the result
+         *
+         * This function call the remote D-Bus object asynchronously and return
+         * an awaitable that can be used with `co_await` to suspend a coroutine
+         * until the result is available.
+         *
+         * The call itself is non-blocking: the method call is performed and the method
+         * returns. The awaitable should be used to retrieve the result.
+         *
+         * The coroutine continuation (code after `co_await`) runs on the context of
+         * the bus connection I/O event loop thread.
+         *
+         * The default D-Bus method call timeout is used. See IConnection::getMethodCallTimeout().
+         *
+         * @throws sdbus::Error in case of failure (propagated when awaited)
+         */
+        virtual Awaitable<MethodReply> callMethodAsync(const MethodCall& message, with_awaitable_t) = 0;
+
+        /*!
+         * @brief Calls method on the D-Bus object asynchronously, with custom timeout
+         *
+         * @param[in] message Message representing a D-Bus method call
+         * @param[in] timeout Timeout for the method call in microseconds
+         * @return An awaitable object that can be co_await'ed to retrieve the result
+         *
+         * This behaves the same as IProxy::callMethodAsync(const MethodCall&, with_awaitable_t),
+         * but with a custom timeout for the method call. If timeout is zero, the behavior is identical.
+         *
+         * @throws sdbus::Error in case of failure (propagated when awaited)
+         */
+        virtual Awaitable<MethodReply> callMethodAsync( const MethodCall& message
+                                                      , uint64_t timeout
+                                                      , with_awaitable_t ) = 0;
     };
 
     /********************************************//**
