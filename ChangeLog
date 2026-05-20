@@ -322,3 +322,6 @@ v2.3.0
 - Introduce clang-tidy for static analysis and fix issues
 - Add deduction guides for Struct from std::tuple
 - Other fixes and improvements
+
+v2.3.1
+- Fix ABI compat issue by moving new virtual functions to the end of the class
