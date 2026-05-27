@@ -311,6 +311,11 @@ void TestAdaptor::emitSignalWithoutRegistration(const sdbus::Struct<std::string,
     getObject().emitSignal("signalWithoutRegistration").onInterface(sdbus::test::INTERFACE_NAME).withArguments(strct);
 }
 
+void TestAdaptor::emitSignalWithErrorAndTypeMismatch()
+{
+    getObject().emitSignal("signalWithErrorAndTypeMismatch").onInterface(sdbus::test::INTERFACE_NAME);
+}
+
 std::string TestAdaptor::getExpectedXmlApiDescription() 
 {
     return

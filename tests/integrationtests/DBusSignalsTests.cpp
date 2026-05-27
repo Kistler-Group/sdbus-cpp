@@ -114,6 +114,14 @@ TYPED_TEST(SdbusTestObject, EmitsSignalWithoutRegistrationSuccessfully)
     ASSERT_THAT(this->m_proxy->m_signatureFromSignal["platform"], Eq(sdbus::Signature{"av"}));
 }
 
+TYPED_TEST(SdbusTestObject, EmitsSignalWithErrorAndTypeMismatchSuccessfully)
+{
+    this->m_adaptor->emitSignalWithErrorAndTypeMismatch();
+
+    ASSERT_TRUE(waitUntil(this->m_proxy->m_gotSignalWithTypeMismatch));
+    ASSERT_TRUE(this->m_proxy->m_errorFromSignal.has_value());
+}
+
 TYPED_TEST(SdbusTestObject, CanAccessAssociatedSignalMessageInSignalHandler)
 {
     this->m_adaptor->emitSimpleSignal();
