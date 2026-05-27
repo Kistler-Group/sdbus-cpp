@@ -462,7 +462,7 @@ namespace sdbus {
                 }
 
                 // Invoke callback with no error and input arguments from the tuple.
-                sdbus::apply(callback, {}, signalArgs);
+                sdbus::apply(callback, std::nullopt, signalArgs);
             }
             else
             {
