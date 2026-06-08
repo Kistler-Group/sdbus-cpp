@@ -106,6 +106,7 @@ protected:
 
 public:
     void emitSignalWithoutRegistration(const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& strct);
+    void emitSignalWithErrorAndTypeMismatch();
     static std::string getExpectedXmlApiDescription() ;
 
 private:

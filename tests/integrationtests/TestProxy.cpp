@@ -45,6 +45,7 @@ TestProxy::TestProxy(ServiceName destination, ObjectPath objectPath)
     : ProxyInterfaces(std::move(destination), std::move(objectPath))
 {
     getProxy().uponSignal("signalWithoutRegistration").onInterface(sdbus::test::INTERFACE_NAME).call([this](const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& strct){ this->onSignalWithoutRegistration(strct); });
+    getProxy().uponSignal("signalWithErrorAndTypeMismatch").onInterface(sdbus::test::INTERFACE_NAME).call([this](std::optional<sdbus::Error> err, int wrongParameter){ this->onSignalWithErrorAndTypeMismatch(std::move(err), wrongParameter); });
 
     registerProxy();
 }
@@ -60,6 +61,7 @@ TestProxy::TestProxy(sdbus::IConnection& connection, ServiceName destination, Ob
     : ProxyInterfaces(connection, std::move(destination), std::move(objectPath))
 {
     getProxy().uponSignal("signalWithoutRegistration").onInterface(sdbus::test::INTERFACE_NAME).call([this](const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& strct){ this->onSignalWithoutRegistration(strct); });
+    getProxy().uponSignal("signalWithErrorAndTypeMismatch").onInterface(sdbus::test::INTERFACE_NAME).call([this](std::optional<sdbus::Error> err, int wrongParameter){ this->onSignalWithErrorAndTypeMismatch(std::move(err), wrongParameter); });
 
     registerProxy();
 }
@@ -94,6 +96,12 @@ void TestProxy::onSignalWithoutRegistration(const sdbus::Struct<std::string, sdb
     // Static cast to std::string is a workaround for gcc 11.4 false positive warning (which later gcc versions nor Clang emit)
     m_signatureFromSignal[std::get<0>(strct)] = static_cast<std::string>(std::get<0>(std::get<1>(strct)));
     m_gotSignalWithSignature = true;
+}
+
+void TestProxy::onSignalWithErrorAndTypeMismatch(std::optional<sdbus::Error> err, [[maybe_unused]] int wrongParameter)
+{
+    m_errorFromSignal = std::move(err);
+    m_gotSignalWithTypeMismatch = true;
 }
 
 void TestProxy::onDoOperationReply(uint32_t returnValue, std::optional<sdbus::Error> error) const

@@ -611,10 +611,10 @@ We recommend that sdbus-c++ users prefer the convenience API to the lower level,
 
 > **_Note_:** By default, signal callback handlers are not invoked (i.e., the signal is silently dropped) if there is a signal signature mismatch. If you want to be informed of such situations, you can add `std::optional<sdbus::Error>` parameter to the beginning of your signal callback handler's parameter list. When sdbus-c++ invokes the handler, it will set this argument either to be empty (in normal cases), or to carry a corresponding `sdbus::Error` object (in case of deserialization failures, like type mismatches). An example of a handler with the signature (`int`) different from the real signal contents (`string`):
 > ```c++
->     void onConcatenated(std::optional<sdbus::Error> e, int wrongParameter)
+>     void onConcatenated(std::optional<sdbus::Error> err, int wrongParameter)
 >     {
->         assert(e.has_value());
->         assert(e->getMessage() == "Failed to deserialize a int32 value");
+>         assert(err.has_value());
+>         assert(err->getMessage() == "Failed to deserialize a int32 value");
 >     }
 > ```
 > Signature mismatch in signal handlers is probably the most common reason why signals are not received in the client, while we can see them on the bus with `dbus-monitor`. Use `std::optional<sdbus::Error>`-based callback variant and inspect the error to check if that's the cause of your problems.

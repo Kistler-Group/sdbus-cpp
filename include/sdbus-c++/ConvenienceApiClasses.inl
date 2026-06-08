@@ -317,11 +317,11 @@ namespace sdbus {
                 {
                     reply >> args;
                 }
-                catch (const Error& e)
+                catch (const Error& err)
                 {
                     // Pass message deserialization exceptions to the client via callback error parameter,
                     // instead of propagating them up the message loop call stack.
-                    sdbus::apply(callback, e, args);
+                    sdbus::apply(callback, err, args);
                     return;
                 }
             }
@@ -453,16 +453,16 @@ namespace sdbus {
                 {
                     signal >> signalArgs;
                 }
-                catch (const Error& e)
+                catch (const Error& err)
                 {
                     // Pass message deserialization exceptions to the client via callback error parameter,
                     // instead of propagating them up the message loop call stack.
-                    sdbus::apply(callback, e, signalArgs);
+                    sdbus::apply(callback, err, signalArgs);
                     return;
                 }
 
                 // Invoke callback with no error and input arguments from the tuple.
-                sdbus::apply(callback, {}, signalArgs);
+                sdbus::apply(callback, std::nullopt, signalArgs);
             }
             else
             {
