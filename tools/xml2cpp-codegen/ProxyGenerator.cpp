@@ -246,7 +246,7 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes&
         if (asyncImpl.has_value() && *asyncImpl == AsyncImpl::DirectCallback)
         {
             definitionSS << tab << "template <typename F>" << endl
-                << tab << realRetType << " " << nameSafe << "(" << inArgTypeStr << (not inArgTypeStr.empty() ? ", " : "") << "F && callback" << ")" << endl
+                << tab << realRetType << " " << nameSafe << "(" << inArgTypeStr << (not inArgTypeStr.empty() ? ", " : "") << "F&& callback" << ")" << endl
                 << tab << "{" << endl;
         }
         else
@@ -343,7 +343,7 @@ std::tuple<std::string, std::string> ProxyGenerator::processSignals(const Nodes&
                 ".call([this](" << argTypeStr << ")"
                 "{ this->on" << nameBigFirst << "(" << argStr << "); });" << endl;
 
-        declarationSS << tab << "virtual void on" << nameBigFirst << "(" << argTypeStr << ") {};" << endl;
+        declarationSS << tab << "virtual void on" << nameBigFirst << "(" << argTypeStr << ") {}" << endl;
     }
 
     return std::make_tuple(registrationSS.str(), declarationSS.str());
@@ -425,7 +425,7 @@ std::tuple<std::string, std::string> ProxyGenerator::processProperties(const Nod
             if (asyncImplGet.has_value() && asyncImplGet.value() == AsyncImpl::DirectCallback)
             {
                 propertySS << tab << "template <typename F>" << endl
-                    << tab << realRetType << " " << propertyNameSafe << "(F && callback)" << endl;
+                    << tab << realRetType << " " << propertyNameSafe << "(F&& callback)" << endl;
             }
             else
             {
@@ -493,7 +493,7 @@ std::tuple<std::string, std::string> ProxyGenerator::processProperties(const Nod
             if (asyncImplSet.has_value() && asyncImplSet.value() == AsyncImpl::DirectCallback)
             {
                 propertySS << tab << "template <typename F>" << endl
-                    << tab << realRetType << " " << propertyNameSafe << "(" << propertyTypeArg << (not propertyTypeArg.empty() ? ", " : "") << "F && callback)" << endl;
+                    << tab << realRetType << " " << propertyNameSafe << "(" << propertyTypeArg << (not propertyTypeArg.empty() ? ", " : "") << "F&& callback)" << endl;
             }
             else
             {
