@@ -45,7 +45,7 @@ TestProxy::TestProxy(ServiceName destination, ObjectPath objectPath)
     : ProxyInterfaces(std::move(destination), std::move(objectPath))
 {
     getProxy().uponSignal("signalWithoutRegistration").onInterface(sdbus::test::INTERFACE_NAME).call([this](const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& strct){ this->onSignalWithoutRegistration(strct); });
-    getProxy().uponSignal("signalWithErrorAndTypeMismatch").onInterface(sdbus::test::INTERFACE_NAME).call([this](std::optional<sdbus::Error> e, int wrongParameter){ this->onSignalWithErrorAndTypeMismatch(e, wrongParameter); });
+    getProxy().uponSignal("signalWithErrorAndTypeMismatch").onInterface(sdbus::test::INTERFACE_NAME).call([this](std::optional<sdbus::Error> err, int wrongParameter){ this->onSignalWithErrorAndTypeMismatch(std::move(err), wrongParameter); });
 
     registerProxy();
 }
@@ -61,7 +61,7 @@ TestProxy::TestProxy(sdbus::IConnection& connection, ServiceName destination, Ob
     : ProxyInterfaces(connection, std::move(destination), std::move(objectPath))
 {
     getProxy().uponSignal("signalWithoutRegistration").onInterface(sdbus::test::INTERFACE_NAME).call([this](const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& strct){ this->onSignalWithoutRegistration(strct); });
-    getProxy().uponSignal("signalWithErrorAndTypeMismatch").onInterface(sdbus::test::INTERFACE_NAME).call([this](std::optional<sdbus::Error> e, int wrongParameter){ this->onSignalWithErrorAndTypeMismatch(e, wrongParameter); });
+    getProxy().uponSignal("signalWithErrorAndTypeMismatch").onInterface(sdbus::test::INTERFACE_NAME).call([this](std::optional<sdbus::Error> err, int wrongParameter){ this->onSignalWithErrorAndTypeMismatch(std::move(err), wrongParameter); });
 
     registerProxy();
 }
@@ -98,9 +98,9 @@ void TestProxy::onSignalWithoutRegistration(const sdbus::Struct<std::string, sdb
     m_gotSignalWithSignature = true;
 }
 
-void TestProxy::onSignalWithErrorAndTypeMismatch(std::optional<sdbus::Error> e, [[maybe_unused]] int wrongParameter)
+void TestProxy::onSignalWithErrorAndTypeMismatch(std::optional<sdbus::Error> err, [[maybe_unused]] int wrongParameter)
 {
-    m_errorFromSignal = e;
+    m_errorFromSignal = std::move(err);
     m_gotSignalWithTypeMismatch = true;
 }
 

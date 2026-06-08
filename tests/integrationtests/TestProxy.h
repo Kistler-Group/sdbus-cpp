@@ -94,7 +94,7 @@ protected:
     void onSignalWithVariant(const sdbus::Variant& aVariant) override;
 
     void onSignalWithoutRegistration(const sdbus::Struct<std::string, sdbus::Struct<sdbus::Signature>>& strct);
-    void onSignalWithErrorAndTypeMismatch(std::optional<sdbus::Error> e, int wrongParameter);
+    void onSignalWithErrorAndTypeMismatch(std::optional<sdbus::Error> err, int wrongParameter);
     void onDoOperationReply(uint32_t returnValue, std::optional<sdbus::Error> error) const;
 
     // Signals of standard D-Bus interfaces
