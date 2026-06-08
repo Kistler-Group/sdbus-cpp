@@ -98,7 +98,7 @@ void TestProxy::onSignalWithoutRegistration(const sdbus::Struct<std::string, sdb
     m_gotSignalWithSignature = true;
 }
 
-void TestProxy::onSignalWithErrorAndTypeMismatch(std::optional<sdbus::Error> e, int wrongParameter)
+void TestProxy::onSignalWithErrorAndTypeMismatch(std::optional<sdbus::Error> e, [[maybe_unused]] int wrongParameter)
 {
     m_errorFromSignal = e;
     m_gotSignalWithTypeMismatch = true;
