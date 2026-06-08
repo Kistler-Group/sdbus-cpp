@@ -1310,13 +1310,17 @@ sdbus-c++-xml2cpp can generate C++ code for client-side async methods. We just n
 </node>
 ```
 
-An asynchronous method can be generated as a callback-based method, `std::future`-based method, or C++20 awaitable-based method. This can optionally be customized through an additional `org.freedesktop.DBus.Method.Async.ClientImpl` annotation. Its supported values are `callback`, `future` and `awaitable`. The default behavior is callback-based method.
+An asynchronous method can be generated as a callback-based method, `std::future`-based method, or C++20 awaitable-based method. This can optionally be customized through an additional `org.freedesktop.DBus.Method.Async.ClientImpl` annotation. Its supported values are `callback`, `direct-callback`, `future` and `awaitable`. The default behavior is callback-based method.
 
 #### Generating callback-based async methods
 
 For each client-side async method, a corresponding `on<MethodName>Reply` pure virtual function, where `<MethodName>` is the capitalized D-Bus method name, is generated in the generated proxy class. This function is the callback invoked when the D-Bus method reply arrives, and must be provided a body by overriding it in the implementation class.
 
-So in the specific example above, the tool will generate a `Concatenator_proxy` class similar to one shown in a [dedicated section above](#concatenator-client-glueh), with the difference that it will also generate an additional `virtual void onConcatenateReply(std::optional<sdbus::Error> error, const std::string& concatenatedString);` method, which we shall override in the derived `ConcatenatorProxy`.
+So in the specific example above, the tool will generate a `Concatenator_proxy` class similar to one shown in a [dedicated section above](#concatenator-client-glueh), with the difference that it will also generate an additional `virtual void onConcatenateReply(const std::string& concatenatedString, std::optional<sdbus::Error> error);` method, which we shall override in the derived `ConcatenatorProxy`.
+
+#### Generating direct callback-based async methods
+
+An additional callback parameter is added to the function signature. The callback is called when the D-Bus method reply arrives. The callback can be any generic callable that takes the method output arguments (`const std::string&` in this example), followed by the parameter of type `std::optional<sdbus::Error> error`.
 
 #### Generating std::future-based async methods
 

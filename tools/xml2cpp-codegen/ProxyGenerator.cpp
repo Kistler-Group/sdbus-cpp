@@ -43,7 +43,7 @@ using sdbuscpp::xml::Node;
 using sdbuscpp::xml::Nodes;
 
 // Possible implementation backends of async methods
-enum class AsyncImpl { Callback, Future, Awaitable };
+enum class AsyncImpl { Callback, Future, Awaitable, DirectCallback };
 
 /**
  * Generate proxy code - client glue
@@ -178,9 +178,16 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes&
             {
                 if (annotationName == "org.freedesktop.DBus.Method.Async"
                      && (annotationValue == "client" || annotationValue == "clientserver" || annotationValue == "client-server"))
-                    asyncImpl = AsyncImpl::Callback; // Default to callback
+                {
+                    if (not asyncImpl.has_value())
+                    {
+                        asyncImpl = AsyncImpl::Callback; // Default to callback
+                    }
+                }
                 else if (annotationName == "org.freedesktop.DBus.Method.Async.ClientImpl" && annotationValue == "callback")
                     asyncImpl = AsyncImpl::Callback;
+                else if (annotationName == "org.freedesktop.DBus.Method.Async.ClientImpl" && annotationValue == "direct-callback")
+                    asyncImpl = AsyncImpl::DirectCallback;
                 else if (annotationName == "org.freedesktop.DBus.Method.Async.ClientImpl" && (annotationValue == "future" || annotationValue == "std::future"))
                     asyncImpl = AsyncImpl::Future;
                 else if (annotationName == "org.freedesktop.DBus.Method.Async.ClientImpl" && (annotationValue == "awaitable" || annotationValue == "coroutine"))
@@ -236,8 +243,17 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes&
             realRetType = retType;
         }
 
-        definitionSS << tab << realRetType << " " << nameSafe << "(" << inArgTypeStr << ")" << endl
+        if (asyncImpl.has_value() && *asyncImpl == AsyncImpl::DirectCallback)
+        {
+            definitionSS << tab << "template <typename F>" << endl
+                << tab << realRetType << " " << nameSafe << "(" << inArgTypeStr << (not inArgTypeStr.empty() ? ", " : "") << "F&& callback" << ")" << endl
                 << tab << "{" << endl;
+        }
+        else
+        {
+            definitionSS << tab << realRetType << " " << nameSafe << "(" << inArgTypeStr << ")" << endl
+                    << tab << "{" << endl;
+        }
 
         if (!timeoutValue.empty())
         {
@@ -276,6 +292,10 @@ std::tuple<std::string, std::string> ProxyGenerator::processMethods(const Nodes&
             else if (*asyncImpl == AsyncImpl::Awaitable)
             {
                 definitionSS << ".getResultAsAwaitable<" << retTypeBare << ">()";
+            }
+            else if (*asyncImpl == AsyncImpl::DirectCallback)
+            {
+                definitionSS << ".uponReplyInvoke(std::forward<F>(callback))";
             }
             else // Callback
             {
@@ -323,7 +343,7 @@ std::tuple<std::string, std::string> ProxyGenerator::processSignals(const Nodes&
                 ".call([this](" << argTypeStr << ")"
                 "{ this->on" << nameBigFirst << "(" << argStr << "); });" << endl;
 
-        declarationSS << tab << "virtual void on" << nameBigFirst << "(" << argTypeStr << ") = 0;" << endl;
+        declarationSS << tab << "virtual void on" << nameBigFirst << "(" << argTypeStr << ") {}" << endl;
     }
 
     return std::make_tuple(registrationSS.str(), declarationSS.str());
@@ -353,17 +373,31 @@ std::tuple<std::string, std::string> ProxyGenerator::processProperties(const Nod
             const auto annotationValue = annotation->get("value");
 
             if (annotationName == "org.freedesktop.DBus.Property.Get.Async" && annotationValue == "client") // Server-side not supported (may be in the future)
-                asyncImplGet = AsyncImpl::Callback; // Default to callback
+            {
+                if (not asyncImplGet.has_value())
+                {
+                    asyncImplGet = AsyncImpl::Callback; // Default to callback
+                }
+            }
             else if (annotationName == "org.freedesktop.DBus.Property.Get.Async.ClientImpl" && annotationValue == "callback")
                 asyncImplGet = AsyncImpl::Callback;
+            else if (annotationName == "org.freedesktop.DBus.Property.Get.Async.ClientImpl" && annotationValue == "direct-callback")
+                asyncImplGet = AsyncImpl::DirectCallback;
             else if (annotationName == "org.freedesktop.DBus.Property.Get.Async.ClientImpl" && (annotationValue == "future" || annotationValue == "std::future"))
                 asyncImplGet = AsyncImpl::Future;
             else if (annotationName == "org.freedesktop.DBus.Property.Get.Async.ClientImpl" && (annotationValue == "awaitable" || annotationValue == "coroutine"))
                 asyncImplGet = AsyncImpl::Awaitable;
             else if (annotationName == "org.freedesktop.DBus.Property.Set.Async" && annotationValue == "client") // Server-side not supported (may be in the future)
-                asyncImplSet = AsyncImpl::Callback; // Default to callback
+            {
+                if (not asyncImplSet.has_value())
+                {
+                    asyncImplSet = AsyncImpl::Callback; // Default to callback
+                }
+            }
             else if (annotationName == "org.freedesktop.DBus.Property.Set.Async.ClientImpl" && annotationValue == "callback")
                 asyncImplSet = AsyncImpl::Callback;
+            else if (annotationName == "org.freedesktop.DBus.Property.Set.Async.ClientImpl" && annotationValue == "direct-callback")
+                asyncImplSet = AsyncImpl::DirectCallback;
             else if (annotationName == "org.freedesktop.DBus.Property.Set.Async.ClientImpl" && (annotationValue == "future" || annotationValue == "std::future"))
                 asyncImplSet = AsyncImpl::Future;
             else if (annotationName == "org.freedesktop.DBus.Property.Set.Async.ClientImpl" && (annotationValue == "awaitable" || annotationValue == "coroutine"))
@@ -388,10 +422,20 @@ std::tuple<std::string, std::string> ProxyGenerator::processProperties(const Nod
                 realRetType = propertyType;
             }
 
-            propertySS << tab << realRetType << " " << propertyNameSafe << "()" << endl
-                    << tab << "{" << endl;
+            if (asyncImplGet.has_value() && asyncImplGet.value() == AsyncImpl::DirectCallback)
+            {
+                propertySS << tab << "template <typename F>" << endl
+                    << tab << realRetType << " " << propertyNameSafe << "(F&& callback)" << endl;
+            }
+            else
+            {
+                propertySS << tab << realRetType << " " << propertyNameSafe << "()" << endl;
+            }
+
+            propertySS << tab << "{" << endl;
             propertySS << tab << tab << "return m_proxy.getProperty" << (asyncImplGet.has_value() ? "Async" : "") << "(\"" << propertyName << "\")"
                             ".onInterface(INTERFACE_NAME)";
+
             if (!asyncImplGet.has_value())
             {
                 propertySS << ".get<" << realRetType << ">()";
@@ -408,6 +452,10 @@ std::tuple<std::string, std::string> ProxyGenerator::processProperties(const Nod
                 else if (*asyncImplGet == AsyncImpl::Awaitable)
                 {
                     propertySS << ".getResultAsAwaitable()";
+                }
+                else if (*asyncImplGet == AsyncImpl::DirectCallback)
+                {
+                    propertySS << ".uponReplyInvoke(std::forward<F>(callback))";
                 }
                 else // Callback
                 {
@@ -442,8 +490,17 @@ std::tuple<std::string, std::string> ProxyGenerator::processProperties(const Nod
                 realRetType = "void";
             }
 
-            propertySS << tab << realRetType << " " << propertyNameSafe << "(" << propertyTypeArg << ")" << endl
-                       << tab << "{" << endl;
+            if (asyncImplSet.has_value() && asyncImplSet.value() == AsyncImpl::DirectCallback)
+            {
+                propertySS << tab << "template <typename F>" << endl
+                    << tab << realRetType << " " << propertyNameSafe << "(" << propertyTypeArg << (not propertyTypeArg.empty() ? ", " : "") << "F&& callback)" << endl;
+            }
+            else
+            {
+                propertySS << tab << realRetType << " " << propertyNameSafe << "(" << propertyTypeArg << ")" << endl;
+            }
+
+            propertySS << tab << "{" << endl;
             propertySS << tab << tab << (asyncImplSet.has_value() ? "return " : "") << "m_proxy.setProperty" << (asyncImplSet.has_value() ? "Async" : "")
                        << "(\"" << propertyName << "\")"
                             ".onInterface(INTERFACE_NAME)"
@@ -461,6 +518,10 @@ std::tuple<std::string, std::string> ProxyGenerator::processProperties(const Nod
                 else if (*asyncImplSet == AsyncImpl::Awaitable)
                 {
                     propertySS << ".getResultAsAwaitable()";
+                }
+                else if (*asyncImplSet == AsyncImpl::DirectCallback)
+                {
+                    propertySS << ".uponReplyInvoke(std::forward<T>(callback))";
                 }
                 else // Callback
                 {
