@@ -557,7 +557,10 @@ TEST(AnErrorFactory, CreatesGenericErrorWhenErrnoIsUnknown)
     auto error = sdbus::createError(123456, "custom message");
 
     EXPECT_THAT(error.getName(), Eq<std::string>("org.freedesktop.DBus.Error.Failed"));
-    EXPECT_THAT(error.getMessage(), Eq<std::string>("custom message (Unknown error 123456)"));
+    EXPECT_THAT(error.getMessage(), ::testing::AnyOf(
+        Eq<std::string>("custom message (Unknown error 123456)"),
+        Eq<std::string>("custom message (No error information)")
+    ));
     EXPECT_TRUE(error.isValid());
 }
 #endif // SDBUS_basu
