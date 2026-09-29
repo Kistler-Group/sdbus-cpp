@@ -1064,6 +1064,7 @@ Method callback signature is the same in sync and async version. That means sdbu
 Callbacks of async methods based on convenience sdbus-c++ API have slightly different signature. They take a result object parameter in addition to other input parameters. The requirements are:
 
   * The result holder is of type `Result<Types...>&&`, where `Types...` is a list of method output argument types.
+  * For methods without output arguments, use `sdbus::Result<>&&` instead of `sdbus::Result<void>&&`.
   * The result object must be the first physical parameter of the callback taken by r-value ref. `Result` class template is move-only.
   * The callback itself is physically a void-returning function.
   * Method input arguments are taken by value rather than by const ref, because we usually want to `std::move` them to the worker thread. Moving is usually a lot cheaper than copying, and it's idiomatic. For non-movable types, this falls back to copying.
