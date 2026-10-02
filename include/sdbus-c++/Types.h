@@ -38,6 +38,11 @@
 #include <type_traits>
 #include <utility>
 
+#if defined(__cpp_lib_constexpr_string) && __cpp_lib_constexpr_string >= 201907L
+#  define SDBUSCPP_STRING_CONSTEXPR constexpr
+#else
+#  define SDBUSCPP_STRING_CONSTEXPR
+#endif
 namespace sdbus {
 
     /********************************************//**
@@ -161,21 +166,21 @@ namespace sdbus {
     public:
         using std::tuple<ValueTypes...>::tuple;
 
-        Struct() = default;
+        constexpr Struct() = default;
 
-        explicit Struct(const std::tuple<ValueTypes...>& tuple)
+        explicit constexpr Struct(const std::tuple<ValueTypes...>& tuple)
             : std::tuple<ValueTypes...>(tuple)
         {
         }
 
         template <std::size_t I>
-        [[nodiscard]] auto& get()
+        [[nodiscard]] constexpr auto& get()
         {
             return std::get<I>(*this);
         }
 
         template <std::size_t I>
-        [[nodiscard]] const auto& get() const
+        [[nodiscard]] constexpr const auto& get() const
         {
             return std::get<I>(*this);
         }
@@ -207,11 +212,11 @@ namespace sdbus {
     class ObjectPath : public std::string
     {
     public:
-        ObjectPath() = default;
-        explicit ObjectPath(std::string value)
+        SDBUSCPP_STRING_CONSTEXPR ObjectPath() = default;
+        explicit SDBUSCPP_STRING_CONSTEXPR ObjectPath(std::string value)
             : std::string(std::move(value))
         {}
-        explicit ObjectPath(const char* value)
+        explicit SDBUSCPP_STRING_CONSTEXPR ObjectPath(const char* value)
             : std::string(value)
         {}
 
@@ -227,11 +232,11 @@ namespace sdbus {
     class BusName : public std::string
     {
     public:
-        BusName() = default;
-        explicit BusName(std::string value)
+        SDBUSCPP_STRING_CONSTEXPR BusName() = default;
+        explicit SDBUSCPP_STRING_CONSTEXPR BusName(std::string value)
             : std::string(std::move(value))
         {}
-        explicit BusName(const char* value)
+        explicit SDBUSCPP_STRING_CONSTEXPR BusName(const char* value)
             : std::string(value)
         {}
 
@@ -250,11 +255,11 @@ namespace sdbus {
     class InterfaceName : public std::string
     {
     public:
-        InterfaceName() = default;
-        explicit InterfaceName(std::string value)
+        SDBUSCPP_STRING_CONSTEXPR InterfaceName() = default;
+        explicit SDBUSCPP_STRING_CONSTEXPR InterfaceName(std::string value)
             : std::string(std::move(value))
         {}
-        explicit InterfaceName(const char* value)
+        explicit SDBUSCPP_STRING_CONSTEXPR InterfaceName(const char* value)
             : std::string(value)
         {}
 
@@ -270,11 +275,11 @@ namespace sdbus {
     class MemberName : public std::string
     {
     public:
-        MemberName() = default;
-        explicit MemberName(std::string value)
+        SDBUSCPP_STRING_CONSTEXPR MemberName() = default;
+        explicit SDBUSCPP_STRING_CONSTEXPR MemberName(std::string value)
                 : std::string(std::move(value))
         {}
-        explicit MemberName(const char* value)
+        explicit SDBUSCPP_STRING_CONSTEXPR MemberName(const char* value)
                 : std::string(value)
         {}
 
@@ -294,11 +299,11 @@ namespace sdbus {
     class Signature : public std::string
     {
     public:
-        Signature() = default;
-        explicit Signature(std::string value)
+        SDBUSCPP_STRING_CONSTEXPR Signature() = default;
+        explicit SDBUSCPP_STRING_CONSTEXPR Signature(std::string value)
             : std::string(std::move(value))
         {}
-        explicit Signature(const char* value)
+        explicit SDBUSCPP_STRING_CONSTEXPR Signature(const char* value)
             : std::string(value)
         {}
 
@@ -319,7 +324,7 @@ namespace sdbus {
     class UnixFd
     {
     public:
-        UnixFd() = default;
+        constexpr UnixFd() = default;
 
         explicit UnixFd(int fd)
             : fd_(checkedDup(fd))
