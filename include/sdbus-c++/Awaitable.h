@@ -30,7 +30,7 @@
 
 #include <atomic>
 #include <cassert>
-#if __has_include(<coroutine>)
+#if __has_include(<coroutine>) && defined(__cpp_impl_coroutine)
 #include <coroutine>
 #endif
 #include <cstdint>
