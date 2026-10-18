@@ -33,6 +33,7 @@
 #include <sdbus-c++/StandardInterfaces.h>
 #include <sdbus-c++/Message.h>
 #include <sdbus-c++/MethodResult.h>
+#include <sdbus-c++/Track.h>
 #include <sdbus-c++/Types.h>
 #include <sdbus-c++/TypeTraits.h>
 #include <sdbus-c++/Error.h>

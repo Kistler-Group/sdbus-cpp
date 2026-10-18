@@ -101,6 +101,20 @@ public:
     int sd_bus_creds_get_supplementary_gids(sd_bus_creds *creds, const gid_t **gids) override;
     int sd_bus_creds_get_selinux_context(sd_bus_creds *creds, const char **label) override;
 
+    int sd_bus_track_new(sd_bus *bus, sd_bus_track **track, sd_bus_track_handler_t handler, void *userdata) override;
+    sd_bus_track* sd_bus_track_ref(sd_bus_track *track) override;
+    sd_bus_track* sd_bus_track_unref(sd_bus_track *track) override;
+    int sd_bus_track_set_destroy_callback(sd_bus_track *track, sd_bus_destroy_t callback) override;
+    int sd_bus_track_add_name(sd_bus_track *track, const char *name) override;
+    int sd_bus_track_remove_name(sd_bus_track *track, const char *name) override;
+    int sd_bus_track_add_sender(sd_bus_track *track, sd_bus_message *msg) override;
+    int sd_bus_track_remove_sender(sd_bus_track *track, sd_bus_message *msg) override;
+    int sd_bus_track_set_recursive(sd_bus_track *track, int b) override;
+    int sd_bus_track_get_recursive(sd_bus_track *track) override;
+    unsigned sd_bus_track_count(sd_bus_track *track) override;
+    const char* sd_bus_track_contains(sd_bus_track *track, const char *name) override;
+    int sd_bus_track_get_names(sd_bus_track *track, std::vector<std::string>& names) override;
+
 private:
     std::recursive_mutex sdbusMutex_;
 };

@@ -99,6 +99,20 @@ public:
     MOCK_METHOD2(sd_bus_creds_get_egid, int(sd_bus_creds *, gid_t *));
     MOCK_METHOD2(sd_bus_creds_get_supplementary_gids, int(sd_bus_creds *, const gid_t **));
     MOCK_METHOD2(sd_bus_creds_get_selinux_context, int(sd_bus_creds *, const char **));
+
+    MOCK_METHOD4(sd_bus_track_new, int(sd_bus *bus, sd_bus_track **track, sd_bus_track_handler_t handler, void *userdata));
+    MOCK_METHOD1(sd_bus_track_ref, sd_bus_track*(sd_bus_track *track));
+    MOCK_METHOD1(sd_bus_track_unref, sd_bus_track*(sd_bus_track *track));
+    MOCK_METHOD2(sd_bus_track_set_destroy_callback, int(sd_bus_track *track, sd_bus_destroy_t callback));
+    MOCK_METHOD2(sd_bus_track_add_name, int(sd_bus_track *track, const char *name));
+    MOCK_METHOD2(sd_bus_track_remove_name, int(sd_bus_track *track, const char *name));
+    MOCK_METHOD2(sd_bus_track_add_sender, int(sd_bus_track *track, sd_bus_message *msg));
+    MOCK_METHOD2(sd_bus_track_remove_sender, int(sd_bus_track *track, sd_bus_message *msg));
+    MOCK_METHOD2(sd_bus_track_set_recursive, int(sd_bus_track *track, int b));
+    MOCK_METHOD1(sd_bus_track_get_recursive, int(sd_bus_track *track));
+    MOCK_METHOD1(sd_bus_track_count, unsigned(sd_bus_track *track));
+    MOCK_METHOD2(sd_bus_track_contains, const char*(sd_bus_track *track, const char *name));
+    MOCK_METHOD2(sd_bus_track_get_names, int(sd_bus_track *track, std::vector<std::string>& names));
 };
 
 #endif //SDBUS_CXX_SDBUS_MOCK_H

@@ -57,6 +57,7 @@ namespace sdbus {
     template <typename... ValueTypes> class Struct;
     class UnixFd;
     class MethodReply;
+    class Track;
     namespace internal {
         class IConnection;
     } // namespace internal
@@ -268,6 +269,7 @@ namespace sdbus {
         Message(void *msg, internal::IConnection* connection, adopt_message_t) noexcept;
 
         friend Factory;
+        friend Track;
 
         void* msg_{};
         internal::IConnection* connection_{};

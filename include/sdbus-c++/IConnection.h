@@ -43,6 +43,7 @@ namespace sdbus {
     class ObjectPath;
     class BusName;
     using ServiceName = BusName;
+    class Track;
 } // namespace sdbus
 
 namespace sdbus {
@@ -424,6 +425,34 @@ namespace sdbus {
              */
             [[nodiscard]] int getPollTimeout() const;
         };
+
+    public: // New virtual functions in sdbus-c++ v2, for ABI compatibility
+        /*!
+         * @brief Creates a track object for tracking D-Bus peers on this connection
+         *
+         * @param[in] onEmpty Handler invoked when the track becomes empty, may be empty
+         * @return Track object
+         *
+         * The handler is invoked from the context of the bus connection I/O event loop
+         * thread once all names added to the track have disappeared from the bus, or
+         * once the bus connection gets closed while the track is non-empty.
+         *
+         * A newly created track contains no names, and as such is considered empty, too.
+         * Thus, if the event loop runs in a separate thread, the handler may be invoked
+         * before any name is added. To avoid that, create the track and add names to it
+         * within the event loop thread, e.g. from within a D-Bus method callback handler.
+         *
+         * Example of use in a D-Bus method callback handler, tracking the caller:
+         * @code
+         * auto track = connection.createTrack([](sdbus::Track&){ releaseLock(); });
+         * track.addSender(object.getCurrentlyProcessedMessage());
+         * @endcode
+         *
+         * For more information, consult man sd_bus_track_new.
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] virtual Track createTrack(track_handler onEmpty) = 0;
     };
 
     template <typename Rep, typename Period>
