@@ -435,7 +435,9 @@ namespace sdbus {
          *
          * The handler is invoked from the context of the bus connection I/O event loop
          * thread once all names added to the track have disappeared from the bus, or
-         * once the bus connection gets closed while the track is non-empty.
+         * once the connection to the bus is lost while the track is non-empty. Closing
+         * the connection on our side, i.e. destroying the connection object, does not
+         * invoke the handler.
          *
          * A newly created track contains no names, and as such is considered empty, too.
          * Thus, if the event loop runs in a separate thread, the handler may be invoked

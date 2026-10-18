@@ -22,10 +22,11 @@ Using sdbus-c++ library
 17. [Representing D-Bus Types in sdbus-c++](#representing-d-bus-types-in-sdbus-c)
 18. [Adding user-defined types to the sdbus-c++ type system](#adding-user-defined-types-to-the-sdbus-c-type-system)
 19. [Support for match rules](#support-for-match-rules)
-20. [Using direct (peer-to-peer) D-Bus connections](#using-direct-peer-to-peer-d-bus-connections)
-21. [Using sdbus-c++ in external event loops](#using-sdbus-c-in-external-event-loops)
-22. [Migrating to sdbus-c++ v2](#migrating-to-sdbus-c-v2)
-23. [Conclusion](#conclusion)
+20. [Tracking D-Bus peers](#tracking-d-bus-peers)
+21. [Using direct (peer-to-peer) D-Bus connections](#using-direct-peer-to-peer-d-bus-connections)
+22. [Using sdbus-c++ in external event loops](#using-sdbus-c-in-external-event-loops)
+23. [Migrating to sdbus-c++ v2](#migrating-to-sdbus-c-v2)
+24. [Conclusion](#conclusion)
 
 Introduction
 ------------
@@ -1818,6 +1819,43 @@ Support for match rules
 -----------------------
 
 `IConnection` class provides `addMatch` and `addMatchAsync` family of methods that you can use to install match rules on that bus connection. An associated callback handler will be called when an incoming D-Bus message matches the given match rule. Clients can decide whether they own and control the match rule lifetime, or whether the match rule lifetime is bound the connection object lifetime (so-called floating match rule). Consult `IConnection` header or sdbus-c++ doxygen documentation for more information.
+
+Tracking D-Bus peers
+--------------------
+
+A D-Bus service sometimes holds resources on behalf of its clients, for example a lock, a session, or a subscription. When a client crashes or otherwise disconnects from the bus without releasing them, the service needs to find out and clean up. sdbus-c++ provides `sdbus::Track` class for that purpose, a wrapper around sd-bus `sd_bus_track` API.
+
+A track object is created by `IConnection::createTrack()`, which takes a handler as an argument. Names added to the track, typically unique names of clients, are watched on the bus, and once all of them disappear, the handler is invoked. The handler is invoked once for the whole track, not for each name. If you need to be notified about each client separately, create a separate track for each client.
+
+The usual pattern is to add the sender of a method call to a track right in the method callback handler:
+
+```c++
+std::optional<sdbus::Track> owner; // Track of the client holding the lock
+
+auto acquire = [&]()
+{
+    auto call = object->getCurrentlyProcessedMessage();
+
+    owner.emplace(connection->createTrack([&owner](sdbus::Track&)
+    {
+        // The client holding the lock has disconnected from the bus
+        owner.reset();
+    }));
+    owner->addSender(call);
+};
+
+auto release = [&]()
+{
+    // Destroying a non-empty track does not invoke its handler
+    owner.reset();
+};
+```
+
+The complete example can be found in `examples/org.sdbuscpp.Lock` directory.
+
+`sdbus::Track` provides `addName()`, `addSender()`, `removeName()`, `removeSender()`, `contains()`, `count()` and `getNames()` methods. In recursive mode, enabled by `setRecursive()` while the track is empty, each name has a reference counter, and is removed from the track only after it has been removed as many times as it has been added. Track objects are copyable and movable, and all copies refer to the same underlying sd-bus track. A track object must not outlive the connection it has been created on.
+
+> **_Note_:** The handler is invoked from the context of the connection's I/O event loop thread. A newly created track contains no names, so it is considered empty as well. Thus, when the event loop runs in a separate thread, create the track and add names to it within the event loop thread (e.g. in a method callback handler, as shown above), otherwise the handler may be invoked before any name has been added. The handler is also invoked when the connection to the bus is lost while the track is not empty, but not when the connection object is destroyed.
 
 Using direct (peer-to-peer) D-Bus connections
 ---------------------------------------------
