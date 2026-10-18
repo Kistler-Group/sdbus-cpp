@@ -426,7 +426,7 @@ namespace sdbus {
             [[nodiscard]] int getPollTimeout() const;
         };
 
-    public: // New virtual functions in sdbus-c++ v2, for ABI compatibility
+        // New virtual functions in sdbus-c++ v2, appended at the end of the class for ABI compatibility
         /*!
          * @brief Creates a track object for tracking D-Bus peers on this connection
          *

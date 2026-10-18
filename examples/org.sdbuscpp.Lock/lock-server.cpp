@@ -15,15 +15,17 @@
  */
 
 #include <sdbus-c++/sdbus-c++.h>
+#include <exception>
 #include <iostream>
 #include <optional>
 #include <string>
 #include <utility>
 
 int main()
+try
 {
     const sdbus::ServiceName serviceName{"org.sdbuscpp.lock"};
-    auto connection = sdbus::createBusConnection(serviceName);
+    auto connection = sdbus::createSessionBusConnection(serviceName);
 
     const sdbus::ObjectPath objectPath{"/org/sdbuscpp/lock"};
     auto object = sdbus::createObject(*connection, objectPath);
@@ -37,23 +39,23 @@ int main()
             throw sdbus::Error(sdbus::Error::Name{"org.sdbuscpp.Lock.Error.Busy"}, "Lock is held by another client");
 
         auto call = object->getCurrentlyProcessedMessage();
-        std::string sender = call.getSender();
+        const std::string sender = call.getSender();
 
         // The handler is invoked once the tracked client disappears from the bus
         owner.emplace(connection->createTrack([&owner, sender](sdbus::Track&)
         {
-            std::cout << "Lock released, " << sender << " has disconnected" << std::endl;
+            std::cout << "Lock released, " << sender << " has disconnected" << '\n';
             owner.reset();
         }));
         owner->addSender(call);
 
-        std::cout << "Lock acquired by " << sender << std::endl;
+        std::cout << "Lock acquired by " << sender << '\n';
     };
 
     auto release = [&]()
     {
         auto call = object->getCurrentlyProcessedMessage();
-        sdbus::BusName sender{call.getSender()};
+        const sdbus::BusName sender{call.getSender()};
 
         if (!owner || !owner->contains(sender))
             throw sdbus::Error(sdbus::Error::Name{"org.sdbuscpp.Lock.Error.NotOwner"}, "Lock is not held by the caller");
@@ -61,7 +63,7 @@ int main()
         // Destroying a non-empty track does not invoke its handler
         owner.reset();
 
-        std::cout << "Lock released by " << sender << std::endl;
+        std::cout << "Lock released by " << sender << '\n';
     };
 
     object->addVTable( sdbus::registerMethod("Acquire").implementedAs(std::move(acquire))
@@ -69,4 +71,9 @@ int main()
                      .forInterface(sdbus::InterfaceName{"org.sdbuscpp.Lock"});
 
     connection->enterEventLoop();
+}
+catch (const std::exception& e)
+{
+    std::cerr << "Error: " << e.what() << '\n';
+    return 1;
 }

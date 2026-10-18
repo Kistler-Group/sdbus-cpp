@@ -498,7 +498,7 @@ Track Connection::createTrack(track_handler onEmpty)
 {
     std::unique_ptr<TrackInfo> trackInfo;
     if (onEmpty)
-        trackInfo = std::make_unique<TrackInfo>(TrackInfo{std::move(onEmpty), *sdbus_});
+        trackInfo = std::make_unique<TrackInfo>(TrackInfo{.callback = std::move(onEmpty), .sdbus = *sdbus_});
 
     sd_bus_track* sdbusTrack{};
     auto r = sdbus_->sd_bus_track_new( bus_.get()
@@ -514,7 +514,7 @@ Track Connection::createTrack(track_handler onEmpty)
         // Track info lives as long as the underlying sd-bus track, which is shared by all copies of the Track object
         r = sdbus_->sd_bus_track_set_destroy_callback(sdbusTrack, [](void *ptr){ delete static_cast<TrackInfo*>(ptr); }); // NOLINT(cppcoreguidelines-owning-memory)
         SDBUS_THROW_ERROR_IF(r < 0, "Failed to set track destroy callback", -r);
-        (void)trackInfo.release();
+        trackInfo.release(); // NOLINT(bugprone-unused-return-value): owned by the sd-bus track from now on
     }
 
     return track;

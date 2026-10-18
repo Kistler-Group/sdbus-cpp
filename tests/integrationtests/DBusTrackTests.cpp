@@ -93,9 +93,10 @@ TEST(ATrack, ContainsSenderOfTrackedMethodCall)
     callLock(*client, service.connection_->getUniqueName());
 
     ASSERT_TRUE(service.track_.has_value());
-    EXPECT_TRUE(service.track_->contains(client->getUniqueName()));
-    EXPECT_THAT(service.track_->count(), Eq(1));
-    EXPECT_THAT(service.track_->getNames(), ElementsAre(client->getUniqueName()));
+    const auto& track = service.track_.value(); // NOLINT(bugprone-unchecked-optional-access): checked above
+    EXPECT_TRUE(track.contains(client->getUniqueName()));
+    EXPECT_THAT(track.count(), Eq(1));
+    EXPECT_THAT(track.getNames(), ElementsAre(client->getUniqueName()));
     EXPECT_FALSE(service.released_);
 }
 

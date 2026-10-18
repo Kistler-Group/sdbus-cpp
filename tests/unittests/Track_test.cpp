@@ -39,6 +39,8 @@
 #include <utility>
 #include <vector>
 
+// NOLINTBEGIN(bugprone-reserved-identifier,cert-dcl37-c,cert-dcl51-cpp)
+
 using ::testing::_;
 using ::testing::DoAll;
 using ::testing::ElementsAre;
@@ -173,7 +175,7 @@ TEST_F(ATrack, ThrowsWhenRemovingNameFails)
 {
     auto track = con_->createTrack([](sdbus::Track&){});
 
-    EXPECT_CALL(*sdBusIntfMock_, sd_bus_track_remove_name(_, _)).WillOnce(Return(-EUNATCH));
+    EXPECT_CALL(*sdBusIntfMock_, sd_bus_track_remove_name(_, _)).WillOnce(Return(-EINVAL));
 
     ASSERT_THROW(track.removeName(sdbus::BusName{":1.42"}), sdbus::Error);
 }
@@ -254,10 +256,10 @@ TEST_F(ATrack, ThrowsWhenSettingRecursiveModeOnNonEmptyTrack)
 TEST_F(ATrack, InvokesHandlerWithTheSameTrackWhenSdBusDispatchesIt)
 {
     bool handlerCalled{};
-    auto track = con_->createTrack([&](sdbus::Track& t)
+    auto track = con_->createTrack([&](sdbus::Track& dispatchedTrack)
     {
         handlerCalled = true;
-        EXPECT_THAT(t.count(), Eq(0));
+        EXPECT_THAT(dispatchedTrack.count(), Eq(0));
     });
     ASSERT_THAT(trackHandler_, NotNull());
 
@@ -279,3 +281,5 @@ TEST_F(ATrack, ReturnsErrorToSdBusWhenHandlerThrows)
 
     EXPECT_THAT(trackHandler_(fakeTrackPtr_, trackUserData_), Eq(-1));
 }
+
+// NOLINTEND(bugprone-reserved-identifier,cert-dcl37-c,cert-dcl51-cpp)
