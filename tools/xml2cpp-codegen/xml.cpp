@@ -292,12 +292,12 @@ void Document::Expat::character_data_handler(void* data, const XML_Char* chars, 
         nod = &(nod->children.back());
     }
 
-    int x = 0, y = len - 1;
+    size_t offset = 0, count = len;
 
-    while (isspace(chars[y]) && y > 0) --y;
-    while (isspace(chars[x]) && x < y) ++x;
+    while (count > 0 && isspace(chars[count - 1])) --count;
+    while (offset < count && isspace(chars[offset])) { ++offset; --count; }
 
-    nod->cdata = std::string(chars, x, y + 1);
+    nod->cdata = std::string(chars + offset, count);
 }
 
 void Document::Expat::end_element_handler(void* data, const XML_Char* /*name*/)
