@@ -160,7 +160,8 @@ namespace sdbus {
          *
          * In recursive mode, each name has a reference counter, and it is only removed
          * from the track once removed as many times as it was added. The mode can only
-         * be changed while the track is empty.
+         * be changed while the track is empty. Recursive mode works correctly with
+         * libsystemd v251 or newer only, older versions do not count repeated names.
          *
          * For more information, consult man sd_bus_track_set_recursive.
          *

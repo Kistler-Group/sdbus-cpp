@@ -112,6 +112,9 @@ TEST(ATrack, InvokesHandlerWhenTrackedClientDisconnects)
     ASSERT_TRUE(waitUntil(service.released_));
 }
 
+// Before systemd v251, sd-bus increases the reference counter of the track instead of
+// the reference counter of the name in recursive mode (systemd issue #23097).
+#if LIBSYSTEMD_VERSION>=251
 TEST(ATrack, KeepsNameInRecursiveModeUntilRemovedAsManyTimesAsAdded)
 {
     auto connection = sdbus::createBusConnection();
@@ -132,6 +135,7 @@ TEST(ATrack, KeepsNameInRecursiveModeUntilRemovedAsManyTimesAsAdded)
     EXPECT_FALSE(track.contains(name));
     EXPECT_THAT(track.count(), Eq(0));
 }
+#endif
 
 TEST(ATrack, ThrowsWhenAddingNameThatIsNotOnTheBus)
 {

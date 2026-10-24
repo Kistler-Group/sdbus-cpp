@@ -1853,7 +1853,7 @@ auto release = [&]()
 
 The complete example can be found in `examples/org.sdbuscpp.Lock` directory.
 
-`sdbus::Track` provides `addName()`, `addSender()`, `removeName()`, `removeSender()`, `contains()`, `count()` and `getNames()` methods. In recursive mode, enabled by `setRecursive()` while the track is empty, each name has a reference counter, and is removed from the track only after it has been removed as many times as it has been added. Track objects are copyable and movable, and all copies refer to the same underlying sd-bus track. A track object must not outlive the connection it has been created on.
+`sdbus::Track` provides `addName()`, `addSender()`, `removeName()`, `removeSender()`, `contains()`, `count()` and `getNames()` methods. In recursive mode, enabled by `setRecursive()` while the track is empty, each name has a reference counter, and is removed from the track only after it has been removed as many times as it has been added (this requires libsystemd v251 or newer, older versions do not count repeated names). Track objects are copyable and movable, and all copies refer to the same underlying sd-bus track. A track object must not outlive the connection it has been created on.
 
 > **_Note_:** The handler is invoked from the context of the connection's I/O event loop thread. A newly created track contains no names, so it is considered empty as well. Thus, when the event loop runs in a separate thread, create the track and add names to it within the event loop thread (e.g. in a method callback handler, as shown above), otherwise the handler may be invoked before any name has been added. The handler is also invoked when the connection to the bus is lost while the track is not empty, but not when the connection object is destroyed.
 
