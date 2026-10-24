@@ -31,7 +31,9 @@
 #include <algorithm>
 #include <cstdint>
 #include <mutex>
+#include <string>
 #include <sys/types.h>
+#include <vector>
 
 namespace sdbus::internal {
 
@@ -514,6 +516,108 @@ int SdBus::sd_bus_creds_get_selinux_context(sd_bus_creds *creds, const char **la
     const std::lock_guard lock(sdbusMutex_);
 
     return ::sd_bus_creds_get_selinux_context(creds, label);
+}
+
+int SdBus::sd_bus_track_new(sd_bus *bus, sd_bus_track **track, sd_bus_track_handler_t handler, void *userdata)
+{
+    const std::lock_guard lock(sdbusMutex_);
+
+    return ::sd_bus_track_new(bus, track, handler, userdata);
+}
+
+sd_bus_track* SdBus::sd_bus_track_ref(sd_bus_track *track)
+{
+    const std::lock_guard lock(sdbusMutex_);
+
+    return ::sd_bus_track_ref(track);
+}
+
+sd_bus_track* SdBus::sd_bus_track_unref(sd_bus_track *track)
+{
+    const std::lock_guard lock(sdbusMutex_);
+
+    return ::sd_bus_track_unref(track);
+}
+
+int SdBus::sd_bus_track_set_destroy_callback(sd_bus_track *track, sd_bus_destroy_t callback)
+{
+#if LIBSYSTEMD_VERSION>=239
+    const std::lock_guard lock(sdbusMutex_);
+
+    return ::sd_bus_track_set_destroy_callback(track, callback);
+#else
+    (void)track;
+    (void)callback;
+    throw Error(Error::Name{SD_BUS_ERROR_NOT_SUPPORTED}, "Setting track destroy callback not supported by underlying version of libsystemd");
+#endif
+}
+
+int SdBus::sd_bus_track_add_name(sd_bus_track *track, const char *name)
+{
+    const std::lock_guard lock(sdbusMutex_);
+
+    return ::sd_bus_track_add_name(track, name);
+}
+
+int SdBus::sd_bus_track_remove_name(sd_bus_track *track, const char *name)
+{
+    const std::lock_guard lock(sdbusMutex_);
+
+    return ::sd_bus_track_remove_name(track, name);
+}
+
+int SdBus::sd_bus_track_add_sender(sd_bus_track *track, sd_bus_message *msg)
+{
+    const std::lock_guard lock(sdbusMutex_);
+
+    return ::sd_bus_track_add_sender(track, msg);
+}
+
+int SdBus::sd_bus_track_remove_sender(sd_bus_track *track, sd_bus_message *msg)
+{
+    const std::lock_guard lock(sdbusMutex_);
+
+    return ::sd_bus_track_remove_sender(track, msg);
+}
+
+int SdBus::sd_bus_track_set_recursive(sd_bus_track *track, int b)
+{
+    const std::lock_guard lock(sdbusMutex_);
+
+    return ::sd_bus_track_set_recursive(track, b);
+}
+
+int SdBus::sd_bus_track_get_recursive(sd_bus_track *track)
+{
+    const std::lock_guard lock(sdbusMutex_);
+
+    return ::sd_bus_track_get_recursive(track);
+}
+
+unsigned SdBus::sd_bus_track_count(sd_bus_track *track)
+{
+    const std::lock_guard lock(sdbusMutex_);
+
+    return ::sd_bus_track_count(track);
+}
+
+const char* SdBus::sd_bus_track_contains(sd_bus_track *track, const char *name)
+{
+    const std::lock_guard lock(sdbusMutex_);
+
+    return ::sd_bus_track_contains(track, name);
+}
+
+int SdBus::sd_bus_track_get_names(sd_bus_track *track, std::vector<std::string>& names)
+{
+    const std::lock_guard lock(sdbusMutex_);
+
+    // Iterate under a single lock, since sd_bus_track_next() stops early if the track gets modified meanwhile
+    names.clear();
+    for (const char* name = ::sd_bus_track_first(track); name != nullptr; name = ::sd_bus_track_next(track))
+        names.emplace_back(name);
+
+    return 0;
 }
 
 } // namespace sdbus::internal

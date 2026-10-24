@@ -149,7 +149,8 @@ set(SDBUSCPP_CPP_SRCS
     ${SDBUSCPP_SOURCE_DIR}/Types.cpp
     ${SDBUSCPP_SOURCE_DIR}/Flags.cpp
     ${SDBUSCPP_SOURCE_DIR}/VTableUtils.c
-    ${SDBUSCPP_SOURCE_DIR}/SdBus.cpp)
+    ${SDBUSCPP_SOURCE_DIR}/SdBus.cpp
+    ${SDBUSCPP_SOURCE_DIR}/Track.cpp)
 
 set(SDBUSCPP_HDR_SRCS
     ${SDBUSCPP_SOURCE_DIR}/Connection.h
@@ -178,6 +179,7 @@ set(SDBUSCPP_PUBLIC_HDRS
     ${SDBUSCPP_INCLUDE_DIR}/IProxy.h
     ${SDBUSCPP_INCLUDE_DIR}/Message.h
     ${SDBUSCPP_INCLUDE_DIR}/MethodResult.h
+    ${SDBUSCPP_INCLUDE_DIR}/Track.h
     ${SDBUSCPP_INCLUDE_DIR}/Types.h
     ${SDBUSCPP_INCLUDE_DIR}/TypeTraits.h
     ${SDBUSCPP_INCLUDE_DIR}/Flags.h

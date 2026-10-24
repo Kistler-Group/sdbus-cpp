@@ -66,6 +66,7 @@ namespace sdbus {
     class Message;
     class PropertySetCall;
     class PropertyGetReply;
+    class Track;
     template <typename... Results> class Result;
     class Error;
     template <typename T, typename Enable = void> struct signature_of;
@@ -80,6 +81,7 @@ namespace sdbus {
     using message_handler = std::function<void(Message msg)>;
     using property_set_callback = std::function<void(PropertySetCall msg)>;
     using property_get_callback = std::function<void(PropertyGetReply& reply)>;
+    using track_handler = std::function<void(Track& track)>;
 
     // Type-erased RAII-style handle to callbacks/subscriptions registered to sdbus-c++
     using Slot = std::unique_ptr<void, std::function<void(void*)>>;

@@ -28,7 +28,9 @@
 #ifndef SDBUS_CXX_ISDBUS_H
 #define SDBUS_CXX_ISDBUS_H
 
+#include <string>
 #include SDBUS_HEADER
+#include <vector>
 
 namespace sdbus::internal {
 
@@ -108,6 +110,20 @@ namespace sdbus::internal {
         virtual int sd_bus_creds_get_egid(sd_bus_creds *creds, gid_t *egid) = 0;
         virtual int sd_bus_creds_get_supplementary_gids(sd_bus_creds *creds, const gid_t **gids) = 0;
         virtual int sd_bus_creds_get_selinux_context(sd_bus_creds *creds, const char **label) = 0;
+
+        virtual int sd_bus_track_new(sd_bus *bus, sd_bus_track **track, sd_bus_track_handler_t handler, void *userdata) = 0;
+        virtual sd_bus_track* sd_bus_track_ref(sd_bus_track *track) = 0;
+        virtual sd_bus_track* sd_bus_track_unref(sd_bus_track *track) = 0;
+        virtual int sd_bus_track_set_destroy_callback(sd_bus_track *track, sd_bus_destroy_t callback) = 0;
+        virtual int sd_bus_track_add_name(sd_bus_track *track, const char *name) = 0;
+        virtual int sd_bus_track_remove_name(sd_bus_track *track, const char *name) = 0;
+        virtual int sd_bus_track_add_sender(sd_bus_track *track, sd_bus_message *msg) = 0;
+        virtual int sd_bus_track_remove_sender(sd_bus_track *track, sd_bus_message *msg) = 0;
+        virtual int sd_bus_track_set_recursive(sd_bus_track *track, int b) = 0;
+        virtual int sd_bus_track_get_recursive(sd_bus_track *track) = 0;
+        virtual unsigned sd_bus_track_count(sd_bus_track *track) = 0;
+        virtual const char* sd_bus_track_contains(sd_bus_track *track, const char *name) = 0;
+        virtual int sd_bus_track_get_names(sd_bus_track *track, std::vector<std::string>& names) = 0;
     };
 
 } // namespace sdbus::internal
