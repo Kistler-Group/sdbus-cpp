@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- D-Bus does not restrict argument names, so they may not be valid C++ identifiers -->
+<node name="/org/sdbuscpp/codegentests">
+    <interface name="org.sdbuscpp.codegentests">
+        <method name="setFilter">
+            <arg type="b" name="filter-a" direction="in" />
+            <arg type="s" name="filter.name" direction="in" />
+            <arg type="b" name="result" direction="out" />
+        </method>
+        <method name="setFilterAsync">
+            <annotation name="org.freedesktop.DBus.Method.Async" value="clientserver" />
+            <arg type="b" name="filter-a" direction="in" />
+            <arg type="u" name="1st-value" direction="in" />
+        </method>
+        <method name="setKeyword">
+            <arg type="i" name="class" direction="in" />
+            <arg type="i" name="some name" direction="in" />
+            <arg type="i" name="значение" direction="in" />
+        </method>
+        <signal name="filterChanged">
+            <arg type="b" name="filter-a" />
+            <arg type="s" name="new-name" />
+        </signal>
+    </interface>
+</node>
