@@ -711,28 +711,16 @@ namespace sdbus {
                                  , std::make_index_sequence<std::tuple_size_v<std::decay_t<Tuple>>>{} );
     }
 
-    namespace detail
-    {
-        // Element-wise expansion, as C++17 compatible alternative to std::move/std::copy,
-        // which are only constexpr starting with C++20
-        template <typename T, std::size_t N1, std::size_t N2, std::size_t... I1, std::size_t... I2>
-        constexpr std::array<T, N1 + N2> concat_arrays_impl( [[maybe_unused]] std::array<T, N1> lhs
-                                                           , [[maybe_unused]] std::array<T, N2> rhs
-                                                           , std::index_sequence<I1...>
-                                                           , std::index_sequence<I2...> )
-        {
-            return {std::move(std::get<I1>(lhs))..., std::move(std::get<I2>(rhs))...};
-        }
-    } // namespace detail
-
     // Convenient concatenation of arrays
     template <typename T, std::size_t N1, std::size_t N2>
     constexpr std::array<T, N1 + N2> operator+(std::array<T, N1> lhs, std::array<T, N2> rhs)
     {
-        return detail::concat_arrays_impl( std::move(lhs)
-                                         , std::move(rhs)
-                                         , std::make_index_sequence<N1>{}
-                                         , std::make_index_sequence<N2>{} );
+        std::array<T, N1 + N2> result{};
+
+        std::move(lhs.begin(), lhs.end(), result.begin());
+        std::move(rhs.begin(), rhs.end(), result.begin() + N1);
+
+        return result;
     }
 
 } // namespace sdbus

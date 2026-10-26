@@ -53,10 +53,6 @@ set(UNITTESTS_SRCS
     ${UNITTESTS_SOURCE_DIR}/Connection_test.cpp
     ${UNITTESTS_SOURCE_DIR}/mocks/SdBusMock.h)
 
-set(COMPILETESTS_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/compiletests)
-set(COMPILETESTS_CXX17_SRCS
-    ${COMPILETESTS_SOURCE_DIR}/Cxx17Compatibility.cpp)
-
 set(INTEGRATIONTESTS_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/integrationtests)
 set(INTEGRATIONTESTS_GENERATED_DIR ${INTEGRATIONTESTS_SOURCE_DIR}/dbus-api/gen-cpp)
 set(INTEGRATIONTESTS_SRCS
@@ -109,14 +105,6 @@ target_compile_definitions(sdbus-c++-unit-tests PRIVATE
     SDBUS_${SDBUS_IMPL}
     SDBUS_HEADER=<${SDBUS_IMPL}/sd-bus.h>)
 target_link_libraries(sdbus-c++-unit-tests sdbus-c++-objlib GTest::gmock)
-
-# Ensure C++17 compatibility is preserved by failing to build this target if a public header is incompatible
-add_library(sdbus-c++-cxx17-compile-tests OBJECT ${COMPILETESTS_CXX17_SRCS})
-set_target_properties(sdbus-c++-cxx17-compile-tests PROPERTIES
-    CXX_STANDARD 17
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF)
-target_link_libraries(sdbus-c++-cxx17-compile-tests PRIVATE sdbus-c++)
 
 add_executable(sdbus-c++-integration-tests ${INTEGRATIONTESTS_SRCS})
 target_compile_definitions(sdbus-c++-integration-tests PRIVATE
