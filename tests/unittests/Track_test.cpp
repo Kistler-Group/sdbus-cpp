@@ -91,7 +91,7 @@ TEST_F(ATrack, IsCreatedOnTheConnectionBus)
 {
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_track_new(fakeBusPtr_, NotNull(), NotNull(), NotNull()));
 
-    auto track = con_->createTrack([](sdbus::Track&){});
+    auto track = con_->createTrack([](const sdbus::Track&){});
 }
 
 TEST_F(ATrack, IsCreatedWithoutSdBusHandlerWhenNoHandlerIsProvided)
@@ -106,7 +106,7 @@ TEST_F(ATrack, ThrowsWhenCreationFails)
 {
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_track_new(_, _, _, _)).WillOnce(Return(-ENOMEM));
 
-    ASSERT_THROW((void)con_->createTrack([](sdbus::Track&){}), sdbus::Error);
+    ASSERT_THROW((void)con_->createTrack([](const sdbus::Track&){}), sdbus::Error);
 }
 
 TEST_F(ATrack, ThrowsAndReleasesTrackWhenSettingDestroyCallbackFails)
@@ -114,19 +114,19 @@ TEST_F(ATrack, ThrowsAndReleasesTrackWhenSettingDestroyCallbackFails)
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_track_set_destroy_callback(_, _)).WillOnce(Return(-EINVAL));
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_track_unref(fakeTrackPtr_)).Times(1);
 
-    ASSERT_THROW((void)con_->createTrack([](sdbus::Track&){}), sdbus::Error);
+    ASSERT_THROW((void)con_->createTrack([](const sdbus::Track&){}), sdbus::Error);
 }
 
 TEST_F(ATrack, UnrefsUnderlyingTrackWhenDestructed)
 {
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_track_unref(fakeTrackPtr_)).Times(1);
 
-    auto track = con_->createTrack([](sdbus::Track&){});
+    auto track = con_->createTrack([](const sdbus::Track&){});
 }
 
 TEST_F(ATrack, RefsUnderlyingTrackWhenCopied)
 {
-    auto track = con_->createTrack([](sdbus::Track&){});
+    auto track = con_->createTrack([](const sdbus::Track&){});
 
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_track_ref(fakeTrackPtr_)).Times(1);
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_track_unref(fakeTrackPtr_)).Times(2);
@@ -136,7 +136,7 @@ TEST_F(ATrack, RefsUnderlyingTrackWhenCopied)
 
 TEST_F(ATrack, DoesNotRefUnderlyingTrackWhenMoved)
 {
-    auto track = con_->createTrack([](sdbus::Track&){});
+    auto track = con_->createTrack([](const sdbus::Track&){});
 
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_track_ref(_)).Times(0);
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_track_unref(fakeTrackPtr_)).Times(1);
@@ -146,7 +146,7 @@ TEST_F(ATrack, DoesNotRefUnderlyingTrackWhenMoved)
 
 TEST_F(ATrack, ForwardsAddedNameToSdBus)
 {
-    auto track = con_->createTrack([](sdbus::Track&){});
+    auto track = con_->createTrack([](const sdbus::Track&){});
 
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_track_add_name(fakeTrackPtr_, StrEq(":1.42"))).WillOnce(Return(1));
 
@@ -155,7 +155,7 @@ TEST_F(ATrack, ForwardsAddedNameToSdBus)
 
 TEST_F(ATrack, ThrowsWhenAddingNameFails)
 {
-    auto track = con_->createTrack([](sdbus::Track&){});
+    auto track = con_->createTrack([](const sdbus::Track&){});
 
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_track_add_name(_, _)).WillOnce(Return(-EINVAL));
 
@@ -164,7 +164,7 @@ TEST_F(ATrack, ThrowsWhenAddingNameFails)
 
 TEST_F(ATrack, ForwardsRemovedNameToSdBus)
 {
-    auto track = con_->createTrack([](sdbus::Track&){});
+    auto track = con_->createTrack([](const sdbus::Track&){});
 
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_track_remove_name(fakeTrackPtr_, StrEq(":1.42"))).WillOnce(Return(1));
 
@@ -173,7 +173,7 @@ TEST_F(ATrack, ForwardsRemovedNameToSdBus)
 
 TEST_F(ATrack, ThrowsWhenRemovingNameFails)
 {
-    auto track = con_->createTrack([](sdbus::Track&){});
+    auto track = con_->createTrack([](const sdbus::Track&){});
 
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_track_remove_name(_, _)).WillOnce(Return(-EINVAL));
 
@@ -182,7 +182,7 @@ TEST_F(ATrack, ThrowsWhenRemovingNameFails)
 
 TEST_F(ATrack, ForwardsMessageToSdBusWhenAddingAndRemovingSender)
 {
-    auto track = con_->createTrack([](sdbus::Track&){});
+    auto track = con_->createTrack([](const sdbus::Track&){});
     auto message = sdbus::createPlainMessage();
 
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_track_add_sender(fakeTrackPtr_, NotNull())).WillOnce(Return(1));
@@ -194,7 +194,7 @@ TEST_F(ATrack, ForwardsMessageToSdBusWhenAddingAndRemovingSender)
 
 TEST_F(ATrack, ThrowsWhenAddingSenderFails)
 {
-    auto track = con_->createTrack([](sdbus::Track&){});
+    auto track = con_->createTrack([](const sdbus::Track&){});
     auto message = sdbus::createPlainMessage();
 
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_track_add_sender(_, _)).WillOnce(Return(-EINVAL));
@@ -204,7 +204,7 @@ TEST_F(ATrack, ThrowsWhenAddingSenderFails)
 
 TEST_F(ATrack, ReportsWhetherNameIsContained)
 {
-    auto track = con_->createTrack([](sdbus::Track&){});
+    auto track = con_->createTrack([](const sdbus::Track&){});
     const std::string name{":1.42"};
 
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_track_contains(fakeTrackPtr_, StrEq(":1.42"))).WillOnce(Return(name.c_str()));
@@ -216,7 +216,7 @@ TEST_F(ATrack, ReportsWhetherNameIsContained)
 
 TEST_F(ATrack, ReturnsNumberOfTrackedNames)
 {
-    auto track = con_->createTrack([](sdbus::Track&){});
+    auto track = con_->createTrack([](const sdbus::Track&){});
 
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_track_count(fakeTrackPtr_)).WillOnce(Return(3));
 
@@ -225,7 +225,7 @@ TEST_F(ATrack, ReturnsNumberOfTrackedNames)
 
 TEST_F(ATrack, ReturnsTrackedNames)
 {
-    auto track = con_->createTrack([](sdbus::Track&){});
+    auto track = con_->createTrack([](const sdbus::Track&){});
 
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_track_get_names(fakeTrackPtr_, _))
         .WillOnce(DoAll(SetArgReferee<1>(std::vector<std::string>{":1.42", "org.sdbuscpp.name"}), Return(0)));
@@ -235,7 +235,7 @@ TEST_F(ATrack, ReturnsTrackedNames)
 
 TEST_F(ATrack, ForwardsRecursiveModeToSdBus)
 {
-    auto track = con_->createTrack([](sdbus::Track&){});
+    auto track = con_->createTrack([](const sdbus::Track&){});
 
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_track_set_recursive(fakeTrackPtr_, 1)).WillOnce(Return(0));
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_track_get_recursive(fakeTrackPtr_)).WillOnce(Return(1));
@@ -246,7 +246,7 @@ TEST_F(ATrack, ForwardsRecursiveModeToSdBus)
 
 TEST_F(ATrack, ThrowsWhenSettingRecursiveModeOnNonEmptyTrack)
 {
-    auto track = con_->createTrack([](sdbus::Track&){});
+    auto track = con_->createTrack([](const sdbus::Track&){});
 
     EXPECT_CALL(*sdBusIntfMock_, sd_bus_track_set_recursive(_, _)).WillOnce(Return(-EBUSY));
 
@@ -256,7 +256,7 @@ TEST_F(ATrack, ThrowsWhenSettingRecursiveModeOnNonEmptyTrack)
 TEST_F(ATrack, InvokesHandlerWithTheSameTrackWhenSdBusDispatchesIt)
 {
     bool handlerCalled{};
-    auto track = con_->createTrack([&](sdbus::Track& dispatchedTrack)
+    auto track = con_->createTrack([&](const sdbus::Track& dispatchedTrack)
     {
         handlerCalled = true;
         EXPECT_THAT(dispatchedTrack.count(), Eq(0));
@@ -274,7 +274,7 @@ TEST_F(ATrack, InvokesHandlerWithTheSameTrackWhenSdBusDispatchesIt)
 
 TEST_F(ATrack, ReturnsErrorToSdBusWhenHandlerThrows)
 {
-    auto track = con_->createTrack([](sdbus::Track&){ throw std::runtime_error("handler failure"); });
+    auto track = con_->createTrack([](const sdbus::Track&){ throw std::runtime_error("handler failure"); });
     ASSERT_THAT(trackHandler_, NotNull());
 
     ON_CALL(*sdBusIntfMock_, sd_bus_track_ref(fakeTrackPtr_)).WillByDefault(Return(fakeTrackPtr_));

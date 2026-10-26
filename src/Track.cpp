@@ -28,6 +28,7 @@
 
 #include "sdbus-c++/Error.h"
 #include "sdbus-c++/Message.h"
+#include "sdbus-c++/TypeTraits.h"
 #include "sdbus-c++/Types.h"
 
 #include "ISdBus.h"
@@ -42,6 +43,15 @@
 namespace sdbus {
 
 Track::Track(void *track, internal::ISdBus* sdbus) noexcept
+    : track_(track)
+    , sdbus_(sdbus)
+{
+    assert(track_ != nullptr);
+    assert(sdbus_ != nullptr);
+    sdbus_->sd_bus_track_ref(static_cast<sd_bus_track*>(track_));
+}
+
+Track::Track(void *track, internal::ISdBus* sdbus, adopt_track_t) noexcept
     : track_(track)
     , sdbus_(sdbus)
 {

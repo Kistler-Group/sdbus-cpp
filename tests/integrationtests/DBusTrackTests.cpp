@@ -50,7 +50,7 @@ public:
     {
         object_->addVTable(sdbus::registerMethod("lock").implementedAs([this]()
         {
-            track_.emplace(connection_->createTrack([this](sdbus::Track&){ released_ = true; }));
+            track_.emplace(connection_->createTrack([this](const sdbus::Track&){ released_ = true; }));
             track_->addSender(object_->getCurrentlyProcessedMessage());
         })).forInterface(INTERFACE_NAME);
         connection_->enterEventLoopAsync();

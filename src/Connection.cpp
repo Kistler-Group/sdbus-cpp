@@ -507,7 +507,7 @@ Track Connection::createTrack(track_handler onEmpty)
                                      , trackInfo.get() );
     SDBUS_THROW_ERROR_IF(r < 0, "Failed to create track", -r);
 
-    Track track{sdbusTrack, sdbus_.get()};
+    Track track{sdbusTrack, sdbus_.get(), adopt_track};
 
     if (trackInfo)
     {
@@ -958,12 +958,12 @@ int Connection::sdbus_track_callback(sd_bus_track *sdbusTrack, void *userData)
     assert(trackInfo != nullptr);
     assert(trackInfo->callback);
 
-    Track track{trackInfo->sdbus.sd_bus_track_ref(sdbusTrack), &trackInfo->sdbus};
+    Track track{sdbusTrack, &trackInfo->sdbus};
 
     sd_bus_error sdbusError = SD_BUS_ERROR_NULL;
     SCOPE_EXIT{ sd_bus_error_free(&sdbusError); };
 
-    auto ok = invokeHandlerAndCatchErrors([&](){ trackInfo->callback(track); }, &sdbusError);
+    auto ok = invokeHandlerAndCatchErrors([&](){ trackInfo->callback(std::move(track)); }, &sdbusError);
 
     // A positive value tells sd-bus not to re-queue the still empty track for another dispatch
     return ok ? 1 : -1;

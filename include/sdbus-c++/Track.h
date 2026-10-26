@@ -34,6 +34,7 @@
 namespace sdbus {
     class BusName;
     class Message;
+    struct adopt_track_t;
     namespace internal {
         class ISdBus;
         class Connection;
@@ -181,8 +182,8 @@ namespace sdbus {
     private:
         friend internal::Connection;
 
-        // Takes over the reference held by the caller
         Track(void *track, internal::ISdBus* sdbus) noexcept;
+        Track(void *track, internal::ISdBus* sdbus, adopt_track_t) noexcept;
 
         void* track_{};
         internal::ISdBus* sdbus_{};

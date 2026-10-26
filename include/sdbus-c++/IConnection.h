@@ -446,7 +446,7 @@ namespace sdbus {
          *
          * Example of use in a D-Bus method callback handler, tracking the caller:
          * @code
-         * auto track = connection.createTrack([](sdbus::Track&){ releaseLock(); });
+         * auto track = connection.createTrack([](const sdbus::Track&){ releaseLock(); });
          * track.addSender(object.getCurrentlyProcessedMessage());
          * @endcode
          *

@@ -42,7 +42,7 @@ try
         const std::string sender = call.getSender();
 
         // The handler is invoked once the tracked client disappears from the bus
-        owner.emplace(connection->createTrack([&owner, sender](sdbus::Track&)
+        owner.emplace(connection->createTrack([&owner, sender](const sdbus::Track&)
         {
             std::cout << "Lock released, " << sender << " has disconnected" << '\n';
             owner.reset();

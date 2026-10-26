@@ -1836,7 +1836,7 @@ auto acquire = [&]()
 {
     auto call = object->getCurrentlyProcessedMessage();
 
-    owner.emplace(connection->createTrack([&owner](sdbus::Track&)
+    owner.emplace(connection->createTrack([&owner](const sdbus::Track&)
     {
         // The client holding the lock has disconnected from the bus
         owner.reset();
