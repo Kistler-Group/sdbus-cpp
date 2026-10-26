@@ -66,6 +66,7 @@ namespace sdbus {
     class Message;
     class PropertySetCall;
     class PropertyGetReply;
+    class Track;
     template <typename... Results> class Result;
     class Error;
     template <typename T, typename Enable = void> struct signature_of;
@@ -80,6 +81,7 @@ namespace sdbus {
     using message_handler = std::function<void(Message msg)>;
     using property_set_callback = std::function<void(PropertySetCall msg)>;
     using property_get_callback = std::function<void(PropertyGetReply& reply)>;
+    using track_handler = std::function<void(Track track)>;
 
     // Type-erased RAII-style handle to callbacks/subscriptions registered to sdbus-c++
     using Slot = std::unique_ptr<void, std::function<void(void*)>>;
@@ -96,6 +98,9 @@ namespace sdbus {
     // Tag denoting the assumption that the caller has already obtained fd ownership
     struct adopt_fd_t { explicit adopt_fd_t() = default; };
     inline constexpr adopt_fd_t adopt_fd{};
+    // Tag denoting the assumption that the caller has already obtained track ownership
+    struct adopt_track_t { explicit adopt_track_t() = default; };
+    inline constexpr adopt_track_t adopt_track{};
     // Tag specifying that the proxy shall not run an event loop thread on its D-Bus connection.
     // Such proxies are typically created to carry out a simple synchronous D-Bus call(s) and then are destroyed.
     struct dont_run_event_loop_thread_t { explicit dont_run_event_loop_thread_t() = default; };

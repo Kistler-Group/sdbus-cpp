@@ -51,6 +51,7 @@ set(UNITTESTS_SRCS
     ${UNITTESTS_SOURCE_DIR}/Types_test.cpp
     ${UNITTESTS_SOURCE_DIR}/TypeTraits_test.cpp
     ${UNITTESTS_SOURCE_DIR}/Connection_test.cpp
+    ${UNITTESTS_SOURCE_DIR}/Track_test.cpp
     ${UNITTESTS_SOURCE_DIR}/mocks/SdBusMock.h)
 
 set(COMPILETESTS_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/compiletests)
@@ -68,6 +69,7 @@ set(INTEGRATIONTESTS_SRCS
     ${INTEGRATIONTESTS_SOURCE_DIR}/DBusSignalsTests.cpp
     ${INTEGRATIONTESTS_SOURCE_DIR}/DBusPropertiesTests.cpp
     ${INTEGRATIONTESTS_SOURCE_DIR}/DBusStandardInterfacesTests.cpp
+    ${INTEGRATIONTESTS_SOURCE_DIR}/DBusTrackTests.cpp
     ${INTEGRATIONTESTS_SOURCE_DIR}/Defs.h
     ${INTEGRATIONTESTS_SOURCE_DIR}/TestFixture.h
     ${INTEGRATIONTESTS_SOURCE_DIR}/TestFixture.cpp

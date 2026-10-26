@@ -29,6 +29,7 @@
 #include "sdbus-c++/Error.h"
 #include "sdbus-c++/IConnection.h"
 #include "sdbus-c++/Message.h"
+#include "sdbus-c++/Track.h"
 #include "sdbus-c++/Types.h"
 #include "sdbus-c++/TypeTraits.h"
 
@@ -493,6 +494,32 @@ Slot Connection::addObjectVTable( const ObjectPath& objectPath
     return {slot, [this](void *slot){ sdbus_->sd_bus_slot_unref(static_cast<sd_bus_slot*>(slot)); }};
 }
 
+Track Connection::createTrack(track_handler onEmpty)
+{
+    std::unique_ptr<TrackInfo> trackInfo;
+    if (onEmpty)
+        trackInfo = std::make_unique<TrackInfo>(TrackInfo{.callback = std::move(onEmpty), .sdbus = *sdbus_});
+
+    sd_bus_track* sdbusTrack{};
+    auto r = sdbus_->sd_bus_track_new( bus_.get()
+                                     , &sdbusTrack
+                                     , trackInfo ? &Connection::sdbus_track_callback : nullptr
+                                     , trackInfo.get() );
+    SDBUS_THROW_ERROR_IF(r < 0, "Failed to create track", -r);
+
+    Track track{sdbusTrack, sdbus_.get(), adopt_track};
+
+    if (trackInfo)
+    {
+        // Track info lives as long as the underlying sd-bus track, which is shared by all copies of the Track object
+        r = sdbus_->sd_bus_track_set_destroy_callback(sdbusTrack, [](void *ptr){ delete static_cast<TrackInfo*>(ptr); }); // NOLINT(cppcoreguidelines-owning-memory)
+        SDBUS_THROW_ERROR_IF(r < 0, "Failed to set track destroy callback", -r);
+        trackInfo.release(); // NOLINT(bugprone-unused-return-value): owned by the sd-bus track from now on
+    }
+
+    return track;
+}
+
 PlainMessage Connection::createPlainMessage() const
 {
     sd_bus_message* sdbusMsg{};
@@ -923,6 +950,23 @@ int Connection::sdbus_match_install_callback(sd_bus_message *sdbusMessage, void 
     auto ok = invokeHandlerAndCatchErrors([&](){ matchInfo->installCallback(std::move(message)); }, retError);
 
     return ok ? 0 : -1;
+}
+
+int Connection::sdbus_track_callback(sd_bus_track *sdbusTrack, void *userData)
+{
+    auto* trackInfo = static_cast<TrackInfo*>(userData);
+    assert(trackInfo != nullptr);
+    assert(trackInfo->callback);
+
+    Track track{sdbusTrack, &trackInfo->sdbus};
+
+    sd_bus_error sdbusError = SD_BUS_ERROR_NULL;
+    SCOPE_EXIT{ sd_bus_error_free(&sdbusError); };
+
+    auto ok = invokeHandlerAndCatchErrors([&](){ trackInfo->callback(std::move(track)); }, &sdbusError);
+
+    // A positive value tells sd-bus not to re-queue the still empty track for another dispatch
+    return ok ? 1 : -1;
 }
 
 Connection::EventFd::EventFd()

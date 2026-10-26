@@ -123,6 +123,8 @@ namespace sdbus::internal {
         void detachSdEventLoop() override;
         sd_event *getSdEventLoop() override;
 
+        [[nodiscard]] Track createTrack(track_handler onEmpty) override;
+
         Slot addObjectVTable( const ObjectPath& objectPath
                             , const InterfaceName& interfaceName
                             , const sd_bus_vtable* vtable
@@ -202,6 +204,7 @@ namespace sdbus::internal {
 
         static int sdbus_match_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
         static int sdbus_match_install_callback(sd_bus_message *sdbusMessage, void *userData, sd_bus_error *retError);
+        static int sdbus_track_callback(sd_bus_track *sdbusTrack, void *userData);
 
     
 #ifndef SDBUS_basu // sd_event integration is not supported if instead of libsystemd we are based on basu
@@ -237,6 +240,12 @@ namespace sdbus::internal {
             message_handler installCallback;
             Connection& connection; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
             Slot slot;
+        };
+
+        struct TrackInfo
+        {
+            track_handler callback;
+            ISdBus& sdbus; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
         };
 
         // sd-event integration
