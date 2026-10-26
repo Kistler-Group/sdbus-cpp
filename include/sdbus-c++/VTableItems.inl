@@ -29,6 +29,7 @@
 #include <sdbus-c++/Error.h>
 #include <sdbus-c++/TypeTraits.h>
 
+#include <concepts>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -81,11 +82,9 @@ namespace sdbus {
         return std::move(*this);
     }
 
-    template <typename... String>
+    template <std::convertible_to<std::string>... String>
     inline MethodVTableItem&& MethodVTableItem::withInputParamNames(String... names) &&
     {
-        static_assert(std::conjunction_v<std::is_convertible<String, std::string>...>, "Parameter names must be (convertible to) strings");
-
         return std::move(*this).withInputParamNames({names...});
     }
 
@@ -96,11 +95,9 @@ namespace sdbus {
         return std::move(*this);
     }
 
-    template <typename... String>
+    template <std::convertible_to<std::string>... String>
     inline MethodVTableItem&& MethodVTableItem::withOutputParamNames(String... names) &&
     {
-        static_assert(std::conjunction_v<std::is_convertible<String, std::string>...>, "Parameter names must be (convertible to) strings");
-
         return std::move(*this).withOutputParamNames({names...});
     }
 
@@ -155,12 +152,10 @@ namespace sdbus {
         return std::move(*this).template withParameters<Args...>();
     }
 
-    template <typename... Args, typename... String>
+    template <typename... Args, std::convertible_to<std::string>... String>
+    requires(sizeof...(Args) == sizeof...(String))
     inline SignalVTableItem&& SignalVTableItem::withParameters(String... names) &&
     {
-        static_assert(std::conjunction_v<std::is_convertible<String, std::string>...>, "Parameter names must be (convertible to) strings");
-        static_assert(sizeof...(Args) == sizeof...(String), "Numbers of signal parameters and their names don't match");
-
         return std::move(*this).template withParameters<Args...>({names...});
     }
 
