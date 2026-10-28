@@ -15,7 +15,8 @@ std::string underscorize(const std::string& str)
     std::string res = str;
     for (unsigned int i = 0; i < res.length(); ++i)
     {
-        if (!isalpha(res[i]) && !isdigit(res[i]))
+        const auto c = static_cast<unsigned char>(res[i]);
+        if (!isalpha(c) && !isdigit(c))
         {
             res[i] = '_';
         }
@@ -155,8 +156,13 @@ std::string signature_to_type(const std::string& signature)
 
 std::string mangle_name(const std::string& name)
 {
-    if (reserved_names.find(name) != reserved_names.end())
-        return name + "_";
+    // D-Bus does not restrict argument names, so turn them into valid C++ identifiers
+    auto result = underscorize(name);
+    if (!result.empty() && isdigit(static_cast<unsigned char>(result[0])))
+        result = "_" + result;
+
+    if (reserved_names.find(result) != reserved_names.end())
+        return result + "_";
     else
-        return name;
+        return result;
 }
