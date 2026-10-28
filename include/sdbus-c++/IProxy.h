@@ -175,6 +175,42 @@ namespace sdbus {
         [[nodiscard]] SignalSubscriber uponSignal(const char* signalName);
 
         /*!
+         * @brief Registers handler for changes of a given property of the D-Bus object
+         *
+         * @param[in] propertyName Name of the property
+         * @return A helper object for convenient registration of the property change handler
+         *
+         * This is a high-level, convenience way of watching D-Bus property changes. It subscribes
+         * to the standard `org.freedesktop.DBus.Properties.PropertiesChanged` signal, picks up
+         * the given property of the given interface, and passes its value to the callback.
+         *
+         * The callback takes the property value as `std::optional<T>`, where `T` is the property type.
+         * The optional is empty when the property is invalidated, i.e. its new value is not carried
+         * in the signal (property annotated with `org.freedesktop.DBus.Property.EmitsChangedSignal`
+         * set to `invalidates`). The callback may also take `std::optional<sdbus::Error>` as its first
+         * parameter, through which deserialization errors (e.g. a property type mismatch) are passed.
+         * Changes of other properties do not invoke the callback.
+         *
+         * A property change can be subscribed to and unsubscribed from at any time during proxy
+         * lifetime. The subscription is active immediately after the call.
+         *
+         * Example of use:
+         * @code
+         * object_.uponPropertyChange("state").onInterface("com.kistler.foo").call([this](std::optional<int> state){ ... });
+         * sdbus::PropertyName level{"level"};
+         * auto slot = object_.uponPropertyChange(level).onInterface("com.kistler.foo").call([this](std::optional<uint16_t> level){ ... }, sdbus::return_slot);
+         * @endcode
+         *
+         * @throws sdbus::Error in case of failure
+         */
+        [[nodiscard]] PropertyChangeSubscriber uponPropertyChange(const PropertyName& propertyName);
+
+        /*!
+         * @copydoc IProxy::uponPropertyChange(const PropertyName&)
+         */
+        [[nodiscard]] PropertyChangeSubscriber uponPropertyChange(std::string_view propertyName);
+
+        /*!
          * @brief Gets value of a property of the D-Bus object
          *
          * @param[in] propertyName Name of the property
@@ -658,6 +694,7 @@ namespace sdbus {
         friend MethodInvoker;
         friend AsyncMethodInvoker;
         friend SignalSubscriber;
+        friend PropertyChangeSubscriber;
 
         [[nodiscard]] virtual MethodCall createMethodCall(const char* interfaceName, const char* methodName) const = 0;
         virtual void registerSignalHandler( const char* interfaceName
@@ -837,6 +874,16 @@ namespace sdbus {
     inline SignalSubscriber IProxy::uponSignal(const char* signalName)
     {
         return {*this, signalName};
+    }
+
+    inline PropertyChangeSubscriber IProxy::uponPropertyChange(const PropertyName& propertyName)
+    {
+        return {*this, propertyName};
+    }
+
+    inline PropertyChangeSubscriber IProxy::uponPropertyChange(std::string_view propertyName)
+    {
+        return {*this, propertyName};
     }
 
     inline PropertyGetter IProxy::getProperty(const PropertyName& propertyName)

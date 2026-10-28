@@ -35,11 +35,15 @@
 #include <sdbus-c++/TypeTraits.h>
 #include <sdbus-c++/Types.h>
 
+#include <algorithm>
 #include <cassert>
 #include <exception>
+#include <map>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <type_traits>
+#include <vector>
 
 namespace sdbus {
 
@@ -473,6 +477,113 @@ namespace sdbus {
                 sdbus::apply(callback, signalArgs);
             }
         };
+    }
+
+    /*** ------------------------ ***/
+    /*** PropertyChangeSubscriber ***/
+    /*** ------------------------ ***/
+
+    inline PropertyChangeSubscriber::PropertyChangeSubscriber(IProxy& proxy, std::string_view propertyName)
+        : proxy_(proxy)
+        , propertyName_(propertyName)
+    {
+    }
+
+    inline PropertyChangeSubscriber& PropertyChangeSubscriber::onInterface(std::string_view interfaceName)
+    {
+        interfaceName_ = interfaceName;
+
+        return *this;
+    }
+
+    template <typename Function>
+    inline void PropertyChangeSubscriber::call(Function&& callback)
+    {
+        assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
+
+        proxy_.registerSignalHandler( DBUS_PROPERTIES_INTERFACE_NAME
+                                    , PROPERTIES_CHANGED_SIGNAL_NAME
+                                    , makeSignalHandler(std::forward<Function>(callback)) );
+    }
+
+    template <typename Function>
+    [[nodiscard]] inline Slot PropertyChangeSubscriber::call(Function&& callback, return_slot_t)
+    {
+        assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
+
+        return proxy_.registerSignalHandler( DBUS_PROPERTIES_INTERFACE_NAME
+                                           , PROPERTIES_CHANGED_SIGNAL_NAME
+                                           , makeSignalHandler(std::forward<Function>(callback))
+                                           , return_slot );
+    }
+
+    template <typename Function>
+    inline signal_handler PropertyChangeSubscriber::makeSignalHandler(Function&& callback)
+    {
+        using callback_args_t = tuple_of_function_input_arg_types_t<Function>;
+        static_assert( std::tuple_size_v<callback_args_t> == 1
+                     , "Property change callback must take exactly one property value parameter (plus optional error parameter)" );
+        using property_arg_t = std::tuple_element_t<0, callback_args_t>;
+        static_assert( is_optional_v<property_arg_t>
+                     , "Property value parameter of property change callback must be std::optional<T>" );
+        using property_value_t = typename property_arg_t::value_type;
+
+        // Names are copied, since the handler outlives the string views given by the client
+        return [ callback = std::forward<Function>(callback)
+               , interfaceName = std::string{interfaceName_}
+               , propertyName = std::string{propertyName_} ](Signal signal)
+        {
+            std::optional<property_value_t> value;
+
+            // Like with signal handlers, the callback can take an additional `std::optional<Error>` as its first
+            // parameter. In such a case, deserialization failures (e.g. due to property type mismatch) are passed to
+            // the callback. Otherwise, they are propagated up the message loop call stack.
+            if constexpr (has_error_param_v<Function>)
+            {
+                bool affected{};
+                try
+                {
+                    affected = readPropertyChange(signal, interfaceName, propertyName, value);
+                }
+                catch (const Error& err)
+                {
+                    callback(err, std::optional<property_value_t>{});
+                    return;
+                }
+
+                if (affected)
+                    callback(std::nullopt, std::move(value));
+            }
+            else
+            {
+                if (readPropertyChange(signal, interfaceName, propertyName, value))
+                    callback(std::move(value));
+            }
+        };
+    }
+
+    template <typename Value>
+    inline bool PropertyChangeSubscriber::readPropertyChange( Signal& signal
+                                                            , const std::string& interfaceName
+                                                            , const std::string& propertyName
+                                                            , std::optional<Value>& value )
+    {
+        std::string changedInterfaceName;
+        std::map<std::string, Variant> changedProperties;
+        std::vector<std::string> invalidatedProperties;
+        signal >> changedInterfaceName >> changedProperties >> invalidatedProperties;
+
+        if (changedInterfaceName != interfaceName)
+            return false;
+
+        if (auto it = changedProperties.find(propertyName); it != changedProperties.end())
+        {
+            value = it->second.get<Value>();
+            return true;
+        }
+
+        // Invalidated property comes without value
+        return std::find(invalidatedProperties.begin(), invalidatedProperties.end(), propertyName) != invalidatedProperties.end();
     }
 
     /*** -------------- ***/
