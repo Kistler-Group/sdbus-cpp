@@ -564,7 +564,7 @@ namespace sdbus {
 
     template <typename Value>
     inline bool PropertyChangeSubscriber::readPropertyChange( Signal& signal
-                                                            , const std::string& interfaceName
+                                                            , const std::string& interfaceName // NOLINT(bugprone-easily-swappable-parameters)
                                                             , const std::string& propertyName
                                                             , std::optional<Value>& value )
     {
