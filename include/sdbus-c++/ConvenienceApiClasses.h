@@ -37,6 +37,7 @@
 #include <cstdint>
 #include <future>
 #include <map>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -172,6 +173,30 @@ namespace sdbus {
         IProxy& proxy_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
         const char* signalName_;
         const char* interfaceName_{};
+    };
+
+    class PropertyChangeSubscriber
+    {
+    public:
+        PropertyChangeSubscriber& onInterface(std::string_view interfaceName);
+        template <typename Function> void call(Function&& callback);
+        template <typename Function> [[nodiscard]] Slot call(Function&& callback, return_slot_t);
+
+    private:
+        friend IProxy;
+        PropertyChangeSubscriber(IProxy& proxy, std::string_view propertyName);
+        template <typename Function> signal_handler makeSignalHandler(Function&& callback);
+        template <typename Value> static bool readPropertyChange( Signal& signal
+                                                                 , const std::string& interfaceName
+                                                                 , const std::string& propertyName
+                                                                 , std::optional<Value>& value );
+
+        static constexpr const char* DBUS_PROPERTIES_INTERFACE_NAME = "org.freedesktop.DBus.Properties";
+        static constexpr const char* PROPERTIES_CHANGED_SIGNAL_NAME = "PropertiesChanged";
+
+        IProxy& proxy_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+        std::string_view propertyName_;
+        std::string_view interfaceName_;
     };
 
     class PropertyGetter

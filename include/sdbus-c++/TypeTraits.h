@@ -519,6 +519,17 @@ namespace sdbus {
     template <class Function>
     constexpr auto has_error_param_v = function_traits<Function>::has_error_param;
 
+    template <typename T>
+    struct is_optional : std::false_type
+    {};
+
+    template <typename T>
+    struct is_optional<std::optional<T>> : std::true_type
+    {};
+
+    template <typename T>
+    constexpr auto is_optional_v = is_optional<T>::value;
+
     template <typename FunctionType>
     using function_arguments_t = typename function_traits<FunctionType>::arguments_type;
 
