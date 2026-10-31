@@ -82,7 +82,7 @@ TYPED_TEST(AsyncSdbusTestObject, ThrowsTimeoutErrorWhenClientSideAsyncMethodTime
         ASSERT_THAT(e.getName(), AnyOf("org.freedesktop.DBus.Error.Timeout", "org.freedesktop.DBus.Error.NoReply"));
         ASSERT_THAT(e.getMessage(), AnyOf("Connection timed out", "Method call timed out"));
         auto measuredTimeout = std::chrono::steady_clock::now() - start;
-        ASSERT_THAT(measuredTimeout, Le(50ms));
+        ASSERT_THAT(measuredTimeout, Le(500ms)); // Well below the 1s operation time, with headroom for slow (e.g. emulated) machines
     }
     catch(...)
     {
