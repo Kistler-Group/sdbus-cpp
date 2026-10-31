@@ -309,7 +309,12 @@ TYPED_TEST(SdbusTestObject, CallsMethodWithLargeArgument)
         //totalSize += sizeof(int) + collection[i].size();
     }
     //printf("Sending large message with collection of size %zu bytes\n", totalSize);
-    this->m_proxy->sendLargeMessage(collection);
+    // Marshalling and transferring ~30 MB takes long on slow (e.g. emulated) machines,
+    // so don't let the call run into the default 25s method call timeout
+    this->m_proxy->getProxy().callMethod("sendLargeMessage")
+                             .onInterface("org.sdbuscpp.integrationtests")
+                             .withTimeout(120s)
+                             .withArguments(collection);
 }
 
 TYPED_TEST(SdbusTestObject, CanSendCallsAndReceiveRepliesWithLargeData)
