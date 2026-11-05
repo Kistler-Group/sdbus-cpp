@@ -203,10 +203,10 @@ namespace sdbus {
          *
          * @throws sdbus::Error in case of failure
          */
-        [[nodiscard]] PropertyChangeSubscriber uponPropertyChange(const PropertyName& propertyName);
+        [[nodiscard]] PropertyChangeSubscriber uponPropertyChange(PropertyName propertyName);
 
         /*!
-         * @copydoc IProxy::uponPropertyChange(const PropertyName&)
+         * @copydoc IProxy::uponPropertyChange(PropertyName)
          */
         [[nodiscard]] PropertyChangeSubscriber uponPropertyChange(std::string_view propertyName);
 
@@ -876,14 +876,14 @@ namespace sdbus {
         return {*this, signalName};
     }
 
-    inline PropertyChangeSubscriber IProxy::uponPropertyChange(const PropertyName& propertyName)
+    inline PropertyChangeSubscriber IProxy::uponPropertyChange(PropertyName propertyName)
     {
-        return {*this, propertyName};
+        return {*this, std::move(propertyName)};
     }
 
     inline PropertyChangeSubscriber IProxy::uponPropertyChange(std::string_view propertyName)
     {
-        return {*this, propertyName};
+        return {*this, PropertyName{std::string{propertyName}}};
     }
 
     inline PropertyGetter IProxy::getProperty(const PropertyName& propertyName)

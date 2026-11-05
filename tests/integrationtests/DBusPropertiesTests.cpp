@@ -103,6 +103,27 @@ TYPED_TEST(SdbusTestObject, NotifiesAboutPropertyChangeWithNewPropertyValue)
     EXPECT_THAT(blockingValue, Optional(Eq(!DEFAULT_BLOCKING_VALUE))) << "Changed property shall be passed with its new value";
 }
 
+TYPED_TEST(SdbusTestObject, NotifiesAboutPropertyChangeWhenNamesAreGivenAsPlainStrings)
+{
+    std::atomic notified{false};
+    std::optional<bool> blockingValue;
+    {
+        // The handler must own the names, since it outlives the strings given by the client
+        const std::string propertyName{BLOCKING_PROPERTY};
+        this->m_proxy->getProxy().uponPropertyChange(propertyName).onInterface("org.sdbuscpp.integrationtests").call([&](std::optional<bool> value)
+        {
+            blockingValue = value;
+            notified = true;
+        });
+    }
+
+    this->m_proxy->blocking(!DEFAULT_BLOCKING_VALUE);
+    this->m_adaptor->emitPropertiesChangedSignal(INTERFACE_NAME, {BLOCKING_PROPERTY});
+
+    ASSERT_TRUE(waitUntil(notified));
+    EXPECT_THAT(blockingValue, Optional(Eq(!DEFAULT_BLOCKING_VALUE))) << "Names given as plain strings shall select the property the same way as strong types";
+}
+
 TYPED_TEST(SdbusTestObject, NotifiesAboutInvalidatedPropertyWithEmptyPropertyValue)
 {
     std::atomic notified{false};

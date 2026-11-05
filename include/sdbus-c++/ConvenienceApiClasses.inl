@@ -483,17 +483,22 @@ namespace sdbus {
     /*** PropertyChangeSubscriber ***/
     /*** ------------------------ ***/
 
-    inline PropertyChangeSubscriber::PropertyChangeSubscriber(IProxy& proxy, std::string_view propertyName)
+    inline PropertyChangeSubscriber::PropertyChangeSubscriber(IProxy& proxy, PropertyName propertyName)
         : proxy_(proxy)
-        , propertyName_(propertyName)
+        , propertyName_(std::move(propertyName))
     {
+    }
+
+    inline PropertyChangeSubscriber& PropertyChangeSubscriber::onInterface(InterfaceName interfaceName)
+    {
+        interfaceName_ = std::move(interfaceName);
+
+        return *this;
     }
 
     inline PropertyChangeSubscriber& PropertyChangeSubscriber::onInterface(std::string_view interfaceName)
     {
-        interfaceName_ = interfaceName;
-
-        return *this;
+        return onInterface(InterfaceName{std::string{interfaceName}});
     }
 
     template <typename Function>
@@ -528,19 +533,18 @@ namespace sdbus {
                      , "Property value parameter of property change callback must be std::optional<T>" );
         using property_value_t = typename property_arg_t::value_type;
 
-        // Names are copied, since the handler outlives the string views given by the client
         return [ callback = std::forward<Function>(callback)
-               , interfaceName = std::string{interfaceName_}
-               , propertyName = std::string{propertyName_} ](Signal signal)
+               , interfaceName = std::move(interfaceName_)
+               , propertyName = std::move(propertyName_) ](Signal signal)
         {
             std::optional<property_value_t> value;
+            bool affected{};
 
             // Like with signal handlers, the callback can take an additional `std::optional<Error>` as its first
             // parameter. In such a case, deserialization failures (e.g. due to property type mismatch) are passed to
             // the callback. Otherwise, they are propagated up the message loop call stack.
             if constexpr (has_error_param_v<Function>)
             {
-                bool affected{};
                 try
                 {
                     affected = readPropertyChange(signal, interfaceName, propertyName, value);
@@ -556,7 +560,9 @@ namespace sdbus {
             }
             else
             {
-                if (readPropertyChange(signal, interfaceName, propertyName, value))
+                affected = readPropertyChange(signal, interfaceName, propertyName, value);
+
+                if (affected)
                     callback(std::move(value));
             }
         };
@@ -564,8 +570,8 @@ namespace sdbus {
 
     template <typename Value>
     inline bool PropertyChangeSubscriber::readPropertyChange( Signal& signal
-                                                            , const std::string& interfaceName // NOLINT(bugprone-easily-swappable-parameters)
-                                                            , const std::string& propertyName
+                                                            , const InterfaceName& interfaceName
+                                                            , const PropertyName& propertyName
                                                             , std::optional<Value>& value )
     {
         std::string changedInterfaceName;
