@@ -1439,6 +1439,37 @@ More information on `error` callback handler parameter, on behavior of `future` 
 
 In a very analogous way, with both synchronous and asynchronous options, it's possible to read all properties of an object under given interface at once. `IProxy::getAllProperties()` is what you're looking for.
 
+#### Watching property changes
+
+Changes of properties are announced by the standard `PropertiesChanged` signal of the `org.freedesktop.DBus.Properties` interface. Instead of subscribing to this signal and searching for the property of interest in its arguments manually, we can use `IProxy::uponPropertyChange()`:
+
+```c++
+proxy->uponPropertyChange("status").onInterface("org.sdbuscpp.Concatenator").call([](std::optional<uint32_t> status)
+{
+    if (status)
+        std::cout << "Status changed to " << *status << std::endl;
+    else
+        std::cout << "Status changed, but its value is not provided" << std::endl;
+});
+```
+
+The property value is passed to the handler as `std::optional<T>`, where `T` is the property type. The optional is empty when the property is invalidated, i.e. the signal carries just the information that the property changed, but not its new value. This is the case for properties annotated with `org.freedesktop.DBus.Property.EmitsChangedSignal` set to `invalidates`. The new value can then be read with `getProperty()`, if needed. Changes of other properties, as well as changes of a property with the same name on other interfaces, do not invoke the handler.
+
+Like signal handlers, the property change handler may take `std::optional<sdbus::Error>` as its first parameter. Errors that occur when reading the property value from the signal, e.g. because of a mismatch between the property type and the `T` type, are then passed to the handler through this parameter instead of being propagated up the event loop:
+
+```c++
+proxy->uponPropertyChange("status").onInterface("org.sdbuscpp.Concatenator").call([](std::optional<sdbus::Error> error, std::optional<uint32_t> status)
+{
+    if (error)
+        std::cerr << "Failed to read the status: " << error->getMessage() << std::endl;
+    /*...*/
+});
+```
+
+Just like with `uponSignal()`, there's also an overload of `call()` with `return_slot_t` tag which returns a `Slot` object. The subscription is then active as long as we keep the slot object, and is unregistered when we let go of it.
+
+> **_Note_:** sdbus-c++ does not emit `PropertiesChanged` signals automatically when a property is set. It's the server side that is supposed to emit them, e.g. via `IObject::emitPropertiesChangedSignal()`.
+
 ### Generated bindings API
 
 Defining and working with D-Bus properties using XML description is quite easy.
