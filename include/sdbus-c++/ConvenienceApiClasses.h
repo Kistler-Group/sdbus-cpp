@@ -227,6 +227,7 @@ namespace sdbus {
     private:
         friend IProxy;
         AsyncPropertyGetter(IProxy& proxy, std::string_view propertyName);
+        template <typename Function> static auto makeReplyHandler(Function&& callback);
 
         static constexpr const char* DBUS_PROPERTIES_INTERFACE_NAME = "org.freedesktop.DBus.Properties";
 
