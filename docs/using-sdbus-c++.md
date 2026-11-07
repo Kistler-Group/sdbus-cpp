@@ -1392,11 +1392,25 @@ Getting a property in asynchronous manner is also possible, in callback-based, f
 
 ```c++
 // Callback-based method:
-auto callback = [](std::optional<sdbus::Error> /*error*/, sdbus::Variant value)
+auto callback = [](std::optional<sdbus::Error> error, sdbus::Variant value)
 {
-    std::cout << "Got property value: " << value.get<uint32_t>() << std::endl;
+    if (error)
+        std::cerr << "Got property error: " << error->getMessage() << std::endl;
+    else
+        std::cout << "Got property value: " << value.get<uint32_t>() << std::endl;
 };
-uint32_t status = proxy->getPropertyAsync("status").onInterface("org.sdbuscpp.Concatenator").uponReplyInvoke(std::move(callback));
+proxy->getPropertyAsync("status").onInterface("org.sdbuscpp.Concatenator").uponReplyInvoke(std::move(callback));
+
+// The callback value parameter may also be the property's type, in which case the value is converted
+// from a D-Bus variant, and a type mismatch is reported through `error` along with a default-constructed value:
+auto typedCallback = [](std::optional<sdbus::Error> error, uint32_t status)
+{
+    if (error)
+        std::cerr << "Got property error: " << error->getMessage() << std::endl;
+    else
+        std::cout << "Got property value: " << status << std::endl;
+};
+proxy->getPropertyAsync("status").onInterface("org.sdbuscpp.Concatenator").uponReplyInvoke(std::move(typedCallback));
 
 // Future-based method:
 std::future<sdbus::Variant> statusFuture = object.getPropertyAsync("status").onInterface("org.sdbuscpp.Concatenator").getResultAsFuture();
