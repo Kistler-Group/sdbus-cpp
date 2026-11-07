@@ -86,6 +86,101 @@ TYPED_TEST(SdbusTestObject, WritesAndReadsReadWriteVariantPropertySuccessfully)
     ASSERT_THAT(this->m_proxy->actionVariant().template get<int>(), Eq(5678));
 }
 
+TYPED_TEST(SdbusTestObject, GetsPropertyAsynchronouslyAsVariantViaCallback)
+{
+    std::atomic notified{false};
+    std::optional<sdbus::Error> receivedError;
+    sdbus::Variant receivedValue;
+    this->m_proxy->getProxy().getPropertyAsync(STATE_PROPERTY).onInterface(INTERFACE_NAME).uponReplyInvoke([&](std::optional<sdbus::Error> error, sdbus::Variant value)
+    {
+        receivedError = std::move(error);
+        receivedValue = std::move(value);
+        notified = true;
+    });
+
+    ASSERT_TRUE(waitUntil(notified));
+    EXPECT_FALSE(receivedError.has_value()) << "No error shall be reported on a successful property get";
+    EXPECT_THAT(receivedValue.template get<std::string>(), Eq(DEFAULT_STATE_VALUE)) << "Property value shall equal the property default";
+}
+
+TYPED_TEST(SdbusTestObject, GetsPropertyAsynchronouslyAsTypedValueViaCallback)
+{
+    std::atomic notified{false};
+    std::optional<sdbus::Error> receivedError;
+    std::string receivedValue;
+    this->m_proxy->getProxy().getPropertyAsync(STATE_PROPERTY).onInterface(INTERFACE_NAME).uponReplyInvoke([&](std::optional<sdbus::Error> error, std::string value)
+    {
+        receivedError = std::move(error);
+        receivedValue = std::move(value);
+        notified = true;
+    });
+
+    ASSERT_TRUE(waitUntil(notified));
+    EXPECT_FALSE(receivedError.has_value()) << "No error shall be reported on a successful property get";
+    EXPECT_THAT(receivedValue, Eq(DEFAULT_STATE_VALUE)) << "Property value converted to its type shall equal the property default";
+}
+
+TYPED_TEST(SdbusTestObject, GetsPropertyAsynchronouslyViaCallbackWithReturnedSlot)
+{
+    std::atomic notified{false};
+    std::optional<sdbus::Error> receivedError;
+    std::string receivedValue;
+    auto slot = this->m_proxy->getProxy().getPropertyAsync(STATE_PROPERTY).onInterface(INTERFACE_NAME).uponReplyInvoke([&](std::optional<sdbus::Error> error, std::string value)
+    {
+        receivedError = std::move(error);
+        receivedValue = std::move(value);
+        notified = true;
+    }, sdbus::return_slot);
+
+    ASSERT_TRUE(waitUntil(notified));
+    EXPECT_FALSE(receivedError.has_value()) << "No error shall be reported on a successful property get";
+    EXPECT_THAT(receivedValue, Eq(DEFAULT_STATE_VALUE)) << "Property value converted to its type shall equal the property default";
+}
+
+TYPED_TEST(SdbusTestObject, PassesErrorToTypedPropertyGetCallbackOnPropertyTypeMismatch)
+{
+    std::atomic notified{false};
+    std::optional<sdbus::Error> receivedError;
+    uint32_t receivedValue{0};
+    // The `state` property is of string type, not uint32_t
+    this->m_proxy->getProxy().getPropertyAsync(STATE_PROPERTY).onInterface(INTERFACE_NAME).uponReplyInvoke([&](std::optional<sdbus::Error> error, uint32_t value)
+    {
+        receivedError = std::move(error);
+        receivedValue = value;
+        notified = true;
+    });
+
+    ASSERT_TRUE(waitUntil(notified));
+    EXPECT_TRUE(receivedError.has_value()) << "Reading string property as uint32_t shall be reported as error";
+    EXPECT_THAT(receivedValue, Eq(0)) << "A default-constructed value shall be passed along with the error";
+}
+
+TYPED_TEST(SdbusTestObject, PassesErrorToPropertyGetCallbackWhenPropertyDoesNotExist)
+{
+    std::atomic notified{false};
+    std::optional<sdbus::Error> receivedError;
+    std::string receivedValue;
+    this->m_proxy->getProxy().getPropertyAsync("nonexistent").onInterface(INTERFACE_NAME).uponReplyInvoke([&](std::optional<sdbus::Error> error, std::string value)
+    {
+        receivedError = std::move(error);
+        receivedValue = std::move(value);
+        notified = true;
+    });
+
+    ASSERT_TRUE(waitUntil(notified));
+    EXPECT_TRUE(receivedError.has_value()) << "Reading a nonexistent property shall be reported as error";
+    EXPECT_THAT(receivedValue, IsEmpty()) << "A default-constructed value shall be passed along with the error";
+}
+
+TYPED_TEST(SdbusTestObject, GetsPropertyAsynchronouslyViaFuture)
+{
+    auto future = this->m_proxy->getProxy().getPropertyAsync(STATE_PROPERTY).onInterface(INTERFACE_NAME).getResultAsFuture();
+
+    sdbus::Variant result;
+    ASSERT_NO_THROW(result = future.get());
+    EXPECT_THAT(result.get<std::string>(), Eq(DEFAULT_STATE_VALUE)) << "Property value obtained via future shall equal the property default";
+}
+
 TYPED_TEST(SdbusTestObject, NotifiesAboutPropertyChangeWithNewPropertyValue)
 {
     std::atomic notified{false};
