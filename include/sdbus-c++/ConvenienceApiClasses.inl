@@ -634,12 +634,9 @@ namespace sdbus {
     {
         static_assert( has_error_param_v<Function>
                      , "Property get callback function must accept std::optional<Error> as its first parameter" );
-        // function_arguments_t strips the std::optional<Error> first param (see TypeTraits.h),
-        // so the remaining tuple holds only the property value parameter.
-        using callback_args_t = function_arguments_t<Function>;
-        static_assert( std::tuple_size_v<callback_args_t> == 1
+        static_assert( function_argument_count_v<Function> == 1
                      , "Property get callback function must accept std::optional<Error> and property value" );
-        using value_t = std::decay_t<std::tuple_element_t<0, callback_args_t>>;
+        using value_t = std::decay_t<function_argument_t<Function, 0>>;
 
         if constexpr (std::is_same_v<value_t, Variant>)
             return std::forward<Function>(callback);
