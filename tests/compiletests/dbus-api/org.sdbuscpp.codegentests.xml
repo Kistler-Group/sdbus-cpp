@@ -22,5 +22,27 @@
             <arg type="b" name="filter-a" />
             <arg type="s" name="new-name" />
         </signal>
+        <!-- No EmitsChangedSignal annotation at all: D-Bus default is `true` -->
+        <property name="filterMode" type="s" access="readwrite" />
+        <!-- Same name as in the interface below: changes must be dispatched per interface -->
+        <property name="changing" type="u" access="read" />
+    </interface>
+    <!-- Property change handlers are generated only for properties that emit PropertiesChanged -->
+    <interface name="org.sdbuscpp.codegentests.PropertyChanges">
+        <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="false" />
+        <property name="changing" type="u" access="read">
+            <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="true" />
+        </property>
+        <property name="invalidating" type="s" access="readwrite">
+            <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="invalidates" />
+        </property>
+        <property name="inheriting" type="s" access="readwrite" />
+        <property name="variant" type="v" access="read">
+            <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="true" />
+        </property>
+        <property name="constant" type="i" access="read">
+            <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="const" />
+        </property>
+        <property name="writeOnly" type="u" access="write" />
     </interface>
 </node>
