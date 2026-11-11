@@ -630,31 +630,62 @@ namespace sdbus {
     }
 
     template <typename Function>
+    auto AsyncPropertyGetter::makeReplyHandler(Function&& callback)
+    {
+        static_assert( has_error_param_v<Function>
+                     , "Property get callback function must accept std::optional<Error> as its first parameter" );
+        static_assert( function_argument_count_v<Function> == 1
+                     , "Property get callback function must accept std::optional<Error> and property value" );
+        using value_t = std::decay_t<function_argument_t<Function, 0>>;
+
+        if constexpr (std::is_same_v<value_t, Variant>)
+            return std::forward<Function>(callback);
+        else
+            return [callback = std::forward<Function>(callback)](std::optional<Error> error, Variant value)
+            {
+                if (error)
+                {
+                    callback(std::move(error), value_t{});
+                    return;
+                }
+
+                value_t typedValue{};
+                try
+                {
+                    typedValue = value.get<value_t>();
+                }
+                catch (const Error& err)
+                {
+                    // Pass type mismatch errors to the client via callback error parameter,
+                    // the same way AsyncMethodInvoker handles reply deserialization errors.
+                    callback(err, value_t{});
+                    return;
+                }
+
+                callback(std::nullopt, std::move(typedValue));
+            };
+    }
+
+    template <typename Function>
     PendingAsyncCall AsyncPropertyGetter::uponReplyInvoke(Function&& callback)
     {
-        static_assert( std::is_invocable_r_v<void, Function, std::optional<Error>, Variant>
-                     , "Property get callback function must accept std::optional<Error> and property value as Variant" );
-
         assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
 
         return proxy_.callMethodAsync("Get")
                      .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
                      .withArguments(interfaceName_, propertyName_)
-                     .uponReplyInvoke(std::forward<Function>(callback));
+                     .uponReplyInvoke(makeReplyHandler(std::forward<Function>(callback)));
     }
 
     template <typename Function>
     [[nodiscard]] Slot AsyncPropertyGetter::uponReplyInvoke(Function&& callback, return_slot_t)
     {
-        static_assert( std::is_invocable_r_v<void, Function, std::optional<Error>, Variant>
-                     , "Property get callback function must accept std::optional<Error> and property value as Variant" );
-
         assert(!interfaceName_.empty()); // onInterface() must be placed/called prior to this function
 
         return proxy_.callMethodAsync("Get")
                      .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
                      .withArguments(interfaceName_, propertyName_)
-                     .uponReplyInvoke(std::forward<Function>(callback), return_slot);
+                     .uponReplyInvoke(makeReplyHandler(std::forward<Function>(callback)), return_slot);
     }
 
     inline std::future<Variant> AsyncPropertyGetter::getResultAsFuture()
