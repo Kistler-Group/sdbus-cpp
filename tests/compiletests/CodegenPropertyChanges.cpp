@@ -66,7 +66,6 @@ namespace
         template <typename T> using inheriting_handler_t = decltype(&T::onInheritingPropertyChanged);
         template <typename T> using write_only_handler_t = decltype(&T::onWriteOnlyPropertyChanged);
 
-    private:
         void onChangingPropertyChanged(const std::optional<uint32_t>& /*value*/) override {}
         void onInvalidatingPropertyChanged(const std::optional<std::string>& /*value*/) override {}
         void onVariantPropertyChanged(const std::optional<sdbus::Variant>& /*value*/) override {}
