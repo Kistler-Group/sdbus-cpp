@@ -240,6 +240,9 @@ namespace sdbus {
     {
     public:
         PropertySetter& onInterface(std::string_view interfaceName);
+        PropertySetter& withTimeout(uint64_t usec);
+        template <typename Rep, typename Period>
+        PropertySetter& withTimeout(const std::chrono::duration<Rep, Period>& timeout);
         template <typename Value> void toValue(const Value& value);
         template <typename Value> void toValue(const Value& value, dont_expect_reply_t);
         void toValue(const Variant& value);
@@ -254,12 +257,16 @@ namespace sdbus {
         IProxy& proxy_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
         std::string_view propertyName_;
         std::string_view interfaceName_;
+        uint64_t timeout_{};
     };
 
     class AsyncPropertySetter
     {
     public:
         AsyncPropertySetter& onInterface(std::string_view interfaceName);
+        AsyncPropertySetter& withTimeout(uint64_t usec);
+        template <typename Rep, typename Period>
+        AsyncPropertySetter& withTimeout(const std::chrono::duration<Rep, Period>& timeout);
         template <typename Value> AsyncPropertySetter& toValue(Value&& value);
         AsyncPropertySetter& toValue(Variant value);
         template <typename Function> PendingAsyncCall uponReplyInvoke(Function&& callback);
@@ -276,6 +283,7 @@ namespace sdbus {
         IProxy& proxy_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
         std::string_view propertyName_;
         std::string_view interfaceName_;
+        uint64_t timeout_{};
         Variant value_;
     };
 

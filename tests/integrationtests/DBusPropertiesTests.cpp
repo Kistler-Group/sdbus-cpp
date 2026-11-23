@@ -38,6 +38,7 @@
 #include <utility>
 #include <vector>
 
+using ::testing::AnyOf;
 using ::testing::Eq;
 using ::testing::NotNull;
 using ::testing::Not;
@@ -67,6 +68,53 @@ TYPED_TEST(SdbusTestObject, WritesAndReadsReadWritePropertySuccessfully)
     this->m_proxy->action(newActionValue);
 
     ASSERT_THAT(this->m_proxy->action(), Eq(newActionValue));
+}
+
+TYPED_TEST(SdbusTestObject, ThrowsTimeoutErrorWhenPropertySetTimesOut)
+{
+    this->m_adaptor->m_propertySetDelayMs = 1000;
+    try
+    {
+        this->m_proxy->getProxy().setProperty(BLOCKING_PROPERTY)
+                                 .onInterface(INTERFACE_NAME)
+                                 .withTimeout(1us)
+                                 .toValue(!DEFAULT_BLOCKING_VALUE);
+        FAIL() << "Expected sdbus::Error exception";
+    }
+    catch (const sdbus::Error& e)
+    {
+        ASSERT_THAT(e.getName(), AnyOf("org.freedesktop.DBus.Error.Timeout", "org.freedesktop.DBus.Error.NoReply"));
+        ASSERT_THAT(e.getMessage(), AnyOf("Connection timed out", "Operation timed out", "Method call timed out"));
+    }
+    catch(...)
+    {
+        FAIL() << "Expected sdbus::Error exception";
+    }
+}
+
+TYPED_TEST(SdbusTestObject, ThrowsTimeoutErrorWhenAsyncPropertySetTimesOut)
+{
+    this->m_adaptor->m_propertySetDelayMs = 1000;
+    try
+    {
+        auto future = this->m_proxy->getProxy().setPropertyAsync(BLOCKING_PROPERTY)
+                                               .onInterface(INTERFACE_NAME)
+                                               .withTimeout(1us)
+                                               .toValue(!DEFAULT_BLOCKING_VALUE)
+                                               .getResultAsFuture();
+        future.get();
+
+        FAIL() << "Expected sdbus::Error exception";
+    }
+    catch (const sdbus::Error& e)
+    {
+        ASSERT_THAT(e.getName(), AnyOf("org.freedesktop.DBus.Error.Timeout", "org.freedesktop.DBus.Error.NoReply"));
+        ASSERT_THAT(e.getMessage(), AnyOf("Connection timed out", "Operation timed out", "Method call timed out"));
+    }
+    catch(...)
+    {
+        FAIL() << "Expected sdbus::Error exception";
+    }
 }
 
 TYPED_TEST(SdbusTestObject, CanAccessAssociatedPropertySetMessageInPropertySetHandler)

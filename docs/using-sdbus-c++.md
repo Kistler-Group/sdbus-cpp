@@ -1433,7 +1433,18 @@ uint32_t status = ...;
 proxy->setProperty("status").onInterface("org.sdbuscpp.Concatenator").toValue(status);
 ```
 
-Setting a property in asynchronous manner is also possible, in callback-based, future-based, or awaitable way, by calling `IProxy::setPropertyAsync()` method:
+The general method call timeout is used by default. A custom timeout for this property set call can be specified with `withTimeout()`, either in microseconds or as a `std::chrono` duration:
+
+```c++
+using namespace std::chrono_literals;
+proxy->setProperty("status").onInterface("org.sdbuscpp.Concatenator").withTimeout(500ms).toValue(status);
+```
+
+Setting a property in asynchronous manner is also possible, in callback-based, future-based, or awaitable way, by calling `IProxy::setPropertyAsync()` method. The asynchronous property setter supports `withTimeout()` in the same way:
+
+```c++
+auto future = proxy->setPropertyAsync("status").onInterface("org.sdbuscpp.Concatenator").withTimeout(500ms).toValue(status).getResultAsFuture();
+```
 
 ```c++
 // Callback-based method:
