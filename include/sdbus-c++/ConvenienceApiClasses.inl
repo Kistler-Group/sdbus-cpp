@@ -634,6 +634,8 @@ namespace sdbus {
     {
         static_assert( has_error_param_v<Function>
                      , "Property get callback function must accept std::optional<Error> as its first parameter" );
+        // Function traits strip the std::optional<Error> first param (see TypeTraits.h),
+        // so the only remaining argument is the property value parameter.
         static_assert( function_argument_count_v<Function> == 1
                      , "Property get callback function must accept std::optional<Error> and property value" );
         using value_t = std::decay_t<function_argument_t<Function, 0>>;

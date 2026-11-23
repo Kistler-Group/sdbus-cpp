@@ -75,6 +75,15 @@ private:
      */
     std::tuple<std::string, std::string> processProperties(const sdbuscpp::xml::Nodes& properties) const;
 
+    /**
+     * Generate handling of property changes for properties that emit PropertiesChanged signal
+     * @param properties
+     * @param interfaceUpdateBehavior Value of interface-level EmitsChangedSignal annotation (empty if none)
+     * @return tuple: registration, declaration of virtual property change handlers
+     */
+    std::tuple<std::string, std::string> processPropertyChanges( const sdbuscpp::xml::Nodes& properties
+                                                               , const std::string& interfaceUpdateBehavior ) const;
+
 };
 
 

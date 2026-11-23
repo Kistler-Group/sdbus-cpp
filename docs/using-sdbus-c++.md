@@ -1619,6 +1619,71 @@ public:
 };
 ```
 
+#### Property change handlers
+
+For every readable property that emits the `PropertiesChanged` signal, the generator generates a virtual property change handler `on<PropertyName>PropertyChanged()` in the proxy class. Whether a property emits the signal is given by the standard `org.freedesktop.DBus.Property.EmitsChangedSignal` annotation of the property, or of its interface if the property is not annotated. Per D-Bus specification, the default is `true`. Handlers are generated for `true` and `invalidates` values, and not for `const` and `false` values.
+
+Like signal handlers, property change handlers have an empty default body, so we override only those we are interested in. The proxy subscribes to the `PropertiesChanged` signal once for the whole interface in `registerProxy()`, and dispatches each changed or invalidated property of the interface to its handler. Just like with `IProxy::uponPropertyChange()`, the property value is passed as `std::optional<T>`, which is empty when the property is invalidated.
+
+For example, this description:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<node name="/org/sdbuscpp/propertyprovider">
+    <interface name="org.sdbuscpp.PropertyProvider">
+        <!--...-->
+        <property name="status" type="u" access="readwrite"/>
+        <property name="action" type="u" access="read">
+            <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="invalidates"/>
+        </property>
+        <property name="serial" type="s" access="read">
+            <annotation name="org.freedesktop.DBus.Property.EmitsChangedSignal" value="const"/>
+        </property>
+        <!--...-->
+    </interface>
+</node>
+```
+
+will get generated into this C++ code on client side (there is no handler for the constant `serial` property):
+
+```cpp
+class PropertyProvider_proxy
+{
+    /*...*/
+
+    void registerProxy()
+    {
+        m_proxy.uponSignal("PropertiesChanged").onInterface("org.freedesktop.DBus.Properties").call([this]( const sdbus::InterfaceName& interfaceName, const std::map<sdbus::PropertyName, sdbus::Variant>& changedProperties, const std::vector<sdbus::PropertyName>& invalidatedProperties )
+        {
+            if (interfaceName != INTERFACE_NAME)
+                return;
+            for (const auto& [name, value] : changedProperties)
+            {
+                if (name == "status")
+                    this->onStatusPropertyChanged(value.get<uint32_t>());
+                else if (name == "action")
+                    this->onActionPropertyChanged(value.get<uint32_t>());
+            }
+            for (const auto& name : invalidatedProperties)
+            {
+                if (name == "status")
+                    this->onStatusPropertyChanged(std::nullopt);
+                else if (name == "action")
+                    this->onActionPropertyChanged(std::nullopt);
+            }
+        });
+    }
+
+    virtual void onStatusPropertyChanged(const std::optional<uint32_t>& /*value*/) {}
+    virtual void onActionPropertyChanged(const std::optional<uint32_t>& /*value*/) {}
+
+    /*...*/
+};
+```
+
+Both changed and invalidated properties are checked for every property, regardless of its annotation, so that changes are delivered even from a server that does not exactly follow the annotation. Like with generated signal handlers, a property value that does not match the property type in the IDL results in an exception propagated up the event loop.
+
 In addition to custom generated code for getting/setting properties, `org.freedesktop.DBus.Properties` standard D-Bus interface, implemented through pre-defined `sdbus::Properties_proxy` in `sdbus-c++/StandardInterfaces.h`, can also be used for reading/writing properties. See next section.
 
 Standard D-Bus interfaces

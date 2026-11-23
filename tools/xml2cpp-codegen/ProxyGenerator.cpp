@@ -107,6 +107,19 @@ std::string ProxyGenerator::processInterface(Node& interface) const
     std::string registration, declaration;
     std::tie(registration, declaration) = processSignals(signals);
 
+    std::string interfaceUpdateBehavior;
+    Nodes interfaceAnnotations = interface["annotation"];
+    for (const auto& annotation : interfaceAnnotations)
+    {
+        if (annotation->get("name") == "org.freedesktop.DBus.Property.EmitsChangedSignal")
+            interfaceUpdateBehavior = annotation->get("value");
+    }
+
+    std::string propertyChangeRegistration, propertyChangeDeclaration;
+    std::tie(propertyChangeRegistration, propertyChangeDeclaration) = processPropertyChanges(properties, interfaceUpdateBehavior);
+    registration += propertyChangeRegistration;
+    declaration += propertyChangeDeclaration;
+
     body << tab << "void registerProxy()" << endl
          << tab << "{" << endl
          << registration
@@ -538,4 +551,71 @@ std::tuple<std::string, std::string> ProxyGenerator::processProperties(const Nod
     }
 
     return std::make_tuple(propertySS.str(), asyncDeclarationSS.str());
+}
+
+std::tuple<std::string, std::string> ProxyGenerator::processPropertyChanges( const Nodes& properties
+                                                                           , const std::string& interfaceUpdateBehavior ) const
+{
+    std::ostringstream changedSS, invalidatedSS, declarationSS;
+
+    for (const auto& property : properties)
+    {
+        auto propertyName = property->get("name");
+        auto propertyAccess = property->get("access");
+        auto propertySignature = property->get("type");
+
+        // Per D-Bus specification, the property-level annotation overrides the interface-level one,
+        // and the default (no annotation) is `true`
+        auto updateBehavior = interfaceUpdateBehavior.empty() ? std::string("true") : interfaceUpdateBehavior;
+        Nodes annotations = (*property)["annotation"];
+        for (const auto& annotation : annotations)
+        {
+            if (annotation->get("name") == "org.freedesktop.DBus.Property.EmitsChangedSignal")
+                updateBehavior = annotation->get("value");
+        }
+
+        // Write-only properties cannot be read, `const` and `false` properties never emit PropertiesChanged
+        if (propertyAccess == "write" || (updateBehavior != "true" && updateBehavior != "invalidates"))
+            continue;
+
+        auto propertyType = signature_to_type(propertySignature);
+        auto nameBigFirst = mangle_name(propertyName);
+        nameBigFirst[0] = islower(nameBigFirst[0]) ? nameBigFirst[0] + 'A' - 'a' : nameBigFirst[0];
+        auto handlerName = "on" + nameBigFirst + "PropertyChanged";
+        auto elsePrefix = changedSS.tellp() == 0 ? "" : "else ";
+
+        // Changed and invalidated lists are both checked regardless of the annotation, so that a server
+        // which does not exactly follow the annotation still has its changes delivered
+        changedSS << tab << tab << tab << tab << elsePrefix << "if (name == \"" << propertyName << "\")" << endl
+                  << tab << tab << tab << tab << tab << "this->" << handlerName << "(value.get<" << propertyType << ">());" << endl;
+        invalidatedSS << tab << tab << tab << tab << elsePrefix << "if (name == \"" << propertyName << "\")" << endl
+                      << tab << tab << tab << tab << tab << "this->" << handlerName << "(std::nullopt);" << endl;
+
+        declarationSS << tab << "virtual void " << handlerName << "(const std::optional<" << propertyType << ">& /*value*/) {}" << endl;
+    }
+
+    if (changedSS.tellp() == 0)
+        return std::make_tuple(std::string{}, std::string{});
+
+    std::ostringstream registrationSS;
+    registrationSS << tab << tab << "m_proxy"
+                      ".uponSignal(\"PropertiesChanged\")"
+                      ".onInterface(\"org.freedesktop.DBus.Properties\")"
+                      ".call([this]( const sdbus::InterfaceName& interfaceName"
+                      ", const std::map<sdbus::PropertyName, sdbus::Variant>& changedProperties"
+                      ", const std::vector<sdbus::PropertyName>& invalidatedProperties )" << endl
+                   << tab << tab << "{" << endl
+                   << tab << tab << tab << "if (interfaceName != INTERFACE_NAME)" << endl
+                   << tab << tab << tab << tab << "return;" << endl
+                   << tab << tab << tab << "for (const auto& [name, value] : changedProperties)" << endl
+                   << tab << tab << tab << "{" << endl
+                   << changedSS.str()
+                   << tab << tab << tab << "}" << endl
+                   << tab << tab << tab << "for (const auto& name : invalidatedProperties)" << endl
+                   << tab << tab << tab << "{" << endl
+                   << invalidatedSS.str()
+                   << tab << tab << tab << "}" << endl
+                   << tab << tab << "});" << endl;
+
+    return std::make_tuple(registrationSS.str(), declarationSS.str());
 }
