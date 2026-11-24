@@ -727,6 +727,20 @@ namespace sdbus {
         return *this;
     }
 
+    inline PropertySetter& PropertySetter::withTimeout(uint64_t usec)
+    {
+        timeout_ = usec;
+
+        return *this;
+    }
+
+    template <typename Rep, typename Period>
+    inline PropertySetter& PropertySetter::withTimeout(const std::chrono::duration<Rep, Period>& timeout)
+    {
+        auto microsecs = std::chrono::duration_cast<std::chrono::microseconds>(timeout);
+        return withTimeout(microsecs.count());
+    }
+
     template <typename Value>
     inline void PropertySetter::toValue(const Value& value)
     {
@@ -745,6 +759,7 @@ namespace sdbus {
 
         proxy_.callMethod("Set")
               .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
+              .withTimeout(timeout_)
               .withArguments(interfaceName_, propertyName_, value);
     }
 
@@ -754,6 +769,7 @@ namespace sdbus {
 
         proxy_.callMethod("Set")
               .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
+              .withTimeout(timeout_)
               .withArguments(interfaceName_, propertyName_, value)
               .dontExpectReply();
     }
@@ -773,6 +789,20 @@ namespace sdbus {
         interfaceName_ = std::move(interfaceName);
 
         return *this;
+    }
+
+    inline AsyncPropertySetter& AsyncPropertySetter::withTimeout(uint64_t usec)
+    {
+        timeout_ = usec;
+
+        return *this;
+    }
+
+    template <typename Rep, typename Period>
+    inline AsyncPropertySetter& AsyncPropertySetter::withTimeout(const std::chrono::duration<Rep, Period>& timeout)
+    {
+        auto microsecs = std::chrono::duration_cast<std::chrono::microseconds>(timeout);
+        return withTimeout(microsecs.count());
     }
 
     template <typename Value>
@@ -798,6 +828,7 @@ namespace sdbus {
 
         return proxy_.callMethodAsync("Set")
                      .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
+                     .withTimeout(timeout_)
                      .withArguments(interfaceName_, propertyName_, std::move(value_))
                      .uponReplyInvoke(std::forward<Function>(callback));
     }
@@ -812,6 +843,7 @@ namespace sdbus {
 
         return proxy_.callMethodAsync("Set")
                      .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
+                     .withTimeout(timeout_)
                      .withArguments(interfaceName_, propertyName_, std::move(value_))
                      .uponReplyInvoke(std::forward<Function>(callback), return_slot);
     }
@@ -822,6 +854,7 @@ namespace sdbus {
 
         return proxy_.callMethodAsync("Set")
                      .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
+                     .withTimeout(timeout_)
                      .withArguments(interfaceName_, propertyName_, std::move(value_))
                      .getResultAsFuture<>();
     }
@@ -832,6 +865,7 @@ namespace sdbus {
 
         return proxy_.callMethodAsync("Set")
                      .onInterface(DBUS_PROPERTIES_INTERFACE_NAME)
+                     .withTimeout(timeout_)
                      .withArguments(interfaceName_, propertyName_, std::move(value_))
                      .getResultAsAwaitable<>();
     }

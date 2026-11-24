@@ -300,6 +300,8 @@ bool TestAdaptor::blocking()
 
 void TestAdaptor::blocking(const bool& value)
 {
+    std::this_thread::sleep_for(std::chrono::milliseconds{m_propertySetDelayMs.load()});
+
     m_propertySetMsg = std::make_unique<const Message>(getObject().getCurrentlyProcessedMessage());
     m_propertySetSender = m_propertySetMsg->getSender();
 

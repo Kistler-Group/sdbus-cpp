@@ -125,6 +125,7 @@ public: // for tests
     MethodName m_methodName;
     std::unique_ptr<const Message> m_propertySetMsg;
     std::string m_propertySetSender;
+    std::atomic<uint32_t> m_propertySetDelayMs{0};
 };
 
 class DummyTestAdaptor final : public sdbus::AdaptorInterfaces< org::sdbuscpp::integrationtests_adaptor
