@@ -197,7 +197,7 @@ TYPED_TEST(SdbusTestObject, ThrowsTimeoutErrorWhenMethodTimesOut)
         ASSERT_THAT(e.getName(), AnyOf("org.freedesktop.DBus.Error.Timeout", "org.freedesktop.DBus.Error.NoReply"));
         ASSERT_THAT(e.getMessage(), AnyOf("Connection timed out", "Operation timed out", "Method call timed out"));
         auto measuredTimeout = std::chrono::steady_clock::now() - start;
-        ASSERT_THAT(measuredTimeout, Le(50ms));
+        ASSERT_THAT(measuredTimeout, Le(500ms)); // Well below the 1s operation time, with headroom for slow (e.g. emulated) machines
     }
     catch(...)
     {
@@ -309,7 +309,12 @@ TYPED_TEST(SdbusTestObject, CallsMethodWithLargeArgument)
         //totalSize += sizeof(int) + collection[i].size();
     }
     //printf("Sending large message with collection of size %zu bytes\n", totalSize);
-    this->m_proxy->sendLargeMessage(collection);
+    // Marshalling and transferring ~30 MB takes long on slow (e.g. emulated) machines,
+    // so don't let the call run into the default 25s method call timeout
+    this->m_proxy->getProxy().callMethod("sendLargeMessage")
+                             .onInterface("org.sdbuscpp.integrationtests")
+                             .withTimeout(120s)
+                             .withArguments(collection);
 }
 
 TYPED_TEST(SdbusTestObject, CanSendCallsAndReceiveRepliesWithLargeData)
