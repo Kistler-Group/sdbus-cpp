@@ -434,5 +434,5 @@ std::string AdaptorGenerator::propertyAnnotationToFlag(const std::string& annota
          : annotationValue == "invalidates" ? "sdbus::Flags::EMITS_INVALIDATION_SIGNAL"
          : annotationValue == "const" ? "sdbus::Flags::CONST_PROPERTY_VALUE"
          : annotationValue == "false" ? "sdbus::Flags::EMITS_NO_SIGNAL"
-         : "EMITS_CHANGE_SIGNAL"; // Default
+         : "sdbus::Flags::EMITS_CHANGE_SIGNAL"; // Default
 }
