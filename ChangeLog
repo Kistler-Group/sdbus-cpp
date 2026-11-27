@@ -325,3 +325,17 @@ v2.3.0
 
 v2.3.1
 - Fix ABI compat issue by moving new virtual functions to the end of the class
+
+v2.4.0
+- Implement client tracking feature
+- Add support for custom direct callback in generated proxy class
+- Add API for convenient watching of property changes
+- Allow property of direct type in getPropertyAsync() callback
+- Allow custom timeout for property setting
+- Sanitize arguments into valid C++ identifiers in code generator
+- Fix out-of-bounds access in code generator
+- Clarify how to use sdbus::Result without return value
+- Fix C++17 API compatibility
+- Fix generic error test on MUSL
+- Fix potential ambiguous call in signal handlers
+- Other fixes and improvements
